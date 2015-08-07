@@ -49,7 +49,10 @@ April 4, 2013	Converted to use GMT5 and redone the entire install procedure.  Li
    but you only need to download it once. Put it anywhere you like; let's refer to this dir as <orbitsdir>
 
 4) Obtain GMT5SAR subversion:
-     Run svn checkout svn://gmtserver.soest.hawaii.edu/GMT5SAR GMT5SAR
+     If you are a developer you probably want the entire GMT5SAR tree:
+     	svn checkout svn://gmtserver.soest.hawaii.edu/GMT5SAR GMT5SAR
+     otherwise you probably just need to get the current version (trunk):
+     	svn checkout svn://gmtserver.soest.hawaii.edu/GMT5SAR/trunk GMT5SAR
      in a suitable staging directory.  Then, in the top GMT5SAR directory,
      create the configure script by running autoconf:
      

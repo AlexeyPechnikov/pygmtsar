@@ -2,6 +2,10 @@
 	$Id$
 -----------------------------------------------------------------------------------------
 
+2015-08-07	pwessel
+	Added standard svn trunk, branches, tags directory structure in
+	anticipation of working on branches for new features.
+
 2015-07-31	pwessel
 	Added use of macros AX_LAPACK and AX_BLAS to find Lapack libs
 	and allow compilation of sbas.
