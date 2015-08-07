@@ -1,0 +1,3 @@
+asa_cat:	add " -lm" in Makefile  (missing "floor")
+Dop_orbit:	mv -lALOS after -lENVI on compile line
+ENVI_decode:	add <string.h> to asa_im_decode.c

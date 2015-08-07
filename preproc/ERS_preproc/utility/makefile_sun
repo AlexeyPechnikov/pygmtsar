@@ -1,0 +1,13 @@
+#
+# Makefile for ccrs2dpaf and dopiq.
+#
+cc = gcc
+flag = -O2
+SLIB = ../../../../lib/sun4/libsiosar.a
+
+ccrs2dpaf:	ccrs2dpaf.c 
+	cc ccrs2dpaf.c -o ../../../../bin/sun4/ccrs2dpaf
+
+clean:
+	rm -f *.o
+

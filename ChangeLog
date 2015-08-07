@@ -1,0 +1,27 @@
+-----------------------------------------------------------------------------------------
+	$Id$
+-----------------------------------------------------------------------------------------
+
+2015-07-31	pwessel
+	Added use of macros AX_LAPACK and AX_BLAS to find Lapack libs
+	and allow compilation of sbas.
+
+2015-07-26	pwessel
+	Add search for location of boost libs/includes and an optional
+	--with-boost-dir=<dir> option for unusual places.  Removed a
+	bunch of unnecessary $(NETCDFHOME) references in Makefiles.
+
+2015-01-27	pwessel
+	Clean up makefiles, define M_PI for Linux.  Compiles on both
+	Ubuntu and OS X.
+	
+2013-08-12	pwessel
+	Added GMT5SAR wiki at SOEST for bug tracking etc. Added Kurt etc
+	as members.
+
+2013-04-05	pwessel
+	Phase 1 of porting complete: Everything compiles and links.
+	Next step is to actually test the code and fix mistakes.
+	
+2012-10-23	pwessel
+	Migrated GMTSAR to GMT5SAR and started subversion repository.

@@ -1,0 +1,70 @@
+Rob,
+
+The parameters come from a variety of programs/locations.  I think the
+following reflects the places where we should get each parameter.
+For example, although the approximate PRF is in the leader file,
+the exact PRF comes from fix_line.  If each program can send the parameters
+to standard output they can be appended to a growing parameter file.
+
+Hope this helps.  I think we are close to automating this first part!
+
+David
+
+
+0 - default value
+1 - provided by user
+2 - from leader file
+3 - from raw data file
+4 - from ers-baseline
+5 - from ampoffset
+
+source	name			= value
+_________________________________________________
+
+1	input_file		= 960108182829.RAW
+3	bytes_per_line		= 12060
+3	good_bytes_per_line	= 11644
+3	first_sample		= 206
+0	num_valid_az		= 2800
+4	earth_radius		= 6371240.773431
+4	SC_vel			= 7124.136057
+4	SC_height		= 794267.726569
+2	SC_identity = 2
+3	SC_clock_start = 96008.7697812
+3	SC_clock_stop = 96008.7699878
+3	near_range		= 830777.086016 (speed of light times To ?)
+3	PRF			= 1679.9024
+2	I_mean			= 15.647000
+2	Q_mean			= 15.516000
+2	rng_samp_rate		= 1.896e+07
+2	chirp_slope		= 4.1779e+11
+2	pulse_dur		= 3.712e-05
+2	radar_wavelength	= 0.056560
+0	first_line		= 1
+3	num_patches		= 10
+0	deskew			= n
+0	caltone			= 0.000000
+0	st_rng_bin		= 1
+0	num_rng_bins		= 5120
+0	Flip_iq			= n
+0	offset_video		= n
+0	az_res			= 6
+0	nlooks			= 1
+0	chirp_ext		= 0
+0	scnd_rng_mig		= n
+0	rng_spec_wgt		= 1.000000
+0	rm_rng_band		= 0.000000
+0	rm_az_band		= 0.000000
+?	fd1			= 221.123
+0	fdd1			= 0.0
+0	fddd1			= 0.0
+4	xshift			= -14
+4	yshift			= 267
+5	sub_int_r		= 0.3078814
+5	sub_int_a		= 0.013641
+5	stretch_r		= -0.000541330315
+5	stretch_a		= 0.0000162
+4	baseline_start          =   135.043
+4	baseline_end            =   138.860
+4	alpha_start             =  178.448
+4	alpha_end               =  178.399
