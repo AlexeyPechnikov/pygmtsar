@@ -34,7 +34,7 @@ unset noclobber
 #
   if ((($1 =~ *PRM*) || ($1 =~ *prm*)) && ($3 =~ *grd*)) then
     echo " range decimation is:" $2
-    conv 4 $2 $fil1 $1 $3=bf
+    conv 4 $2 $fil1 $1 $3
   else 
     echo "slc2amp.csh"
     echo "wrong filename" 
@@ -43,4 +43,4 @@ unset noclobber
 # 
 # get the zmin and zmax value
 #
-  gmt grdmath $3=bf 1 MUL = $3
+  gmt grdmath $3 1 MUL = $3

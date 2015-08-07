@@ -141,10 +141,10 @@ int main(int argc, char **argv)
 	int	iend, ylen, iread;
 	uint64_t	left_node;
 	unsigned int row;
-	char	input_name[128], output_name[128], prmfilename[128];
+	char	input_name[128], output_name[128], prmfilename[128], *c = NULL;
 	short	*cindat = NULL;
 	float	*cfdat = NULL;
-	double	inc[2], wesn[4], xmax = 0.0, ymax = 0.0;
+	double	inc[2], wesn[4], xmax, ymax;
 	float	*filter = NULL,*buffer = NULL,*indat = NULL;
 	float 	filtin, filtdat,rnorm,rnormax,anormax;
 	FILE	*f_filter = NULL, *f_input = NULL;
@@ -190,6 +190,7 @@ int main(int argc, char **argv)
 		case 1:
 			if (verbose) fprintf(stderr," reading GMT binary\n");
 			if ((In = GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, input_name, NULL)) == NULL) die("Can't open ",input_name);
+			if ((c = strstr (input_name, "=bf"))) c[0] = '\0';	/* Chop off any trailing =bf flag */
 			if ((f_input = fopen(input_name,"r")) == NULL) die("Can't open ",input_name);
 			fseek (f_input, 892L, SEEK_SET);	/* Skip past the header */
 			xdim=In->header->nx;

@@ -9,6 +9,7 @@
 #
 # add in TSX, Jan 10 2014
 alias rm 'rm -f'
+gmt set IO_NC4_CHUNK_SIZE classic
 #
 
   if ($#argv < 2) then
@@ -52,7 +53,7 @@ errormessage:
   if ($#argv == 2 || $#argv == 4 || $#argv == 6) then 
     echo "intf.csh"
     echo "running phasediff..."
-    phasediff $argv
+    phasediff $argv -topo topo_ra.grd
   else
     goto errormessage
   endif

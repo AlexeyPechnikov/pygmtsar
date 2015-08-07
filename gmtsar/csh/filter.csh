@@ -10,7 +10,9 @@
 # Form amplitude, phase, phase gradient, and correlation images. 
 #
 #
-alias rm 'rm -f'
+  alias rm 'rm -f'
+  gmt set IO_NC4_CHUNK_SIZE classic
+
 #
 #
 # set grdimage options
@@ -79,24 +81,24 @@ errormessage:
   echo "filter.csh"
   echo "making amplitudes..."
   conv $az_lks $dec_rng $filter1 $1 amp1_tmp.grd=bf
-  conv $dec $dec $filter2 amp1_tmp.grd amp1.grd
+  conv $dec $dec $filter2 amp1_tmp.grd=bf amp1.grd
   rm amp1_tmp.grd
   conv $az_lks $dec_rng $filter1 $2 amp2_tmp.grd=bf
-  conv $dec $dec $filter2 amp2_tmp.grd amp2.grd
+  conv $dec $dec $filter2 amp2_tmp.grd=bf amp2.grd
   rm amp2_tmp.grd
 #
 # filter the real and imaginary parts of the interferogram
 # also compute gradients
 #
   echo "filtering interferogram..."
-  conv $az_lks $dec_rng $filter1 real.grd real_tmp.grd=bf
-  conv $dec $dec $filter2 real_tmp.grd realfilt.grd
+  conv $az_lks $dec_rng $filter1 real.grd=bf real_tmp.grd=bf
+  conv $dec $dec $filter2 real_tmp.grd=bf realfilt.grd
 #  conv $dec $dec $filter4 real_tmp.grd xreal.grd
 #  conv $dec $dec $filter5 real_tmp.grd yreal.grd
   rm real_tmp.grd 
   rm real.grd
-  conv $az_lks $dec_rng $filter1 imag.grd imag_tmp.grd=bf
-  conv $dec $dec $filter2 imag_tmp.grd imagfilt.grd
+  conv $az_lks $dec_rng $filter1 imag.grd=bf imag_tmp.grd=bf
+  conv $dec $dec $filter2 imag_tmp.grd=bf imagfilt.grd
 #  conv $dec $dec $filter4 imag_tmp.grd ximag.grd
 #  conv $dec $dec $filter5 imag_tmp.grd yimag.grd
   rm imag_tmp.grd 
@@ -120,7 +122,7 @@ errormessage:
   gmt grdmath amp1.grd amp2.grd MUL = tmp.grd
   gmt grdmath tmp.grd $thresh GE 0 NAN = mask.grd
   gmt grdmath amp.grd tmp.grd SQRT DIV mask.grd MUL FLIPUD = tmp2.grd=bf
-  conv 1 1 $filter3 tmp2.grd corr.grd
+  conv 1 1 $filter3 tmp2.grd=bf corr.grd
   gmt makecpt -T0./.8/0.1 -Cgray -Z -N > corr.cpt
   echo "N  255   255   254" >> corr.cpt
   gmt grdimage corr.grd $scale -Ccorr.cpt -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3 -Y3 -P -K > corr.ps

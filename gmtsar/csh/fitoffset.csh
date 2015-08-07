@@ -36,7 +36,7 @@ endif
 #
 #  make sure there are enough points remaining, otherwise exit
 #
- set NPTS0 = ` wc -l $1 | awk '{print $1}'`
+ set NPTS0 = ` wc -l $2 | awk '{print $1}'`
  set NPTS = ` wc -l r.xyz | awk '{print $1}'`
  if($NPTS < 8) then
   echo "  "
