@@ -69,7 +69,7 @@ endif
 # resample and flip top to bottom for both ascending and descending passes
 #  
   gmt grdsample node.grd -T -Gtopo_rat.grd
-  gmt grdmath topo_rat.grd FLIPUD = topo_ra.grd=bf
+  gmt grdmath topo_rat.grd FLIPUD = topo_ra.grd
 # 
 # plotting
 # 

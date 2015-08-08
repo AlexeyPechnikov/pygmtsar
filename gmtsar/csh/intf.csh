@@ -53,7 +53,7 @@ errormessage:
   if ($#argv == 2 || $#argv == 4 || $#argv == 6) then 
     echo "intf.csh"
     echo "running phasediff..."
-    phasediff $argv -topo topo_ra.grd
+    phasediff $argv 
   else
     goto errormessage
   endif
