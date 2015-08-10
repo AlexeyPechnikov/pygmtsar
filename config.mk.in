@@ -33,6 +33,9 @@ CPP		= @CPP@
 CPPFLAGS	= $(INCLUDES) $(DEFINES) @CPPFLAGS@
 HDF5_CPPFLAGS	= @HDF5_CPPFLAGS@
 HDF5_LDFLAGS	= @HDF5_LDFLAGS@
+BOOST_CPPFLAGS	= @BOOST_CPPFLAGS@
+BOOST_LDFLAGS	= @BOOST_LDFLAGS@
+
 #-------------------------------------------------------------------------------
 #	Math library specification 
 #	(Will most of the time be -lm, on Solaris -lsunmath -lm)

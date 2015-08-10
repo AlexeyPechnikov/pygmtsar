@@ -58,6 +58,8 @@ AC_SUBST(CPPFLAGS)
 AC_SUBST(HDF5_CPPFLAGS)
 AC_SUBST(HDF5_LDFLAGS)
 AC_SUBST(HDF5_LIBS)
+AC_SUBST(BOOST_CPPFLAGS)
+AC_SUBST(BOOST_LDFLAGS)
 AC_SUBST(LD_OPT)
 AC_SUBST(LDFLAGS)
 AC_SUBST(GMT_LIB)
@@ -176,6 +178,7 @@ else
 	BOOST_DIR=$with_boost_dir
 fi
 AC_MSG_RESULT($BOOST_DIR)
+AX_BOOST_BASE()
 dnl
 dnl
 dnl ------------------------------------------------------------------
