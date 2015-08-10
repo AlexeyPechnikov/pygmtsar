@@ -50,7 +50,8 @@ dnl GMT5SAR-specific make macros
 dnl ------------------------------------------------------------------
 dnl
 AC_SUBST(ORBITS_DIR)
-AC_SUBST(BOOST_DIR)
+AC_SUBST(BOOST_INC)
+AC_SUBST(BOOST_LIB)
 AC_SUBST(LALIBS)
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
@@ -75,7 +76,8 @@ dnl Special configure options for GMTSAR installation
 dnl ------------------------------------------------------------------
 dnl
 AC_ARG_WITH(orbits_dir, [  --with-orbits-dir=      Full path to ORBITS directory[[auto]]], [], [with_orbits_dir=no])
-AC_ARG_WITH(boost_dir,  [  --with-boost-dir=       Full path to boost top directory with lib and include [[auto]]])
+AC_ARG_WITH(boost_idir, [  --with-boost-include=   Full path to boost include directory [[auto]]])
+AC_ARG_WITH(boost_ldir, [  --with-boost-lib=       Full path to boost lib directory [[auto]]])
 AC_ARG_WITH(gmt_config, [  --with-gmt-config=      Full path to gmt-config [[auto]]])
 AC_ARG_ENABLE(debug,    [  --enable-debug          Compile for debugging instead of optimizing code])
 AC_ARG_ENABLE(rpath,	[  --disable-rpath         Do not hardcode runtime library paths])
@@ -152,33 +154,52 @@ dnl ------------------------------------------------------------------
 AC_MSG_CHECKING(for HDF5 include)
 AX_LIB_HDF5()
 AC_MSG_RESULT($HDF5_CPPFLAGS)
-if test "X$os" = "XDarwin" ; then
+if test "X$os" = "XDarwin" ; then	# Override with known libs
 	HDF5_LIBS="-lhdf5_cpp -lhdf5 -lm"
 fi
 dnl
 dnl ------------------------------------------------------------------
-dnl Set path to boost directory with --with-boost=dir
+dnl Set path to boost directories with --with-boost=include|lib
 dnl ------------------------------------------------------------------
 dnl
-AC_MSG_CHECKING(for BOOST directory)
-if test "X$with_boost_dir" = "X"; then	# Must look for it in standard places
+AC_MSG_CHECKING(for BOOST include directory)
+if test "X$with_boost_idir" = "X"; then	# Must look for it in standard places
 	if [ test -d /opt/local/include/boost ]; then	# macports
-		BOOST_DIR=/opt/local
+		BOOST_INC=/opt/local/include
 	elif [ test -d /sw/include/boost ]; then		# fink
-		BOOST_DIR=/sw
+		BOOST_INC=/sw/include
 	elif [ test -d /usr/local/include/boost ]; then
-		BOOST_DIR=/usr/local
+		BOOST_INC=/usr/local/include
 	elif [ test -d /usr/include/boost ]; then	# Ubuntu
-		BOOST_DIR=/usr
+		BOOST_INC=/usr/include
 	elif [ test -d /opt/csw/include/boost ]; then 	# Blastwave
-		BOOST_DIR=/opt/csw
+		BOOST_INC=/opt/csw/include
 	elif [ test -d /opt/include/boost ]; then
-		BOOST_DIR=/opt
+		BOOST_INC=/opt/include
 	fi
 else
-	BOOST_DIR=$with_boost_dir
+	BOOST_INC=$with_boost_idir
 fi
-AC_MSG_RESULT($BOOST_DIR)
+AC_MSG_RESULT($BOOST_INC)
+AC_MSG_CHECKING(for BOOST library directory)
+if test "X$with_boost_ldir" = "X"; then	# Must look for it in standard places
+	if [ test -d /opt/local/include/boost ]; then	# macports
+		BOOST_LIB=/opt/local/lib
+	elif [ test -d /sw/include/boost ]; then		# fink
+		BOOST_LIB=/sw/lib
+	elif [ test -d /usr/local/include/boost ]; then
+		BOOST_LIB=/usr/local/lib
+	elif [ test -d /usr/include/boost ]; then	# Ubuntu
+		BOOST_LIB=/usr/lib/x86_64-linux-gnu
+	elif [ test -d /opt/csw/include/boost ]; then 	# Blastwave
+		BOOST_LIB=/opt/csw/lib
+	elif [ test -d /opt/include/boost ]; then
+		BOOST_LIB=/opt/lib
+	fi
+else
+	BOOST_LIB=$with_boost_ldir/lib
+fi
+AC_MSG_RESULT($BOOST_LIB)
 dnl
 dnl
 dnl ------------------------------------------------------------------

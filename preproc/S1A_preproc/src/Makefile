@@ -3,8 +3,8 @@ PROG =  make_slc_s1a
 CSRCS = make_slc_s1a.cpp s1a.cpp
 
 OBJS =  $(CSRCS:.cpp=.o)
-INCLUDES = -I../include -I../libsar/include -I$(BOOST_DIR)/include
-CLIBS = -L../libtinyxpath -ltinyxpath -L../libsar -lsar -L$(BOOST_DIR)/lib \
+INCLUDES = -I../include -I../libsar/include -I$(BOOST_INC)
+CLIBS = -L../libtinyxpath -ltinyxpath -L../libsar -lsar -L$(BOOST_LIB) \
 	-lboost_system$(MT) -lboost_program_options$(MT) \
 	-lboost_filesystem$(MT) -lboost_date_time$(MT) -ltiff -lm
 

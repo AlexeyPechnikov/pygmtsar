@@ -1,7 +1,7 @@
 include ../../../config.mk
 # Makefile for lib_src 
 LIB = libsar.a
-INCLUDES = -I../include -I$(BOOST_DIR)/include
+INCLUDES = -I../include -I$(BOOST_INC)
 
 SRCS =	doppler.cpp \
 	gmtsar.cpp \
