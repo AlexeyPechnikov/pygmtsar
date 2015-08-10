@@ -32,6 +32,7 @@ CXX		= @CXX@
 CPP		= @CPP@
 CPPFLAGS	= $(INCLUDES) $(DEFINES) @CPPFLAGS@
 HDF5_CPPFLAGS	= @HDF5_CPPFLAGS@
+HDF5_LDFLAGS	= @HDF5_LDFLAGS@
 #-------------------------------------------------------------------------------
 #	Math library specification 
 #	(Will most of the time be -lm, on Solaris -lsunmath -lm)
