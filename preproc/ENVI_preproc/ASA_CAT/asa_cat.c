@@ -427,7 +427,7 @@ int main( int argc, char *argv[] )
 
    char *mphPtr;
    char *sphPtr;
-   char *mphPtr2;
+   char *mphPtr2 = NULL;
    char *sphPtr2 = NULL;
    //char *gadsPtr;
 

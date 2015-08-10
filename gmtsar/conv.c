@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	char	input_name[128], output_name[128], prmfilename[128], *c = NULL;
 	short	*cindat = NULL;
 	float	*cfdat = NULL;
-	double	inc[2], wesn[4], xmax, ymax;
+	double	inc[2], wesn[4], xmax = 0.0, ymax = 0.0;
 	float	*filter = NULL,*buffer = NULL,*indat = NULL;
 	float 	filtin, filtdat,rnorm,rnormax,anormax;
 	FILE	*f_filter = NULL, *f_input = NULL;
