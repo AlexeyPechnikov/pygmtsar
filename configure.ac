@@ -33,6 +33,7 @@ dnl ------------------------------------------------------------------
 dnl
 m4_include([ax_lapack.m4])
 m4_include([ax_blas.m4])
+m4_include([ax_lib_hdf5.m4])
 AC_CONFIG_SRCDIR(gmtsar/xcorr.c)
 AC_CONFIG_AUX_DIR(`pwd`)
 AC_CYGWIN
@@ -54,6 +55,8 @@ AC_SUBST(LALIBS)
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CPPFLAGS)
+AC_SUBST(HDF5_CPPFLAGS)
+AC_SUBST(HDF5_LIBS)
 AC_SUBST(LD_OPT)
 AC_SUBST(LDFLAGS)
 AC_SUBST(GMT_LIB)
@@ -99,7 +102,7 @@ AC_PROG_AWK
 AC_PROG_RANLIB
 dnl
 dnl ------------------------------------------------------------------
-dnl Get current OS and chip type
+dnl Get current OS and chip type and set LAPACK
 dnl ------------------------------------------------------------------
 dnl
 os=`uname -s`
@@ -141,6 +144,13 @@ else
 	ORBITS_DIR=$with_orbits_dir
 	AC_MSG_RESULT($ORBITS_DIR)
 fi
+dnl
+dnl ------------------------------------------------------------------
+dnl Set the HDF5 include and lib stuff
+dnl ------------------------------------------------------------------
+AC_MSG_CHECKING(for HDF5 include)
+AX_LIB_HDF5()
+AC_MSG_RESULT($HDF5_CPPFLAGS)
 dnl
 dnl ------------------------------------------------------------------
 dnl Set path to boost directory with --with-boost=dir

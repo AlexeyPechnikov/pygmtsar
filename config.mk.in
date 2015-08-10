@@ -31,13 +31,14 @@ CXX		= @CXX@
 # Preprocessing:
 CPP		= @CPP@
 CPPFLAGS	= $(INCLUDES) $(DEFINES) @CPPFLAGS@
-
+HDF5_CPPFLAGS	= @HDF5_CPPFLAGS@
 #-------------------------------------------------------------------------------
 #	Math library specification 
 #	(Will most of the time be -lm, on Solaris -lsunmath -lm)
 #-------------------------------------------------------------------------------
 #
 LIBS		= @LIBS@
+HDF5_LIBS	= @HDF5_LIBS@
 #
 #-------------------------------------------------------------------------------
 #	Miscellaneous Standard Utilities
