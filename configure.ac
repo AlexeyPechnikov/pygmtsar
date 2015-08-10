@@ -165,6 +165,8 @@ if test "X$with_boost_dir" = "X"; then	# Must look for it in standard places
 		BOOST_DIR=/sw
 	elif [ test -d /usr/local/include/boost ]; then
 		BOOST_DIR=/usr/local
+	elif [ test -d /usr/include/boost ]; then	# Ubuntu
+		BOOST_DIR=/usr
 	elif [ test -d /opt/csw/include/boost ]; then 	# Blastwave
 		BOOST_DIR=/opt/csw
 	elif [ test -d /opt/include/boost ]; then
