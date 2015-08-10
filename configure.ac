@@ -58,8 +58,6 @@ AC_SUBST(CPPFLAGS)
 AC_SUBST(HDF5_CPPFLAGS)
 AC_SUBST(HDF5_LDFLAGS)
 AC_SUBST(HDF5_LIBS)
-AC_SUBST(BOOST_CPPFLAGS)
-AC_SUBST(BOOST_LDFLAGS)
 AC_SUBST(LD_OPT)
 AC_SUBST(LDFLAGS)
 AC_SUBST(GMT_LIB)
@@ -154,6 +152,9 @@ dnl ------------------------------------------------------------------
 AC_MSG_CHECKING(for HDF5 include)
 AX_LIB_HDF5()
 AC_MSG_RESULT($HDF5_CPPFLAGS)
+if test "X$os" = "XDarwin" ; then
+	HDF5_LIBS="-lhdf5_cpp -lhdf5 -lm"
+fi
 dnl
 dnl ------------------------------------------------------------------
 dnl Set path to boost directory with --with-boost=dir
@@ -178,7 +179,6 @@ else
 	BOOST_DIR=$with_boost_dir
 fi
 AC_MSG_RESULT($BOOST_DIR)
-AX_BOOST_BASE()
 dnl
 dnl
 dnl ------------------------------------------------------------------
