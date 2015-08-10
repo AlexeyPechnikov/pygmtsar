@@ -151,12 +151,12 @@ dnl
 dnl ------------------------------------------------------------------
 dnl Set the HDF5 include and lib stuff
 dnl ------------------------------------------------------------------
-AC_MSG_CHECKING(for HDF5 include)
 AX_LIB_HDF5()
+HDF5_LIBS="$HDF5_LIBS -lhdf5_cpp"	# Add the C++ library
+AC_MSG_CHECKING(for HDF5 include)
 AC_MSG_RESULT($HDF5_CPPFLAGS)
-if test "X$os" = "XDarwin" ; then	# Override with known libs
-	HDF5_LIBS="-lhdf5_cpp -lhdf5 -lm"
-fi
+AC_MSG_CHECKING(for HDF5 libs)
+AC_MSG_RESULT([$HDF5_LDFLAGS $HDF5_LIBS])
 dnl
 dnl ------------------------------------------------------------------
 dnl Set path to boost directories with --with-boost=include|lib
