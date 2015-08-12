@@ -190,8 +190,11 @@ fi
 AC_MSG_RESULT($BOOST_INC)
 AC_MSG_CHECKING(for BOOST library directory)
 if test "X$with_boost_lib" = "X"; then	# Must look for it in standard places
-	if [ test -d  $flib ]; then	# fink
-		BOOST_LIB=$flib/lib
+	if [ test -d /sw/opt ]; then	# fink
+		flib=`echo /sw/opt/boost*`
+		if [ test -d  $flib ]; then	# fink
+			BOOST_LIB=$flib/lib
+		fi
 	elif [ test -d /opt/local/include/boost ]; then	# macports
 		BOOST_LIB=/opt/local/lib
 	elif [ test -d /usr/local/include/boost ]; then
