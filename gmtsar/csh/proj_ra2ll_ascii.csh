@@ -39,13 +39,12 @@ if (! -f raln.grd || ! -f ralt.grd ) then
 gmt surface raln `gmt gmtinfo $2 -I16/32` -bi3f -I8/32 -T.50 -Graln.grd -V
 gmt surface ralt `gmt gmtinfo $2 -I16/32` -bi3f -I8/32 -T.50 -Gralt.grd -V
 endif
-#
-gmt grdtrack $2 -nl -Graln.grd > rapln
-gmt grdtrack rapln -nl -Gralt.grd > raplnlt
+
 #
 # get the lon, lat, phase columns and grid
 #
-awk '{print $4,$5,$3}' < raplnlt > $3
+gmt grdtrack $2 -nl -Graln.grd -Gralt.grd -o3,4,2 > $3
+
 #
 # clean
 #

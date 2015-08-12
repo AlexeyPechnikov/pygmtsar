@@ -63,16 +63,13 @@ set out = $7
 
 set int = `gmt grdinfo -I $ve`
 gmt set FORMAT_GEO_OUT D
-gmt grd2xyz $dem -fg | $SAT"_look" $prm > look.xyz
-awk '{print $1,$2,$4}' look.xyz > look.lle    
-awk '{print $1,$2,$5}' look.xyz > look.lln    
-awk '{print $1,$2,$6}' look.xyz > look.llu    
+gmt grd2xyz $dem -fg | $SAT"_look" $prm -bos > look.xyz
 
-gmt blockmedian look.lle `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5 
+gmt blockmedian look.lle -i0,1,3 -bi6f `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5 
 gmt grdsample tmp.grd -T -Glle.grd
-gmt blockmedian look.lln `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
+gmt blockmedian look.lln -i0,1,4 -bi6f `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
 gmt grdsample tmp.grd -T -Glln.grd
-gmt blockmedian look.llu `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
+gmt blockmedian look.llu -i0,1,5 -bi6f `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
 gmt grdsample tmp.grd -T -Gllu.grd
 
 set region = `gmt grdinfo -I- llu.grd`
