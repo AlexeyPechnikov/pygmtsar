@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/csh -fv
 #       $Id$
 #
-#  D. Sandwell FEB 10 20100
-#
+#  D. Sandwell FEB 10 2010
+#  Kurt Feigl 20150811 add annotation to grd files
 #
 alias rm 'rm -f'
 unset noclobber
@@ -73,19 +73,31 @@ endif
 #
 echo "geocode.csh"
 echo "project correlation, phase, unwrapped and amplitude back to lon lat coordinates"
-proj_ra2ll.csh trans.dat corr.grd corr_ll.grd
-proj_ra2ll.csh trans.dat phase_mask.grd phase_mask_ll.grd
-proj_ra2ll.csh trans.dat display_amp.grd display_amp_ll.grd
+set maker = $0:t
+set today = `date`
+set remarked = `echo by $USER on $today with $maker`
+echo remarked is $remarked
+
+ proj_ra2ll.csh trans.dat corr.grd        corr_ll.grd           ; gmt grdedit -D//"dimensionless"/1///"$PWD:t geocoded correlation"/"$remarked"      corr_ll.grd
+#proj_ra2ll.csh trans.dat phase.grd       phase_ll.grd          ; gmt grdedit -D//"radians"/1///"$PWD:t wrapped phase"/"$remarked"                   phase_ll.grd
+ proj_ra2ll.csh trans.dat phasefilt.grd   phasefilt_ll.grd      ; gmt grdedit -D//"radians"/1///"$PWD:t wrapped phase after filtering"/"$remarked"   phasefilt_ll.grd
+#proj_ra2ll.csh trans.dat phase_mask.grd  phase_mask_ll.grd     ; gmt grdedit -D//"radians"/1///"$PWD:t wrapped phase after masking"/"$remarked"     phase_mask_ll.grd
+ proj_ra2ll.csh trans.dat display_amp.grd display_amp_ll.grd    ; gmt grdedit -D//"dimensionless"/1///"PWD:t amplitude"/"$remarked"                  display_amp_ll.grd
 if (-e xphase_mask.grd) then
-  proj_ra2ll.csh trans.dat xphase_mask.grd xphase_mask_ll.grd
-  proj_ra2ll.csh trans.dat yphase_mask.grd yphase_mask_ll.grd
+  proj_ra2ll.csh trans.dat xphase_mask.grd xphase_mask_ll.grd  ; gmt grdedit -D//"radians"/1///PWD:t xphase"/"$remarked"                            xphase_mask_ll.grd
+  proj_ra2ll.csh trans.dat yphase_mask.grd yphase_mask_ll.grd  ; gmt grdedit -D//"radians"/1///PWD:t yphase"/"$remarked"                            yphase_mask_ll.grd
 endif
 if (-e unwrap_mask.grd) then
-  proj_ra2ll.csh trans.dat unwrap_mask.grd unwrap_mask_ll.grd
+  proj_ra2ll.csh trans.dat unwrap_mask.grd unwrap_mask_ll.grd  ; gmt grdedit -D//"radians"/1///"PWD:t unwrapped, masked phase"/"$remarked"               unwrap_mask_ll.grd
+endif
+if (-e unwrap.grd) then
+  proj_ra2ll.csh trans.dat unwrap.grd unwrap_ll.grd  ; gmt grdedit -D//"radians"/1///"PWD:t unwrapped phase"/"$remarked"               unwrap_ll.grd
 endif
 if (-e phasefilt_mask.grd) then
-  proj_ra2ll.csh trans.dat phasefilt_mask.grd phasefilt_mask_ll.grd
+  proj_ra2ll.csh trans.dat phasefilt_mask.grd phasefilt_mask_ll.grd ; gmt grdedit -D//"phase in radians"/1///"PWD:t wrapped phase masked filtered"/"$remarked"   phasefilt_mask_ll.grd
 endif
+
+
 #
 #   now image for google earth
 #
@@ -108,6 +120,11 @@ if (-e phasefilt_mask_ll.grd) then
   grd2kml.csh phasefilt_mask_ll phase.cpt
 endif
 if (-e unwrap_mask_ll.grd) then
-  gmt grdmath unwrap_mask_ll.grd $wavel MUL -79.58 MUL = los_ll.grd
+  # constant is negative to make LOS = -1 * range change
+  # constant is (1000 mm) / (4 * pi)
+   gmt grdmath unwrap_mask_ll.grd $wavel MUL -79.58 MUL = los_ll.grd 
+
+   gmt grdedit -D//"mm"/1///"$PWD:t LOS displacement"/"equals negative range" los_ll.grd 
+
   grd2kml.csh los_ll los.cpt
 endif
