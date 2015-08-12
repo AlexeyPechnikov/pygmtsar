@@ -1,4 +1,4 @@
-#!/bin/csh 
+#!/bin/csh -f
 #       $Id$
 
 # make a landmask 
@@ -16,7 +16,7 @@ endif
 
 echo ""
 echo "MAKE LANDMASK -- START"
-echo "REQUIRE HIGH RESOLUTION COASTLINE FROM GMT"
+echo "REQUIRE FULL RESOLUTION COASTLINE FROM GMT"
 echo ""
    
 gmt grdlandmask -Glandmask.grd `gmt grdinfo -I- dem.grd` `gmt grdinfo -I dem.grd`  -V -NNaN/1 -Df
