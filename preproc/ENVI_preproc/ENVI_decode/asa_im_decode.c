@@ -911,7 +911,7 @@ int main( int argc, char *argv[] )
                   outSamples = ((mdsrIspLength+1-30)/64)*63 + ((mdsrIspLength+1-30)%64)-1;
 
 		  /*  compute windowStartTimeCodeword0 from the near_range Jan 21 2011 by Xiaopeng */
-                  if ( abs(near_range) < 1e-9 ) windowStartTimeCodeword0 = windowStartTimeCodeword;
+                  if ( fabs(near_range) < 1e-9 ) windowStartTimeCodeword0 = windowStartTimeCodeword;
 		  else { 
 		    pri = priCodeword / insGads.sampRate;
 		    swst0 = near_range * 2 / c - pri * insGads.timelineIm.rValues[antennaBeamSetNumber-1];

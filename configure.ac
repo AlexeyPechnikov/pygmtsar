@@ -63,6 +63,8 @@ AC_SUBST(LD_OPT)
 AC_SUBST(LDFLAGS)
 AC_SUBST(GMT_LIB)
 AC_SUBST(GMT_INC)
+AC_SUBST(TIFF_LIB)
+AC_SUBST(TIFF_INC)
 AC_SUBST(LIBS)
 AC_SUBST(LIBEXT)
 AC_SUBST(SL)
@@ -75,13 +77,15 @@ dnl ------------------------------------------------------------------
 dnl Special configure options for GMTSAR installation
 dnl ------------------------------------------------------------------
 dnl
-AC_ARG_WITH(orbits_dir, [  --with-orbits-dir=      Full path to ORBITS directory[[auto]]], [], [with_orbits_dir=no])
-AC_ARG_WITH(boost_idir, [  --with-boost-include=   Full path to boost include directory [[auto]]])
-AC_ARG_WITH(boost_ldir, [  --with-boost-lib=       Full path to boost lib directory [[auto]]])
-AC_ARG_WITH(gmt_config, [  --with-gmt-config=      Full path to gmt-config [[auto]]])
-AC_ARG_ENABLE(debug,    [  --enable-debug          Compile for debugging instead of optimizing code])
-AC_ARG_ENABLE(rpath,	[  --disable-rpath         Do not hardcode runtime library paths])
-AC_ARG_ENABLE(shared,   [  --enable-shared         Build shared (dynamic) GMTSAR libraries instead of static])
+AC_ARG_WITH(orbits_dir,    [  --with-orbits-dir=      Full path to ORBITS directory[[auto]]], [], [with_orbits_dir=no])
+AC_ARG_WITH(boost_include, [  --with-boost-include=   Full path to boost include directory [[auto]]])
+AC_ARG_WITH(boost_lib,     [  --with-boost-lib=       Full path to boost lib directory [[auto]]])
+AC_ARG_WITH(tiff_include,  [  --with-tiff-include=    Full path to tiff include directory [[auto]]])
+AC_ARG_WITH(tiff_lib,      [  --with-tiff-lib=        Full path to tiff lib directory [[auto]]])
+AC_ARG_WITH(gmt_config,    [  --with-gmt-config=      Full path to gmt-config [[auto]]])
+AC_ARG_ENABLE(debug,       [  --enable-debug          Compile for debugging instead of optimizing code])
+AC_ARG_ENABLE(rpath,	   [  --disable-rpath         Do not hardcode runtime library paths])
+AC_ARG_ENABLE(shared,      [  --enable-shared         Build shared (dynamic) GMTSAR libraries instead of static])
 AC_ARG_VAR(GMT_INC,Location of GMT5 headers (compile-time))
 AC_ARG_VAR(GMT_LIB,Location of GMT5 library (compile-time))
 dnl
@@ -163,11 +167,14 @@ dnl Set path to boost directories with --with-boost=include|lib
 dnl ------------------------------------------------------------------
 dnl
 AC_MSG_CHECKING(for BOOST include directory)
-if test "X$with_boost_idir" = "X"; then	# Must look for it in standard places
-	if [ test -d /opt/local/include/boost ]; then	# macports
+if test "X$with_boost_include" = "X"; then	# Must look for it in standard places
+	if [ test -d /sw/opt ]; then	# fink
+		flib=`echo /sw/opt/boost*`
+		if [ test -d $flib ]; then	# fink
+			BOOST_INC=$flib/include
+		fi
+	elif [ test -d /opt/local/include/boost ]; then	# macports
 		BOOST_INC=/opt/local/include
-	elif [ test -d /sw/include/boost ]; then		# fink
-		BOOST_INC=/sw/include
 	elif [ test -d /usr/local/include/boost ]; then
 		BOOST_INC=/usr/local/include
 	elif [ test -d /usr/include/boost ]; then	# Ubuntu
@@ -178,15 +185,15 @@ if test "X$with_boost_idir" = "X"; then	# Must look for it in standard places
 		BOOST_INC=/opt/include
 	fi
 else
-	BOOST_INC=$with_boost_idir
+	BOOST_INC=$with_boost_include
 fi
 AC_MSG_RESULT($BOOST_INC)
 AC_MSG_CHECKING(for BOOST library directory)
-if test "X$with_boost_ldir" = "X"; then	# Must look for it in standard places
-	if [ test -d /opt/local/include/boost ]; then	# macports
+if test "X$with_boost_lib" = "X"; then	# Must look for it in standard places
+	if [ test -d  $flib ]; then	# fink
+		BOOST_LIB=$flib/lib
+	elif [ test -d /opt/local/include/boost ]; then	# macports
 		BOOST_LIB=/opt/local/lib
-	elif [ test -d /sw/include/boost ]; then		# fink
-		BOOST_LIB=/sw/lib
 	elif [ test -d /usr/local/include/boost ]; then
 		BOOST_LIB=/usr/local/lib
 	elif [ test -d /usr/include/boost ]; then	# Ubuntu
@@ -197,9 +204,52 @@ if test "X$with_boost_ldir" = "X"; then	# Must look for it in standard places
 		BOOST_LIB=/opt/lib
 	fi
 else
-	BOOST_LIB=$with_boost_ldir/lib
+	BOOST_LIB=$with_boost_lib/lib
 fi
 AC_MSG_RESULT($BOOST_LIB)
+dnl
+dnl ------------------------------------------------------------------
+dnl Set path to tiff directories with --with-tiff=include|lib
+dnl ------------------------------------------------------------------
+dnl
+AC_MSG_CHECKING(for TIFF include directory)
+if test "X$with_boost_include" = "X"; then	# Must look for it in standard places
+	if [ test -d /sw/include ]; then	# fink
+		TIFF_INC=/sw/include
+	elif [ test -d /opt/local/include ]; then	# macports
+		TIFF_INC=/opt/local/include
+	elif [ test -d /usr/local/include ]; then
+		TIFF_INC=/usr/local/include
+	elif [ test -d /usr/include ]; then	# Ubuntu
+		TIFF_INC=/usr/include
+	elif [ test -d /opt/csw/include ]; then	# Blastwave
+		TIFF_INC=/opt/csw/include
+	elif [ test -d /opt/include ]; then
+		TIFF_INC=/opt/include
+	fi
+else
+	TIFF_INC=$with_tiff_include
+fi
+AC_MSG_RESULT($TIFF_INC)
+AC_MSG_CHECKING(for TIFF library directory)
+if test "X$with_tiff_lib" = "X"; then	# Must look for it in standard places
+	if [ test -d /sw/include ]; then	# fink
+		TIFF_LIB=/sw/lib
+	elif [ test -d /opt/local/include ]; then	# macports
+		TIFF_LIB=/opt/local/lib
+	elif [ test -d /usr/local/include ]; then
+		TIFF_LIB=/usr/local/lib
+	elif [ test -d /usr/include ]; then	# Ubuntu
+		TIFF_LIB=/usr/lib/x86_64-linux-gnu
+	elif [ test -d /opt/csw/include ]; then	# Blastwave
+		TIFF_LIB=/opt/csw/lib
+	elif [ test -d /opt/include ]; then
+		TIFF_LIB=/opt/lib
+	fi
+else
+	TIFF_LIB=$with_tiff_lib/lib
+fi
+AC_MSG_RESULT($TIFF_LIB)
 dnl
 dnl
 dnl ------------------------------------------------------------------
