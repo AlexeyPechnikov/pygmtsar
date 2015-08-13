@@ -112,12 +112,13 @@ gmt grd2xyz phase_patch_interp.grd -ZTLf -N0 > phase.in
 #
 # run snaphu
 #
+set sharedir = `gmtsar_sharedir.csh`
 echo "unwrapping phase with snaphu - higher threshold for faster unwrapping "
 
 if ($2 == 0) then
-  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f $GMTSAR/csh/snaphu.conf.brief -c corr.in -o unwrap.out -v -s
+  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f $sharedir/snaphu/config/snaphu.conf.brief -c corr.in -o unwrap.out -v -s
 else
-  sed "s/.*DEFOMAX_CYCLE.*/DEFOMAX_CYCLE  $2/g" $GMTSAR/csh/snaphu.conf.brief > snaphu.conf.brief
+  sed "s/.*DEFOMAX_CYCLE.*/DEFOMAX_CYCLE  $2/g" $sharedir/snaphu/config/snaphu.conf.brief > snaphu.conf.brief
   snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f snaphu.conf.brief -c corr.in -o unwrap.out -v -d
 endif
 #
