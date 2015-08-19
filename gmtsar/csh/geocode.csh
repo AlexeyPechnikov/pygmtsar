@@ -1,4 +1,4 @@
-#!/bin/csh -fv
+#!/bin/csh -f
 #       $Id$
 #
 #  D. Sandwell FEB 10 2010
@@ -81,7 +81,7 @@ echo remarked is $remarked
  proj_ra2ll.csh trans.dat corr.grd        corr_ll.grd           ; gmt grdedit -D//"dimensionless"/1///"$PWD:t geocoded correlation"/"$remarked"      corr_ll.grd
 #proj_ra2ll.csh trans.dat phase.grd       phase_ll.grd          ; gmt grdedit -D//"radians"/1///"$PWD:t wrapped phase"/"$remarked"                   phase_ll.grd
  proj_ra2ll.csh trans.dat phasefilt.grd   phasefilt_ll.grd      ; gmt grdedit -D//"radians"/1///"$PWD:t wrapped phase after filtering"/"$remarked"   phasefilt_ll.grd
-#proj_ra2ll.csh trans.dat phase_mask.grd  phase_mask_ll.grd     ; gmt grdedit -D//"radians"/1///"$PWD:t wrapped phase after masking"/"$remarked"     phase_mask_ll.grd
+proj_ra2ll.csh trans.dat phase_mask.grd  phase_mask_ll.grd     ; gmt grdedit -D//"radians"/1///"$PWD:t wrapped phase after masking"/"$remarked"     phase_mask_ll.grd
  proj_ra2ll.csh trans.dat display_amp.grd display_amp_ll.grd    ; gmt grdedit -D//"dimensionless"/1///"PWD:t amplitude"/"$remarked"                  display_amp_ll.grd
 if (-e xphase_mask.grd) then
   proj_ra2ll.csh trans.dat xphase_mask.grd xphase_mask_ll.grd  ; gmt grdedit -D//"radians"/1///PWD:t xphase"/"$remarked"                            xphase_mask_ll.grd
@@ -106,6 +106,7 @@ echo "make the KML files for Google Earth"
 grd2kml.csh display_amp_ll display_amp.cpt
 grd2kml.csh corr_ll corr.cpt
 grd2kml.csh phase_mask_ll phase.cpt
+grd2kml.csh phasefilt_mask_ll phase.cpt
 #ln -s phasefilt_mask_ll.grd phase_mask_ll_bw.grd
 #grd2kml.csh phase_mask_ll_bw phase_bw.cpt
 #rm phase_mask_ll_bw.grd
