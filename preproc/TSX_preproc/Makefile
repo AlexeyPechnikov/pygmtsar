@@ -18,6 +18,9 @@ install:	all
 		(cd $$d; $(MAKE) install); \
 	done
 
+uninstall:
+	(cd src; $(MAKE) uninstall)
+
 clean:
 	for d in $(DIRS); do \
 		(cd $$d; $(MAKE) clean); \

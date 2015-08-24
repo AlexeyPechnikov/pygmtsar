@@ -16,4 +16,7 @@ clean:
 	rm -f $(OBJS) tags core *.c.*
 
 install:
-	mv $(PROG) $(bindir)/$(PROG)
+	$(INSTALL) $(PROG) $(bindir)/$(PROG)
+
+uninstall:
+	rm -f $(bindir)/$(PROG)

@@ -18,6 +18,15 @@ install:	all
 	$(INSTALL) $(SCRIPT)/find_auxi.pl $(bindir)
 	$(INSTALL) $(SCRIPT)/ENVI_pre_process $(bindir)
 
+uninstall:
+	for d in $(DIRS); do \
+		(cd $$d; $(MAKE) uninstall); \
+	done
+	rm -f $(bindir)/dump_orbit_envi.pl
+	rm -f $(bindir)/dump_time_envi.pl
+	rm -f $(bindir)/find_auxi.pl
+	rm -f $(bindir)/ENVI_pre_process
+
 clean:
 	for d in $(DIRS); do \
 		(cd $$d; $(MAKE) clean); \

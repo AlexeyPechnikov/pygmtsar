@@ -17,3 +17,6 @@ clean:
 
 install:
 	$(INSTALL) $(PROG) $(bindir)
+
+uninstall:
+	rm -f $(bindir)/$(PROG)

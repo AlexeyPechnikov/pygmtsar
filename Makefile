@@ -59,7 +59,7 @@ install-main:
 	$(INSTALL) gmtsar/csh/snaphu.conf.* $(sharedir)/snaphu/config
 
 uninstall:
-	for d in $(DIRS); do \
+	for d in $(DIRS) $(PREPROCESSORS); do \
 		(cd $$d; $(MAKE) uninstall); \
 	done
 	rm -rf $(sharedir)

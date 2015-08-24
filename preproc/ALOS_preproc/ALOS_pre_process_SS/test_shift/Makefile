@@ -14,5 +14,8 @@ $(PROG): $(OBJS)
 install:
 	$(INSTALL) $(PROG) ../bin/$(OS)
 
+uninstall:
+	rm -f $(bindir)/$(PROG)
+
 clean:
 	rm -f $(OBJS) tags core

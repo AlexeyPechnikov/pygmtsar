@@ -16,5 +16,8 @@ all:	$(PROG)
 install:
 	mv $(PROG) $(bindir)
 
+uninstall:
+	rm -f $(bindir)/$(PROG)
+
 clean:
 	rm -f $(OBJS) tags core
