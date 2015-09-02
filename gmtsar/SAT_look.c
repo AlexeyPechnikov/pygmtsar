@@ -359,17 +359,17 @@ int main (int argc, char **argv) {
 	     ds[0]=(float)rp[1];
 	     ds[1]=(float)rp[0];
 	     ds[2]=(float)rp[2];
-	     ds[3]=(float)unit_x;
-	     ds[4]=(float)unit_y;
-	     ds[5]=(float)unit_z;
+	     ds[3]=(float)local_look[0];
+	     ds[4]=(float)local_look[1];
+	     ds[5]=(float)local_look[2];
 	     fwrite(ds,sizeof(float),6,stdout); }
 	   else if (otype == 3) {
 	     dd[0]=rp[1];
              dd[1]=rp[0];
              dd[2]=rp[2];
-             dd[3]=unit_x;
-             dd[4]=unit_y;
-	     dd[5]=unit_z;
+             dd[3]=local_look[0];
+             dd[4]=local_look[1];
+	     dd[5]=local_look[2];
              fwrite(dd,sizeof(double),6,stdout); }
         }
 

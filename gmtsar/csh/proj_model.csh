@@ -65,22 +65,22 @@ set int = `gmt grdinfo -I $ve`
 gmt set FORMAT_GEO_OUT D
 gmt grd2xyz $dem -fg | $SAT"_look" $prm -bos > look.xyz
 
-gmt blockmedian look.lle -i0,1,3 -bi6f `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5 
+gmt blockmedian look.xyz -i0,1,3 -bi6f `gmt grdinfo -I- $dem` $int -bo -fg | gmt surface -fg -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5 
 gmt grdsample tmp.grd -T -Glle.grd
-gmt blockmedian look.lln -i0,1,4 -bi6f `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
+gmt blockmedian look.xyz -i0,1,4 -bi6f `gmt grdinfo -I- $dem` $int -bo -fg | gmt surface -fg -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
 gmt grdsample tmp.grd -T -Glln.grd
-gmt blockmedian look.llu -i0,1,5 -bi6f `gmt grdinfo -I- $dem` $int -bo | gmt surface -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
+gmt blockmedian look.xyz -i0,1,5 -bi6f `gmt grdinfo -I- $dem` $int -bo -fg | gmt surface -fg -bi -Gtmp.grd $int `gmt grdinfo -I- $dem` -T0.5
 gmt grdsample tmp.grd -T -Gllu.grd
 
 set region = `gmt grdinfo -I- llu.grd`
 #echo $region
-gmt grdsample $ve $region $int -Gtmpve.grd 
-gmt grdsample $vn $region $int -Gtmpvn.grd
-gmt grdsample $vu $region $int -Gtmpvu.grd
+gmt grdsample $ve $region $int -Gtmpve.grd -fg
+gmt grdsample $vn $region $int -Gtmpvn.grd -fg
+gmt grdsample $vu $region $int -Gtmpvu.grd -fg
 gmt grdmath tmpve.grd "lle.grd" MUL tmpvn.grd "lln.grd" MUL ADD tmpvu.grd "llu.grd" MUL ADD = $out 
 
 
 #clean up
-rm look.xyz look.lle look.lln look.llu tmp.grd
-rm lle.grd llu.grd lln.grd tmpve.grd tmpvn.grd tmpvu.grd 
+#rm look.xyz tmp.grd
+#rm lle.grd llu.grd lln.grd tmpve.grd tmpvn.grd tmpvu.grd 
 
