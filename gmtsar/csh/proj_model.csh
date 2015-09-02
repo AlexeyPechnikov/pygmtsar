@@ -81,6 +81,6 @@ gmt grdmath tmpve.grd "lle.grd" MUL tmpvn.grd "lln.grd" MUL ADD tmpvu.grd "llu.g
 
 
 #clean up
-#rm look.xyz tmp.grd
-#rm lle.grd llu.grd lln.grd tmpve.grd tmpvn.grd tmpvu.grd 
+rm look.xyz tmp.grd
+rm lle.grd llu.grd lln.grd tmpve.grd tmpvn.grd tmpvu.grd 
 
