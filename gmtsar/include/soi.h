@@ -56,6 +56,7 @@ char *off_vid;
 char *srm;
 char *ref_file;
 char *orbdir;
+char *lookdir;
 
 int debug_flag;
 int bytes_per_line;

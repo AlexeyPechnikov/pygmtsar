@@ -12,6 +12,7 @@ struct PRM {
 	char ref_file[128];
 	char led_file[128];
 	char orbdir[8];	/* orbit direction A or D (ASCEND or DESCEND) - added by RJM*/
+        char lookdir[8];/* look direction R or L (RIGHT or LEFT) */
 	char dtype[8];  /* SLC data type a-SCOMPLEX integer complex, c-FCOMPLEX float complex */
 	char date[16];  /* yymmdd format - skip first two digits of year - added by RJM*/
 
