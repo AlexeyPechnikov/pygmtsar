@@ -305,6 +305,7 @@ void ALOS_baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_fl
 		radar_look[0]=0;
 		radar_look[1]=cos(theta);
 		radar_look[2]=-sin(theta);
+                if (strncmp(r[0].lookdir,"L",1) == 0) radar_look[2]=sin(theta);
 		
 		/* form a rotation matrix to convert the look vector from radar 
 		   coordinate to global cartesian coordinate           */
