@@ -416,6 +416,7 @@ double	rlnref, rlnrep;
 	*sign = 1.0;
 
 	if (strncmp(r.orbdir,"D",1) == 0)  *sign = -1*(*sign);
+	if (strncmp(r.lookdir,"L",1) == 0)  *sign = -1*(*sign);
 
 	if(rlnrep <  rlnref) *sign = -1*(*sign);
 }
