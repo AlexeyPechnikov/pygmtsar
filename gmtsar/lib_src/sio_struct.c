@@ -47,6 +47,7 @@ void null_sio_struct(struct PRM *p)
 	strncpy(p->ref_file,NULL_CHAR,8);
 	strncpy(p->led_file,NULL_CHAR,8);
 	strncpy(p->orbdir,NULL_CHAR,8);
+	strncpy(p->lookdir,NULL_CHAR,8);
 	strncpy(p->dtype,NULL_CHAR,8);
 	strncpy(p->SLC_file,NULL_CHAR,8);	
 
@@ -153,6 +154,7 @@ while(fscanf(fh,"%s = %s \n",name,value) != EOF){
 	if (strcmp(name,"ref_file") == 0)  get_string(name, "ref_file", value, s->ref_file);
 	if (strcmp(name,"SLC_file") == 0)  get_string(name, "SLC_file", value, s->SLC_file);
 	if (strcmp(name,"orbdir") == 0)  get_string(name, "orbdir", value, s->orbdir);
+	if (strcmp(name,"lookdir") == 0)  get_string(name, "lookdir", value, s->lookdir);
 	if (strcmp(name,"dtype") == 0)  get_string(name, "dtype", value, s->dtype);
 
 	/* integers */
@@ -285,9 +287,10 @@ void put_sio_struct(struct PRM prm, FILE *OUTFILE)
 	if (strncmp(prm.led_file,NULL_CHAR,8) != 0) fprintf(OUTFILE,"led_file		= %s \n",prm.led_file);
 
 	/* from read_ALOS_ldrfile */
-	if (strncmp(prm.orbdir,NULL_CHAR,8) != 0) fprintf(OUTFILE,"orbdir			= %.1s \n",prm.orbdir);
+	if (strncmp(prm.orbdir,NULL_CHAR,8) != 0) fprintf(OUTFILE,"orbdir	= %.1s \n",prm.orbdir);
+	if (strncmp(prm.lookdir,NULL_CHAR,8) != 0) fprintf(OUTFILE,"lookdir	= %.1s \n",prm.lookdir);
 	if (prm.lambda != NULL_DOUBLE) fprintf(OUTFILE,"radar_wavelength	= %lg \n",prm.lambda);
-	if (prm.chirp_slope != NULL_DOUBLE) fprintf(OUTFILE,"chirp_slope		= %lg \n",prm.chirp_slope);
+	if (prm.chirp_slope != NULL_DOUBLE) fprintf(OUTFILE,"chirp_slope	= %lg \n",prm.chirp_slope);
 	if (prm.fs != NULL_DOUBLE) fprintf(OUTFILE,"rng_samp_rate		= %.6f \n",prm.fs);
 	if (prm.xmi != NULL_DOUBLE) fprintf(OUTFILE,"I_mean			= %lg \n",prm.xmi);
 	if (prm.xmq != NULL_DOUBLE) fprintf(OUTFILE,"Q_mean			= %lg \n",prm.xmq);

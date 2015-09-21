@@ -26,6 +26,7 @@ void null_sio_struct(struct PRM *p)
 	strncpy(p->ref_file,NULL_CHAR,8);
 	strncpy(p->led_file,NULL_CHAR,8);
 	strncpy(p->orbdir,NULL_CHAR,8);	
+	strncpy(p->lookdir,NULL_CHAR,8);	
 	strncpy(p->date,NULL_CHAR,8);	
 	strncpy(p->SLC_file,NULL_CHAR,8);	
 	strncpy(p->dtype,NULL_CHAR,8);	

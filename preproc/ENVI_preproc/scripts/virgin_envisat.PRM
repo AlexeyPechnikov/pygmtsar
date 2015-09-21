@@ -27,3 +27,4 @@ SC_identity		= 4
 equatorial_radius       = 6378137.000000 
 polar_radius            = 6356752.314100
 SLC_scale               = 4000000.0
+lookdir                 = R

@@ -193,6 +193,7 @@ void print_binary_position(struct sarleader_binary *sb, int nitems, FILE *ldrfil
 #define FACTOR 1000000
 void ALOS_ldr_prm(struct SAR_info sar, struct PRM *prm)
 {
+	double c_angle;
 
 	/* nominal PRF and prf in PRM differ at 4 decimal places */
 	prm->lambda = atof(sar.dss_ALOS->radar_wavelength);
@@ -225,6 +226,11 @@ void ALOS_ldr_prm(struct SAR_info sar, struct PRM *prm)
 	/* A Ascend or D Descend */
 	strncpy(prm->orbdir, sar.dss_ALOS->time_direction_along_line, 1);
 
+	/* look direction R or L */
+	c_angle = atof(sar.dss_ALOS->clock_angle);
+	strcpy(prm->lookdir, "R");
+        if(c_angle < 0.) strcpy(prm->lookdir, "L");
+
 	/* date yymmdd */
 	strncpy(prm->date, &sar.dss_ALOS->input_scene_center_time[2],6);
 	prm->date[7] = '\0';
@@ -243,6 +249,7 @@ void ALOS_ldr_prm(struct SAR_info sar, struct PRM *prm)
 		fprintf(stdout,"I_mean			= %lf\n",prm->xmi);
 		fprintf(stdout,"Q_mean			= %lf\n",prm->xmq);
 		fprintf(stdout,"orbdir			= %s\n",prm->orbdir);
+		fprintf(stdout,"lookdir			= %s\n",prm->lookdir);
 		fprintf(stdout,"date			= %s\n",prm->date);
 		fprintf(stdout,"fd1			= %lf\n",prm->fd1);
 		fprintf(stdout,"fdd1			= %lf\n",prm->fdd1);

@@ -166,6 +166,7 @@ void GMTSAR::writeResourceFile(const std::string filename,Scene *scene,
 	ss << "equatorial_radius\t= " << Planet::Earth.getSemiMajorAxis() << "\n";
 	ss << "polar_radius\t\t= " << Planet::Earth.getSemiMinorAxis() << "\n";
 	ss << "orbdir\t\t\t= " << dir << "\n";
+	ss << "lookdir\t\t\t= R\n";
 	ss << "input_file\t\t= " << stemname << "raw\n";
 	ss << "led_file\t\t= " << stemname << "LED\n";
 	ss << "SLC_file\t\t= " << stemname << "SLC\n";

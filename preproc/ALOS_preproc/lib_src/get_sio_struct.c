@@ -41,6 +41,7 @@ while(fscanf(fh,"%s = %s \n",name,value) != EOF){
 	if (strcmp(name,"ref_file") == 0)  get_string(name, "ref_file", value, s->ref_file);
 	if (strcmp(name,"SLC_file") == 0)  get_string(name, "SLC_file", value, s->SLC_file);
 	if (strcmp(name,"orbdir") == 0)  get_string(name, "orbdir", value, s->orbdir);
+	if (strcmp(name,"lookdir") == 0)  get_string(name, "lookdir", value, s->lookdir);
 	if (strcmp(name,"date") == 0)  get_string(name, "date", value, s->date);
 
 	/* integers */

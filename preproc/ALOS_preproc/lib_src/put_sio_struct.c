@@ -62,6 +62,7 @@ void put_sio_struct(struct PRM prm, FILE *OUTFILE)
 	/* from read_ALOS_ldrfile */
        	if (strncmp(prm.date,NULL_CHAR,8) != 0) fprintf(OUTFILE,"date			= %.6s \n",prm.date);
        	if (strncmp(prm.orbdir,NULL_CHAR,8) != 0) fprintf(OUTFILE,"orbdir			= %.1s \n",prm.orbdir);
+       	if (strncmp(prm.lookdir,NULL_CHAR,8) != 0) fprintf(OUTFILE,"lookdir			= %.1s \n",prm.lookdir);
        	if (prm.lambda != NULL_DOUBLE) fprintf(OUTFILE,"radar_wavelength	= %lg \n",prm.lambda);
        	if (prm.chirp_slope != NULL_DOUBLE) fprintf(OUTFILE,"chirp_slope		= %lg \n",prm.chirp_slope);
        	if (prm.fs != NULL_DOUBLE) fprintf(OUTFILE,"rng_samp_rate		= %lf \n",prm.fs);

@@ -165,6 +165,8 @@ void get_params(FILE *fh)
 /* new parameters added June 9, 2007 */
         if(strcmp(variable,"orbdir") == 0)
 	  	orbdir =  p2strcpy(value);
+        if(strcmp(variable,"lookdir") == 0)
+	  	lookdir =  p2strcpy(value);
         if(strcmp(variable,"equatorial_radius") == 0)
                 raa = atof(value);
         if(strcmp(variable,"polar_radius") == 0)

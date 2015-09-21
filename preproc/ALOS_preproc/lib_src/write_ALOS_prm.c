@@ -49,6 +49,7 @@ void write_ALOS_prm(FILE *prmfile, char *filename, struct PRM *prm)
 	/* from read_ALOS_ldrfile */
        	fprintf(prmfile,"date			= %.6s \n",prm->date);
        	fprintf(prmfile,"orbdir			= %.1s \n",prm->orbdir);
+       	fprintf(prmfile,"lookdir		= %.1s \n",prm->lookdir);
        	fprintf(prmfile,"radar_wavelength	= %lg \n",prm->lambda);
        	fprintf(prmfile,"chirp_slope		= %lg \n",prm->chirp_slope);
        	fprintf(prmfile,"rng_samp_rate		= %lf \n",prm->fs);

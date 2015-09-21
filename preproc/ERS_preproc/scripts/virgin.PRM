@@ -29,3 +29,4 @@ chirp_slope             = 4.17788e+11
 pulse_dur               = 3.712e-05
 radar_wavelength        = 0.056666
 SLC_scale               = 4000000.0
+lookdir                 = R
