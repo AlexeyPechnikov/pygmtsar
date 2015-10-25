@@ -26,7 +26,7 @@ all:		$(PROGS)
 install:	all
 		$(INSTALL) -d $(bindir)
 		$(INSTALL) $(PROGS) $(bindir)
-		ls csh/*.csh > /tmp/t.lis
+		ls csh/*.csh csh/*.sh > /tmp/t.lis
 		$(INSTALL) `cat /tmp/t.lis` $(bindir)
 		rm -f /tmp/t.lis
 
