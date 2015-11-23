@@ -54,8 +54,8 @@ Header::parse(std::istream &fin)
   inverseSPECANScalingRate = bswap_64(inverseSPECANScalingRate);
  }
 
- std::string formatCheck("CSAR");
- if (formatCheck.compare(format) != 0) {throw "Not a valid COSAR file";}
+// std::string formatCheck("CSAR");
+// if (formatCheck.compare(format) != 0) {throw "Not a valid COSAR file";}
  // Skip to the end of the header line
  fin.seekg((rangelineTotalNumberOfBytes-48),std::ios_base::cur);
 }
