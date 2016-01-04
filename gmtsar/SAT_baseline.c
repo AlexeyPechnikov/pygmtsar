@@ -147,7 +147,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 	get_seconds(r[0], &t11, &t12);
 	/* t13 = (t11 + t12)/2.; */
 	dr = 0.5*SOL/fs0;
-	dt = 1.0/r[0].prf;
+	dt = 0.5/r[0].prf;
 	/* rr1 = r[0].near_range; */
 	ns = (int) ((t12 - t11)/dt);	/* seconds of frame */
 	dt = (t12 - t11)/(ns - 1);
