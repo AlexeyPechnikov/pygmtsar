@@ -48,4 +48,4 @@ clean:
 #-------------------------------------------------------------------------------
 
 $(PROGS):	$(PROGS_O) $(LIB)
-		$(CC) $(LDFLAGS) $@.o $(GMT_LIB) $(GMTSAR) $(LALIBS) $(LIBS) -o $@
+		$(CC) $(LDFLAGS) $@.o $(GMTSAR) $(GMT_LIB) $(LALIBS) $(LIBS) -o $@
