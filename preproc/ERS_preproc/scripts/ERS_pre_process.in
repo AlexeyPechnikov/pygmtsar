@@ -1,0 +1,171 @@
+#!/bin/csh -f
+#
+#  D. Sandwell and R. Mellors 09/09/97
+#
+#  script to read dpaf tapes, create a PRM header and run fixline
+#  the end results are two files that can be processed using easrp
+#  
+#  3760_2907.PRM - parameter file used in SAR processor
+#  3760_2907.fix - fixed raw SAR data for sar processing
+#
+# 4/26/06 Meng - grep num_lines from dataheader.log
+#	       - Added doppler estimation part at the end
+# 12/27/10 Matt - combine DPAF and CCRS
+#
+# Modified by Xiaopeng Tong, 01/23/2011
+#
+#
+ if ($#argv < 4) then
+  echo ""
+  echo " Usage: ERS_pre_process  <name_stem>  <near_range>  <earth_radius> <num_patches> [Doppler]"
+  echo ""
+  echo " name_stem     -    filename of the .dat and .ldr file"
+  echo " near_range    -    near range (in meters) of the SAR image (put 0 if use default value)"
+  echo " earth_radius  -    local earth radius (in meters) (put 0 if use default value)" 
+  echo " num_patch     -    number of patches  (put 0 if use default value)" 
+  echo " Doppler       -    Doppler value (blank if use default value)"
+  echo ""
+  echo " Example: "
+  echo " command line: ERS_pre_process ERS2_356_2925_61332 978992.922 6378000 5"
+  echo " will preprocess ERS2 SAR data 'ERS2_356_2925_61332' "
+  echo " then output parameter file 'ERS2_356_2925_61332.PRM' and fixed raw data file 'ERS2_356_2925_61332.raw' and LED file ERS2_356_2925_61332.LED"
+  echo " with near range close to 978992.922 meters and earth radius 6378000 meters and 5 patches"  
+  echo ""
+  exit 1
+ endif
+#
+#  0) start with a virgin header
+#
+ set ORBITS = "@ORBITS_DIR@"
+ set ERSPRE = `gmtsar_sharedir.csh`
+ cp $ERSPRE/virgin.PRM $1.PRM
+ echo " "
+ echo "========================="
+ echo "Start pre-process $1"
+#
+#  make sure the dat and ldr files exists
+#
+ if(! -f $1.dat ) then
+  echo ""
+  echo "error - raw file does not have correct .dat suffix"
+  echo ""
+  exit 1
+ endif
+ if(! -f $1.ldr ) then
+  echo ""
+  echo "error - leader file does not have correct .ldr suffix"
+  echo ""
+  exit 1
+ endif
+#
+#  1) determine if ERS1 or ERS2 and DPAF or CCRS
+#
+grep ERS1 $1.ldr; set FMT1 = $status
+grep ERS2 $1.ldr; set FMT2 = $status
+grep ERS-1 $1.ldr; set FMT3 = $status
+grep ERS-2 $1.ldr; set FMT4 = $status
+
+if ( ($FMT1 == 0) || ($FMT3 == 0)) then
+  echo "SC_identity            = 1 " >> $1.PRM
+else if (($FMT2 == 0) || ($FMT4 == 0)) then
+  echo "SC_identity            = 2 " >> $1.PRM
+else
+  echo "Wrong format of the ldr file !"
+  exit 0
+endif
+
+if ( ($FMT1 == 0) || ($FMT2 == 0)) then
+  echo "Format = DPAF"
+  set ERSFMT = "DPAF"
+  read_sarleader_dpaf $1.ldr >> $1.PRM
+else if (($FMT3 == 0) || ($FMT4 == 0)) then
+  echo "Format = CCRS"
+  set ERSFMT = "CCRS"
+else
+  echo "Wrong format of the ldr file !"
+  exit 0
+endif
+#
+#  2) add info provided by user
+#
+ echo "input_file		= $1.raw" >> $1.PRM
+#
+#  3) run ers_line_fixer
+#
+ rm -f $1.raw
+ if($2 != 0) then
+    echo "now using user defined near range = $2" 
+    if ($ERSFMT == "DPAF") then
+        ers_line_fixer -a $2 -s DPAF/ESRIN $1.dat $1.raw > $1fix.log
+    else if ($ERSFMT == "CCRS") then
+        ers_line_fixer -a $2 -s CCRS $1.dat $1.raw > $1fix.log
+    endif
+  else
+    echo "now using default value from the first line" 
+    if ($ERSFMT == "DPAF") then
+        ers_line_fixer -s DPAF/ESRIN $1.dat $1.raw > $1fix.log
+    else if ($ERSFMT == "CCRS") then
+        ers_line_fixer -s CCRS $1.dat $1.raw > $1fix.log
+    endif
+  endif
+#
+#  get near_range from ers_line_fixer
+#
+grep near_range $1fix.log >> $1.PRM
+#
+#  4) read and interpret the fixed data file to get more
+#     parameters.
+
+ if ($ERSFMT == "DPAF") then
+    read_data_file_dpaf $1.raw >> $1.PRM
+ else if ($ERSFMT == "CCRS") then
+    read_data_file_ccrs $1.raw >> $1.PRM
+ endif
+
+#
+#  5) make the LED file from PRC orbit data
+#
+ set SCID = `grep SC_identity $1.PRM | awk '{print $3}'`
+ if ($SCID == 1) then
+    echo "ERS1"
+    dump_orbit_ers.pl $1 $ORBITS/ERS/ers1
+ else if ($SCID == 2) then
+    echo "ERS2"
+    dump_orbit_ers.pl $1 $ORBITS/ERS/ers2
+ else
+   echo "Wrong Satellite ID!"
+   exit 0   
+ endif
+  echo "led_file		= $1.LED" >> $1.PRM
+#
+#  6) doppler centroid estimation and orbital information
+#
+  if ($#argv == 5) then
+    calc_dop_orb_envi $1.PRM $1.log2 $3 $5
+  else if ($#argv == 4) then
+    calc_dop_orb_envi $1.PRM $1.log2 $3
+  endif
+
+  cat $1.PRM $1.log2 > $1_tmp.PRM
+  echo "fdd1                    = 0" >> $1_tmp.PRM
+  echo "fddd1                   = 0" >> $1_tmp.PRM
+  mv $1_tmp.PRM $1.PRM
+
+#
+#  7) other stuff
+  echo "SLC_file                = $1.SLC" >> $1.PRM
+
+#
+#  8) change the number of patches
+# 
+  if ($4 != 0) then
+    update_PRM.csh $1.PRM num_patches $4
+    echo "Number of patches is set to $4"
+  endif
+#
+# clean unwanted files
+#
+rm -f *.log*
+
+echo "End pre-process $1"
+

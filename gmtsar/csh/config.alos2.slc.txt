@@ -1,0 +1,113 @@
+#
+# This is an example configuration file for p2p_ALOS2_SLC.csh 
+#
+# all the comments or explanations are marked by "#" 
+# The parameters in this configuration file is distinguished by their first word so 
+# user should follow the naming of each parameter.
+# the parameter name, = sign, parameter value should be separated by space " ". 
+# leave the parameter value blank if using default value. 
+#
+################ 
+# Satellite    #
+# ALOS or ENVI #
+################
+SAT = ALOS
+  
+#####################
+# processing stage  #
+#####################
+# 1 - start from preprocess
+# 2 - start from focus and align SLC images
+# 3 - start from make topo_ra 
+# 4 - start from make and filter interferograms 
+# 5 - start from unwrap phase
+# 6 - start from geocode  
+proc_stage = 1
+
+##################################
+#   parameters for preprocess    #
+#   - pre_proc.csh               #
+##################################
+# num of patches (usually 1~3) 
+num_patches = 
+
+# earth radius 
+earth_radius = 
+
+# near_range
+near_range = 
+
+# Doppler centroid 
+fd1 = 
+
+# SLC scale factor to convert float to int ( 0.01 is good for ALOS1 L1.1)
+SLC_factor = 4.0
+
+################################################
+#   parameters for focus and align SLC images  #
+#   - align.csh                                #
+################################################
+#
+#####################################
+#   parameters for make topo_ra     #
+#   - dem2topo_ra.csh               #
+#####################################
+# subtract topo_ra from the phase
+#  (1 -- yes; 0 -- no)
+topo_phase = 1
+# if above parameter = 1 then one should have put dem.grd in topo/
+
+# topo_ra shift (1 -- yes; 0 -- no)
+shift_topo = 0
+
+####################################################
+#   parameters for make and filter interferograms  #
+#   - intf.csh                                     #
+#   - filter.csh                                   #
+####################################################
+# switch the master and slave when doing intf. 
+# put "1" if assume master as repeat and slave as reference 
+# put "0" if assume master as reference and slave as repeat [Default]
+# phase = repeat phase - reference phase
+switch_master = 0
+
+# filters 
+# look at the filter/ folder to choose other filters
+filter1 = gauss_tsx_100m
+
+# decimation of images 
+# decimation control the size of the amplitude and phase images. It is either 1 or 2.
+# Set the decimation to be 1 if you want higher resolution images.
+# Set the decimation to be 2 if you want images with smaller file size.
+# 
+dec_factor = 2
+#
+# 
+#####################################
+#   parameters for unwrap phase     #
+#   - snaphu.csh                    #
+#####################################
+# correlation threshold for snaphu.csh (0~1)
+# set it to be 0 to skip unwrapping.
+threshold_snaphu = 0
+
+# region to unwrap in radar coordinates (leave it blank if unwrap the whole region)
+#  example format 500/10800/500/27200
+region_cut = 
+
+# mask the wet region (Lakes/Oceans) before unwrapping (1 -- yes; else -- no)
+switch_land = 0
+
+#
+# Allow phase discontinuity in unrapped phase. This is needed for interferograms having sharp phase jumps.
+# defo_max = 0 - used for smooth unwrapped phase such as interseismic deformation
+# defo_max = 65 - will allow a phase jump of 65 cycles or 1.82 m of deformation at C-band
+#
+defomax = 0
+
+#####################################
+#   parameters for geocode          #
+#   - geocode.csh                   #
+#####################################
+# correlation threshold for geocode.csh (0~1)
+threshold_geocode = .10

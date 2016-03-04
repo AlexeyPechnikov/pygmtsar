@@ -1,0 +1,297 @@
+# snaphu configuration file
+#
+# Lines with fewer than two fields and lines whose first non-whitespace 
+# characters are not alphnumeric are ignored.  For the remaining lines, 
+# anything after the first two fields (delimited by whitespace) is 
+# also ignored.  Inputs are converted in the order they appear in the file; 
+# if multiple assignments are made to the same parameter, the last one 
+# given is the one used.  Parameters in this file will be superseded by 
+# parameters given on the command line after the -f flag specifying this
+# file.  Multiple configuration files may be given on the command line.
+
+
+
+#############################################
+# File input and output and runtime options #
+#############################################
+
+# See section below for file format configuration options.
+
+# Input file name
+# INFILE	snaphu.in
+
+# Input file line length 
+# LINELENGTH	1000
+
+# Output file name
+# OUTFILE	snaphu.out
+
+# Amplitude file name(s)
+# AMPFILE	snaphu.amp.in	# Single file containing amplitude images
+
+# Correlation file name
+# CORRFILE	snaphu.corr.in
+
+# Statistical-cost mode (TOPO, DEFO, SMOOTH, or NOSTATCOSTS)
+# STATCOSTMODE	TOPO
+
+# Initialize-only mode (TRUE or FALSE)
+# INITONLY	FALSE
+
+# Algorithm used for initialization of wrapped phase values.  Possible
+# values are MST and MCF.  
+# INITMETHOD	MST
+
+# Verbose-output mode (TRUE or FALSE)
+# VERBOSE	FALSE
+
+
+################
+# File formats #
+################
+
+# Valid data formats:
+#
+# COMPLEX_DATA:      complex values: real, imag, real, imag
+# ALT_LINE_DATA:     real values from different arrays, alternating by line
+# ALT_SAMPLE_DATA:   real values from different arrays, alternating by sample
+# FLOAT_DATA:        single array of floating-point data
+# 
+
+# The ALT_SAMPLE_DATA format is sometimes known as .amp or sample-
+# interleaved format; the ALT_LINE_DATA format is sometimes known as
+# .hgt or line-interleaved format.  For the ALT_LINE_DATA format, the
+# first array is always assumed to be the interferogram magnitude.  All
+# formats assume single-precision (32-bit) floating-point data (real*4
+# and complex*8 in Fortran) in the native byte order (big vs. little
+# endian) of the system.
+
+
+# Input file format
+# Allowable formats:
+#   COMPLEX_DATA        (default)
+#   ALT_LINE_DATA       (magnitude in channel 1, phase in radians in channel 2)
+#   ALT_SAMPLE_DATA     (magnitude in channel 1, phase in radians in channel 2)
+#   FLOAT_DATA          (phase in radians)
+#
+#INFILEFORMAT		COMPLEX_DATA
+INFILEFORMAT		FLOAT_DATA
+
+# Output file format
+# Allowable formats:
+#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2; default)
+#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2)
+#   FLOAT_DATA          (unwrapped phase in radians)
+#
+#OUTFILEFORMAT		ALT_LINE_DATA
+OUTFILEFORMAT		FLOAT_DATA
+
+# Amplitude or power file format
+# Units should be consistent with interferogram.  Allowable formats:
+#   ALT_LINE_DATA       (first image amplitude in channel 1, 
+#                        second image amplitude in channel 2)
+#   ALT_SAMPLE_DATA     (first image amplitude in channel 1, 
+#                        second image amplitude in channel 2; default)
+#   FLOAT_DATA          (square root of average power of two images)
+#
+#AMPFILEFORMAT		ALT_SAMPLE_DATA
+AMPFILEFORMAT		FLOAT_DATA
+
+# Correlation file format
+# Allowable formats:
+#   ALT_LINE_DATA       (channel 1 ignored; correlation values 
+#                        between 0 and 1 in channel 2; default)
+#   ALT_SAMPLE_DATA     (channel 1 ignored; correlation values 
+#                        between 0 and 1 in channel 2)
+#   FLOAT_DATA          (correlation values between 0 and 1)
+#
+#CORRFILEFORMAT		ALT_LINE_DATA
+CORRFILEFORMAT		FLOAT_DATA
+
+
+###############################
+# SAR and geometry parameters #
+###############################
+
+# Orbital radius (double, meters) or altitude (double, meters).  The
+# radius should be the local radius if the orbit is not circular.  The
+# altitude is just defined as the orbit radius minus the earth radius.
+# Only one of these two parameters should be given.  
+ORBITRADIUS		7153000.0
+#ALTITUDE		775000.0
+
+# Local earth radius (double, meters).  A spherical-earth model is
+# used.
+EARTHRADIUS		6378000.0
+
+# The baseline parameters are not used in deformation mode, but they
+# are very important in topography mode.  The parameter BASELINE
+# (double, meters) is the physical distance (always positive) between
+# the antenna phase centers.  The along-track componenet of the
+# baseline is assumed to be zero.  The parameter BASELINEANGLE_DEG
+# (double, degrees) is the angle between the antenna phase centers
+# with respect to the local horizontal.  Suppose the interferogram is
+# s1*conj(s2).  The baseline angle is defined as the angle of antenna2
+# above the horizontal line extending from antenna1 towards the side
+# of the SAR look direction.  Thus, if the baseline angle minus the
+# look angle is less than -pi/2 or greater than pi/2, the topographic
+# height increases with increasing elevation.  The units of
+# BASELINEANGLE_RAD are radians.
+BASELINE		150.0
+BASELINEANGLE_DEG	225.0
+#BASELINEANGLE_RAD	3.92699
+
+# If the BPERP parameter is given, the baseline angle is taken to be
+# equal to the look angle (mod pi) at midswath, and the length of the
+# baseline is set accordingly.  Particular attention must be paid to
+# the sign of this parameter--it should be negative if increasing
+# phase implies increasing topographic height.  
+#BPERP		-150.0
+
+# The transmit mode should be either REPEATPASS or PINGPONG if both
+# antennas transmitted and both received (REPEATPASS and PINGPONG have
+# the same effect); the transmit mode should be SINGLEANTENNATRANSMIT
+# if only one antenna was used to transmit while both antennas
+# received.  In single-antenna-transmit mode, the baseline is
+# effectively halved.  This parameter is ignored for cost modes other
+# than topography.
+TRANSMITMODE	REPEATPASS
+
+# Slant range from platform to first range bin in input data file
+# (double, meters).  Be sure to modify this parameter if the input 
+# file is extracted from a larger scene.  The parameter does not need 
+# to be modified is snaphu is unwrapping only a subset of the input file.
+NEARRANGE	831000.0
+
+# Slant range and azimuth pixel spacings of input interferogram after
+# any multilook averaging.  This is not the same as the resolution.
+# (double, meters).
+DR		8.0
+DA		20.0
+
+# Single-look slant range and azimuth resolutions.  This is not the
+# same as the pixel spacing.  (double, meters).
+RANGERES	10.0
+AZRES		6.0
+
+# Wavelength (double, meters).
+LAMBDA		0.0565647
+
+# Number of real (not necessarily independent) looks taken in range and
+# azimuth to form the input interferogram (long).  
+NLOOKSRANGE	1
+NLOOKSAZ	5
+
+# Number of looks (assumed independent) from nonspatial averaging (long).
+NLOOKSOTHER     1
+
+# Equivalent number of independent looks (double, dimensionless) that were
+# used to generate correlation file if one is specified.  This parameter
+# is ignored if the correlation data are generated by the interferogram
+# and amplitude data.
+#
+# The equivalent number of independent looks is approximately equal to the 
+# real number of looks divided by the product of range and azimuth 
+# resolutions, and multiplied by the product of the single-look range and 
+# azimuth pixel spacings.  It is about 0.53 times the number of real looks 
+# for ERS data processed without windowing.
+NCORRLOOKS	23.8
+
+# Number of looks that should be taken in range and azimuth for estimating
+# the correlation coefficient from the interferogram and the amplitude 
+# data.  These numbers must be larger than NLOOKSRANGE and NLOOKSAZ.
+# The actual numbers used may be different since we prefer odd integer
+# multiples of NLOOKSRANGE and NLOOKSAZ (long).  These numbers are ignored
+# if a separate correlation file is given as input.
+NCORRLOOKSRANGE	3
+NCORRLOOKSAZ	15
+
+
+###############################
+# Scattering model parameters #
+###############################
+
+# Threshold brightness (normalized) for layover height integration 
+# (double, dimensionless)
+LAYMINEI	1.25
+
+
+##################################
+# Decorrelation model parameters #
+##################################
+
+# Here, rho is the magnitude of the complex correlation coefficient
+# between the two observations forming the interferogram (0<=rho<=1)
+# See Zebker & Villasenor, 1992
+
+# Default value to use uniformly for true, unbiased correlation if no 
+# correlation file is specified and correlation cannot be generated 
+# from the available data (double). 
+DEFAULTCORR	0.01
+
+# Factor applied to expected minimum measured (biased) correlation.
+# Values smaller than the threshold rhominfactor*rho0 are assumed to
+# come from zero statistical correlation because of estimator bias (double).
+# This is used only in topo mode; for defo mode, use DEFOTHRESHFACTOR.
+RHOMINFACTOR	1.3
+
+
+########################
+# PDF model parameters #
+########################
+
+# Algorithm costs are based on the negative log pdf:
+#
+#   cost = -log(f(phi | EI, rho))
+
+# Factor applied to range layover probability density to get azimuth
+# layover probability density (double).  
+AZDZFACTOR	0.99 
+
+# Ratio of layover probability density to peak probability density
+# for non-layover slopes expected (double).
+LAYCONST	0.9
+
+
+###############################
+# Deformation mode parameters #
+###############################
+
+# Factor applied to range discontinuity probability density to get 
+# corresponding value for azimuth (double).
+DEFOAZDZFACTOR	1.0
+
+# Factor applied to rho0 to get threshold for whether or not phase
+# discontinuity is possible (double).  rho0 is the expected, biased 
+# correlation measure if true correlation is 0.
+DEFOTHRESHFACTOR 1.2
+
+# Maximum phase discontinuity likely (double).  Units are radians or cycles.
+# If abrupt phase discontinuities are not expected, this paramter can be 
+# set to zero.
+DEFOMAX_CYCLE  65
+#DEFOMAX_RAD	7.5398
+
+# Ratio of phase discontinuity probability density to peak probability
+# density expected for discontinuity-possible pixel differences (double).
+# Value of 1 means zero cost for discontinuity, 0 means infinite cost.
+DEFOCONST	0.9
+
+
+########################
+# Algorithm parameters #
+########################
+
+# Maximum flow increment (long) for solver.  Not the same as maximum 
+# flow possible.
+MAXFLOW		4
+
+# Scaling constant factor applied to double precision costs to get 
+# integer costs (double).
+COSTSCALE	100.0
+
+# End of snaphu configuration file
+
+

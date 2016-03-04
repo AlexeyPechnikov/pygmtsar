@@ -1,0 +1,143 @@
+#! /bin/csh -f
+#  D. Sandwell and R. Mellors 09/09/97
+#
+#  M. Wei  04/05/2006
+#  Modified by Xiaopeng Tong, 01/21/2011
+
+#  script to preprocess Envisat ASAR data 
+#  produce .PRM file and decode level 0 image data file 
+#
+#
+ if ($#argv < 4) then
+  echo ""
+  echo " Usage: ENVI_pre_process  <name_stem>  <near_range>  <earth_radius> <num_patches> [Doppler]"
+  echo ""
+  echo " name_stem     -    filename of the .baq file"
+  echo " near_range    -    near range (in meters) of the SAR image (put 0 if use default value)"
+  echo " earth_radius  -    local earth radius (in meters) (put 0 if use default value)"
+  echo " num_patch     -    number of patches  (put 0 if use default value)" 
+  echo " Doppler       -    Doppler value (blank if use default value)"
+  echo ""
+  echo " Example: "
+  echo " command line: Envisat_pre_process ENV1_2463_2943_15046 978992.922 6378000 5"
+  echo " will preprocess raw Envisat ASAR data 'ENV1_2463_2943_15046.baq' "
+  echo " then output parameter file 'ENV1_2463_2943_15046.PRM' and raw data file 'ENV1_2463_2943_15046.raw' and LED file 'ENV1_2463_2943_15046.LED' "
+  echo " with near range close to 978992.922 meters and earth radius 6378000 meters and 5 patches"  
+  echo ""
+  exit 1
+ endif
+#
+#  0) start with a virgin header, Need to be modified for other users
+#
+ set ORBITS = "@ORBITS_DIR@"
+ set ENVIPRE = `gmtsar_sharedir.csh`
+ cp $ENVIPRE/virgin_envisat.PRM $1.PRM
+ echo " "
+ echo "========================="
+ echo "Start pre-process $1"
+
+#
+#  make sure the baq file exists
+#
+ if(! -f $1.baq ) then
+  echo ""
+  echo "error - raw file does not have correct .baq suffix"
+  echo ""
+  exit 1
+ endif
+# echo "dump start and stop time of operation"
+#
+#  1) add info provided by user
+#
+ echo "input_file		= $1.raw" >> $1.PRM
+#
+#  2) add the parameters from envisat_baseline
+#
+
+#  2a) get the start and stop time
+ dump_time_envi.pl $1.baq > $1.time
+
+#  2b) make orbit file 
+set START = `grep SENSING_START0 $1.time | awk '{print $2}'`
+set END = `grep SENSING_STOP0 $1.time | awk '{print $2}'`
+echo "clock_start		= $START" >> $1.PRM
+echo "clock_stop		= $END" >> $1.PRM
+set START = `grep SENSING_STARTY $1.time | awk '{print $2}'`
+set END = `grep SENSING_STOPY $1.time | awk '{print $2}'`
+echo "SC_clock_start		= $START" >> $1.PRM
+echo "SC_clock_stop		= $END" >> $1.PRM
+dump_orbit_envi.pl $START $END $1.LED $ORBITS/ENVI/Doris
+echo "led_file		= $1.LED" >> $1.PRM
+
+#
+#  3) decode L0 image data and add info to .PRM 
+#
+#  3a) find the right auxiliary file 
+ cp $ORBITS/ENVI/ASA_INS/list  $1.list
+ grep START2 $1.time | awk '{print int($2)}' > sensing_$1.time
+ grep STOP2 $1.time | awk '{print int($2)}' >> sensing_$1.time
+ set AUXI = `find_auxi.pl $1.list sensing_$1.time`
+
+#  3b) decode the L0 image data 
+ echo "decode L0 image data using asa_im_decode"
+ echo "auxiliary file is:"
+ echo $AUXI
+ asa_im_decode $1.baq $ORBITS/ENVI/ASA_INS/$AUXI $1.raw 1 $2  >> $1.log 
+
+#  3c) grep parameters from .log file
+
+#set NOS = `grep "number of output samples" $1.log |awk '{print $5}'`
+#echo "num_rng_bins              = $NOS" >> $1.PRM
+set BPL = `grep "number of output samples" $1.log |awk '{print $5*2}'`
+echo "bytes_per_line          = $BPL" >> $1.PRM
+echo "good_bytes_per_line     = $BPL" >> $1.PRM
+set NPATCH = `grep "number of output lines" $1.log | awk '{print int($5/2800)}'`
+echo "num_patches             = $NPATCH" >> $1.PRM
+set PRF = `grep prf $1.log | awk '{print $3}'`
+echo "PRF                     = $PRF"  >> $1.PRM
+set RSR = `grep "range sampling frequency" $1.log |awk '{print $5}'`
+echo "rng_samp_rate           = $RSR" >> $1.PRM
+set CS = `grep "chirp slope" $1.log |awk '{print $4}'`
+echo "chirp_slope             = $CS" >> $1.PRM
+set PD = `grep "pulse length" $1.log |awk '{print $4}'`
+echo "pulse_dur               = $PD"  >> $1.PRM
+set WAVELENGTH = `grep wavelength $1.log | awk '{print $3}'`
+echo "radar_wavelength        = $WAVELENGTH" >> $1.PRM
+set NLINES = `grep "number of output lines" $1.log |awk '{print $5}'`
+echo "num_lines               = $NLINES" >> $1.PRM
+set NEARRG = `grep "starting range" $1.log |awk '{print $4}'`
+echo "near_range              = $NEARRG" >> $1.PRM
+
+#
+#  4) doppler centroid estimation and orbital information
+#
+
+if ($#argv == 5) then
+  calc_dop_orb_envi $1.PRM $1.log2 $3 $5
+else if ($#argv == 4) then
+  calc_dop_orb_envi $1.PRM $1.log2 $3
+endif
+
+cat $1.PRM $1.log2 > $1_tmp.PRM
+echo "fdd1                    = 0" >> $1_tmp.PRM
+echo "fddd1                   = 0" >> $1_tmp.PRM
+mv $1_tmp.PRM $1.PRM
+
+#  5) other stuff
+echo "SLC_file                = $1.SLC" >> $1.PRM
+
+#
+#  6) change the number of patches
+# 
+  if ($4 != 0) then
+    update_PRM.csh $1.PRM num_patches $4
+    echo "Number of patches is set to $4"
+  endif
+#
+# clean unwanted files
+#
+ rm *$1.time $1.list
+ rm *$1.log*
+#
+ echo "End pre-process $1"
+#

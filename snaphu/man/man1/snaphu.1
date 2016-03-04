@@ -1,0 +1,547 @@
+.TH "snaphu" 1
+.SH NAME
+snaphu \- phase unwrapping algorithm for SAR interferometry
+.SH SYNOPSIS
+.B snaphu
+[options]
+[infile]
+[linelength]
+[options]
+.SH DESCRIPTION
+\fBsnaphu\fR is a \fBs\fRtatistical-cost \fBn\fRetwork-flow
+\fBa\fRlgorithm for \fBph\fRase \fBu\fRnwrapping.  Given an input
+interferogram and other observable data, \fBsnaphu\fR attempts to
+compute congruent phase-unwrapped solutions that are maximally
+probable in an approximate \fIa posteriori\fR sense.  The algorithm's
+solver routine is based on network optimization.  By default,
+\fBsnaphu\fR assumes that its input is a synthetic aperture radar
+(SAR) interferogram measuring surface topography.  Deformation
+measurements are assumed if the \fB\-d\fR option is given.  Smooth,
+generic data are assumed if the \fB\-s\fR option is given.
+
+This man page documents only \fBsnaphu\fR's syntax and usage.  Its
+theoretical foundations are discussed in the references cited below.
+
+The most common input parameters may be given on the command line,
+while many other twiddle parameters are handled via the \fB\-f\fR
+option and configuration files.  At the very least, the name of a
+wrapped-phase input file and its line length must be specified.  Range
+should increase towards the right in the interferogram, and the
+flat-earth phase ramp should be removed from the input interferogram
+before \fBsnaphu\fR is run.  For deformation interferograms, phase
+variations due to topography should be removed as well.
+
+Except for the input file name and the line length, all input
+parameters take default values if not specified.  However, these
+parameters should be customized whenever possible since the accuracy
+of the solution depends on how well the statistics of the estimation
+problem are modeled.  To avoid poor-quality solutions, users are
+strongly encouraged to provide their best estimates of the relevant
+problem parameters.  Parameters are set in the order in which they are
+given on the command line, so multiple configuration files or options
+may be given, with later values overriding earlier ones.
+
+Allowable file formats are detailed below.  The default format for the
+input file is COMPLEX_DATA, but any of the described formats may be
+used.  If either of the ALT_LINE_DATA or ALT_SAMPLE_DATA formats are
+used, the magnitude and phase (in radians) of the interferogram should
+be in the first and second channels of the file, respectively.  If the
+FLOAT_DATA format is used, the input file should contain only the
+phase of the interferogram (in radians); the magnitude may be passed
+with the \fB\-m\fR option.
+.SH OPTIONS
+.TP
+\fB\-a\fP \fIampfile\fP 
+Read brightness data from the file \fIampfile\fP.  The file should
+contain the amplitudes (not powers) of the two individual SAR images
+forming the interferogram if the formats ALT_SAMPLE_DATA (default) or
+ALT_LINE_DATA are used.  It should contain an average of those two
+images if the FLOAT_DATA format is used.  If (1) the amplitudes of
+both images are available, (2) the interferogram magnitude is also
+available, and (3) the \fB\-c\fP option is not used, then a coherence
+estimate is automatically formed from the available data.  The number
+of looks used for this estimate can be set in a configuration file.
+If no amplitude or power data are specified, then the magnitude of the
+input interferogram is used as the average amplitude, and no coherence
+estimate is formed.  Note that the magnitude of the interferogram is
+not equal to the average amplitude of the SAR images.  The amplitude
+data should be in the same system of units used for the input
+interferogram, and also coregistered to it.
+.TP
+\fB\-A\fP \fIpwrfile\fP
+Similar to the \fB\-a\fP option, except the data in the specified file
+is assumed to represent the powers of the two individual SAR images.
+.TP
+\fB\-b\fP \fIBperp\fP
+For topography mode, use \fIBperp\fP (decimal value, in meters) as the
+value of the perpendicular component of the interferometric baseline.
+The sign is defined such that \fIBperp\fP is negative if the unwrapped
+phase increases with the elevation.  By default, repeat-pass or
+ping-pong mode is assumed; for single-antenna-transmit data, the value
+of \fIBperp\fP should be halved, or the transmit mode should be set
+accordingly in a configuration file (see the \fB\-f\fP option).  The
+baseline value is only used in topography mode.
+.TP
+\fB\-c\fP \fIcorrfile\fP
+Read correlation data from the file \fIcorrfile\fP.  The correlation
+data should be the same size as, and registered to, the input
+interferogram.  Consequently, a raw correlation estimate may need to
+be upsampled if it incorporates more looks than the interferogram.
+If the \fB\-c\fP option is not given, a coherence estimate is formed
+from the available data if possible.  Otherwise, a uniform default
+coherence is assumed for the entire interferogram.  If the
+ALT_LINE_DATA (default) or ALT_SAMPLE_DATA formats are used, the
+correlation data should be in the second data channel of the file; the
+first channel is ignored.  The FLOAT_DATA format may also be used.
+The correlation values should be between zero and one, inclusive.
+.TP
+.B \-d
+Run in deformation mode.  The problem statistics and resulting cost
+functions are based on the assumption that the true unwrapped phase
+represents surface displacement rather than elevation.
+.TP
+\fB\-e\fP \fIestimatefile\fP
+Flatten using the unwrapped phase estimate in the file
+\fIestimatefile\fP.  The estimate is subtracted from the input
+interferogram before unwrapping, and is inserted back into the
+solution just before the output is written.  The estimate also affects
+the cost functions used, since subtracting a constant from a random
+variable shifts the probability density function of the random
+variable.  If the formats ALT_LINE_DATA (default) or ALT_SAMPLE_DATA
+are used, the unwrapped estimate (in radians) should be in the second
+data channel of the file; the first channel is ignored.  The
+FLOAT_DATA format may also be used.
+.TP
+\fB\-f\fP \fIconfigfile\fP 
+Read configuration parameters from file \fIconfigfile\fP.  The file is
+parsed line by line for key-value pairs.  Template configuration files
+are included with the \fBsnaphu\fP source code: \fIsnaphu.conf.full\fP
+contains all valid key-value pairs; \fIsnaphu.conf.brief\fP contains
+the most important parameters.  Lines not beginning with alphanumeric
+characters are treated as comment lines.  Command line options
+specified after \fB\-f\fP will override parameters specified in the
+\fIconfigfile\fP and vice versa.  The \fB\-f\fP option may be given
+multiple times with different configuration files, with parameters in
+later-specified files overriding those in earlier ones.
+.TP
+.B \-g \fImaskfile\fP
+Grow a connected component mask for the unwrapped solution and write
+the mask to the file \fImaskfile\fP.  A connected component is a
+region of pixels in the solution that is believed to have been
+unwrapped in a relative, internally self-consistent manner according
+to the statistical costs used.  Regions that are smaller than a
+preselected threshold are masked out.  Parameters for this option can
+be set in the configuration file.  The connected component file is
+composed of unsigned characters, with all pixels of the same value
+belonging to the same connected component and zero corresponding to
+masked pixels.
+.TP
+.B \-G \fImaskfile\fP
+Grow a connected component mask (see the \fB\-g\fP option) for the
+input data array, assuming that it is already unwrapped, and write the
+mask to the file \fImaskfile\fP.  Statistical cost functions are
+computed for forming the mask, but a new unwrapped solution is not
+computed.
+.TP
+.B \-h
+Print a help message summarizing command-line options and exit.
+.TP
+.B \-i
+Run in initialize-only mode.  Normally, \fBsnaphu\fP uses either an
+approximate minimum spanning tree (MST) algorithm or a minimum cost
+flow (MCF) algorithm for generating the initialization to its
+iterative, modified network-simplex solver.  If \fB\-i\fP is given,
+the initialization is written to the output and the program exits
+without running the iterative solver.
+.TP
+\fB\-l\fP \fIlogfile\fP
+Log all runtime parameters and some other environment information into
+the specified file.  The log file is a text file in the same format as
+a configuration file.
+.TP
+\fB\-m\fP \fImagfile\fP
+Read interferogram magnitude data from the specified file.  This
+option is useful mainly if the wrapped-phase input file is given as a
+set of real phase values rather than complex interferogram values.
+The interferogram magnitude is used to form a coherence estimate if
+appropriate amplitude data are given as well.  The default file format
+is FLOAT_DATA.  If the formats ALT_LINE_DATA or ALT_SAMPLE_DATA are
+used, the magnitude should be in the first data channel of the file;
+the second channel is ignored.  If the COMPLEX_DATA format is used,
+the phase information is ignored.
+.TP
+.B \-n
+Run in no-statistical-costs mode.  If the \fB\-i\fP or \fB\-p\fP
+options are given, \fBsnaphu\fP will not use statistical costs.
+Information from a weight file (\fB\-w\fP option) will still be used
+if given.
+.TP
+\fB\-o\fP \fIoutfile\fP
+Write the unwrapped output to file called \fIoutfile\fP.  If the file
+formats ALT_LINE_DATA (default) or ALT_SAMPLE_DATA are used, the
+unwrapped phase is written into the second data channel, while the
+interferogram magnitude is written into the first channel.  The format
+FLOAT_DATA may also be used.
+.TP
+\fB\-p\fP \fIvalue\fP
+Run in Lp-norm mode with p=\fIvalue\fP, where \fIvalue\fP is a
+nonnegative decimal.  Instead of statistical cost functions, the
+program uses Lp cost functions with statistically based weights
+(unless \fB\-n\fP is also given).  Solutions are still always
+congruent.  Moreover, congruence is enforced within the solver
+routine, not as a post-optimization processing step.  Therefore, if
+p=2, for example, least-squares cost functions are used, but the
+solution will probably be more accurate than one generated from a
+transform-based least-squares algorithm.
+.TP
+.B \-q
+Run in quantify-only mode.  The input data are assumed to be unwrapped
+already, and the total cost of this solution is calculated and
+printed.  The unwrapped phase is wrapped assuming congruence for the
+cost calculation.  Round-off errors may limit the precision of the
+quantified cost.  See the \fB\-u\fP option for allowable file formats.
+.TP
+.B \-s
+Run in smooth-solution mode.  The problem statistics and resulting
+cost functions are based on the assumption that the true unwrapped
+phase represents a generic surface with no discontinuities.  This is
+the same as deformation mode with the DEFOMAX parameter set to zero.
+.TP
+.B \-t
+Run in topography mode.  The problem statistics and resulting cost
+functions are based on the assumption that the true unwrapped phase
+represents surface elevation.  This is the default.
+.TP
+.B \-u
+Assume that the input file is unwrapped rather than wrapped.  The
+algorithm makes iterative improvements to this solution instead of
+using an initialization routine.  The input file may be in the formats
+ALT_LINE_DATA (default) or ALT_SAMPLE_DATA; the interferogram
+magnitude should be in the first data channel and the unwrapped phase
+should be in the second data channel.  The format FLOAT_DATA may also
+be used.
+.TP
+.B \-v
+Run in verbose mode.  Extra information on the algorithm's progress is
+printed to the standard output.
+.TP
+\fB\-w\fP \fIweightfile\fP
+Read external, scalar weights from file \fIweightfile\fP.  The
+weights, which should be positive short integers, are applied to
+whichever cost functions are used.  There is one weight value for each
+arc in the network, so \fIweightfile\fP should be the concatenation of
+raster horizontal-flow and vertical-flow arc weights.  Thus, for an N
+row by M column interferogram, \fIweightfile\fP would consist of a
+rasterized (N-1) by M array followed by a rasterized N by (M-1) array
+of short integer data.  This option is not well tested.
+.TP
+\fB\-\-aa\fP \fIampfile1 ampfile2\fP 
+Amplitude data are read from the files specified.  The data from the
+two individual SAR images forming the interferogram are assumed to be
+separately stored in files \fIampfile1\fP and \fIampfile2\fP.  These
+files should be in the format FLOAT_DATA.  This option is similar to
+the \fB\-a\fP option.
+.TP
+\fB\-\-AA\fP \fIpwrfile1 pwrfile2\fP
+Similar to the \fB\-\-aa\fP option, but power data are read from the
+specified files.
+.TP
+\fB\-\-assemble \fIdirname\fP
+Assemble the tile-mode temporary files in the specified directory.
+Most configuration options (from the command line and any
+configuration files) must be specified.  This option is useful
+if the user wishes to modify tile-assembly parameters without
+unwrapping the individual tiles over again.
+.TP
+.B \-\-copyright, \-\-info
+Print the software copyright notice and bug report info, then exit.
+.TP
+\fB\-\-costinfile\fP \fIcostfile\fP
+Read statistical cost arrays from file \fIcostfile\fP.  This file
+should be in the format written by the \fB\-\-costoutfile\fP option.
+The cost file does not control whether \fBsnaphu\fP runs in
+topography, deformation, or smooth-solution mode; the latter two must
+be specified explicitly even if \fIcostfile\fP was generated while
+running in those modes.
+.TP
+\fB\-\-costoutfile\fP \fIcostfile\fP
+Write statistical cost arrays to file \fIcostfile\fP.  This option can
+be used with the \fB\-\-costinfile\fP option to save the time of
+generating statistical costs if the same costs are used multiple times.
+.TP
+.B \-\-debug, \-\-dumpall
+Dump all sorts of intermediate arrays to files.  
+.TP
+.B \-\-mst
+Use a minimum spanning tree (MST) algorithm for the initialization.
+This is the default.
+.TP
+.B \-\-mcf
+Use a minimum cost flow (MCF) algorithm for the initialization.  The
+cs2 solver by Goldberg and Cherkassky is used.  The modified
+network-simplex solver in L1 mode may give different results than the
+cs2 solver, though in principle both should be L1 optimal.
+.TP
+.B \-\-nproc \fIn\fP
+Use \fIn\fP parallel processes when in tile mode.  The program forks a
+new process for each tile so that tiles can be unwrapped in parallel;
+at most \fIn\fP processes will run concurrently.  Forking is done
+before data is read.  The standard output streams of child processes
+are directed to log files in the temporary tile directory.
+.TP
+.B \-\-piece \fIfirstrow firstcol nrow ncol\fP
+Read and unwrap only a subset or part of the input interferogram.  The
+read piece is the \fInrow\fP by \fIncol\fP rectangle whose upper left
+corner is the pixel at row \fIfirstrow\fP and column \fIfirstcol\fP
+(indexed from 1).  All input files (such as amplitude, coherence,
+etc.) are assumed to be the same size as the input phase file.  All
+output files are \fInrow\fP by \fIncol\fP.
+.TP
+.B \-\-tile \fIntilerow ntilecol rowovrlp colovrlp\fP
+Unwrap the interferogram in tile mode.  The interferogram is
+partitioned into \fIntilerow\fP by \fIntilecol\fP tiles, each of which
+is unwrapped independently.  Tiles overlap by \fIrowovrlp\fP and
+\fIcolovrlp\fP pixels in the row and column directions.  The tiles are
+then segmented into reliable regions based on the cost functions, and
+the regions are reassembled.  The program creates a subdirectory for
+temporary files in the directory of the eventual output file.  This
+option is currently enabled only for statistical cost functions.
+.SH FILE FORMATS
+The formats of input files may be specified in a configuration file.
+All of these formats are composed of raster, single-precision (float,
+real*4, or complex*8) floating-point data types in the platform's
+native byte order.  Data are read line by line (across then down).
+Regardless of the file format, all input data arrays should have the
+same number of samples in width and depth and should be coregistered
+to one another.  Note that weight files and cost files have their own
+formats.  The allowable formats for other data files are described
+below.
+.TP
+COMPLEX_DATA
+Alternating floats correspond to the real (in-phase) and imaginary
+(quadrature) components of complex data samples.  The specified line
+length should be the number of complex samples (pairs of real and
+imaginary samples) per line.
+.TP
+ALT_LINE_DATA
+Alternating lines (rows) of data correspond to lines of purely real
+data from two separate arrays.  The first array is often the magnitude
+of the interferogram, and the second may be unwrapped phase,
+coherence, etc.  This is also sometimes called \fBhgt\fP or
+line-interleaved format.
+.TP
+ALT_SAMPLE_DATA
+Alternating samples correspond to purely real samples from two
+separate arrays.  This format is sometimes used for the amplitudes of
+the two SAR images.
+.TP
+FLOAT_DATA
+The file contains data for only one channel or array, and the data are
+purely real.
+.SH EXAMPLES
+Unwrap a wrapped topographic interferogram called ``wrappedfile''
+whose line length is 1024 complex samples (output will be written to a
+file whose name is compiled into the program):
+
+.nf
+	snaphu wrappedfile 1024
+.fi
+
+Unwrap the same file as above, but use brightness information from the
+file ``ampfile,'' set the perpendicular baseline to -165 m at
+midswath, and place the output in a file called ``unwrappedfile''
+(coherence data are generated automatically if ``wrappedfile''
+contains complex data and ``ampfile'' contains amplitude data from
+both SAR images):
+
+.nf
+	snaphu wrappedfile 1024 -a ampfile \\\ 
+		-b -165 -o unwrappedfile
+.fi
+
+Unwrap the interferogram as above, but read correlation
+information from the file ``corrfile'' instead of generating it from
+the interferogram and amplitude data:
+
+.nf
+	snaphu wrappedfile 1024 -a ampfile -c corrfile \\\ 
+		-b -165 -o unwrappedfile
+.fi
+
+The following is equivalent to the previous example, but input
+parameters are read from a configuration file, and verbose output is
+displayed:
+
+.nf
+	cat > configfile
+	# This is a comment line which will be ignored
+	AMPFILE      ampfile
+	CORRFILE     corrfile
+	BPERP        -165
+	OUTFILE      unwrappedfile
+	<Ctrl-D>
+
+	snaphu -v -f configfile wrappedfile 1024
+.fi
+
+Unwrap the same interferogram, but use only the MST initialization
+(with scalar statistical weights) and write the output to ``mstfile'':
+
+.nf
+	snaphu -f configfile -i wrappedfile 1024 -o mstfile
+.fi
+
+Read the unwrapped data in ``mstfile'' and use that as the
+initialization to the modified network-simplex solver:
+
+.nf
+	snaphu -f configfile -u mstfile 1024 -o unwrappedfile
+.fi
+
+Note that in the previous two examples, the output file name in the
+configuration file is overrided by the one given on the command line.
+The previous two commands together are in principle equivalent to the
+preceding one, although round-off errors in flow-to-phase conversions
+may cause minor differences
+
+Unwrap the interferogram as above, but use the MCF algorithm for
+initialization:
+
+.nf
+	snaphu -f configfile wrappedfile 1024 --mcf
+.fi
+
+Unwrap the interferogram once again, but first flatten it with the
+unwrapped data in ``estfile,'' then reinsert the subtracted phase
+after unwrapping:
+
+.nf
+	snaphu -f configfile wrappedfile 1024 -e estfile
+.fi
+
+The following assumes that the wrapped input interferogram measures
+deformation, not topography.  Unwrap the interferogram with the given
+correlation data:
+
+.nf
+	snaphu -d wrappedfile 1024 -c corrfile 
+.fi
+
+Unwrap the input interferogram by minimizing the unweighted congruent
+L2 norm:
+
+.nf
+	snaphu -p 2 -n wrappedfile 1024
+.fi
+
+Unwrap the interferogram as a three-by-four set of tiles that overlap
+by 30 pixels, with the specified configuration file, using two
+processors:
+
+.nf
+	snaphu wrappedfile 1024 -f configfile \\\ 
+		--tile 3 4 30 30 --nproc 2
+.fi
+
+.SH "HINTS AND TIPS"
+The program may print a warning message about costs being clipped to
+avoid overflow.  If too many costs are clipped, the value of COSTSCALE
+may need to be decreased in a configuration file (via the \fB\-f\fR
+option).  If the program prints a warning message about an unexpected
+increase in the total solution cost, this is an indication that too
+many costs are clipped.  It is usually okay if just a few costs are
+clipped.  
+
+In topography mode, if the unwrapped result contains too many
+discontinuities, try increasing the value of LAYMINEI or decreasing
+the value of LAYCONST.  The former determines the normalized intensity
+threshold for layover, and the latter is the relative layover
+probability.  If there are too many discontinuities running in
+azimuth, try decreasing the value of AZDZFACTOR, which affects the
+ratio of azimuth to range costs.  If the baseline is not known, take a
+guess at it and be sure its sign is correct.  Specify the SAR imaging
+geometry parameters as well as possible.  The defaults assume ERS data
+with five looks taken in azimuth.
+
+In deformation mode, if the unwrapped result contains too many
+discontinuities, try increasing the value of DEFOTHRESHFACTOR or
+decreasing the value of DEFOCONST.  If the surface displacement varies
+slowly and true discontinuities are not expected at all, DEFOMAX_CYCLE
+can be set to zero.  This behavior is also invoked with the \fB\-s\fR
+option.  The resulting cost functions will be similar to
+correlation-weighted L2 cost functions, though the former are not
+necessarily centered on the wrapped gradients.  Congruence is still
+enforced during rather than after optimization.
+
+The program can be run in initialize-only (\fB\-i\fR) mode for quick
+down-and-dirty MST or MCF solutions.
+.SH SIGNALS
+Once the iterative solver has started, \fBsnaphu\fR traps the
+interrupt (INT) and hangup (HUP) signals.  Upon receiving an
+interrupt, for example if the user types Ctrl-C, the program finishes
+a minor iteration, dumps its current solution to the output, and
+exits.  If a second interrupt is given after the first (caught)
+interrupt, the program exits immediately.  If a hangup signal is
+received, the program dumps its current solution then continues to
+execute normally.
+.SH "EXIT STATUS"
+Upon successful termination, the program exits with code 0.  Errors
+result in exit code 1.
+.SH FILES
+The following files may be useful for reference, but are not required.
+They are included in the program source distribution and may be installed
+somewhere on the system.
+.TP
+\fIsnaphu.conf.full\fP
+Template configuration file setting all valid input parameters (though
+some may be commented out).
+.TP
+\fIsnaphu.conf.brief\fP
+General-purpose template configuration file setting the most
+important or commonly modified input parameters.
+.PP
+In addition to parameters read from configuration files specified on
+the command line, default parameters may be read from a system-wide
+configuration file if such a file is named when the program is
+compiled.
+.SH BUGS
+The \fB\-w\fR option has not been tested exhaustively.
+
+Extreme shadow discontinuities (i.e., abrupt elevation drops in
+increasing range due to cliffs facing away from the radar) are not
+modeled that well in the cost functions for topography mode.
+
+Abrupt changes in surface reflectivity, such as those of coastlines
+between bright land and dark water, might be misinterpreted as layover
+and assigned inappropriate costs.
+
+The algorithm's behavior may be unpredictable if the costs are badly
+scaled and excessively clipped to fit into their short-integer data
+types.
+
+There is no error checking that ensures that the network node
+potentials (incost and outcost) do not overflow their long-integer
+data types.
+
+Automatic flow clipping is built into the MST initialization, but it
+can give erratic results and may loop infinitely for certain input
+data sets.  It is consequently turned off by default.
+
+Dedicated programs for specific Lp objective functions may work better
+than \fBsnaphu\fR in Lp mode.  Note that snaphu enforces congruence as
+part of the problem formulation, however, not as a post-optimization
+processing step.  
+.SH REFERENCES
+C. W. Chen and H. A. Zebker, ``Two-dimensional phase unwrapping with
+use of statistical models for cost functions in nonlinear
+optimization,'' \fIJournal of the Optical Society of America A\fP,
+\fB18\fP, 338-351 (2001).
+
+C. W. Chen and H. A. Zebker, ``Network approaches to two-dimensional
+phase unwrapping: intractability and two new algorithms,'' \fIJournal
+of the Optical Society of America A\fP, \fB17\fP, 401-414 (2000).
+
+C. W. Chen and H. A. Zebker, ``Phase unwrapping for large SAR
+interferograms: Statistical segmentation and generalized network
+models,'' \fIIEEE Transactions on Geoscience and Remote Sensing\fP,
+\fB40\fP, 1709-1719 (2002). 

@@ -1,0 +1,56 @@
+#	$Id: BASICSVN.TXT 210 2015-08-07 15:46:10Z pwessel $
+#
+For those unfamiliar with subversion, here are some basic commands and approaches
+
+Before you start making any edits, make sure your working copy is up-to-date by
+running
+	svn up
+in the top GMT5SAR directory.  That will minimize any conflicts.
+
+After making any changes to the code, make an entry in the ChangeLog file,
+with the most recent changes on top, following the format of others.
+
+If you add any new files, make sure you tell subversion about them, e.g.
+
+svn add mynewfile
+
+Using
+
+svn add mynewdir
+
+will add the directory as well as any files in it.
+
+Likewise, to remove a file from the repository, use
+
+svn remove obsoletefile
+
+Nothing really happens until you decide to commit your changes.
+To commit your changes to the repository, use
+
+svn commit -m "short explanation of what you did"
+
+This will upload your changes to the server and tell you what the new
+revision number is.  The revision number is for the entire repository
+and increases for each commit; there is no unique number per file.
+
+If during commit you get a conflict message, it means that your changes
+occurs in an area that one of the other developers _JUST_ committed as
+well.  The simplest approach is to answer the question with "fix later"
+or something (I don't recall the exact wording), then edit that file.
+Update the file with svn up first.  Now, you should easily find sections
+marked with
+>>>
+<<<
+showing both yours and the other version of the code.  It is usually easy
+to figure out the issue and make the edits.  Because the commit was marked
+as a conflict you must first remove the conflict once you are happy with
+your changes:
+
+svn resolved <the file in question>
+
+Now you can continue with the commit.
+
+Should you screw up and wish to revert to what it was before your changes, do
+
+svn revert <the file in question>
+svn up

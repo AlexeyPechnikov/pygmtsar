@@ -1,0 +1,667 @@
+# snaphu configuration file
+#
+# Lines with fewer than two fields and lines whose first non-whitespace 
+# characters are not alphnumeric are ignored.  For the remaining lines, 
+# anything after the first two fields (delimited by whitespace) is 
+# also ignored.  Inputs are converted in the order they appear in the file; 
+# if multiple assignments are made to the same parameter, the last one 
+# given is the one used.  Parameters in this file will be superseded by 
+# parameters given on the command line after the -f flag specifying this
+# file.  Multiple configuration files may be given on the command line.
+
+
+
+#############################################
+# File input and output and runtime options #
+#############################################
+
+# See section below for file format configuration options.
+
+# Input file name
+# INFILE	snaphu.in
+
+# Input file line length 
+# LINELENGTH	1000
+
+# Output file name
+# OUTFILE	snaphu.out
+
+# Weight file name
+# WEIGHTFILE	snaphu.weights.in
+
+# Amplitude file name(s)
+# AMPFILE	snaphu.amp.in	# Single file containing amplitude images
+#
+# AMPFILE1      snaphu.amp1.in  # Pair of separate files for amplitude images
+# AMPFILE2      snaphu.amp2.in
+
+# Power file name(s)
+# PWRFILE	snaphu.amp.in	# Single file containing power images
+#
+# PWRFILE1      snaphu.amp1.in  # Pair of separate files for power images
+# PWRFILE2      snaphu.amp2.in
+
+# Interferogram magnitude file
+# MAGFILE	snaphu.mag.in
+
+# Correlation file name
+# CORRFILE	snaphu.corr.in
+
+# Coarse unwrapped-phase estimate file name
+# ESTIMATEFILE	snaphu.est.in
+
+# Input cost file (for statistical costs).  If costs are read from this 
+# file, many of the other parameters will be ignored (string).
+# COSTINFILE snaphu.costinfile
+
+# Output cost file to which statistical costs will be dumped (string). 
+# Costs are not dumped if no file is given.
+# COSTOUTFILE snaphu.costoutfile
+
+# Text file to which runtime parameters will be logged.  The format of
+# that file will be suitable so that it can also be used as a
+# configuration file.  
+# LOGFILE snaph.logfile
+
+# Statistical-cost mode (TOPO, DEFO, SMOOTH, or NOSTATCOSTS)
+# STATCOSTMODE	TOPO
+
+# Initialize-only mode (TRUE or FALSE)
+# INITONLY	FALSE
+
+# Unwrapped-input mode (TRUE or FALSE)
+# UNWRAPPED_IN	FALSE
+
+# Debug mode, dumps all intermediate arrays (TRUE or FALSE)
+# DEBUG		FALSE
+
+# Algorithm used for initialization of wrapped phase values.  Possible
+# values are MST and MCF.  
+# INITMETHOD	MST
+
+# Verbose-output mode (TRUE or FALSE)
+# VERBOSE	FALSE
+
+
+################
+# File formats #
+################
+
+# Valid data formats:
+#
+# COMPLEX_DATA:      complex values: real, imag, real, imag
+# ALT_LINE_DATA:     real values from different arrays, alternating by line
+# ALT_SAMPLE_DATA:   real values from different arrays, alternating by sample
+# FLOAT_DATA:        single array of floating-point data
+# 
+
+# The ALT_SAMPLE_DATA format is sometimes known as .amp or sample-
+# interleaved format; the ALT_LINE_DATA format is sometimes known as
+# .hgt or line-interleaved format.  For the ALT_LINE_DATA format, the
+# first array is always assumed to be the interferogram magnitude.  All
+# formats assume single-precision (32-bit) floating-point data (real*4
+# and complex*8 in Fortran) in the native byte order (big vs. little
+# endian) of the system.
+
+# Input file format
+# Allowable formats:
+#   COMPLEX_DATA        (default)
+#   ALT_LINE_DATA       (magnitude in channel 1, phase in radians in channel 2)
+#   ALT_SAMPLE_DATA     (magnitude in channel 1, phase in radians in channel 2)
+#   FLOAT_DATA          (phase in radians)
+#
+#INFILEFORMAT		COMPLEX_DATA
+
+# Output file format
+# Allowable formats:
+#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2; default)
+#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2)
+#   FLOAT_DATA          (unwrapped phase in radians)
+#
+#OUTFILEFORMAT		ALT_LINE_DATA
+
+# Amplitude or power file format
+# Units should be consistent with interferogram.  Allowable formats:
+#   ALT_LINE_DATA       (first image amplitude in channel 1, 
+#                        second image amplitude in channel 2)
+#   ALT_SAMPLE_DATA     (first image amplitude in channel 1, 
+#                        second image amplitude in channel 2; default)
+#   FLOAT_DATA          (square root of average power of two images)
+#
+#AMPFILEFORMAT		ALT_SAMPLE_DATA
+
+# Magnitude file format 
+# Allowable formats:
+#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#                        channel 2 ignored)
+#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#                        channel 2 ignored)
+#   FLOAT_DATA          (interferogram magnitude; default)
+#
+#MAGFILEFORMAT 		FLOAT_DATA
+
+# Correlation file format
+# Allowable formats:
+#   ALT_LINE_DATA       (channel 1 ignored; correlation values 
+#                        between 0 and 1 in channel 2; default)
+#   ALT_SAMPLE_DATA     (channel 1 ignored; correlation values 
+#                        between 0 and 1 in channel 2)
+#   FLOAT_DATA          (correlation values between 0 and 1)
+#
+#CORRFILEFORMAT		ALT_LINE_DATA
+
+# Unwrapped estimate file format
+# Allowable formats:
+#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2; default)
+#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2)
+#   FLOAT_DATA          (unwrapped phase in radians)
+#
+#ESTFILEFORMAT		ALT_LINE_DATA
+
+# Unwrapped input file format
+# Allowable formats:
+#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2; default)
+#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2)
+#   FLOAT_DATA          (unwrapped phase in radians)
+#
+#UNWRAPPEDINFILEFORMAT	ALT_LINE_DATA
+
+
+###############################
+# SAR and geometry parameters #
+###############################
+
+# Orbital radius (double, meters) or altitude (double, meters).  The
+# radius should be the local radius if the orbit is not circular.  The
+# altitude is just defined as the orbit radius minus the earth radius.
+# Only one of these two parameters should be given.  
+ORBITRADIUS		7153000.0
+#ALTITUDE		775000.0
+
+# Local earth radius (double, meters).  A spherical-earth model is
+# used.
+EARTHRADIUS		6378000.0
+
+# The baseline parameters are not used in deformation mode, but they
+# are very important in topography mode.  The parameter BASELINE
+# (double, meters) is the physical distance (always positive) between
+# the antenna phase centers.  The along-track componenet of the
+# baseline is assumed to be zero.  The parameter BASELINEANGLE_DEG
+# (double, degrees) is the angle between the antenna phase centers
+# with respect to the local horizontal.  Suppose the interferogram is
+# s1*conj(s2).  The baseline angle is defined as the angle of antenna2
+# above the horizontal line extending from antenna1 towards the side
+# of the SAR look direction.  Thus, if the baseline angle minus the
+# look angle is less than -pi/2 or greater than pi/2, the topographic
+# height increases with increasing elevation.  The units of
+# BASELINEANGLE_RAD are radians.
+BASELINE		150.0
+BASELINEANGLE_DEG	225.0
+#BASELINEANGLE_RAD	3.92699
+
+# If the BPERP parameter is given, the baseline angle is taken to be
+# equal to the look angle (mod pi) at midswath, and the length of the
+# baseline is set accordingly.  Particular attention must be paid to
+# the sign of this parameter--it should be negative if increasing
+# phase implies increasing topographic height.  
+#BPERP		-150.0
+
+# The transmit mode should be either REPEATPASS or PINGPONG if both
+# antennas transmitted and both received (REPEATPASS and PINGPONG have
+# the same effect); the transmit mode should be SINGLEANTENNATRANSMIT
+# if only one antenna was used to transmit while both antennas
+# received.  In single-antenna-transmit mode, the baseline is
+# effectively halved.  This parameter is ignored for cost modes other
+# than topography.
+TRANSMITMODE	REPEATPASS
+
+# Slant range from platform to first range bin in input data file
+# (double, meters).  Be sure to modify this parameter if the input 
+# file is extracted from a larger scene.  The parameter does not need 
+# to be modified is snaphu is unwrapping only a subset of the input file.
+NEARRANGE	831000.0
+
+# Slant range and azimuth pixel spacings of input interferogram after
+# any multilook averaging.  This is not the same as the resolution.
+# (double, meters).
+DR		8.0
+DA		20.0
+
+# Single-look slant range and azimuth resolutions.  This is not the
+# same as the pixel spacing.  (double, meters).
+RANGERES	10.0
+AZRES		6.0
+
+# Wavelength (double, meters).
+LAMBDA		0.0565647
+
+# Number of real (not necessarily independent) looks taken in range and
+# azimuth to form the input interferogram (long).  
+NLOOKSRANGE	1
+NLOOKSAZ	5
+
+# Number of looks (assumed independent) from nonspatial averaging (long).
+NLOOKSOTHER     1
+
+# Equivalent number of independent looks (double, dimensionless) that were
+# used to generate correlation file if one is specified.  This parameter
+# is ignored if the correlation data are generated by the interferogram
+# and amplitude data.
+#
+# The equivalent number of independent looks is approximately equal to the 
+# real number of looks divided by the product of range and azimuth 
+# resolutions, and multiplied by the product of the single-look range and 
+# azimuth pixel spacings.  It is about 0.53 times the number of real looks 
+# for ERS data processed without windowing.
+NCORRLOOKS	23.8
+
+# Number of looks that should be taken in range and azimuth for estimating
+# the correlation coefficient from the interferogram and the amplitude 
+# data.  These numbers must be larger than NLOOKSRANGE and NLOOKSAZ.
+# The actual numbers used may be different since we prefer odd integer
+# multiples of NLOOKSRANGE and NLOOKSAZ (long).  These numbers are ignored
+# if a separate correlation file is given as input.
+NCORRLOOKSRANGE	3
+NCORRLOOKSAZ	15
+
+
+###############################
+# Scattering model parameters #
+###############################
+
+# The scattering model: brightness proportional to
+#
+#    sigma0 = C * (kds*cos(thetai) + (cos(2thetai))^n) * cos(thetai)
+#
+# kds (input parameter KDS) is the ratio of diffuse to specular
+# scattering.  n (input parameter SPECULAREXP) is the power to which
+# speclar cosine term is rasied.  Larger n implies a sharper peak for
+# specular scatter (both doubles, dimensionless).
+KDS		0.02
+SPECULAREXP	8.0
+
+# Multiplicative factor applied to diffuse scatter term in evaluating
+# crossover point between diffuse and specular scatter in terms of 
+# range slope (double, dimensionless).
+DZRCRITFACTOR	2.0
+
+# Allow shadow discontinuities (TRUE,FALSE)?  (not yet enabled)
+SHADOW		FALSE
+
+# Minimum slope expected in the absence of layover (double,  
+# meters per slant-range pixel).
+DZEIMIN		-4.0
+
+# Number of pixels towards in increasing range that should be included in
+# layover height estimation (long, dimensionless).
+LAYWIDTH	16
+
+# Threshold brightness (normalized) for layover height integration 
+# (double, dimensionless)
+LAYMINEI	1.25
+
+# Multiplicative factor applied to kds (see scattering model) in order
+# to get ratio of slopes for linearized scattering model.  The term improves
+# agreement of the piecewise-linear model with the cosine model near the
+# transition point (dzrcrit) at the expense of poorer agreement at very
+# large slopes (double, dimensionless).
+SLOPERATIOFACTOR 1.18
+
+# Variance (sigma squared) of range slopes due to uncertainties in slope
+# estimation from brightness (double, (meters/pixel)^2)
+SIGSQEI		100.0
+
+
+##################################
+# Decorrelation model parameters #
+##################################
+
+# Here, rho is the magnitude of the complex correlation coefficient
+# between the two observations forming the interferogram (0<=rho<=1)
+# See Zebker & Villasenor, 1992
+
+# Step size for calculating lookup table of maximum layover slope based
+# on measured correlation (double, dimensionless).
+DRHO		0.005
+
+# Constants (double) for modeling biased measured correlation expected for
+# zero statistical correlation:
+#
+#   rho0 ~= rhosconst1/ncorrlooks + rhosconst2
+#
+# Approximately matches curves of Touzi, Lopes, Bruniquel, & Vachon 1999
+# (double).
+RHOSCONST1	1.3
+RHOSCONST2	0.14
+
+# Constants (double) for modeling phase standard deviation as a function 
+# of rho:
+#
+#   sigma ~= rho ^ ( cstd1 + cstd2*log(nlooks) + cstd3*nlooks )
+#
+# Approximately matches curves of Lee, Hoppel, Mango, & Miller, 1994.
+CSTD1		0.4
+CSTD2		0.35
+CSTD3		0.06
+
+# Default value to use uniformly for true, unbiased correlation if no 
+# correlation file is specified and correlation cannot be generated 
+# from the available data (double). 
+DEFAULTCORR	0.01
+
+# Factor applied to expected minimum measured (biased) correlation.
+# Values smaller than the threshold rhominfactor*rho0 are assumed to
+# come from zero statistical correlation because of estimator bias (double).
+# This is used only in topo mode; for defo mode, use DEFOTHRESHFACTOR.
+RHOMINFACTOR	1.3
+
+
+########################
+# PDF model parameters #
+########################
+
+# Algorithm costs are based on the negative log pdf:
+#
+#   cost = -log(f(phi | EI, rho))
+
+# Layover peak location (meters/pixel)
+DZLAYPEAK	-2.0
+
+# Factor applied to range layover probability density to get azimuth
+# layover probability density (double).  
+AZDZFACTOR	0.99 
+
+# Factor applied to slope expected from brightness without layover (double).
+# Can account for underestimation of brightness from averaging with 
+# neighboring dark pixels when despeckling.
+DZEIFACTOR      4.0
+
+# Weight applied to slope expected from brightness without layover (double).
+# Must be between zero and one.  Can reduce influence of intensity on 
+# nonlayover slope.  This is useful if there are lots of nontopographic
+# variations in brightness (ie, changes in surface relfectivity).
+DZEIWEIGHT      0.5
+
+# Factor applied to slope expected from brightness with layover (double).
+# Can account for underestimation of brightness from averaging with 
+# neighboring dark pixels when despeckling.
+DZLAYFACTOR	1.0
+
+# Ratio of layover probability density to peak probability density
+# for non-layover slopes expected (double).
+LAYCONST	0.9
+
+# Factor applied to slope varinace for nonlayover to get falloff of
+# probability density after the upper layover slope limit has been 
+# exceeded (double).
+LAYFALLOFFCONST	2.0
+
+# Minimum value of variance when cast to short integer data type (long).
+# Must be greater than 0 to avoid divide-by-zero.
+SIGSQSHORTMIN	1
+
+# Fraction of (ambiguity height)^2 to use for slope variance in the 
+# presence of layover.  Should usually be less than (1/2)^2 = 0.25.
+SIGSQLAYFACTOR	0.1
+
+
+###############################
+# Deformation mode parameters #
+###############################
+
+# Factor applied to range discontinuity probability density to get 
+# corresponding value for azimuth (double).
+DEFOAZDZFACTOR	1.0
+
+# Factor applied to rho0 to get threshold for whether or not phase
+# discontinuity is possible (double).  rho0 is the expected, biased 
+# correlation measure if true correlation is 0.
+DEFOTHRESHFACTOR 1.2
+
+# Maximum phase discontinuity likely (double).  Units are radians or cycles.
+# If abrupt phase discontinuities are not expected, this paramter can be 
+# set to zero.
+DEFOMAX_CYCLE	1.2
+#DEFOMAX_RAD	7.5398
+
+# Phase variance (cycles^2) reflecting uncertainty in measurement of 
+# actual statistical correlation (double).
+SIGSQCORR	0.05
+
+# Ratio of phase discontinuity probability density to peak probability
+# density expected for discontinuity-possible pixel differences (double).
+# Value of 1 means zero cost for discontinuity, 0 means infinite cost.
+DEFOCONST	0.9
+
+
+########################
+# Algorithm parameters #
+########################
+
+# Maximum flow (long) to allow in initialization.  If this is zero,
+# then the maximum is calculated automatically from the statistical
+# cost functions.  To disable, set it to a large value like 9999, but 
+# do not overflow the long integer data type.
+INITMAXFLOW	9999
+
+# Constant (long) to add to maximum flow expected from statistical 
+# cost functions for automatically determining initial maximum 
+# flow (see above).
+ARCMAXFLOWCONST	3
+
+# Maximum flow increment (long) for solver.  Not the same as maximum 
+# flow possible.
+MAXFLOW		4
+
+# Number of pixels in row and column dimensions to use in sliding average
+# window used for normalizing intensity values (long).
+KROWEI		65
+KCOLEI		257
+
+# Number of pixels to use in sliding window average used for averaging 
+# wrapped gradients to get mean non-layover slope, in directions parallel
+# and perpendicular to the examined phase difference (long).
+KPARDPSI	7
+KPERPDPSI	7
+
+# Threshold precision for iterative numerical calculations (double).
+THRESHOLD	0.001
+
+# Initial value of range slope for dzrcrit numerical solution (double, 
+# meters/pixel)
+INITDZR		2048.0
+
+# Initial range slope stepsize in dzrhomax numerical solution (double, 
+# meters/pixel)
+INITDZSTEP	100.0
+
+# Maximum cost allowd for scalar MST costs and for estimating number of 
+# buckets needed for solver routine (double).
+MAXCOST		1000.0
+
+# Scaling constant factor applied to double precision costs to get 
+# integer costs (double).
+COSTSCALE	100.0
+
+# Ambiguity height for autoscaling COSTSCALE to equal 100 (double,
+# meters).  COSTSCALE is automatically adjusted to be inversely
+# proportional to the midswath ambigutiy height in topography mode.
+COSTSCALEAMBIGHT 80.0
+
+# Step size (double, radians) for dzrhomax lookup table.  The index is
+# on the local flat-earth incidence angle; this is the sample spacing
+# in the table.
+DNOMINCANGLE	0.01
+
+# Integer spacing that represents one unit of flow or one cycle of phase
+# when storing costs as short integer types (long).
+NSHORTCYCLE	200
+
+# Fraction of total number of nodes to add in each tree expansion
+# phase of solver algorithm (double).
+MAXNEWNODECONST	0.0008
+
+# Number of cycles to allow for a call to solver with a specific flow
+# increment delta and still consider that increment done.  Ideally
+# it would be zero, but scaling for different deltas may leave some 
+# negative cycles that won't affect solution much.  Comment this out 
+# to automatically determine the number based on the size of the 
+# interferogram.
+#MAXNFLOWCYCLES	10
+
+# Fraction of the number of pixels to use as the maximum number of 
+# cycles allowed for a specific flow increment if MAXNFLOWCYCLES 
+# is not given.
+MAXCYCLEFRACTION 0.00001
+
+# Determines how the source or root of the tree is chosen for the 
+# modified network-simplex solver.  If SOURCEMODE is zero, the 
+# ground node is used as the root (usually fastest).  Otherwise, 
+# SOURCEMODE should be 1 or -1, and the root is the endpoint of the 
+# longest chain of flow greater than or equal to the current flow 
+# increment, where the sign of SOURCEMODE determines which end of the
+# chain is used.
+SOURCEMODE	0
+
+# Scale factor (long) for cs2 MCF initializations.  A larger number
+# gives greater speed, but uses more memory.
+CS2SCALEFACTOR	8
+
+
+##############################################
+# File names for dumping intermediate arrays #
+##############################################
+
+# If the following file names are given, the corresponding intermediate
+# array will be dumped to that file.  Otherwise, the array is not dumped.
+# These filenames override the default file names assigned when 
+# DEBUG is TRUE.
+
+# Unwrapped initialization 
+# INITFILE 		snaphu.init
+
+# Flow corresponding to unwrapped solution
+# FLOWFILE		snaphu.flow
+
+# Normalized, despeckled SAR image intensity
+# EIFILE		snaphu.ei
+
+# Statistical costs for azimuth
+# ROWCOSTFILE		snaphu.rowcost
+
+# Statistical costs for range
+# COLCOSTFILE		snaphu.colcost
+
+# Scalar initialization costs for azimuth
+# MSTROWCOSTFILE	snaphu.mstrowcost
+
+# Scalar initialization costs for range
+# MSTCOLCOSTFILE	snaphu.mstcolcost
+
+# Scalar initialization costs for both azimuth and range, concatenated
+# MSTCOSTSFILE		snaphu.mstcosts
+
+# Correlation coefficient magnitude (before clipping into [0,1] interval)
+# RAWCORRDUMPFILE	snaphu.rawcorr
+
+# Correlation coefficient magnitude (after clipping into [0,1] interval)
+# CORRDUMPFILE		snaphu.corr
+
+
+###############################
+# Piece extraction parameters #
+###############################
+
+# These parameters (long, dimensionless) allow only a subset of the
+# input data files to be read and unwrapped.  The upper left corner of
+# the subset is at row PIECEFIRSTROW and column PIECEFIRSTCOL, with
+# both indexed from 1 (that is, the upper left corner is pixel 1,1).
+# The output will be PIECENROW rows x PIECENCOL columns in size.
+# These parameters cannot be used in tile mode.  If PIECENROW or
+# PIECENCOL is zero, the full depth or width of the input is
+# unwrapped.
+# PIECEFIRSTROW		1
+# PIECEFIRSTCOL		1
+# PIECENROW		0
+# PIECENCOL		0
+
+
+################
+# Tile control #
+################
+
+# Parameters in this section describe how the input files will be 
+# tiled.  This is mainly used for tiling, in which different
+# patches of the interferogram are unwrapped separately.
+
+# Number of rows and columns of tiles into which the data files are
+# to be broken up.
+# NTILEROW		1
+# NTILECOL		1
+
+# Overlap, in pixels, between neighboring tiles.
+# ROWOVRLP		0
+# COLOVRLP		0
+
+# Maximum number of child processes to start for parallel tile
+# unwrapping.
+# NPROC			1
+
+# Cost threshold to use for determining boundaries of reliable regions
+# (long, dimensionless; scaled according to other cost constants).
+# Larger cost threshold implies smaller regions---safer, but
+# more expensive computationally.  
+# TILECOSTTHRESH 	500
+
+# Minimum size (long, pixels) of a reliable region in tile mode.  
+# MINREGIONSIZE		100
+
+# Extra weight applied to secondary arcs on tile edges.
+# TILEEDGEWEIGHT	2.5
+
+# Maximum flow magnitude (long) whose cost will be stored in the secondary 
+# cost lookup table.  Secondary costs larger than this will be approximated
+# by a quadratic function.
+# SCNDRYARCFLOWMAX	8
+
+# The program will remove temporary tile files if this is set.
+# RMTMPTILE 		FALSE
+
+# If this is set to anything besides FALSE, the program will skip
+# the unwrapping step and only assemble temporary tile files from a previous 
+# invocation saved in the directory whose name is given here.  The tile size 
+# parameters and file names must be the same.
+# ASSEMBLEONLY		tiledir
+
+
+###############################
+# Connected component control #
+###############################
+
+# Grow connected components mask and write to output file specified.
+# CONNCOMPFILE		snaphu.conncomp
+
+# Grow connected components mask from unwrapped input then exit if TRUE.
+# Output is written to the file specified by CONNCOMPFILE.
+# REGROWCONNCOMPS	FALSE
+
+# Minimum size of a single connected component, as a fraction (double)
+# of the total number of pixels in tile.
+# MINCONNCOMPFRAC 	0.01
+
+# Cost threshold for connected components (long).  Higher threshold will
+# give smaller connected components.
+# CONNCOMPTHRESH	300
+
+# Maximum number of connected components per tile (long).
+# MAXNCOMPS 		32
+
+# End of snaphu configuration file
+
+
