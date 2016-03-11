@@ -62,12 +62,12 @@
         mv tmp1.dat tmpm.dat
         set sl = `echo "2"`
       else
-        paste tmpm.dat tmp1.dat | awk '{print( $1, $6-$1, $2, $7-$2, "100")}' > tmp.dat
-        set rmax = `grep num_rng_bins S1A$master.PRM | awk '{print $3}'`
-        set amax = `grep num_lines S1A$master.PRM | awk '{print $3}'`
+        paste tmpm.dat tmp1.dat | awk awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
+        set rmax = `grep num_rng_bins S1A$stem.PRM | awk '{print $3}'`
+        set amax = `grep num_lines S1A$stem.PRM | awk '{print $3}'`
         awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat > offset.dat
-        awk '{ printf("%f %f %f \n",$1,$3,$2) }' < offset.dat > r.xyz
-        awk '{ printf("%f %f %f \n",$1,$3,$4) }' < offset.dat > a.xyz
+        awk '{ printf("%.6f %.6f %.6f \n",$1,$3,$2) }' < offset.dat > r.xyz
+	awk '{ printf("%.6f %.6f %.6f \n",$1,$3,$4) }' < offset.dat > a.xyz
         gmt blockmedian r.xyz -R0/$rmax/0/$amax -I8/4 -r > rtmp.xyz
         gmt blockmedian a.xyz -R0/$rmax/0/$amax -I8/4 -r > atmp.xyz
         gmt surface rtmp.xyz -R0/$rmax/0/$amax -I8/4 -Grtmp.grd -T0.5 -N1000  -r -V
