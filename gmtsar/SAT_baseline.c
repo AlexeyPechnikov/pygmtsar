@@ -154,7 +154,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 	dt = (t12 - t11)/(ns - 1);
 
         /* set the extension to 50% unless ERS or Envisat and then set to 200% */
-        ns2 = ns*0.5;
+        ns2 = ns*2;
         if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;
 
 	nd = orb[0].nd;
@@ -333,8 +333,8 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		fll= (r[0].ra-r[0].rc)/r[0].ra;
 		xyz2plh(target,target_llt,r[0].ra,fll);
 		
-		fprintf(stderr,"lon_tie_point =  %f\n",target_llt[1]);
-		fprintf(stderr,"lat_tie_point =  %f\n",target_llt[0]);
+		printf("lon_tie_point =  %f\n",(target_llt[1]>180.0) ? target_llt[1]-360.0 : target_llt[1]);
+		printf("lat_tie_point =  %f\n",target_llt[0]);
 
 		llt2rat_sub(filename[0], target_llt, target_rat_ref);
 		llt2rat_sub(filename[ii], target_llt, target_rat_rep);
