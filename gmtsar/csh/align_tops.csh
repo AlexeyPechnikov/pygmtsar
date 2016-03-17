@@ -57,8 +57,9 @@ set mtiff = ` echo $1.tiff `
 set mxml = ` echo $1.xml `
 set stiff = ` echo $3.tiff `
 set sxml = ` echo $3.xml `
-set mpre = ` echo $1 | awk '{ print "S1A"substr($1,16,8)"_F"substr($1,7,1)}'`
-set spre = ` echo $3 | awk '{ print "S1A"substr($1,16,8)"_F"substr($1,7,1)}'`
+set mpre = ` echo $1 | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+set spre = ` echo $3 | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+set swath = ` echo $1 | awk '{ print substr($1,7,1)}'`
 echo $mpre
 echo $spre
 #
@@ -72,6 +73,16 @@ make_s1a_tops $sxml $stiff $spre 0
 ext_orb_s1a $mpre".PRM" $2 $mpre
 ext_orb_s1a $spre".PRM" $4 $spre
 #
+#  acquire the radius/height information
+#
+cp $mpre".PRM" junk1
+calc_dop_orb junk1 junk2 0 0
+cat junk1 junk2 > $mpre".PRM"
+cp $spre".PRM" junk1
+calc_dop_orb junk1 junk2 0 0
+cat junk1 junk2 > $spre".PRM"
+rm junk1 junk2
+#
 #  2) do a geometric back projection to determine the alignment parameters
 #
 #  Filter and downsample the topography to 12 seconds or about 360 m
@@ -82,15 +93,43 @@ gmt grd2xyz --FORMAT_FLOAT_OUT=%lf flt.grd -s > topo.llt
 # map the topography into the range and azimuth of the master and slave using polynomial refinement
 # can do this in parallel
 #
-SAT_llt2rat $mpre".PRM" 1 < topo.llt > master.ratll &
-SAT_llt2rat $spre".PRM" 1 < topo.llt > slave.ratll &
-wait
+# first check whether there are any burst shift
+#
+set tmp_am = `head topo.llt | awk 'NR == 1 {print $0}' | SAT_llt2rat $mpre".PRM" 1 | awk '{print $2}'`
+set tmp_as = `head topo.llt | awk 'NR == 1 {print $0}' | SAT_llt2rat $spre".PRM" 1 | awk '{print $2}'`
+set tmp_da = `echo $tmp_am $tmp_as | awk '{printf("%d",$2-$1)}'`
+#
+# if ther is, modify the master PRM start_time to get a better r/a estimate
+#
+if ($tmp_da > -1000 && $tmp_da < 1000) then
+  SAT_llt2rat $mpre".PRM" 1 < topo.llt > master.ratll &
+  SAT_llt2rat $spre".PRM" 1 < topo.llt > slave.ratll &
+  wait
+else
+  echo "Modifying master PRM by $tmp_da lines..."
+  cp $mpre".PRM" tmp.PRM
+  set prf = `grep PRF tmp.PRM | awk '{print $3}'`
+  set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  update_PRM.csh tmp.PRM clock_start $ttmp
+  set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  update_PRM.csh tmp.PRM clock_stop $ttmp
+  set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  update_PRM.csh tmp.PRM SC_clock_start $ttmp
+  set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  update_PRM.csh tmp.PRM SC_clock_stop $ttmp
+#
+#  restore the modified lines 
+#
+  SAT_llt2rat tmp.PRM 1 < topo.llt > tmp.ratll &
+  SAT_llt2rat $spre".PRM" 1 < topo.llt > slave.ratll &
+  wait
+  echo "Restoring $tmp_da lines to master ashifts..."
+  awk '{printf("%.6f %.6f %.6f %.6f %.6f\n",$1,$2-'$tmp_da',$3,$4,$5)}' tmp.ratll > master.ratll
+endif
 #
 #  paste the files and compute the dr and da
 #
-#paste master.ratll slave.ratll | awk '{print( $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
 paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
-#paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6-$1, $2, $7-$2, "100")}' > tmp.dat
 #
 #  make sure the range and azimuth are within the bounds of the slave 
 #
@@ -100,23 +139,19 @@ awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat
 #
 #  extract the range and azimuth data
 #
-#awk '{ printf("%f %f %f \n",$1,$3,$2) }' < offset.dat > r.xyz
-#awk '{ printf("%f %f %f \n",$1,$3,$4) }' < offset.dat > a.xyz
 awk '{ printf("%.6f %.6f %.6f \n",$1,$3,$2) }' < offset.dat > r.xyz
 awk '{ printf("%.6f %.6f %.6f \n",$1,$3,$4) }' < offset.dat > a.xyz
+
 #
 #  fit a surface to the range and azimuth offsets
 #
-gmt blockmedian r.xyz -R0/$rmax/0/$amax -I8/4 -r -bo3d > rtmp.xyz
-gmt blockmedian a.xyz -R0/$rmax/0/$amax -I8/4 -r -bo3d > atmp.xyz
-gmt surface rtmp.xyz -bi3d -R0/$rmax/0/$amax -I8/4 -T0.5 -Grtmp.grd -N1000  -r &
-gmt surface atmp.xyz -bi3d -R0/$rmax/0/$amax -I8/4 -T0.5 -Gatmp.grd -N1000  -r &
+gmt blockmedian r.xyz -R0/$rmax/0/$amax -I16/8 -r -bo3d > rtmp.xyz
+gmt blockmedian a.xyz -R0/$rmax/0/$amax -I16/8 -r -bo3d > atmp.xyz
+gmt surface rtmp.xyz -bi3d -R0/$rmax/0/$amax -I16/8 -T0.1 -Grtmp.grd -N1000  -r &
+gmt surface atmp.xyz -bi3d -R0/$rmax/0/$amax -I16/8 -T0.1 -Gatmp.grd -N1000  -r &
 wait
 gmt grdmath rtmp.grd FLIPUD = r.grd
 gmt grdmath atmp.grd FLIPUD = a.grd
-#
-# clean up the mess
-#
 #
 #  3) make PRM, LED and SLC files for both master and slave that are aligned
 #     at the fractional pixel level but still need a integer alignment from 
@@ -131,7 +166,8 @@ cp $spre".PRM" $spre".PRM0"
 resamp $mpre".PRM" $spre".PRM" $spre".PRMresamp" $spre".SLCresamp" 1
 mv $spre".SLCresamp" $spre".SLC"
 mv $spre".PRMresamp" $spre".PRM"
-fitoffset.csh 3 3 offset.dat >> $spre".PRM"
+update_PRM.csh $spre".PRM" ashift 0
+fitoffset.csh 3 3 offset.dat >> $spre.PRM
 #
 #   re-extract the lED files
 #
