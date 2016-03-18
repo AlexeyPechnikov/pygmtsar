@@ -73,15 +73,15 @@ make_s1a_tops $sxml $stiff $spre 0
 ext_orb_s1a $mpre".PRM" $2 $mpre
 ext_orb_s1a $spre".PRM" $4 $spre
 #
-#  acquire the radius/height information
+#  calculate the earth radius and make the slave match the master
 #
-cp $mpre".PRM" junk1
-calc_dop_orb junk1 junk2 0 0
-cat junk1 junk2 > $mpre".PRM"
-cp $spre".PRM" junk1
-calc_dop_orb junk1 junk2 0 0
-cat junk1 junk2 > $spre".PRM"
-rm junk1 junk2
+calc_dop_orb $mpre".PRM" tmp 0 0
+cat tmp >> $mpre".PRM"
+set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
+echo "1" $earth_radius
+calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
+cat tmp2 >> $spre".PRM"
+rm tmp tmp2
 #
 #  2) do a geometric back projection to determine the alignment parameters
 #
@@ -161,17 +161,29 @@ gmt grdmath atmp.grd FLIPUD = a.grd
 #
 make_s1a_tops $mxml $mtiff $mpre 1 
 make_s1a_tops $sxml $stiff $spre 1 r.grd a.grd
-
+#
+#   re-extract the LED files
+#
+ext_orb_s1a $mpre".PRM" $2 $mpre
+ext_orb_s1a $spre".PRM" $4 $spre
+#
+#  calculate the earth radius and make the slave match the master
+#
+calc_dop_orb $mpre".PRM" tmp 0 0
+cat tmp >> $mpre".PRM"
+set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
+echo "2" $earth_radius
+calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
+cat tmp2 >> $spre".PRM"
+rm tmp tmp2
+#
+#  resamp the slave and set the aoffset to zero
+#
 cp $spre".PRM" $spre".PRM0"
 resamp $mpre".PRM" $spre".PRM" $spre".PRMresamp" $spre".SLCresamp" 1
 mv $spre".SLCresamp" $spre".SLC"
 mv $spre".PRMresamp" $spre".PRM"
 update_PRM.csh $spre".PRM" ashift 0
 fitoffset.csh 3 3 offset.dat >> $spre.PRM
-#
-#   re-extract the lED files
-#
-ext_orb_s1a $mpre".PRM" $2 $mpre
-ext_orb_s1a $spre".PRM" $4 $spre
 #
 rm topo.llt master.ratll slave.ratll *tmp* flt.grd r.xyz a.xyz

@@ -72,6 +72,16 @@ make_s1a_tops_6par $sxml $stiff $spre 0 0. 0. 0. 0. 0. 0.
 ext_orb_s1a $mpre".PRM" $2 $mpre
 ext_orb_s1a $spre".PRM" $4 $spre
 #
+#  acquire the radius/height information
+#
+cp $mpre".PRM" junk1
+calc_dop_orb junk1 junk2 0 0
+cat junk1 junk2 > $mpre".PRM"
+cp $spre".PRM" junk1
+calc_dop_orb junk1 junk2 0 0
+cat junk1 junk2 > $spre".PRM"
+rm junk1 junk2
+#
 #  2) do a geometric back projection to determine the alignment parameters
 #
 #  Downsample the topography. The topo value is irrelevant so it can be filtered and downsampled.
