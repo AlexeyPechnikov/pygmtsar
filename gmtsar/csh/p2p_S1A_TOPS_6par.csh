@@ -131,21 +131,14 @@ unset noclobber
       update_PRM.csh $slave.PRM nrows $m_lines
     endif
 #
-#   calculate SC_vel and SC_height
-#   set the Doppler to be zero
+#   set the higher Doppler terms to zerp to be zero
 #
-    cp $master.PRM $master.PRM0
-    calc_dop_orb $master.PRM0 $master.log $earth_radius 0
-    cat $master.PRM0 $master.log > $master.PRM
-    echo "fdd1                    = 0" >> $master.PRM
-    echo "fddd1                   = 0" >> $master.PRM
+    update_PRM.csh $master.PRM fdd1 0
+    update_PRM.csh $master.PRM fddd1 0
 #
-    cp $slave.PRM $slave.PRM0
-    calc_dop_orb $slave.PRM0 $slave.log $earth_radius 0
-    cat $slave.PRM0 $slave.log > $slave.PRM
-    echo "fdd1                    = 0" >> $slave.PRM
-    echo "fddd1                   = 0" >> $slave.PRM
-    rm *.log
+    update_PRM.csh $slave.PRM fdd1 0
+    update_PRM.csh $slave.PRM fddd1 0
+#
     rm *.PRM0
 
     cd ..
