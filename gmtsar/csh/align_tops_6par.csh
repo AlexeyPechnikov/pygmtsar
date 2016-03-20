@@ -9,8 +9,7 @@
 #  2) Do geometric back projection to determine the alignment parameters.
 #
 #  3) Make PRM, LED and SLC files for both master and slave that are aligned
-#     at the fractional pixel level. They still need a integer alignment from 
-#     resamp.
+#     at the fractional pixel level. 
 #
 alias rm 'rm -f'
 unset noclobber
@@ -57,8 +56,9 @@ set mtiff = ` echo $1.tiff `
 set mxml = ` echo $1.xml `
 set stiff = ` echo $3.tiff `
 set sxml = ` echo $3.xml `
-set mpre = ` echo $1 | awk '{ print "S1A"substr($1,16,8)"_F"substr($1,7,1)}'`
-set spre = ` echo $3 | awk '{ print "S1A"substr($1,16,8)"_F"substr($1,7,1)}'`
+set mpre = ` echo $1 | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+set spre = ` echo $3 | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+set swath = ` echo $1 | awk '{ print substr($1,7,1)}'`
 echo $mpre
 echo $spre
 #
@@ -77,7 +77,6 @@ ext_orb_s1a $spre".PRM" $4 $spre
 calc_dop_orb $mpre".PRM" tmp 0 0
 cat tmp >> $mpre".PRM"
 set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
-echo "1" $earth_radius
 calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
 cat tmp2 >> $spre".PRM"
 rm tmp tmp2
@@ -162,8 +161,14 @@ ext_orb_s1a $spre".PRM" $4 $spre
 calc_dop_orb $mpre".PRM" tmp 0 0
 cat tmp >> $mpre".PRM"
 set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
-echo "1" $earth_radius
 calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
 cat tmp2 >> $spre".PRM"
 rm tmp tmp2
 #
+# do integer resampling of the slave
+#
+resamp $mpre".PRM" $spre".PRM" $spre".PRMresamp" $spre".SLCresamp" 1
+mv $spre".SLCresamp" $spre".SLC"
+mv $spre".PRMresamp" $spre".PRM"
+#
+rm topo.llt master.ratll slave.ratll *tmp* flt.grd r.xyz a.xyz

@@ -9,8 +9,7 @@
 #  2) Do geometric back geocoding to make the range and azimuth alignment grids 
 #
 #  3) Make PRM, LED and SLC files for both master and slave that are aligned
-#     at the fractional pixel level. They still need a integer alignment from 
-#     resamp.
+#     at the fractional pixel level. 
 #
 alias rm 'rm -f'
 unset noclobber
@@ -78,7 +77,6 @@ ext_orb_s1a $spre".PRM" $4 $spre
 calc_dop_orb $mpre".PRM" tmp 0 0
 cat tmp >> $mpre".PRM"
 set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
-echo "1" $earth_radius
 calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
 cat tmp2 >> $spre".PRM"
 rm tmp tmp2
@@ -172,7 +170,6 @@ ext_orb_s1a $spre".PRM" $4 $spre
 calc_dop_orb $mpre".PRM" tmp 0 0
 cat tmp >> $mpre".PRM"
 set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
-echo "2" $earth_radius
 calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
 cat tmp2 >> $spre".PRM"
 rm tmp tmp2
