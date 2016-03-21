@@ -1,7 +1,7 @@
 include ../../../config.mk
 
 INCLUDES = -I$(GMTSARHOME)/gmtsar/include $(GMT_INC)
-CLIBS = $(GMTSAR) $(GMT_LIB) $(LALIBS)
+CLIBS = $(GMTSAR) $(GMT_LIB) $(LALIBS) -lm
 
 stitch_tops: stitch_tops.o
 	$(CC) $(CFLAGS) -o $@ stitch_tops.o $(CLIBS) 
