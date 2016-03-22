@@ -134,8 +134,9 @@
             cp tmp.PRM junk1
             calc_dop_orb junk1 junk2 0 0
             cat junk1 junk2 > tmp.PRM
+            set earth_radius = `grep earth_radius tmp.PRM | awk '{print $3}'`
             cp $stem.PRM junk1
-            calc_dop_orb junk1 junk2 0 0
+            calc_dop_orb junk1 junk2 $earth_radius 0
             cat junk1 junk2 > $stem.PRM
             rm junk1 junk2
 
@@ -162,15 +163,16 @@
             cat junk1 junk2 > $stem.PRM
             rm junk1 junk2
             
-            SAT_llt2rat tmp.PRM 1 < topo.llt > tmp_tmp.dat &
+            #SAT_llt2rat tmp.PRM 1 < topo.llt > tmp_tmp.dat &
+            SAT_llt2rat tmp.PRM 1 < topo.llt > tmpm.dat &
             SAT_llt2rat $stem.PRM 1 < topo.llt > tmp1.dat &
             wait
-            echo "Restoring $tmp_da lines to master ashifts..."
-            awk '{printf("%.6f %.6f %.6f %.6f %.6f\n",$1,$2-'$tmp_da',$3,$4,$5)}' tmp_tmp.dat > tmpm.dat
+            #echo "Restoring $tmp_da lines to master ashifts..."
+            #awk '{printf("%.6f %.6f %.6f %.6f %.6f\n",$1,$2-'$tmp_da',$3,$4,$5)}' tmp_tmp.dat > tmpm.dat
           endif
 
           # get r, dr, a, da, SNR table to be used by fitoffset.csh
-          paste tmpm.dat tmp1.dat | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
+          paste tmpm.dat tmp1.dat | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6-$1, $2, $7-$2, "100")}' > tmp.dat
           set rmax = `grep num_rng_bins $stem.PRM | awk '{print $3}'`
           set amax = `grep num_lines $stem.PRM | awk '{print $3}'`
           awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat > offset.dat
@@ -178,10 +180,14 @@
           # prepare the offset parameters for the stitched image 
           #if ($stem == $stem_master) then
             #set tmp_rec = `echo $amax $nfiles | awk '{printf("%d", $1*$2-120*($2-1))}'`
-            #awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3+'$nl', $4, $5)}' < offset.dat >> par_tmp_s.dat
+          if ($tmp_da > -1000 && $tmp_da < 1000) then
+            awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3+'$nl', $4, $5)}' < offset.dat >> par_tmp.dat
+          else
+            awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3+'$nl'-'$tmp_da', $4+'$tmp_da', $5)}' < offset.dat >> par_tmp.dat
+          endif
             #awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$tmp_rec') print $0 }' < tmp.dat > par_tmp_sm.dat
             #paste tmpm.dat tmp1.dat | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6-$1, $2, $7-$2, "100")}' > tmp.dat
-          awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3+'$nl', $4, $5)}' < tmp.dat >> par_tmp_m.dat
+          #awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3+'$nl', $4, $5)}' < tmp.dat >> par_tmp_m.dat
             #awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$tmp_rec') print $0 }' < tmp.dat > par_tmp.dat
             #awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat > par_tmp.dat
           #endif
@@ -201,23 +207,23 @@
           make_s1a_tops $file.xml $file.tiff $stem 1 r.grd a.grd
          
           # in case theere is a shift caused by image offset, record it from updated ashift by make_s1a_tops
-          if ($stem == $stem_master) then
-            set bshift = `grep ashift $stem_master.PRM | awk '{print $3}'`
-          endif
+          #if ($stem == $stem_master) then
+          #  set bshift = `grep ashift $stem_master.PRM | awk '{print $3}'`
+          #endif
           
           # in case the shift caused by image offset are not uniform, resamp the lines different, 
           # so later stitched images has a uniform shift to be resamped
-          set ashift = `grep ashift $stem.PRM | awk '{print $3}'`
-          if ($ashift != $bshift) then
-            cp $stem.PRM $stem.PRM_tmp
-            set tmp_shift = `echo $ashift $bshift | awk '{printf("%d",$1-$2)}'`
-            update_PRM.csh $stem.PRM_tmp ashift 0
-            update_PRM.csh $stem.PRM ashift $tmp_shift
-            echo "Modifying image to match the bshift...($tmp_shift)"
-            resamp $stem.PRM_tmp $stem.PRM $stem.PRMresamp $stem.SLCresamp 1
-            mv $stem.PRMresamp $stem.PRM
-            mv $stem.SLCresamp $stem.SLC
-          endif
+          #set ashift = `grep ashift $stem.PRM | awk '{print $3}'`
+          #if ($ashift != $bshift) then
+          #  cp $stem.PRM $stem.PRM_tmp
+          #  set tmp_shift = `echo $ashift $bshift | awk '{printf("%d",$1-$2)}'`
+          #  update_PRM.csh $stem.PRM_tmp ashift 0
+          #  update_PRM.csh $stem.PRM ashift $tmp_shift
+          #  echo "Modifying image to match the bshift...($tmp_shift)"
+          #  resamp $stem.PRM_tmp $stem.PRM $stem.PRMresamp $stem.SLCresamp 1
+          #  mv $stem.PRMresamp $stem.PRM
+          #  mv $stem.SLCresamp $stem.SLC
+          #endif
  
           # need to update shift parameter so stitch_tops will know how to stitch
           fitoffset.csh 3 3 offset.dat >> $stem.PRM
@@ -237,13 +243,19 @@
       # for images except the super-master
       if ($sl != 1) then    
         cp $stem.PRM $stem.PRM0
-        if ($bshift != 0) echo "Updated shift caused by burst offset is $bshift"
-        update_PRM.csh $stem.PRM ashift $bshift
+        #if ($bshift != 0) echo "Updated shift caused by burst offset is $bshift"
+        if ($tmp_da > -1000 && $tmp_da < 1000) then
+          update_PRM.csh $stem.PRM ashift 0
+        else
+          update_PRM.csh $stem.PRM ashift $tmp_da
+          echo "Restoring $tmp_da lines shift to the image..."
+        endif
         update_PRM.csh $stem.PRM rshift 0
+        
         resamp $mmaster.PRM $stem.PRM $stem.PRMresamp $stem.SLCresamp 1
         mv $stem.PRMresamp $stem.PRM
         mv $stem.SLCresamp $stem.SLC 
-        set swath = `echo $line | awk -F: '{print $1}' | awk '{ print substr($1,7,1)}'`
+        #set swath = `echo $line | awk -F: '{print $1}' | awk '{ print substr($1,7,1)}'`
 
         # don't know why I was doing this...
         #if ($swath == 2) then
@@ -255,11 +267,11 @@
         #endif
 
         #fitoffset.csh 3 3 par_tmp_s.dat >> $stem.PRM
-        fitoffset.csh 3 3 par_tmp_m.dat >> $stem.PRM
+        fitoffset.csh 3 3 par_tmp.dat >> $stem.PRM
       endif
        
        cp $stem.PRM junk1
-       calc_dop_orb junk1 junk2 0 0
+       calc_dop_orb junk1 junk2 $earth_radius 0
        cat junk1 junk2 > $stem.PRM
        rm junk1 junk2
        set sl = `echo "2"`
