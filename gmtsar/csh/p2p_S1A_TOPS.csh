@@ -179,8 +179,8 @@ unset noclobber
 ##################################
 # 3 - start from make topo_ra    #
 ##################################
-if (6 == 9) then
-#  if ($stage <= 3) then
+#if (6 == 9) then
+  if ($stage <= 3) then
 #
 # clean up
 #

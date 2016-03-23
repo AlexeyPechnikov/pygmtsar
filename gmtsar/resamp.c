@@ -28,7 +28,7 @@
 #include <fcntl.h>
 
 char    *USAGE = "\nUsage: "
-"resamp master.PRM slave.PRM new_slave.PRM intrp \n"
+"resamp master.PRM slave.PRM new_slave.PRM new_slave.SLC intrp \n"
 "   master.PRM       - PRM for master imagea \n"
 "   slave.PRM        - PRM for slave image \n"
 "   new_slave.PRM    - PRM for aligned slave image \n"
