@@ -332,6 +332,7 @@ int main (int argc, char **argv)
 	drange = SOL/(2.0*p2.fs);
 	alpha = p2.alpha_start*PI/180.0;
 	cnst = -4.0*PI/p2.lambda;
+
 	for (k=0;k<xdim;k++){
 		range[k]=p1.near_range+k*drange;
 		topo2[k]=0.;

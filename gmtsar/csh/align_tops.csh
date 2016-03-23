@@ -200,4 +200,4 @@ calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
 cat tmp2 >> $spre".PRM"
 rm tmp tmp2
 #
-m topo.llt master.ratll slave.ratll *tmp* flt.grd r.xyz a.xyz *.PRM0
+rm topo.llt master.ratll slave.ratll *tmp* flt.grd r.xyz a.xyz *.PRM0
