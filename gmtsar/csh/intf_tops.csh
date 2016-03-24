@@ -47,7 +47,7 @@
 #
 # if filter wavelength is not set then use a default of 200m
 #
-  set filter = `grep filter_wavelength $3 | awk '{print $3}'`
+  set filter = `grep filter_wavelength $2 | awk '{print $3}'`
   if ( "x$filter" == "x" ) then
   set filter = 200
   echo " "
