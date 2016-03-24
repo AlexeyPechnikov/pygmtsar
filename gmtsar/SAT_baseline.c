@@ -142,19 +142,18 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 	double target_rat_ref[3]={0,0,0};
 	double target_rat_rep[3]={0,0,0};
 	double far_range;
+        double prec;
 
 	/* reference orbit */
 	get_seconds(r[0], &t11, &t12);
 	/* t13 = (t11 + t12)/2.; */
 	dr = 0.5*SOL/fs0;
 	dt = 0.5/r[0].prf;
-        if(r[0].prf < 800.) dt=dt/100.; /* special for TOPS mode data*/
-	/* rr1 = r[0].near_range; */
 	ns = (int) ((t12 - t11)/dt);	/* seconds of frame */
 	dt = (t12 - t11)/(ns - 1);
 
         /* set the extension to 50% unless ERS or Envisat and then set to 200% */
-        ns2 = ns*2;
+        ns2 = ns*0.5;
         if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;
 
 	nd = orb[0].nd;
@@ -208,6 +207,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		x12 = y12 = z12 = -99999.0;
 		x13 = y13 = z13 = -99999.0;
 
+                /* roughly compute baseline */
 		for (k = -ns2; k<ns + ns2; k++){
 			ts = t11 + k*dt;
 			interpolate_ALOS_orbit(&orb[0], pt, p, pv, ts, &xs, &ys, &zs, &ir);
@@ -221,11 +221,49 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
                         ds = find_dist(xs, ys, zs, x23, y23, z23);
                         if (b3 < 0.0 || ds < b3) endpoint_distance(k, ds, xs, ys, zs, &b3, &x13, &y13, &z13, &m3);
 			}
-
 		/* compute more orbital information at the min baseline based on m1 */
 
 		ts = t11 + m1*dt;
 		calc_height_velocity(&orb[0], &r[0], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
+		/* update the time parameters for precise computation */
+                prec = sqrt((b1+0.0003)*(b1+0.0003)-b1*b1);
+                if (prec < vtot/r[0].prf/2.0){
+			dt = prec/vtot;
+                	ns = (int) ((t12 - t11)/dt)+1;
+			dt = (t12 - t11)/(ns - 1);
+                	printf("Sampling intervel being %.6f azimuth pixel\n",dt*r[0].prf);
+			ns2 = ns*0.5;
+	        	if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;
+
+                	/* precisely compute the baseline up to 1mm level */
+                	for (k = -ns2; k<ns + ns2; k++){
+                        	ts = t11 + k*dt;
+                        	interpolate_ALOS_orbit(&orb[0], pt, p, pv, ts, &xs, &ys, &zs, &ir);
+
+                        	ds = find_dist(xs, ys, zs, x21, y21, z21);
+                        	if (b1 < 0.0 || ds < b1) endpoint_distance(k, ds, xs, ys, zs, &b1, &x11, &y11, &z11, &m1);
+
+                        	ds = find_dist(xs, ys, zs, x22, y22, z22);
+                        	if (b2 < 0.0 || ds < b2) endpoint_distance(k, ds, xs, ys, zs, &b2, &x12, &y12, &z12, &m2);
+
+                        	ds = find_dist(xs, ys, zs, x23, y23, z23);
+                        	if (b3 < 0.0 || ds < b3) endpoint_distance(k, ds, xs, ys, zs, &b3, &x13, &y13, &z13, &m3);
+                        	}
+                	/* compute more orbital information at the min baseline based on m1 */
+
+                	ts = t11 + m1*dt;
+                	calc_height_velocity(&orb[0], &r[0], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
+
+                	/* change back the dt settings*/
+        		dt = 0.5/r[0].prf;
+			ns = (int) ((t12 - t11)/dt);    /* seconds of frame */
+			dt = (t12 - t11)/(ns - 1);
+         
+			/* set the extension to 50% unless ERS or Envisat and then set to 200% */
+			ns2 = ns*0.5;
+			if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;        
+
+		}
 		/* fd_orbit = -2.0*rdot/r[0].lambda; */
 
 		/* shouldn't happen ..					*/
