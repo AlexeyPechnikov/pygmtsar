@@ -87,10 +87,10 @@ int main(int argc, char **argv){
         if ((SLCin = fopen(tmp_str,"rb")) == NULL) die("Couldn't open input SLC file: \n",tmp_str);
         
         /* figure out how many lines to be written and check whether image has that many lines */
-        nl = (floor)((t2-t1)*86400.0*prf+0.2);
+        nl = (floor)((t2-t1)*86400.0*prf+0.5);
         if (nl > nl0) die("Images do not have overlapped region \n","");
 
-        n_start =  ntl-(floor)((t1-prm1.clock_start-(prm1.ashift+prm1.sub_int_a)/prf/86400.0)*86400.0*prf+0.2);
+        n_start =  ntl-(floor)((t1-prm1.clock_start-(prm1.ashift+prm1.sub_int_a)/prf/86400.0)*86400.0*prf+0.5);
         n_end = floor((float)(nl0+nl)/2.0+0.5);
 
         /* write the SLC files */
@@ -114,7 +114,7 @@ int main(int argc, char **argv){
     strcat(tmp_str,".SLC");
     if ((SLCin = fopen(tmp_str,"rb")) == NULL) die("Couldn't open input SLC file: \n",tmp_str);
     nl = prm2.num_lines;
-    n_start = ntl-(floor)((t1-prm1.clock_start-(prm1.ashift+prm1.sub_int_a)/prf/86400.0)*86400.0*prf+0.2);
+    n_start = ntl-(floor)((t1-prm1.clock_start-(prm1.ashift+prm1.sub_int_a)/prf/86400.0)*86400.0*prf+0.5);
     /* writing the last SLC */
     fprintf(stderr,"Parsing %d lines...\n",n_start);
     for(jj=1;jj<=n_start;jj++) fread(buf,sizeof(short),width2*2,SLCin);
