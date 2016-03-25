@@ -142,7 +142,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 	double target_rat_ref[3]={0,0,0};
 	double target_rat_rep[3]={0,0,0};
 	double far_range;
-        double prec;
+        double prec,dstart;
 
 	/* reference orbit */
 	get_seconds(r[0], &t11, &t12);
@@ -228,7 +228,10 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		/* update the time parameters for precise computation */
                 prec = sqrt((b1+0.0003)*(b1+0.0003)-b1*b1);
                 if (prec < vtot/r[0].prf/2.0){
+                /* check to see if the reference and repeat start times are the same.  If yes do just a crude estimate */
+                        dstart = fabs(t11-t21);
 			dt = prec/vtot;
+                        if(dstart < 10.) dt=1./r[0].prf;
                 	ns = (int) ((t12 - t11)/dt)+1;
 			dt = (t12 - t11)/(ns - 1);
                 	printf("Sampling intervel being %.6f azimuth pixel\n",dt*r[0].prf);
