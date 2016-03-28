@@ -55,11 +55,27 @@ gmt gmtconvert raplnlt -bi5f -bo3f -o3,4,2 > llp
 set rng_samp_rate = `grep rng_samp_rate *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
 set PRF = `grep PRF *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
 if ($rng_samp_rate > 35000000 && $PRF > 1000 ) then
-   gmt blockmedian llp `gmt gmtinfo llp -I.0416666666667 -bi3f ` -bi3f -bo3f -I.000416666666667 -r -V > llpb
-   gmt xyz2grd llpb `gmt gmtinfo llpb -I.0416666666667 -bi3f ` -I.000416666666667 -r -fg -G$3 -bi3f
+#
+# use a 60 m grid
+#
+   gmt blockmedian llp `gmt gmtinfo llp -I20s -bi3f ` -bi3f -bo3f -I2s -r -V > llpb
+   gmt xyz2grd llpb `gmt gmtinfo llpb -I20s -bi3f ` -I2s -r -fg -G$3 -bi3f
 else
-   gmt blockmedian llp `gmt gmtinfo llp -I.0833333333334 -bi3f ` -bi3f -bo3f -I0.000833333333334 -r -V > llpb
-   gmt xyz2grd llpb `gmt gmtinfo llpb -I.0833333333334 -bi3f ` -I0.000833333333334 -r -fg -G$3 -bi3f
+#
+# use a 120 m grid
+#
+   gmt blockmedian llp `gmt gmtinfo llp -I40s -bi3f ` -bi3f -bo3f -I4s -r -V > llpb
+   gmt xyz2grd llpb `gmt gmtinfo llpb -I40s -bi3f ` -I4s -r -fg -G$3 -bi3f
+#
+# could use a coarser lon lat grid of 240 m
+#
+#   gmt blockmedian llp `gmt gmtinfo llp -I80s -bi3f ` -bi3f -bo3f -I8s -r -V > llpb
+#   gmt xyz2grd llpb `gmt gmtinfo llpb -I80s -bi3f ` -I8s -r -fg -G$3 -bi3f
+#
+# could use a coarser lon lat grid of 240 m at high latitude for larger lon spacing
+#
+#   gmt blockmedian llp `gmt gmtinfo llp -I160s/80s -bi3f ` -bi3f -bo3f -I16s/8s -r -V > llpb
+#   gmt xyz2grd llpb `gmt gmtinfo llpb -I160s/80s -bi3f ` -I16s/8s -r -fg -G$3 -bi3f
 endif
 #
 # clean
