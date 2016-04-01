@@ -84,7 +84,6 @@
       if (-f tmp.stitchlist) then 
         rm tmp.stitchlist
       endif
-      set nfiles = `wc -l tmp.filelist | awk '{print $1}'`
       set tmp_da = 0
 
       # loop over all the files in this line
@@ -203,11 +202,23 @@
         endif
       end
       
+      set nf = `wc -l tmp.stitchlist | awk '{print $1}'`
       # get the name for stitched file
       set stem = `echo $line | awk -F: '{print $1}' | awk '{ print "S1A"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
  
       # stitch images together and get the precise orbit
-      stitch_tops tmp.stitchlist $stem
+      if ($nf > 1) then
+        stitch_tops tmp.stitchlist $stem
+      else
+        set tmp_stem = `cat tmp.stitchlist`
+        cp $tmp_stem.PRM $stem.PRM
+        cp $tmp_stem.LED $stem.LED
+        mv $tmp_stem.SLC $stem.SLC
+
+        update_PRM.csh $stem.PRM input_file $stem.raw
+        update_PRM.csh $stem.PRM SLC_file $stem.SLC
+        update_PRM.csh $stem.PRM led_file $stem.LED
+      endif 
       ext_orb_s1a $stem.PRM $orbit $stem
 
       # for images except the super-master

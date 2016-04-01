@@ -43,23 +43,26 @@ typedef struct burst_bounds{
 int pop_led(struct tree *, struct state_vector *);
 int write_orb(struct state_vector *sv, FILE *fp, int);
 int pop_burst(struct PRM *, struct tree *, struct burst_bounds *, char *);
-int dramp_dmod(struct tree *, int, fcomplex *, int , int, int, struct GMT_GRID *, struct GMT_GRID *, int, double,int);
-int shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, char *, char *,double);
-int shift_burst(fcomplex *, int , int , int , struct GMT_GRID *, struct GMT_GRID *,int,double);
+double dramp_dmod(struct tree *, int, fcomplex *, int , int, int, struct GMT_GRID *, struct GMT_GRID *, int,int);
+double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, char *, char *, char *);
+int shift_burst(fcomplex *, int , int , int , struct GMT_GRID *, struct GMT_GRID *,int);
 void fbisinc (double *, fcomplex *, int, int, fcomplex *);
 
 
-char *USAGE =  "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd\n"
+char *USAGE =  "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd [aux_file]\n"
               "         xml_file    - name of xml file \n"
               "         tiff_file   - name of tiff file \n"
               "         output      - stem name of output files .PRM, .LED, .SLC \n"
               "         mode        - (0) no SLC; (1) center SLC; (2) high SLCH and low SLCL \n"
               "         dr.grd      - range shift table to be read in \n"
               "         da.grd      - azimuth shift table to be read in \n"
-"\nExample: make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1 dr.grd da.grd\n"
+              "         aux_file    - used to compute elevation antenna pattern\n"
+"\nExample: make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1 dr.grd da.grd [aux_file]\n"
+"\n         make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1 [aux_file]\n"
 "\nOutput: mode 1: S1A20140807.PRM S1A20140807.LED S1A20140807.SLC\n"
 "\n        mode 2: S1A20140807.PRM S1A20140807.LED S1A20140807.SLCH S1A20140807.SLCL S1A20140807.BB"
-"\nNote: if dr and da are not given, SLCs will be written with no shifts.\n";
+"\nNote: if dr and da are not given, SLCs will be written with no shifts.\n"
+"\n      aux_file is needed for acquisitions acquired before Mar 2015.\n";
 
 
 int main(int argc, char **argv){
@@ -67,13 +70,13 @@ int main(int argc, char **argv){
     FILE *XML_FILE,*OUTPUT_PRM,*OUTPUT_LED;
     FILE *OUTPUT_SLCL=NULL,*OUTPUT_SLCC=NULL,*OUTPUT_SLCH=NULL,*BB=NULL;
     TIFF *TIFF_FILE;
-    char tmp_str[200],rshifts[200],ashifts[200],master[200];
+    char tmp_str[200],rshifts[200],ashifts[200],aux_file[200];
     struct PRM prm;
     struct tree *xml_tree;
     struct state_vector sv[400];
     struct burst_bounds bb[200];
-    int ch, n=0, nc=0, nlmx=0, imode=0,spec=0;
-    double spec_shift=0.0;
+    int ch, n=0, nc=0, nlmx=0, imode=0;
+    double spec_sep = 0.0, dta = 0.0;
 
     // Begin: Initializing new GMT5 session
     void    *API = NULL; // GMT API control structure
@@ -82,14 +85,22 @@ int main(int argc, char **argv){
     if (argc == 5) {
         rshifts[0] = '\0';
         ashifts[0] = '\0';
+        aux_file[0] = '\0';
+    }
+    else if (argc == 6) {
+        rshifts[0] = '\0';
+        ashifts[0] = '\0';
+        strcpy(aux_file,argv[7]);
     }
     else if (argc == 7) {
         strcpy(rshifts,argv[5]);
         strcpy(ashifts,argv[6]);
+        aux_file[0] = '\0';
     }
     else if (argc == 8) {
-        spec = 1;
-        strcpy(master,argv[7]);
+        strcpy(rshifts,argv[5]);
+        strcpy(ashifts,argv[6]);
+        strcpy(aux_file,argv[7]);
     }
     else{
         die (USAGE,"");
@@ -130,10 +141,6 @@ int main(int argc, char **argv){
     // analyze the burst and generate the PRM
     pop_burst(&prm,xml_tree,bb,argv[3]);
 
-    // run spectral_diversity to get the small fractional shift
-    //if (spec != 0) {
-    //    spec_shift = spectral_diversity(xml_tree,bb,master,argv[2],rshifts,ashifts);
-
     // open the TIFF file and the three SLC files SLCL-low  SLCC-center and SLCH-high
     TIFFSetWarningHandler(NULL);
     if ((TIFF_FILE = TIFFOpen(argv[2], "rb")) == NULL) die ("Couldn't open tiff file: \n",argv[2]);
@@ -162,7 +169,7 @@ int main(int argc, char **argv){
 
     /* apply range and azimuth shifts to each burst and write the three SLC files SLCL SLC and SLCH depending on imode */
     if (imode == 1 || imode == 2) {
-        shift_write_slc(API,&prm,xml_tree,bb,imode,TIFF_FILE,OUTPUT_SLCL,OUTPUT_SLCC,OUTPUT_SLCH,rshifts,ashifts,spec_shift);
+        spec_sep = shift_write_slc(API,&prm,xml_tree,bb,imode,TIFF_FILE,OUTPUT_SLCL,OUTPUT_SLCC,OUTPUT_SLCH,rshifts,ashifts,aux_file);
     }
     /* shift applied */
     
@@ -170,8 +177,10 @@ int main(int argc, char **argv){
     if (imode == 2) {
         search_tree(xml_tree,"/product/swathTiming/burstList/",tmp_str,3,0,1);
         nc = (int)str2double(tmp_str);
+        search_tree(xml_tree,"/product/imageAnnotation/imageInformation/azimuthTimeInterval/",tmp_str,1,0,1);
+        dta = str2double(tmp_str);
         search_tree(xml_tree,"/product/imageAnnotation/imageInformation/numberOfSamples/",tmp_str,1,0,1);
-        fprintf(BB,"%d %d\n",nc,(int)str2double(tmp_str) - (int)str2double(tmp_str)%4);
+        fprintf(BB,"%d %d %.6f %.12f\n",nc,(int)str2double(tmp_str) - (int)str2double(tmp_str)%4,spec_sep,dta);
         for (n=1;n<=nc;n++) {
             fprintf(BB,"%d %d %d %d %d %d\n",bb[n].SL,bb[n].SC,bb[n].SH,bb[n].EL,bb[n].EC,bb[n].EH);
         }
@@ -420,12 +429,12 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
     free(kea);
     free(ker);
     free(kover);
-    free(cflag_orig); /* freeing this memory causes a crash!!!! */
+    free(cflag_orig); 
     return(1);
 }
 
 
-int dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int width, int al_start, struct GMT_GRID *R, struct GMT_GRID *A, int bshift, double spec_shift, int imode){
+double dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int width, int al_start, struct GMT_GRID *R, struct GMT_GRID *A, int bshift, int imode){
 
 /*  this is a routine to apply an azimuth shift to a burst of TOPS data */
     int ii,jj,k;
@@ -436,34 +445,8 @@ int dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int wid
     double *eta,*etaref,*kt,*fnct;
     double t_brst, t1, t2;
     double dr,da;
-   // double rng,stretch_r,a_stretch_r,azi,stretch_a,a_stretch_a;
-/*
-    // sub_1    
-    rng =  0.9853;
-    stretch_r =  -3.14192e-05;
-    a_stretch_r =  -2.4178e-05; 
-    azi =  0.7994;
-    stretch_a =  2.75142e-06;
-    a_stretch_a =  -3.56926e-06;
-*/
-/*
-    // sub_2
-    rng =  0.368; 
-    stretch_r =  -2.21381e-05;
-    a_stretch_r =  -2.9138e-05; 
-    azi =  0.8528;
-    stretch_a =  2.46396e-06;
-    a_stretch_a =  -3.57885e-06;
-*/
-/*
-    // sub_3
-    rng =  0.8423;
-    stretch_r =  -1.48984e-05;
-    a_stretch_r =  -3.28013e-05; 
-    azi =  0.9109;
-    stretch_a =  2.18067e-06;
-    a_stretch_a =  -3.63256e-06;
-*/
+    double sum_spec_sep=0.0;
+    
     // get all the parameters needed for the remod_deramp
     // find the constant parameters
     search_tree(xml_tree,"/product/generalAnnotation/productInformation/radarFrequency/",tmp_c,1,0,1);
@@ -598,12 +581,9 @@ int dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int wid
                     cramp[k].i=0;
                 }                  
                 else{
-                    //dr = R->data[(int)(jj/R->header->inc[GMT_X]+0.5)+R->header->nx*(int)((al_start+ii)/R->header->inc[GMT_Y]+0.5)];
-                    //da = A->data[(int)(jj/A->header->inc[GMT_X]+0.5)+A->header->nx*(int)((al_start+ii/3+lpb/3)/A->header->inc[GMT_Y]+0.5)] - (double)bshift + spec_shift;
                     dr = R->data[(int)(jj/R->header->inc[GMT_X]+0.5)+R->header->nx*(int)((al_start+ii)/R->header->inc[GMT_Y]+0.5)];
-                    da = A->data[(int)(jj/A->header->inc[GMT_X]+0.5)+A->header->nx*(int)((al_start+ii)/A->header->inc[GMT_Y]+0.5)] - (double)bshift + spec_shift;
-                    //dr = rng + (double)jj*stretch_r + (double)(al_start+ii)*a_stretch_r;
-                    //da = azi + (double)jj*stretch_a + (double)(al_start+ii)*a_stretch_a;
+                    da = A->data[(int)(jj/A->header->inc[GMT_X]+0.5)+A->header->nx*(int)((al_start+ii)/A->header->inc[GMT_Y]+0.5)] - (double)bshift;
+                    
                     eta[0] = ((double)ii - (double)lpb/2.+.5 + da)*dta;
                     taus=ts0+((double)jj + dr)*dts-tau0;
                     ka=fka[0]+fka[1]*taus+fka[2]*taus*taus;
@@ -618,12 +598,25 @@ int dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int wid
             }
         }
     }
+    else if (imode == 2){
+        for (jj=0;jj<width;jj++){
+            taus=ts0+((double)jj)*dts-tau0;
+            ka=fka[0]+fka[1]*taus+fka[2]*taus*taus;
+            kt[jj]=ka*ks/(ka-ks);
+        }
 
-    return(1);
+        for (ii=0;ii<lpb;ii++) {
+            for (jj=0;jj<width;jj++){
+                sum_spec_sep += kt[jj];
+            }
+        }
+    }
+
+    return(sum_spec_sep);
 }
 
 
-int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst_bounds *bb,int imode,TIFF *tif,FILE *slcl,FILE *slcc,FILE *slch,char *dr_table,char *da_table, double spec_shift) {
+double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst_bounds *bb,int imode,TIFF *tif,FILE *slcl,FILE *slcc,FILE *slch,char *dr_table,char *da_table, char *aux_file) {
 
     uint16 s=0;
     uint16 *buf;
@@ -638,6 +631,7 @@ int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst
     float rtest,itest;
     int al_start,cl;
     int bshift=0;
+    double sum_spec_sep = 0.0, spec_sep = 0.0,dta;
 
     struct GMT_GRID *R = NULL, *A = NULL;
 
@@ -708,6 +702,10 @@ int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst
     // loop over the bursts
     for (kk=1;kk<=count;kk++){
         fprintf(stderr,"burst # %d \n",kk);
+        if (imode == 2) {
+            sum_spec_sep = dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,2);
+            spec_sep += sum_spec_sep;
+        }
     
         // read a burst into memory
         for (ii=0;ii<lpb;ii++){
@@ -734,7 +732,7 @@ int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst
             // complute the complex deramp_demod array for each burst with no shift
             al_start = cl-bb[kk].SC;
             
-	    dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,spec_shift,0);
+	    dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,0);
 
             // apply the dramp_dmod
             for (ii=0;ii<lpb;ii++){
@@ -745,9 +743,9 @@ int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst
             }  
        
             // shift the burst with the given table
-            shift_burst(cbrst,al_start,lpb,width,R,A,bshift,spec_shift); 
+            shift_burst(cbrst,al_start,lpb,width,R,A,bshift); 
 
-            dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,spec_shift,1);   
+            dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,1);   
 
             //prm->rshift = -11;
             //prm->ashift = -15;
@@ -759,8 +757,20 @@ int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst
                     cbrst[k] = Cmul(cbrst[k],cramp[k]);
                 }
             }
-
         }
+
+        // compute the elevation antenna pattern (EAP) change if aux_file is specified
+/*
+        if (aux_file[0] != '\0') {
+            compute_eap(cramp,lpb,width,aux_file);
+            for (ii=0;ii<lpb;ii++){
+                for (jj=0;jj<width;jj++){
+                    k = ii*width+jj;
+                    cbrst[k] = Cmul(cbrst[k],cramp[k]);
+                }
+            }
+        }
+*/
         // unload the float complex array into a short burst array, multiply by 2 and clip if needed
         for (ii=0;ii<lpb;ii++){
             for (jj=0;jj<width;jj++){
@@ -808,6 +818,12 @@ int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst
         }
     }
 
+    search_tree(xml_tree,"/product/imageAnnotation/imageInformation/azimuthTimeInterval/",tmp_c,1,0,1);
+    dta = str2double(tmp_c);
+    if(imode == 2) {
+        spec_sep = spec_sep*dta/count/width;
+    }
+
     fprintf(stderr,"number of points clipped to short int %d \n", nclip);
     _TIFFfree(buf);
     free(brst);
@@ -815,48 +831,65 @@ int shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst
     free(cramp);
     free(tmp);
     free(rtmp);
-    return(1);
+    return(spec_sep);
     
 }
 
+/*
+int compute_eap(fcomplex *cbrst, tree *xml_tree char *aux_file, int mode) {
+    // 
+    //  mode 1=S1_HH, 2=S1_HV, 3=S1_VV, 4=S1_VH, 5=S2_HH, 6=S2_HV, 7=S2_VV, 8=S2_VH, 
+    //       9=S3_HH, 10=S3_HV, 11=S3_VV, 12=S3_VH,
+    //
 
-int shift_burst(fcomplex *cbrst, int al_start, int lpb, int width, struct GMT_GRID *R, struct GMT_GRID *A, int bshift, double spec_shift){
+    FILE *xml;
+    struct tree *xml_aux;
+    char *tmp_str[200], *str;
+    int nc=0,n=0,nlmx=0;
+    double *d;
+
+    if ((xml = fopen(aux_file,"r")) == NULL) {
+        die("Couldn't open xml file: \n",aux_file);
+    }
+
+    while (EOF != (ch=fgetc(XML_FILE))) {
+        ++nc;
+        if (ch == '\n') {
+           ++n;
+           if(nc > nlmx) nlmx = nc;
+           nc=0;
+        }
+    }
+    fclose(xml);
+
+    if ((xml = fopen(aux_file,"r")) == NULL) {
+        die("Couldn't open xml file: \n",aux_file);
+    }
+    xml_tree = (struct tree *)malloc(n*5*sizeof(struct tree));
+    get_tree(xml,xml_aux,1);
+    fclose(xml);
+
+    search_tree(xml_aux,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/values/",tmp_str,3,3,mode);
+    n = (int)str2double(tmp_str);    
+    str = (char *)malloc(80*n*sizeof(char));
+    d = (double *)malloc(n*2*sizeof(double));
+
+    search_tree(xml_aux,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/values/",str,1,3,mode);
+    str2dbs(d,str);
+     
+
+aaa
+}
+*/
+
+int shift_burst(fcomplex *cbrst, int al_start, int lpb, int width, struct GMT_GRID *R, struct GMT_GRID *A, int bshift){
 
     int ii,jj,k;
     double ras[2];
     fcomplex *cbrst2;
     double incx,incy;
     int kr,ka;
-/*   
-    double rng,stretch_r,a_stretch_r,azi,stretch_a,a_stretch_a;
-
-    // sub_1
-    rng =  0.9853;
-    stretch_r =  -3.14192e-05;
-    a_stretch_r =  -2.4178e-05;
-    azi =  0.7994;
-    stretch_a =  2.75142e-06;
-    a_stretch_a =  -3.56926e-06;
-*/
-/*
-    // sub_2
-    rng =  0.368;
-    stretch_r =  -2.21381e-05;
-    a_stretch_r =  -2.9138e-05; 
-    azi =  0.8528;
-    stretch_a =  2.46396e-06; 
-    a_stretch_a =  -3.57885e-06;
-*/
-/*
-    // sub_3
-    rng =  0.8423;
-    stretch_r =  -1.48984e-05;
-    a_stretch_r =  -3.28013e-05;
-    azi =  0.9109;
-    stretch_a =  2.18067e-06;
-    a_stretch_a =  -3.63256e-06;
-*/
- 
+    
     incx = R->header->inc[GMT_X];
     incy = R->header->inc[GMT_Y];
 
@@ -877,14 +910,10 @@ int shift_burst(fcomplex *cbrst, int al_start, int lpb, int width, struct GMT_GR
 		cbrst[k].i = 0;
             }
             else{
-                //kr = (int)floor(jj/incx+0.5)+R->header->nx*(int)floor((al_start+ii)/incy+0.5);
-                //ka = (int)floor(jj/incx+0.5)+A->header->nx*(int)floor((al_start+ii/3+lpb/3)/incy+0.5);
                 kr = (int)floor(jj/incx+0.5)+R->header->nx*(int)floor((al_start+ii)/incy+0.5);
                 ka = (int)floor(jj/incx+0.5)+A->header->nx*(int)floor((al_start+ii)/incy+0.5);
                 ras[0] = (double)jj+R->data[kr];
-                ras[1] = (double)ii+A->data[ka]  - (double)bshift + spec_shift;
-                //ras[0] = (double)jj + rng + (double)jj*stretch_r + (double)(al_start+ii)*a_stretch_r;
-                //ras[1] = (double)ii + azi + (double)jj*stretch_a + (double)(al_start+ii)*a_stretch_a;
+                ras[1] = (double)ii+A->data[ka]  - (double)bshift;
                 fbisinc(ras,cbrst2,lpb,width,&cbrst[k]);
             }
         }
