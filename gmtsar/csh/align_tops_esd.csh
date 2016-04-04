@@ -169,10 +169,11 @@ gmt grdmath atmp.grd FLIPUD = a.grd
 make_s1a_tops $mxml $mtiff $mpre 2
 make_s1a_tops $sxml $stiff $spre 2 r.grd a.grd
 echo "Running Spectral Diversity..."
+set sharedir = `gmtsar_sharedir.csh`
 if ($tmp_da > -1000 && $tmp_da < 1000) then
-  spectral_diversity $mpre $spre 0 $GMT5SAR/gmtsar/filters/gauss25x7 > tmp
+  spectral_diversity $mpre $spre 0 $sharedir/filters/gauss25x7 > tmp
 else
-  spectral_diversity $mpre $spre $tmp_da $GMT5SAR/gmtsar/filters/gauss25x7 > tmp
+  spectral_diversity $mpre $spre $tmp_da $sharedir/gmtsar/filters/gauss25x7 > tmp
 endif
 set res_shift = `grep residual_shift tmp | awk '{print $3}'`
 echo "Updating azimuth shift...($res_shift)"
