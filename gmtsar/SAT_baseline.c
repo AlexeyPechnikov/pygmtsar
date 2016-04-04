@@ -154,7 +154,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 
         /* set the extension to 50% unless ERS or Envisat and then set to 200% */
         ns2 = ns*0.5;
-        if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;
+        if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;
 
 	nd = orb[0].nd;
         for(ii=1;ii<nfiles;ii++){
@@ -236,7 +236,8 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 			dt = (t12 - t11)/(ns - 1);
                 	printf("Sampling intervel being %.6f azimuth pixel\n",dt*r[0].prf);
 			ns2 = ns*0.5;
-	        	if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;
+	        	if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;
+                        
 
                 	/* precisely compute the baseline up to 1mm level */
                 	for (k = -ns2; k<ns + ns2; k++){
@@ -264,7 +265,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
          
 			/* set the extension to 50% unless ERS or Envisat and then set to 200% */
 			ns2 = ns*0.5;
-			if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;        
+			if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;        
 
 		}
 		/* fd_orbit = -2.0*rdot/r[0].lambda; */
@@ -311,11 +312,11 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		r[ii].bperp = bperp;
 
 		/* find expected offset in pixels (rshift and yshift) 	*/
-		/*
+	        /*
 		r[ii].ashift = -1*m1;
-		r[ii].rshift = -1*(int) (r[ii].bpara/dr + (rr2 - rr1)/dr);
+		r[ii].rshift = -1*(int) (r[ii].bpara/dr + (r[ii].near_range - r[0].near_range)/dr);
+		fprintf(stderr,"ashift     =  %d\nrshift    =  %d\n",r[ii].ashift,r[ii].rshift);
 		*/
-
 		/* a more accurate way to estimate offset in pixels    */ 
 		
 		/* since t11 point is out of scene, I need add a fraction of orbit time to it  */
@@ -380,6 +381,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		llt2rat_sub(filename[0], target_llt, target_rat_ref);
 		llt2rat_sub(filename[ii], target_llt, target_rat_rep);
 
+                printf("test nums: %f %f %f %f\n",target_rat_rep[1],target_rat_ref[1],target_rat_rep[0],target_rat_ref[0]);
                 /* find expected offset in pixels (rshift and yshift)   */
                 r[ii].ashift = target_rat_rep[1]-target_rat_ref[1];
                 r[ii].rshift = target_rat_rep[0]-target_rat_ref[0];

@@ -173,7 +173,7 @@ set sharedir = `gmtsar_sharedir.csh`
 if ($tmp_da > -1000 && $tmp_da < 1000) then
   spectral_diversity $mpre $spre 0 $sharedir/filters/gauss25x7 > tmp
 else
-  spectral_diversity $mpre $spre $tmp_da $sharedir/gmtsar/filters/gauss25x7 > tmp
+  spectral_diversity $mpre $spre $tmp_da $sharedir/filters/gauss25x7 > tmp
 endif
 set res_shift = `grep residual_shift tmp | awk '{print $3}'`
 echo "Updating azimuth shift...($res_shift)"
