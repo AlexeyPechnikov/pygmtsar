@@ -159,6 +159,7 @@ struct PRM pm, ps;
 	ps.num_valid_az = pm.num_valid_az;
 	ps.num_lines = pm.num_lines;
 	ps.num_patches = pm.num_patches;
+        ps.nrows = pm.nrows;
         if ((prmout = fopen(argv[3],"w")) == NULL) die("can't open prfile",argv[3]);
 	put_sio_struct(ps, prmout);
         fclose(prmout);
