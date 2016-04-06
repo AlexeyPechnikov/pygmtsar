@@ -210,7 +210,8 @@ int main(int argc, char **argv)
 	printf("read table file ...\n");
         /* read in scene.tab */
         i=0;
-        while(fscanf(datefile, "%s %s", &tmp1[0],&tmp2[0]) != EOF) {
+        while(fscanf(datefile, "%s %s", &tmp1[0],&tmp2[0]) == 2) {
+		if (feof(datefile)) break;
                 L[i]=atoi(tmp1);
 		time[i]=atof(tmp2);
                 i=i+1;
@@ -221,7 +222,8 @@ int main(int argc, char **argv)
 
 	/* read in intf.tab */
 	i=0;
-        while(fscanf(infile, "%s %s %s %s %s", gfile[i],cfile[i],&tmp1[0],&tmp2[0],&tmp3[0]) != EOF) {
+        while(fscanf(infile, "%s %s %s %s %s", gfile[i],cfile[i],&tmp1[0],&tmp2[0],&tmp3[0]) == 5) {
+		if (feof(infile)) break;
 		H[i*2+0]=atoi(tmp1);
 		H[i*2+1]=atoi(tmp2);
 		bperp[i]=atof(tmp3);
