@@ -36,7 +36,7 @@
 #
 #  0) start with a virgin header
 #
- set ORBITS = "~/orbits"
+ set ORBITS = "/usr/local/orbits"
  set ERSPRE = `gmtsar_sharedir.csh`
  cp $ERSPRE/virgin.PRM $1.PRM
  echo " "

@@ -29,7 +29,7 @@
 #
 #  0) start with a virgin header, Need to be modified for other users
 #
- set ORBITS = "~/orbits"
+ set ORBITS = "/usr/local/orbits"
  set ENVIPRE = `gmtsar_sharedir.csh`
  cp $ENVIPRE/virgin_envisat.PRM $1.PRM
  echo " "
