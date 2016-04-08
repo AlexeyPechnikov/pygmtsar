@@ -22,7 +22,7 @@
 int N = 0;
 int MAX_TREE_SIZE = 600000;	// size of the tree in maximum
 int MAX_CHAR_SIZE = 60000;	// size of char arrays in maximum
-char STR[200][60000];
+char STR[1000][60000];
 
 int search_tree(tree *list, char *str, char *s_out, int type, int loc, int num){
 /***************************************************************************
@@ -199,7 +199,7 @@ int get_tree(FILE *fp, tree *list, int num_parse){
             strcpy(list[count].name,tmp_char);
             level[lev_ct] = count;
             strcpy(lev_rec[lev_ct],tmp_char);
-            if (i2!=-1 || (strlocate(buffer,'/',1) >= 0 && strlocate(buffer,'/',2) < 0)){
+            if (i2!=-1 || (buffer[j1-1] == '/')){
                 list[count].firstchild = count+1;
                 create_child(list,buffer,j1+1,i2-1,count++);
                 strcpy(lev_rec[lev_ct],"CLOSED");
@@ -211,9 +211,12 @@ int get_tree(FILE *fp, tree *list, int num_parse){
             strcpy(list[count].name,tmp_char);
             strcpy(lev_rec[lev_ct],tmp_char);
             list[count].parent = level[lev_ct-1];
+            list[count].sibl = -1; 
+            list[count].sibr = -1;
+            list[count].firstchild = -1;
             list[level[lev_ct-1]].firstchild = count;
             level[lev_ct] = count;
-            if (i2!=-1 || strlocate(buffer,'/',1) >= 0){
+            if (i2!=-1 || (buffer[j1-1] == '/')){
                 list[count].firstchild = count+1;
                 create_child(list,buffer,j1+1,i2-1,count++);
                 //fprintf(stderr,"CHILD: %s,LVL: %ld\n",tmp_char,lev_ct);
@@ -225,10 +228,12 @@ int get_tree(FILE *fp, tree *list, int num_parse){
             strcpy(list[count].name,tmp_char);
             strcpy(lev_rec[lev_ct],tmp_char);
             list[count].sibl = level[lev_ct];
+            list[count].sibr = -1;
+            list[count].firstchild = -1;
             list[count].parent = list[level[lev_ct]].parent;
             list[level[lev_ct]].sibr = count;
             level[lev_ct] = count;
-            if (i2!=-1 || strlocate(buffer,'/',1) >= 0){
+            if (i2!=-1 || (buffer[j1-1] == '/')){
                 list[count].firstchild = count+1;
                 create_child(list,buffer,j1+1,i2-1,count++);
                 strcpy(lev_rec[lev_ct],"CLOSED");

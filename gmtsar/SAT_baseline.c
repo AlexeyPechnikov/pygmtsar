@@ -381,7 +381,6 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		llt2rat_sub(filename[0], target_llt, target_rat_ref);
 		llt2rat_sub(filename[ii], target_llt, target_rat_rep);
 
-                printf("test nums: %f %f %f %f\n",target_rat_rep[1],target_rat_ref[1],target_rat_rep[0],target_rat_ref[0]);
                 /* find expected offset in pixels (rshift and yshift)   */
                 r[ii].ashift = target_rat_rep[1]-target_rat_ref[1];
                 r[ii].rshift = target_rat_rep[0]-target_rat_ref[0];

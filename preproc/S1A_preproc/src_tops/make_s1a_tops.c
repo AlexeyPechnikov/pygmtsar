@@ -1,4 +1,4 @@
-/***************************************************************************
+/*************************************************************************** 
  * Creator:  Xiaohua(Eric) XU and David Sandwell                           *
  *           (Scripps Institution of Oceanography)                         *
  * Date   :  02/01/2016                                                    *
@@ -7,6 +7,15 @@
 /***************************************************************************
  * Adapted from previous make_slc_s1a_tops code, start with point-by-point *
  * precise shift for aligning two images                                   *
+ *                                                                         *
+ * 01/28/16 EXU added resampling module to do point-by-point co-registr    *
+ * 01/30/16 EXU added grid reading part to read in shift LTU               *
+ * 02/08/16 EXU added burst shift to take account conditions images have   *
+ *              a few bursts offset                                        *
+ * 02/17/16 EXU modified outputing SLCH SLCL, added BB file, for ESD use   *
+ * 03/15/16 EXU modified dramp-dmod to read in correct parameters, fnc etc.*
+ * 04/05/16 EXU added elevation antenna pattern for early version          *
+ *                                                                         *
  ***************************************************************************/
 
 /***************************************************************************
@@ -15,7 +24,7 @@
  * Date   :  08/21/15 DTS begin modification for precision shifting        *
  * Date   :  10/24/15 DTS  Added the deramp and reramp                     *
  * Date   :  12/29/15 DTS added 3-parameter phase shift and reramp         *
- * Date   :  01/14/15 EXU added range stretch and line interpolator        *
+ * Date   :  01/14/16 EXU added range stretch and line interpolator        *
  *                                                                         *
  ***************************************************************************/
 
@@ -44,25 +53,27 @@ int pop_led(struct tree *, struct state_vector *);
 int write_orb(struct state_vector *sv, FILE *fp, int);
 int pop_burst(struct PRM *, struct tree *, struct burst_bounds *, char *);
 double dramp_dmod(struct tree *, int, fcomplex *, int , int, int, struct GMT_GRID *, struct GMT_GRID *, int,int);
-double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, char *, char *, char *);
+double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, char *, char *);
 int shift_burst(fcomplex *, int , int , int , struct GMT_GRID *, struct GMT_GRID *,int);
+int compute_eap(fcomplex *, struct tree *, int);
 void fbisinc (double *, fcomplex *, int, int, fcomplex *);
 
 
-char *USAGE =  "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd [aux_file]\n"
+char *USAGE =  "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd\n"
               "         xml_file    - name of xml file \n"
               "         tiff_file   - name of tiff file \n"
               "         output      - stem name of output files .PRM, .LED, .SLC \n"
               "         mode        - (0) no SLC; (1) center SLC; (2) high SLCH and low SLCL \n"
               "         dr.grd      - range shift table to be read in \n"
               "         da.grd      - azimuth shift table to be read in \n"
-              "         aux_file    - used to compute elevation antenna pattern\n"
-"\nExample: make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1 dr.grd da.grd [aux_file]\n"
-"\n         make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1 [aux_file]\n"
+"\nExample: make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1 dr.grd da.grd\n"
+"\n         make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1\n"
 "\nOutput: mode 1: S1A20140807.PRM S1A20140807.LED S1A20140807.SLC\n"
 "\n        mode 2: S1A20140807.PRM S1A20140807.LED S1A20140807.SLCH S1A20140807.SLCL S1A20140807.BB"
 "\nNote: if dr and da are not given, SLCs will be written with no shifts.\n"
-"\n      aux_file is needed for acquisitions acquired before Mar 2015.\n";
+"\n      s1a-aux.xml and manifest.save should be concatenated to the xml_file for acquisitions acquired before \n"
+"\n      Mar 2015 (IPF version change). If not concatenated or IPF version is 2.43+, elevation antenna pattern \n"
+"\n      correction(EAP) will not be applied\n";
 
 
 int main(int argc, char **argv){
@@ -70,7 +81,7 @@ int main(int argc, char **argv){
     FILE *XML_FILE,*OUTPUT_PRM,*OUTPUT_LED;
     FILE *OUTPUT_SLCL=NULL,*OUTPUT_SLCC=NULL,*OUTPUT_SLCH=NULL,*BB=NULL;
     TIFF *TIFF_FILE;
-    char tmp_str[200],rshifts[200],ashifts[200],aux_file[200];
+    char tmp_str[200],rshifts[200],ashifts[200];
     struct PRM prm;
     struct tree *xml_tree;
     struct state_vector sv[400];
@@ -85,22 +96,10 @@ int main(int argc, char **argv){
     if (argc == 5) {
         rshifts[0] = '\0';
         ashifts[0] = '\0';
-        aux_file[0] = '\0';
-    }
-    else if (argc == 6) {
-        rshifts[0] = '\0';
-        ashifts[0] = '\0';
-        strcpy(aux_file,argv[7]);
     }
     else if (argc == 7) {
         strcpy(rshifts,argv[5]);
         strcpy(ashifts,argv[6]);
-        aux_file[0] = '\0';
-    }
-    else if (argc == 8) {
-        strcpy(rshifts,argv[5]);
-        strcpy(ashifts,argv[6]);
-        strcpy(aux_file,argv[7]);
     }
     else{
         die (USAGE,"");
@@ -125,6 +124,7 @@ int main(int argc, char **argv){
     if ((XML_FILE = fopen(argv[1],"r")) == NULL) die("Couldn't open xml file: \n",argv[1]);
     get_tree(XML_FILE,xml_tree,1);
     fclose(XML_FILE);
+
     //show_tree(xml_tree,0,0);
 
     // generate the LED file
@@ -169,7 +169,7 @@ int main(int argc, char **argv){
 
     /* apply range and azimuth shifts to each burst and write the three SLC files SLCL SLC and SLCH depending on imode */
     if (imode == 1 || imode == 2) {
-        spec_sep = shift_write_slc(API,&prm,xml_tree,bb,imode,TIFF_FILE,OUTPUT_SLCL,OUTPUT_SLCC,OUTPUT_SLCH,rshifts,ashifts,aux_file);
+        spec_sep = shift_write_slc(API,&prm,xml_tree,bb,imode,TIFF_FILE,OUTPUT_SLCL,OUTPUT_SLCC,OUTPUT_SLCH,rshifts,ashifts);
     }
     /* shift applied */
     
@@ -616,7 +616,7 @@ double dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int 
 }
 
 
-double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst_bounds *bb,int imode,TIFF *tif,FILE *slcl,FILE *slcc,FILE *slch,char *dr_table,char *da_table, char *aux_file) {
+double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct burst_bounds *bb,int imode,TIFF *tif,FILE *slcl,FILE *slcc,FILE *slch,char *dr_table,char *da_table ) {
 
     uint16 s=0;
     uint16 *buf;
@@ -747,8 +747,6 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
 
             dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,1);   
 
-            //prm->rshift = -11;
-            //prm->ashift = -15;
             // reramp the slc
             for (ii=0;ii<lpb;ii++){
                 for (jj=0;jj<width;jj++){
@@ -759,18 +757,25 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
             }
         }
 
-        // compute the elevation antenna pattern (EAP) change if aux_file is specified
-/*
-        if (aux_file[0] != '\0') {
-            compute_eap(cramp,lpb,width,aux_file);
-            for (ii=0;ii<lpb;ii++){
-                for (jj=0;jj<width;jj++){
-                    k = ii*width+jj;
-                    cbrst[k] = Cmul(cbrst[k],cramp[k]);
+        // compute the elevation antenna pattern (EAP) change if ipf version is 2.36 and aux_file and manifest file are concatenated to xml
+        ii = search_tree(xml_tree,"/product/",tmp_c,1,0,1);
+        if (xml_tree[ii].sibr != -1){
+            search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:processing/safe:facility/safe:software/",tmp_c,3,3,12);
+            if (strncmp(&tmp_c[strlen(tmp_c)-3],"236",3) == 0)  {
+
+                //printf("Making elevation antenna pattern correction\n");
+   
+                compute_eap(cramp,xml_tree,kk);
+                for (ii=0;ii<lpb;ii++){
+                    for (jj=0;jj<width;jj++){
+                        k = ii*width+jj;
+                        cramp[k].i = -cramp[k].i;
+                        cbrst[k] = Cmul(cbrst[k],cramp[k]);
+                    }
                 }
             }
         }
-*/
+
         // unload the float complex array into a short burst array, multiply by 2 and clip if needed
         for (ii=0;ii<lpb;ii++){
             for (jj=0;jj<width;jj++){
@@ -835,52 +840,167 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
     
 }
 
-/*
-int compute_eap(fcomplex *cbrst, tree *xml_tree char *aux_file, int mode) {
+
+
+int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
     // 
     //  mode 1=S1_HH, 2=S1_HV, 3=S1_VV, 4=S1_VH, 5=S2_HH, 6=S2_HV, 7=S2_VV, 8=S2_VH, 
     //       9=S3_HH, 10=S3_HV, 11=S3_VV, 12=S3_VH,
     //
 
-    FILE *xml;
-    struct tree *xml_aux;
-    char *tmp_str[200], *str;
-    int nc=0,n=0,nlmx=0;
-    double *d;
+    char tmp_str[200], *str;
+    int n=0,srtcount;
+    int ii,jj,n_samples,lpb,mode;
+    double fs,dta,tau0,*tau_sub,*theta_sub,anx_time,*tau;
+    double *Geap,dtheta,t_brst,t1,t2,theta_offnadir,*theta_eap,height,*theta,*p_corr;
+    double H[5],Torb,Worb,phi[5],real,imag;
 
-    if ((xml = fopen(aux_file,"r")) == NULL) {
-        die("Couldn't open xml file: \n",aux_file);
+    // get some of the parameters needed for computation
+    search_tree(xml_tree,"/product/imageAnnotation/imageInformation/numberOfSamples/",tmp_str,1,0,1);
+    n_samples = (int)str2double(tmp_str);
+    n_samples = n_samples-n_samples%4;
+    search_tree(xml_tree,"/product/generalAnnotation/productInformation/rangeSamplingRate/",tmp_str,1,0,1);
+    fs = str2double(tmp_str);
+    search_tree(xml_tree,"/product/swathTiming/linesPerBurst/",tmp_str,1,4,0);
+    lpb = (int)str2double(tmp_str);
+    
+    search_tree(xml_tree,"/product/imageAnnotation/imageInformation/azimuthTimeInterval/",tmp_str,1,0,1);
+    dta = str2double(tmp_str);
+    search_tree(xml_tree,"/product/imageAnnotation/imageInformation/slantRangeTime/",tmp_str,1,0,1);
+    tau0 = str2double(tmp_str);
+    
+    
+    // find the correct one to be read in
+    search_tree(xml_tree,"/product/swathTiming/burstList/burst/azimuthTime/",tmp_str,2,4,nb);
+    t_brst = str2double(tmp_str)+dta*(double)lpb/2.0/86400.0;
+    search_tree(xml_tree,"/product/antennaPattern/antennaPatternList/",tmp_str,3,0,1);
+    jj = (int)str2double(tmp_str);
+    t2 = 0.0;
+    ii = 0;
+    while(t2<t_brst && ii < jj){
+        t1 = t2;
+	ii++;
+        search_tree(xml_tree,"/product/antennaPattern/antennaPatternList/antennaPattern/azimuthTime/",tmp_str,2,4,ii);
+        t2 = str2double(tmp_str);
     }
+    if (t_brst-t1 < t2-t_brst) jj = ii-1;
+    else jj = ii;
 
-    while (EOF != (ch=fgetc(XML_FILE))) {
-        ++nc;
-        if (ch == '\n') {
-           ++n;
-           if(nc > nlmx) nlmx = nc;
-           nc=0;
+    // readin parameters from data xml
+    search_tree(xml_tree,"/product/antennaPattern/antennaPatternList/antennaPattern/slantRangeTime/",tmp_str,3,4,jj);
+    srtcount = (int)str2double(tmp_str);
+    str = (char *)malloc(200*srtcount*sizeof(char));
+    tau_sub = (double *)malloc(srtcount*sizeof(double));
+    search_tree(xml_tree,"/product/antennaPattern/antennaPatternList/antennaPattern/slantRangeTime/",str,1,4,jj);
+    str2dbs(tau_sub,str);
+    theta_sub = (double *)malloc(srtcount*sizeof(double));
+    search_tree(xml_tree,"/product/antennaPattern/antennaPatternList/antennaPattern/elevationAngle/",str,1,4,jj);
+    str2dbs(theta_sub,str);
+
+    // determine which antenna pattern to read in in the aux file
+    mode = 0;
+    search_tree(xml_tree,"/product/adsHeader/imageNumber/",tmp_str,1,0,1);
+    ii = (int)str2double(tmp_str); 
+    mode = mode+(ii-1)*4;
+    search_tree(xml_tree,"/product/adsHeader/polarisation/",tmp_str,1,0,1);
+    if (tmp_str[0]-'H' == 0 && tmp_str[1]-'H' == 0) mode = mode + 1;
+    else if (tmp_str[0]-'H' == 0 && tmp_str[1]-'V' == 0) mode = mode + 2;
+    else if (tmp_str[0]-'V' == 0 && tmp_str[1]-'V' == 0) mode = mode + 3;
+    else if (tmp_str[0]-'V' == 0 && tmp_str[1]-'H' == 0) mode = mode + 4;
+    mode = mode + 24;
+    //printf("Reading in antenna pattern %d (%s IW%d)...\n",mode,tmp_str,ii);
+ 
+    // read in parameters from aux xml
+    search_tree(xml_tree,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/values/",tmp_str,3,3,mode);
+    n = (int)str2double(tmp_str);    
+    Geap = (double *)malloc(n*2*sizeof(double));
+    theta_eap = (double *)malloc(n*sizeof(double));
+    tau = (double *)malloc(n_samples*sizeof(double));
+    theta = (double *)malloc(n_samples*sizeof(double));
+    p_corr = (double *)malloc(n_samples*sizeof(double));
+
+    search_tree(xml_tree,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/values/",str,1,3,mode);
+    str2dbs(Geap,str);
+    search_tree(xml_tree,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/elevationAngleIncrement/",tmp_str,1,3,mode);
+    dtheta = str2double(tmp_str);  
+
+    search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:orbitReference/safe:extension/s1:orbitProperties/s1:ascendingNodeTime/",tmp_str,2,3,14);
+    anx_time = (str2double(tmp_str)-(int)str2double(tmp_str))*86400.0;
+    t_brst = (t_brst-(int)t_brst)*86400.0;
+    
+    // compute the satellite altitude and roll steering
+    H[0] = 707714.8;
+    H[1] = 8351.5;
+    H[2] = 8947.0;
+    H[3] = 23.32;
+    H[4] = 11.74;
+    phi[1] = 3.1495;
+    phi[2] = -1.5655;
+    phi[3] = -3.1297;
+    phi[4] = 4.7222;
+    Torb = 12.0*24.0*60.0*60.0/175.0;
+    Worb = 2.0*M_PI/Torb;
+    t1 = t_brst-anx_time;
+    height = H[0]+H[1]*sin(Worb*t1+phi[1])+H[2]*sin(Worb*2.0*t1+phi[2])+H[3]*sin(Worb*3.0*t1+phi[3]) + H[4]*sin(Worb*4.0*t1+phi[4]);
+
+    theta_offnadir = 29.450 - 0.0566*(height/1000.0-711.7);
+    for (ii=0;ii<n;ii++) theta_eap[ii] = (-(n-1)/2+ii)*dtheta + theta_offnadir;
+    
+
+    // compute the elevation antenna pattern
+    for (ii=0;ii<n_samples;ii++) tau[ii] = tau0 + (double)(ii-1)/fs;
+    jj = 0;
+    printf("%f,%f,%f,%f\n",t_brst-anx_time,dtheta,height,theta_offnadir);
+    while(tau_sub[jj]<tau0) jj++;
+    for (ii=0;ii<n_samples;ii++) {
+        while (tau_sub[jj]<tau[ii]) jj++;
+        if(jj<1 || jj>srtcount) {
+            die("elevationAngle table size not match slantRangeTime table size","");
+        }
+        theta[ii] = ((tau[ii]-tau_sub[jj-1])*theta_sub[jj-1] + (tau_sub[jj]-tau[ii])*theta_sub[jj]) / (tau_sub[jj] - tau_sub[jj-1]);
+    }
+    //printf("%d  ",jj);
+
+    jj = 0;
+    while(theta_eap[jj]<theta[0]) jj++;
+    //printf("%d  ",jj);
+    for (ii=0;ii<n_samples;ii++) {
+        while (theta_eap[jj]<theta[ii]) jj++;
+        if(jj<1 || jj>srtcount) {
+            die("elevationAngle table size not match slantRangeTime table size","");
+        }
+        real = (Geap[(jj-1)*2]*(theta[ii]-theta_eap[jj-1]) + Geap[jj*2]*(theta_eap[jj]-theta[ii])) / dtheta;
+        imag = (Geap[(jj-1)*2+1]*(theta[ii]-theta_eap[jj-1]) + Geap[jj*2+1]*(theta_eap[jj]-theta[ii])) / dtheta;
+        p_corr[ii] = atan2(imag,real);
+    }    
+    //printf("%d  \n",jj);
+/*
+    if(nb == 1) {
+        for(jj=0;jj<n_samples;jj++) {
+            if(jj%100 == 0) printf("%f ",p_corr[jj]);
+        }
+        printf("\n");
+    }
+*/
+    for(ii=0;ii<lpb;ii++) {
+        for(jj=0;jj<n_samples;jj++) {
+            cramp[ii*n_samples+jj]=Cexp(p_corr[jj]);
         }
     }
-    fclose(xml);
 
-    if ((xml = fopen(aux_file,"r")) == NULL) {
-        die("Couldn't open xml file: \n",aux_file);
-    }
-    xml_tree = (struct tree *)malloc(n*5*sizeof(struct tree));
-    get_tree(xml,xml_aux,1);
-    fclose(xml);
+    free(tau_sub);
+    free(theta_sub);
+    free(str);
+    free(Geap);
+    free(theta_eap);
+    free(tau);
+    free(theta);
+    free(p_corr);
 
-    search_tree(xml_aux,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/values/",tmp_str,3,3,mode);
-    n = (int)str2double(tmp_str);    
-    str = (char *)malloc(80*n*sizeof(char));
-    d = (double *)malloc(n*2*sizeof(double));
+    return(1);
 
-    search_tree(xml_aux,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/values/",str,1,3,mode);
-    str2dbs(d,str);
-     
-
-aaa
 }
-*/
+
 
 int shift_burst(fcomplex *cbrst, int al_start, int lpb, int width, struct GMT_GRID *R, struct GMT_GRID *A, int bshift){
 
