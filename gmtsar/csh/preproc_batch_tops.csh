@@ -107,25 +107,34 @@
           set t1 = `grep clock_start $stem_master.PRM | grep -v SC_clock_start | awk '{printf("%.13f", $3)}'`
           set t2 = `grep clock_start $stem.PRM | grep -v SC_clock_start | awk '{printf("%.13f", $3)}'`
           set prf = `grep PRF $stem_master.PRM | awk '{printf("%.6f",$3)}'`
-          set nl = `echo $t1 $t2 $prf | awk '{printf("%d",($2-$1)*$3*86400.0+0.2)}'`
+          set nl = `echo $t1 $t2 $prf | awk '{printf("%d",($2 - $1)*$3*86400.0+0.2)}'`
 	  echo "Shifting the master PRM by $nl lines..."
 	  cp $master.PRM tmp.PRM
 
           # shift the super-master's PRM based on $nl so SAT_llt2rat gives precise estimate. 
-	  set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1+'$nl'/'$prf'/86400.0)}'`
+	  set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1 + '$nl'/'$prf'/86400.0)}'`
 	  update_PRM.csh tmp.PRM clock_start $ttmp
-	  set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1+'$nl'/'$prf'/86400.0)}'`
+	  set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1 + '$nl'/'$prf'/86400.0)}'`
           update_PRM.csh tmp.PRM clock_stop $ttmp
-          set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1+'$nl'/'$prf'/86400.0)}'`
+          set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 + '$nl'/'$prf'/86400.0)}'`
           update_PRM.csh tmp.PRM SC_clock_start $ttmp
-          set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1+'$nl'/'$prf'/86400.0)}'`
+          set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 + '$nl'/'$prf'/86400.0)}'`
           update_PRM.csh tmp.PRM SC_clock_stop $ttmp
 
           # compute whether there are any image offset
           if ($tmp_da == 0) then
-            set tmp_am = `head topo.llt | awk 'NR == 1 {print $0}' | SAT_llt2rat tmp.PRM 1 | awk '{print $2}'`
-            set tmp_as = `head topo.llt | awk 'NR == 1 {print $0}' | SAT_llt2rat $stem.PRM 1 | awk '{print $2}'`
+            cp tmp.PRM junk1.PRM
+            cp $stem.PRM junk2.PRM
+            calc_dop_orb junk1.PRM junk $earth_radius 0
+            cat junk >> junk1.PRM
+            calc_dop_orb junk2.PRM junk $earth_radius 0
+            cat junk >> junk2.PRM
+            set lontie = `SAT_baseline junk1.PRM junk2.PRM | grep lon_tie_point | awk '{print $3}'`
+            set lattie = `SAT_baseline junk1.PRM junk2.PRM | grep lat_tie_point | awk '{print $3}'`
+            set tmp_am = `echo $lontie $lattie 0 | SAT_llt2rat tmp.PRM 1 | awk '{print $2}'`
+            set tmp_as = `echo $lontie $lattie 0 | SAT_llt2rat $stem.PRM 1 | awk '{print $2}'`
             set tmp_da = `echo $tmp_am $tmp_as | awk '{printf("%d",$2-$1)}'`
+            rm junk1.PRM junk2.PRM junk
           endif
 
           # in case the images are offset by more than a burst, shift the super-master's PRM again so SAT_llt2rat gives precise estimate
@@ -144,13 +153,13 @@
           else
             echo "Modifying master PRM by $tmp_da lines..."
             set prf = `grep PRF tmp.PRM | awk '{print $3}'`
-            set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+            set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
             update_PRM.csh tmp.PRM clock_start $ttmp
-            set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+            set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
             update_PRM.csh tmp.PRM clock_stop $ttmp
-            set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+            set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
             update_PRM.csh tmp.PRM SC_clock_start $ttmp
-            set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+            set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
             update_PRM.csh tmp.PRM SC_clock_stop $ttmp
 
             cp tmp.PRM junk1
@@ -168,16 +177,16 @@
           endif
 
           # get r, dr, a, da, SNR table to be used by fitoffset.csh
-          paste tmpm.dat tmp1.dat | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6-$1, $2, $7-$2, "100")}' > tmp.dat
+          paste tmpm.dat tmp1.dat | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6 - $1, $2, $7 - $2, "100")}' > tmp.dat
           set rmax = `grep num_rng_bins $stem.PRM | awk '{print $3}'`
           set amax = `grep num_lines $stem.PRM | awk '{print $3}'`
           awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat > offset.dat
          
           # prepare the offset parameters for the stitched image 
           if ($tmp_da > -1000 && $tmp_da < 1000) then
-            awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3+'$nl', $4, $5)}' < offset.dat >> par_tmp.dat
+            awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3 + '$nl', $4, $5)}' < offset.dat >> par_tmp.dat
           else
-            awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3+'$nl'-'$tmp_da', $4+'$tmp_da', $5)}' < offset.dat >> par_tmp.dat
+            awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3 + '$nl' - '$tmp_da', $4 + '$tmp_da', $5)}' < offset.dat >> par_tmp.dat
           endif
 
           # prepare the rshift and ashift look up table to be used by make_s1a_tops
