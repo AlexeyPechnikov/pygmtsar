@@ -107,13 +107,13 @@ else
   echo "Modifying master PRM by $tmp_da lines..."
   cp $mpre".PRM" tmp.PRM
   set prf = `grep PRF tmp.PRM | awk '{print $3}'`
-  set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
   update_PRM.csh tmp.PRM clock_start $ttmp
-  set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
   update_PRM.csh tmp.PRM clock_stop $ttmp
-  set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
   update_PRM.csh tmp.PRM SC_clock_start $ttmp
-  set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1-'$tmp_da'/'$prf'/86400.0)}'`
+  set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
   update_PRM.csh tmp.PRM SC_clock_stop $ttmp
 #
 #  restore the modified lines 
@@ -129,7 +129,7 @@ endif
 #  paste the files and compute the dr and da
 #
 #paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
-paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6-$1, $2, $7-$2, "100")}' > tmp.dat
+paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6 - $1, $2, $7 - $2, "100")}' > tmp.dat
 #
 #  make sure the range and azimuth are within the bounds of the slave 
 #
@@ -139,7 +139,7 @@ if ($tmp_da > -1000 && $tmp_da < 1000) then
   awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat > offset.dat
 else
   awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat > offset.dat
-  awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3-'$tmp_da', $4+'$tmp_da', "100") }' < tmp.dat > offset2.dat
+  awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') printf("%.6f %.6f %.6f %.6f %d\n", $1, $2, $3 - '$tmp_da', $4 + '$tmp_da', "100") }' < tmp.dat > offset2.dat
 endif
 #
 #  extract the range and azimuth data
