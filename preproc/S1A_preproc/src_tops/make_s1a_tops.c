@@ -698,10 +698,10 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
         }
         cl = 0;
     }
-
+    fprintf(stderr,"Working on burst ");
     // loop over the bursts
     for (kk=1;kk<=count;kk++){
-        fprintf(stderr,"burst # %d \n",kk);
+        fprintf(stderr,"#%d ",kk);
         if (imode == 2) {
             sum_spec_sep = dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,2);
             spec_sep += sum_spec_sep;
@@ -822,10 +822,11 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
             }
         }
     }
+    fprintf(stderr,"\n");
 
-    search_tree(xml_tree,"/product/imageAnnotation/imageInformation/azimuthTimeInterval/",tmp_c,1,0,1);
-    dta = str2double(tmp_c);
     if(imode == 2) {
+        search_tree(xml_tree,"/product/imageAnnotation/imageInformation/azimuthTimeInterval/",tmp_c,1,0,1);
+        dta = str2double(tmp_c);
         spec_sep = spec_sep*dta/count/width;
     }
 

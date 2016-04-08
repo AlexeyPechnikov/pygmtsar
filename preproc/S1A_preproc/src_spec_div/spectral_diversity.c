@@ -37,7 +37,7 @@ typedef struct burst_bounds{
 }burst_bounds;
 
 char *USAGE = "\n Usage: spectral_diversity master_stem slave_stem bshfit filter\n"
-              "\n Example: spectral_diversity S1A20150322_F1 S1A20150415_F1 gauss5x5\n"
+              "\n Example: spectral_diversity S1A20150322_F1 S1A20150415_F1 0 gauss5x5\n"
               "\n Output: resitual_shift = 0.001234\n"
               "\n Note: make sure stem.SLCH stem.SLCL stem.BB exist \n";
 
@@ -82,7 +82,7 @@ int main(int argc, char **argv){
     bshift = (int)str2double(argv[3]);
     nboff = floor((double)bshift/1400.0+0.5);
     if (nboff != 0) {
-        printf("Image has %d burst offset\n",abs(nboff));
+        printf("Image has %d burst offset\n",nboff);
     }
 
     strcpy(tmp_str,"ddphase");
@@ -192,7 +192,7 @@ int main(int argc, char **argv){
         kkm++;
     }
     if(kkm!=kks) printf("starting bursts are %d for master and %d for slave\n",kkm,kks);
-
+    //printf("Working on burst %d (master, zz = %d)...\n",kkm,zz);
     for(ii=0;ii<ntl;ii++){
         if(ii>=bbm[kkm].ELi+1 && ii<=bbm[kkm].EHi && ii>=bbs[kks].ELi+1 && ii<=bbs[kks].EHi){
             //fprintf(stderr,"working on Line %d...\n",ii);
@@ -225,8 +225,9 @@ int main(int argc, char **argv){
             }
             zz++;
         }
-        if(ii>bbm[kkm].EHi && ii>bbs[kkm].EHi) {
+        if(ii>bbm[kkm].EHi && ii>bbs[kks].EHi) {
             kkm++;kks++;
+            //printf("Working on burst %d (master, zz = %d)...\n",kkm,zz);
             //fprintf(stderr,"Computing next burst %d...\n",kk);
         }
 
