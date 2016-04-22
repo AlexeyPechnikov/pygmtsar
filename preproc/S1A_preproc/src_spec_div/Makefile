@@ -4,7 +4,7 @@ INCLUDES = -I../include -I$(GMTSARHOME)/gmtsar/include $(GMT_INC)
 CLIBS = -L../lib -lxmlC $(GMTSAR) $(GMT_LIB) $(LALIBS) -lm
 
 spectral_diversity: spectral_diversity.o
-	$(CC) $(CFLAGS) -o $@ spectral_diversity.o $(CLIBS) 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ spectral_diversity.o $(CLIBS) 
 
 all:	spectral_diversity
 
