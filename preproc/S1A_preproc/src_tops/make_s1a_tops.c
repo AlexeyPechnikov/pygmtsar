@@ -853,7 +853,7 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
     int n=0,srtcount;
     int ii,jj,n_samples,lpb,mode;
     double fs,dta,tau0,*tau_sub,*theta_sub,anx_time,*tau;
-    double *Geap,dtheta,t_brst,t1,t2,theta_offnadir,*theta_eap,height,*theta,*p_corr;
+    double *Geap,dtheta,t_brst,t1=0,t2,theta_offnadir,*theta_eap,height,*theta,*p_corr;
     double H[5],Torb,Worb,phi[5],real,imag;
 
     // get some of the parameters needed for computation
