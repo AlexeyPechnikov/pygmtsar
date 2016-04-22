@@ -191,7 +191,7 @@ while(fread(data,LINELENGTH,1,indata)!=0){
 	info.swst = calc_swst(info);
 
         icu_time=(double)(*icu_time1)*65536.0+(double)(*icu_time2);
-        if((icu_time-icu_time_old) == 1 & print_start == 0) {
+        if(((icu_time-icu_time_old) == 1) & (print_start == 0)) {
                 fprintf(stdout,"icu_start               = %.3lf\n",(icu_time-(ncnt-2)*(info.pri*256)));
 		print_start = 1;
 	}

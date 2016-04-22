@@ -255,8 +255,8 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
 
     char tmp_c[200],tmp_cc[60000];
     double tmp_d,dt,t[100];
-    int i,j,k,nl=0,nlf,ntl,count,lpb,tmp_i,flag,flag0;
-    int k_start, kC;
+    int i,j,k,nl=0,nlf,ntl=0,count,lpb,tmp_i,flag,flag0;
+    int k_start=0, kC;
     int *kF, *ksa, *ksr, *kea, *ker, *kover;
     double t0=-1.,time;
     char *cflag,*cflag_orig;
@@ -443,7 +443,7 @@ double dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int 
     double ks,vtot,ka,taus,phase,pramp,pmod;
     double fnc[3],fka[3];
     double *eta,*etaref,*kt,*fnct;
-    double t_brst, t1, t2;
+    double t_brst, t1=0., t2=0.;
     double dr,da;
     double sum_spec_sep=0.0;
     
@@ -629,7 +629,7 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
     char tmp_c[200];
     fcomplex *cbrst, *cramp;
     float rtest,itest;
-    int al_start,cl;
+    int al_start=0,cl;
     int bshift=0;
     double sum_spec_sep = 0.0, spec_sep = 0.0,dta;
 
