@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 
@@ -59,7 +58,7 @@ double  ram[2], ras[2] ;	/* range and azimuth locations for master and slave ima
 FILE	*SLC_file2 = NULL, *prmout = NULL;
 int	fdin;
 double  sv_pr[6];
-struct	stat statbuf;
+size_t  st_size;
 
 struct PRM pm, ps;	
 
@@ -107,13 +106,10 @@ struct PRM pm, ps;
 	if ((fdin = open(ps.SLC_file, O_RDONLY)) < 0)
 	  die ("can't open %s for reading", ps.SLC_file);
 
-	if (fstat (fdin,&statbuf) < 0)
-	  die ("fstat error"," ");
-        /* reset the size of the file in case fstat fails to recognize files larger than 4GB */
-        statbuf.st_size = (size_t)4*(size_t)xdims*(size_t)ydims;
-
+        st_size = (size_t)4*(size_t)xdims*(size_t)ydims;
+        
         /* mmap the file  */
-	if ((sinn = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED,fdin, 0)) == MAP_FAILED) 
+	if ((sinn = mmap (0, st_size, PROT_READ, MAP_SHARED,fdin, 0)) == MAP_FAILED) 
 	  die ("mmap error for input"," ");
 
 	/* open the slave slc file for writing and write one row at a time */
@@ -167,7 +163,7 @@ struct PRM pm, ps;
         if ((prmout = fopen(argv[3],"w")) == NULL) die("can't open prfile",argv[3]);
 	put_sio_struct(ps, prmout);
         fclose(prmout);
-	if (munmap(sinn, statbuf.st_size) == -1) die ("mmap error unmapping file"," ");
+	if (munmap(sinn, st_size) == -1) die ("mmap error unmapping file"," ");
 	close(fdin);
 	fclose(SLC_file2);
 
