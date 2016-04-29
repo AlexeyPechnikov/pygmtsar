@@ -17,6 +17,9 @@
  * 01/11/14     Code modified to use mmap() instead of fread()             *
  * 01/06/15     Code modified to use only integer rshift, ashift for       *
  *              nearest (imode = 1) interpolation.                         *
+ * 04/28/16 EXU Modified 4 resampling subroutine to shift pointer before   *
+ *              interpolation, so that resamp won't fail on files larger   *
+ *              than 4GB.                                                  *
  ***************************************************************************/
 
 #include "gmtsar.h"
@@ -106,23 +109,24 @@ struct PRM pm, ps;
 
 	if (fstat (fdin,&statbuf) < 0)
 	  die ("fstat error"," ");
+        /* reset the size of the file in case fstat fails to recognize files larger than 4GB */
+        statbuf.st_size = (size_t)4*(size_t)xdims*(size_t)ydims;
 
+        /* mmap the file  */
 	if ((sinn = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED,fdin, 0)) == MAP_FAILED) 
 	  die ("mmap error for input"," ");
 
 	/* open the slave slc file for writing and write one row at a time */
  	if ((SLC_file2 = fopen(argv[4],"w")) == NULL) die("Can't open SLCfile for output",argv[4]);
-
 	for(ii=0; ii<ydimm; ii++) {
 	   for(jj=0; jj<xdimm; jj++) {
 
 	/* convert master ra to slave ra */
-
 		ram[0] = jj;
 		ram[1] = ii; 
 		ram2ras(ps,ram,ras);
         
-         /*  do nearest, bilinear, bicubic, or sinc interpolation */
+        /*  do nearest, bilinear, bicubic, or sinc interpolation */
 	
 		if(intrp == 1) {
 		nearest  (ras, sinn, ydims, xdims, &sout[2*jj]);
@@ -262,12 +266,19 @@ double arg2, arg3, f;
 void nearest(double *ras, short *s_in, int ydims, int xdims, short *sout)
 {
 	int i, j, k;
+        short *tmp_sin;
 
 	/* compute the indices of the upper left corner */
 
 	j = (int)(ras[0] + 0.5);
 	i = (int)(ras[1] + 0.5);
-	k = 2*xdims*i + 2*j;
+	//k = 2*xdims*i + 2*j;
+	k = 2*j;
+
+        /* shift the pointer by i0-ns2 lines  */
+        tmp_sin = s_in;
+        tmp_sin++;
+        tmp_sin = s_in+(size_t)(2*xdims)*(size_t)i*(tmp_sin-s_in);
 
 	/* use the nearest point if it is within the bounds of the slave array */
 
@@ -276,8 +287,10 @@ void nearest(double *ras, short *s_in, int ydims, int xdims, short *sout)
 	  sout[1] = 0;
 	}
 	else {
-	  sout[0] = s_in[k];
-	  sout[1] = s_in[k+1];
+	  //sout[0] = s_in[k];
+	  //sout[1] = s_in[k+1];
+	  sout[0] = tmp_sin[k];
+	  sout[1] = tmp_sin[k+1];
 	}
 }
 
@@ -287,6 +300,7 @@ void bilinear(double *ras, short *s_in, int ydims, int xdims, short *sout)
 	int k00, k01, k10, k11;
 	int i0, j0;
 	int nclip;
+        short *tmp_sin;
 
 	/* compute the residual offsets */
 	nclip = 0;
@@ -296,12 +310,22 @@ void bilinear(double *ras, short *s_in, int ydims, int xdims, short *sout)
         da = ras[1] - (double)i0;
 	if(dr < 0. || dr > 1. || da < 0. || da > 1) fprintf(stderr," dr or da out of bounds %f %f \n",dr,da);
 
+        /* shift the pointer by i0-ns2 lines  */
+        tmp_sin = s_in;
+        tmp_sin++;
+        tmp_sin = s_in+(size_t)(2*xdims)*(size_t)i0*(tmp_sin-s_in);
+
 	/* compute the indices of the 4 corners */
-       
+        /*
 	k00 = 2*xdims*i0     + 2*j0;
 	k01 = 2*xdims*i0     + 2*(j0+1);
 	k10 = 2*xdims*(i0+1) + 2*j0;
 	k11 = 2*xdims*(i0+1) + 2*(j0+1);
+        */
+	k00 = 2*j0;
+	k01 = 2*(j0+1);
+	k10 = 2*xdims + 2*j0;
+	k11 = 2*xdims + 2*(j0+1);
 
 	/* do the interpolation if all 4 corners are within the bounds of the slave array */
 
@@ -310,21 +334,33 @@ void bilinear(double *ras, short *s_in, int ydims, int xdims, short *sout)
 	  sout[1] = 0;
 	}
 	else {
-        real = s_in[k00] * (1.0 - da) * (1.0 - dr)
+        /*real = s_in[k00] * (1.0 - da) * (1.0 - dr)
              + s_in[k10] * (da)       * (1.0 - dr)
              + s_in[k01] * (1.0 - da) * (dr) 
-             + s_in[k11] * (da)       * (dr);
+             + s_in[k11] * (da)       * (dr);*/
+        real = tmp_sin[k00] * (1.0 - da) * (1.0 - dr)
+             + tmp_sin[k10] * (da)       * (1.0 - dr)
+             + tmp_sin[k01] * (1.0 - da) * (dr) 
+             + tmp_sin[k11] * (da)       * (dr);
+
         if((int)fabs(real) > I2MAX) nclip = nclip + 1;
 	sout[0] = (short)clipi2(real + 0.5);
-        imag = s_in[k00+1] * (1.0 - da) * (1.0 - dr)
+        /*imag = s_in[k00+1] * (1.0 - da) * (1.0 - dr)
              + s_in[k10+1] * (da)       * (1.0 - dr)
              + s_in[k01+1] * (1.0 - da) * (dr) 
-             + s_in[k11+1] * (da)       * (dr);
+             + s_in[k11+1] * (da)       * (dr);*/
+        imag = tmp_sin[k00+1] * (1.0 - da) * (1.0 - dr)
+             + tmp_sin[k10+1] * (da)       * (1.0 - dr)
+             + tmp_sin[k01+1] * (1.0 - da) * (dr) 
+             + tmp_sin[k11+1] * (da)       * (dr);
+
         if((int)fabs(imag) > I2MAX) nclip = nclip + 1;
 	sout[1] = (short)clipi2(imag + 0.5);
 	}
 	/*if(nclip > 0) fprintf(stderr," %d integers were clipped \n",nclip);*/
 }
+
+
 void bicubic(double *ras, short *s_in, int ydims, int xdims, short *sout)
 {
 	double dr, da;
@@ -332,6 +368,7 @@ void bicubic(double *ras, short *s_in, int ydims, int xdims, short *sout)
 	int i, j, k, kk;
 	int i0, j0;
 	int nclip;
+        short *tmp_sin;
 
 	/* compute the residual offsets */
 	nclip = 0;
@@ -351,12 +388,20 @@ void bicubic(double *ras, short *s_in, int ydims, int xdims, short *sout)
 
 	/* safe to do the interpolation */
 
+        /* shift the pointer by i0-1 lines  */
+        tmp_sin = s_in;
+        tmp_sin++;
+        tmp_sin = s_in+(size_t)(2*xdims)*(size_t)(i0-1)*(tmp_sin-s_in);
+
 	for (i=0; i<4; i++){
 		for (j=0; j<4; j++){
 		k = i*4 +j;
-		kk = 2*xdims*(i0-1+i)  + 2*(j0-1+j);
-		rdata[k] = s_in[kk];
-		idata[k] = s_in[kk+1];
+		//kk = 2*xdims*(i0-1+i)  + 2*(j0-1+j);
+		kk = 2*xdims*i  + 2*(j0-1+j);
+		//rdata[k] = s_in[kk];
+		//idata[k] = s_in[kk+1];
+                rdata[k] = tmp_sin[kk];
+                idata[k] = tmp_sin[kk+1];
 		}
 	}
 
@@ -372,6 +417,7 @@ void bicubic(double *ras, short *s_in, int ydims, int xdims, short *sout)
 	/*if(nclip > 0) fprintf(stderr," %d integers were clipped \n",nclip);*/
 }
 
+
 void bisinc (double *ras, short *s_in, int ydims, int xdims, short *sout)
 {
 	double dr, da, ns2=NS/2-1;
@@ -379,6 +425,7 @@ void bisinc (double *ras, short *s_in, int ydims, int xdims, short *sout)
 	int i, j, k, kk;
 	int i0, j0;
 	int nclip;
+        short *tmp_sin;
 
 	/* compute the residual offsets */
 	nclip = 0;
@@ -398,12 +445,18 @@ void bisinc (double *ras, short *s_in, int ydims, int xdims, short *sout)
 
 	/* safe to do the interpolation */
 
+        /* shift the pointer by i0-ns2 lines  */
+        tmp_sin = s_in;
+        tmp_sin++;
+        tmp_sin = s_in+(size_t)(2*xdims)*(size_t)(i0-ns2)*(tmp_sin-s_in);
+
 	for (i=0; i<NS; i++){
 		for (j=0; j<NS; j++){
 		k = i*NS +j; 
-		kk = 2*xdims*(i0-ns2+i)  + 2*(j0-ns2+j);
-		rdata[k] = s_in[kk];
-		idata[k] = s_in[kk+1];
+		//kk = 2*xdims*(i0-ns2+i)  + 2*(j0-ns2+j);
+		kk = 2*xdims*i  + 2*(j0+j-ns2);
+		rdata[k] = tmp_sin[kk];
+		idata[k] = tmp_sin[kk+1];
 		}
 	}
 
