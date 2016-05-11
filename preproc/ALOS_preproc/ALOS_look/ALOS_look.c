@@ -181,9 +181,10 @@ int main (int argc, char **argv) {
         t1=86400.*prm.clock_start+(prm.nrows-prm.num_valid_az)/(2.*prm.prf);
         t2=t1+prm.num_patches*prm.num_valid_az/prm.prf;  
 
-/* sample the orbit only every 2th point or about 8 m along track */
+/* sample the orbit only every 4th point or about 16 m along track. sometimes this code goes into an 
+   infinite loop if ts is too small */
 
-        ts=2./prm.prf;
+        ts=4./prm.prf;
         nrec=(int)((t2-t1)/ts);
 
 /* allocate memory for the orbit postion into a 2-dimensional array. It's about 

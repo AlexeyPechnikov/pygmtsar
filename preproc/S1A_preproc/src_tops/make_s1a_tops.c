@@ -54,7 +54,7 @@ int write_orb(struct state_vector *sv, FILE *fp, int);
 int pop_burst(struct PRM *, struct tree *, struct burst_bounds *, char *);
 double dramp_dmod(struct tree *, int, fcomplex *, int , int, int, struct GMT_GRID *, struct GMT_GRID *, int,int);
 double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, char *, char *);
-int shift_burst(fcomplex *, int , int , int , struct GMT_GRID *, struct GMT_GRID *,int);
+int shift_burst(fcomplex *, fcomplex *, int , int , int , struct GMT_GRID *, struct GMT_GRID *,int);
 int compute_eap(fcomplex *, struct tree *, int);
 void fbisinc (double *, fcomplex *, int, int, fcomplex *);
 
@@ -433,7 +433,6 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
     return(1);
 }
 
-
 double dramp_dmod (struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int width, int al_start, struct GMT_GRID *R, struct GMT_GRID *A, int bshift, int imode){
 
 /*  this is a routine to apply an azimuth shift to a burst of TOPS data */
@@ -731,7 +730,8 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
         if (dr_table[0] != '\0' && da_table[0] != '\0') {
             // complute the complex deramp_demod array for each burst with no shift
             al_start = cl-bb[kk].SC;
-            
+
+            // generate the dramp_dmod
 	    dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,0);
 
             // apply the dramp_dmod
@@ -742,9 +742,10 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
                 }
             }  
        
-            // shift the burst with the given table
-            shift_burst(cbrst,al_start,lpb,width,R,A,bshift); 
+            // shift the burst with the given table, cramp is just some available memory to use
+            shift_burst(cbrst,cramp,al_start,lpb,width,R,A,bshift); 
 
+            // regenerate the shifted dramp_dmod
             dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,1);   
 
             // reramp the slc
@@ -1003,18 +1004,16 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
 }
 
 
-int shift_burst(fcomplex *cbrst, int al_start, int lpb, int width, struct GMT_GRID *R, struct GMT_GRID *A, int bshift){
+int shift_burst(fcomplex *cbrst, fcomplex *cbrst2, int al_start, int lpb, int width, struct GMT_GRID *R, struct GMT_GRID *A, int bshift){
 
     int ii,jj,k;
     double ras[2];
-    fcomplex *cbrst2;
     double incx,incy;
     int kr,ka;
     
     incx = R->header->inc[GMT_X];
     incy = R->header->inc[GMT_Y];
 
-    cbrst2 = (fcomplex *) malloc(lpb*width*sizeof(fcomplex));
     for (ii=0;ii<lpb;ii++){
         for (jj=0;jj<width;jj++){
             k = ii*width+jj;
@@ -1040,7 +1039,6 @@ int shift_burst(fcomplex *cbrst, int al_start, int lpb, int width, struct GMT_GR
         }
     }
  
-    free(cbrst2);
     return(1);
 }
 
