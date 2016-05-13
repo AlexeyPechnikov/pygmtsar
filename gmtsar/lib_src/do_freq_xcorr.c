@@ -20,15 +20,15 @@ int	i, j, isign;
 	/* multiply a with conj(b)				*/
 	/* the isign should shift the results appropriately	*/ 
 	/* normalize by absolute values				*/
-	for (i=0; i<N; i++) {
-		for (j=0; j<M; j++) {
+	for (i=0; i<M; i++) {
+		for (j=0; j<N; j++) {
 			isign = (int)lrint(pow(-1.0,(double)(i + j)));
-			c3[i*M + j] = RCmul(isign,Cmul((c1[i*M + j]), (Conjg(c2[i*M + j])))); 
+			c3[i*N + j] = RCmul(isign,Cmul((c1[i*N + j]), (Conjg(c2[i*N + j])))); 
 /*
 			if (norm_flag) {
-				c3[i*M + j] = RCmul(1.0/Cabs(c3[i*M + j]),c3[i*M + j]);
-				if isnan(c3[i*M + j].r) c3[i*M + j].r = 0.0;
-				if isnan(c3[i*M + j].i) c3[i*M + j].i = 0.0;
+				c3[i*N + j] = RCmul(1.0/Cabs(c3[i*N + j]),c3[i*N + j]);
+				if isnan(c3[i*N + j].r) c3[i*N + j].r = 0.0;
+				if isnan(c3[i*N + j].i) c3[i*N + j].i = 0.0;
 				}
 */
 			}
@@ -55,7 +55,7 @@ void do_freq_corr (void *API, struct xcorr xc, int iloc)
 	if (debug) print_complex(xc.c2, xc.npy, xc.npx, 1);
 
 	/* multiply c1 and c2 uisng fft */
-	fft_multiply (API, xc.npy, xc.npx, xc.c1, xc.c2, xc.c3);
+	fft_multiply (API, xc.npx, xc.npy, xc.c1, xc.c2, xc.c3);
 
 	/* transfer results into correlation matrix		*/
 	for (i=0; i<xc.nyc; i++) {

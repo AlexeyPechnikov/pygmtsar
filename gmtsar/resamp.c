@@ -35,6 +35,7 @@ char    *USAGE = "\nUsage: "
 "   slave.PRM        - PRM for slave image \n"
 "   new_slave.PRM    - PRM for aligned slave image \n"
 "   new_slave.SLC    - SLC for aligned slave image \n"
+
 "   intrp            - interpolation method: 1-nearest; 2-bilinear; 3-biquadratic; 4-bisinc \n \n";
 
 void print_prm_params(struct PRM, struct PRM);
