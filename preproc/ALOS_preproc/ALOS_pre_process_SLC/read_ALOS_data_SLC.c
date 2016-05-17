@@ -72,8 +72,8 @@ long read_ALOS_data_SLC (FILE *imagefile, FILE *outfile, struct PRM *prm, long *
 	int	data_length;		/* bytes of data			*/
         int 	n, m, ishift, shift, shift0, jj;
 	int	header_size, line_prefix_size;
-        int	nclip = 0;
-        double  rtest,sgn;
+        int	nclip = 0, nsum=0;
+        double  rtest,sgn,rsum=0.,rmad=0.,tfac=1.;
 
         double 	get_clock();
 
@@ -162,6 +162,9 @@ long read_ALOS_data_SLC (FILE *imagefile, FILE *outfile, struct PRM *prm, long *
                   else {
 		    rtest = sgn*slc_fact * rdata[jj];
                   }
+                  /* compute the average value of output */
+                  rsum=rsum+fabs(rtest);
+                  nsum=nsum+1;
                   i2data[jj] = (short)clipi2(rtest);
                   if((int)fabs(rtest) > I2MAX) nclip = nclip + 1;
                 }
@@ -196,7 +199,12 @@ long read_ALOS_data_SLC (FILE *imagefile, FILE *outfile, struct PRM *prm, long *
 	if (verbose) print_params(prm); 
 
 	fprintf(stderr," %d integers were clipped \n",nclip);
-
+        rmad=rsum/nsum;
+        tfac = 2000./rmad;
+        if(tfac < 0.333 || tfac > 3.0){
+	   fprintf(stderr," %f median absolute deviation after scaling is \n",rmad);
+           fprintf(stderr," ERROR *** reset SCL_factor to something closer to %f \n", tfac*slc_fact);
+        }
 	free(rdata);
 	free(rdata_swap);
         free(i2data);
