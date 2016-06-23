@@ -13,7 +13,7 @@
 
   if ($#argv != 3) then
     echo ""
-    echo "Usage: preproc_tops_batch.csh data.in dem.grd mode"
+    echo "Usage: preproc_batch_tops.csh data.in dem.grd mode"
     echo "  preprocess and align a set of tops images in data.in, precise orbits required"
     echo ""
     echo "  format of data.in:"
@@ -47,7 +47,10 @@
   set master = `awk -F: 'NR==1 {print $1}' $1 | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'` 
   set mmaster = `awk -F: 'NR==1 {print $1}' $1 | awk '{ print "S1A"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
   # clean up a little bit
-  rm baseline_table.dat *.PRM* *.SLC *.LED tmp*
+  rm *.PRM* *.SLC *.LED tmp*
+  if($mode == 1) then
+    rm baseline_table.dat
+  endif
 
   # loop over all the acquisitions
   foreach line (`awk '{print $0}' $1`)
