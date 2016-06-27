@@ -60,6 +60,7 @@ FILE	*SLC_file2 = NULL, *prmout = NULL;
 int	fdin;
 double  sv_pr[6];
 size_t  st_size;
+//long long int count=0;
 
 struct PRM pm, ps;	
 
@@ -137,9 +138,11 @@ struct PRM pm, ps;
 		else if(intrp == 4) {
 		bisinc  (ras, sinn, ydims, xdims, &sout[2*jj]);
 		}
+                //if(ras[0]>xdimm||ras[0]<0) count++;
 	   }
            fwrite(sout, 2*sizeof(short), xdimm, SLC_file2);
 	}
+//fprintf(stderr,"%llu points out of bounds (%d,%.6f,%.6f,%.6f)\n",count,ps.rshift,ps.sub_int_r,ps.stretch_r,ps.a_stretch_r);
 
         /* restore the affine parameters if this is nearest interpolation */
         if (intrp == 1) {

@@ -39,18 +39,10 @@ unset noclobber
 #
 #   make sure the files exist
 #
-  if(! -f raw/$1 ) then
-    echo " no file  raw/"$1
+  if(! -f $3 ) then
+    echo " no configure file: "$3
     exit
   endif
-  if(! -f raw/$2 ) then
-    echo " no file  raw/"$2
-    exit
-  endif
-   if(! -f $3 ) then
-     echo " no configure file: "$3
-     exit
-   endif
 # 
 # read parameters from configuration file
 # 
@@ -130,8 +122,18 @@ unset noclobber
     if (!($SLC_factor == "")) then  
       set commandline = "$commandline -SLC_factor $SLC_factor"
     endif
-
+#
+# make sure the files exits
+#
     echo $commandline
+    if(! -f $1 ) then
+      echo " no file  "$1
+      exit
+    endif
+    if(! -f $2 ) then
+      echo " no file  "$2
+      exit
+    endif
 #   ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline -rbias -68. 
 #   ALOS_pre_process_SLC IMG-$slave LED-$slave_led $commandline -rbias -68. 
     ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline 

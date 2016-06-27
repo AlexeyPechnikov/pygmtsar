@@ -28,7 +28,7 @@ int main(int argc, char **argv){
     struct PRM prm1, prm2;
     char stem[100][200],tmp_str[200];
     int ii,jj,nfile=0,ntl=0,nl,width,nl0,width2;
-    int n_start,n_end;
+    int n_start,n_end,dr=0;
     double prf,t1,t2;
     short *buf;
     
@@ -78,9 +78,8 @@ int main(int argc, char **argv){
         t2 = prm2.clock_start + (prm2.ashift+prm2.sub_int_a)/prm2.prf/86400.0;
 
         /* check whether the parameters match the first image */
-        if (prm2.near_range != prm1.near_range) die("Images have different near range... \n","");
+        if (prm2.fs != prm1.fs) die("Images have different range sampling rate... \n","");
         if (fabs(prm2.prf-prf)>0.00001) die("Images have different PRF... \n","");
-
         /* open the previous SLC file */
         strcpy(tmp_str,stem[ii-1]);
         strcat(tmp_str,".SLC");
@@ -99,10 +98,21 @@ int main(int argc, char **argv){
 	fprintf(stderr,"Writing Image %d, from line %d to line %d (%d)...\n",ii,1+n_start,n_end,width2);
         for(jj=1+n_start;jj<=n_end;jj++){
             fread(buf,sizeof(short),width2*2,SLCin);
-            fwrite(buf,sizeof(short),width*2,SLCout);
+	    if (dr<0) { 
+                fwrite(&buf[-dr],sizeof(short),width*2,SLCout);
+	    }
+	    else if(dr>0){
+	        fwrite(&buf[width*2],sizeof(short),dr*2,SLCout);
+                fwrite(buf,sizeof(short),(width-dr)*2,SLCout);
+	    }
+	    else {
+                fwrite(buf,sizeof(short),width*2,SLCout);
+	    }
             ntl++;
         }
 	fprintf(stderr,"%d lines written...\n",n_end-n_start);
+        dr = (int)((prm2.near_range-prm1.near_range)/(299792458.0/prm2.fs/2)+0.5);
+	fprintf(stderr,"%d diff in range...\n",dr);
         t1 = t2;
         nl0 = prm2.num_lines;
         width2 = prm2.num_rng_bins;
@@ -121,7 +131,16 @@ int main(int argc, char **argv){
     fprintf(stderr,"Writing Image %d, from line %d to line %d (%d)...\n",ii,1+n_start,nl,width2);
     for(jj=1+n_start;jj<=nl;jj++){
         fread(buf,sizeof(short),width2*2,SLCin);
-        fwrite(buf,sizeof(short),width*2,SLCout);
+	if (dr<0) { 
+            fwrite(&buf[-dr],sizeof(short),width*2,SLCout);
+	}
+	else if(dr>0){
+	    fwrite(&buf[width*2],sizeof(short),dr*2,SLCout);
+            fwrite(buf,sizeof(short),(width-dr)*2,SLCout);
+	}
+	else {
+            fwrite(buf,sizeof(short),width*2,SLCout);
+	}
         ntl++;
     }
     fprintf(stderr,"%d lines written...\n",nl-n_start);

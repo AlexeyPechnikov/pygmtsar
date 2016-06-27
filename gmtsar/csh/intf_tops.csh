@@ -9,16 +9,16 @@
 
   if ($#argv != 2) then
     echo ""
-    echo "Usage: intf_tops.csh intf.in batch.config"
+    echo "Usage: intf_tops.csh intf.in batch_tops.config"
     echo "  generate interferograms for a set of tops images in intf.in, dem required in ./topo"
-    echo "  supermaster's name required in batch.config"
+    echo "  supermaster's name required in batch_tops.config"
     echo ""
     echo "  format of data.in:"
     echo "    master_image_stem:slave_image_stem"
     echo ""
     echo "  example of data.in"
-    echo "    S1A20150628:S1A20150720"
-    echo "    S1A20150720:S1A20150809"
+    echo "    S1A20150628_ALL_F1:S1A20150720_ALL_F1"
+    echo "    S1A20150720_ALL_F1:S1A20150809_ALL_F1"
     echo ""
     echo "  outputs:"
     echo "    to ./intf_all"
@@ -211,6 +211,7 @@ if ($stage <= 2) then
     endif
   
   cd ../..
+  if(-f intf_all/$ref_id"_"$rep_id) rm -rf intf_all/$ref_id"_"$rep_id 
   mv intf/$ref_id"_"$rep_id intf_all/$ref_id"_"$rep_id
 
   end
