@@ -199,7 +199,13 @@
 
           # generate the image with point-by-point shifts
           make_s1a_tops $file.xml $file.tiff $stem 2 r.grd a.grd
-          spectral_diversity $tmp_master $stem $tmp_da $sharedir/filters/gauss25x7 > tmp
+
+          if ($tmp_da > -1000 && $tmp_da < 1000) then
+            spectral_diversity $tmp_master $stem 0 $sharedir/filters/gauss25x7 > tmp 
+          else
+            spectral_diversity $tmp_master $stem $tmp_da $sharedir/filters/gauss25x7 > tmp 
+          endif
+
           set res_shift = `grep residual_shift tmp | awk '{print $3}'`
           echo "Updating ashift table with spectral diversity estimate ($res_shift)..."
           gmt grdmath a.grd $res_shift ADD = tmp.grd

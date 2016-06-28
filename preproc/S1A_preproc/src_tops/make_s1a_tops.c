@@ -952,7 +952,7 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
     // compute the elevation antenna pattern
     for (ii=0;ii<n_samples;ii++) tau[ii] = tau0 + (double)(ii-1)/fs;
     jj = 0;
-    printf("%f,%f,%f,%f\n",t_brst-anx_time,dtheta,height,theta_offnadir);
+    //printf("%f,%f,%f,%f\n",t_brst-anx_time,dtheta,height,theta_offnadir);
     while(tau_sub[jj]<tau0) jj++;
     for (ii=0;ii<n_samples;ii++) {
         while (tau_sub[jj]<tau[ii]) jj++;
