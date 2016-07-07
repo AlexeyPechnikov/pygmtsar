@@ -155,8 +155,8 @@ int main(int argc, char **argv){
     head2 = GOUT->header->ny-G2->header->ny-head2;
     if(nfile == 3) head3 = GOUT->header->ny-G3->header->ny-head3;
 
-    n1 = prm2.rshift+10;
-    if (nfile == 3) n2 = prm3.rshift+10;
+    n1 = (int)ceil((float)prm2.rshift/incx)+10;
+    if (nfile == 3) n2 = (int)ceil((float)prm3.rshift/incx)+10;
     if (n1<10) n1 = 10;
     if (nfile == 3) if (n2<10) n2 = 10;
 
