@@ -19,7 +19,7 @@
 char *USAGE = "\n\nUSAGE: stitch_tops stem.in output_stem\n"
 "\noutput: stem.SLC stem.PRM\n"
 "\nnote: please put the files to stem.in in the order of time.\n"
-"\n      make sure all images have same num_rng_bins\n";
+"\n      make sure all images have same rng_samp_rate and PRF. \n";
 
 int main(int argc, char **argv){
 
@@ -41,9 +41,9 @@ int main(int argc, char **argv){
         nfile++;      
     }
     fclose(stemin);
-    fprintf(stderr,"Number of Files to be merged is %d \n",nfile);
+    fprintf(stderr,"Number of Files to be stitched is %d \n",nfile);
     
-    if (nfile < 2) die("At least two files are needed for merging\n","");    
+    if (nfile < 2) die("At least two files are needed for stitching\n","");    
 
     /* read in the first prarmeter file */
     strcpy(tmp_str,stem[0]);

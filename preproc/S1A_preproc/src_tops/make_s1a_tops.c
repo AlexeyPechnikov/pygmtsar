@@ -9,9 +9,9 @@
  * precise shift for aligning two images                                   *
  *                                                                         *
  * 01/28/16 EXU added resampling module to do point-by-point co-registr    *
- * 01/30/16 EXU added grid reading part to read in shift LTU               *
+ * 01/30/16 EXU added grid reading part to read in shift LUT               *
  * 02/08/16 EXU added burst shift to take account conditions images have   *
- *              a few bursts offset                                        *
+ *              a few bursts offset  (not used now)                        *
  * 02/17/16 EXU modified outputing SLCH SLCL, added BB file, for ESD use   *
  * 03/15/16 EXU modified dramp-dmod to read in correct parameters, fnc etc.*
  * 04/05/16 EXU added elevation antenna pattern for early version          *
@@ -125,7 +125,7 @@ int main(int argc, char **argv){
     get_tree(XML_FILE,xml_tree,1);
     fclose(XML_FILE);
 
-    //show_tree(xml_tree,0,0);
+    show_tree(xml_tree,0,0);
 
     // generate the LED file
     n = pop_led(xml_tree,sv);
