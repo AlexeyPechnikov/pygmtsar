@@ -15,7 +15,7 @@
     echo "      Swath1_Path:Swath1_repeat.PRM"
     echo "      Swath2_Path:Swath2_repeat.PRM"
     echo "      Swath3_Path:Swath3_repeat.PRM"
-    echo "      (Use the repeat PRM which contains the shift information."
+    echo "      (Use the repeat PRM which contains the shift information.)"
     echo "      e.g. ../F1/intf/2015016_2015030/:S1A20151012_134357_F1.PRM"
     echo ""
     echo "      Make sure under each path, the processed phasefilt.grd, corr.grd and mask.grd exist."
@@ -23,7 +23,7 @@
     echo ""
     echo "      config_file is the same one used for processing."
     echo ""
-    echo "Example: merge_unwrap_geocode_tops.csh filelist 0.1 1"
+    echo "Example: merge_unwrap_geocode_tops.csh filelist batch.config"
     echo ""
     exit 1
   endif
