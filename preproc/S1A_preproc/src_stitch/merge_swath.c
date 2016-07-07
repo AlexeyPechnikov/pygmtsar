@@ -79,11 +79,16 @@ int main(int argc, char **argv){
     get_sio_struct(PRM,&prm2);
     fclose(PRM);
 
+    if (prm1.prf != prm2.prf) die("Image PRFs are not consistent","");
+    if (prm1.fs != prm2.fs) die("Image range sampling rates are not consistent","");
+
     if (nfile == 3) {
         if ((PRM = fopen(stem[2],"r")) == NULL) die("Couldn't open PRM file: \n",stem[2]);
         null_sio_struct(&prm3);
         get_sio_struct(PRM,&prm3);
         fclose(PRM);
+        if (prm1.prf != prm3.prf) die("Image PRFs are not consistent","");
+        if (prm1.fs != prm3.fs) die("Image range sampling rates are not consistent","");
     }
 
     /* read in the grid files */
@@ -127,9 +132,10 @@ int main(int argc, char **argv){
  
     wesn[GMT_XLO] = 0.0;
     wesn[GMT_YLO] = 0.0; //minh*incy;
-    wesn[GMT_YHI] = maxy*incy; //(maxy+minh-1)*incy;
+    wesn[GMT_YHI] = (int)round(maxy*incy); //(maxy+minh-1)*incy;
     wesn[GMT_XHI] = (G1->header->nx + G2->header->nx - ovl12 - 1)*incx;
     if (nfile == 3) wesn[GMT_XHI] = wesn[GMT_XHI] + (G3->header->nx - ovl23 - 1)*incx;   
+    wesn[GMT_XHI] = (int)round(wesn[GMT_XHI]);
 
     //printf("%f,%f,%f,%f,%f,%f\n",inc[0],inc[1],wesn[0],wesn[1],wesn[2],wesn[3]);
     //printf("%d,%d,%d,%d,%d\n",head1,head2,head3,ovl12,ovl23);

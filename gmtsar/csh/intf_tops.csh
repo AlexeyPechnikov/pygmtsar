@@ -200,11 +200,13 @@ if ($stage <= 2) then
     echo ""
     echo "GEOCODE.CSH - START"
     rm raln.grd ralt.grd
-    if ($topo_phase == 1) then
+    if ($topo_phase == 1 && $threshold_geocode != 0) then
       rm trans.dat
       ln -s  ../../topo/trans.dat .
       echo "threshold_geocode: $threshold_geocode"
       geocode.csh $threshold_geocode
+    else if($topo_phase == 1 && $threshold_geocode == 0) then
+      echo "SKIP GEOCODING"
     else
       echo "topo_ra is needed to geocode"
       exit 1
