@@ -125,7 +125,7 @@ int main(int argc, char **argv){
     get_tree(XML_FILE,xml_tree,1);
     fclose(XML_FILE);
 
-    show_tree(xml_tree,0,0);
+    //show_tree(xml_tree,0,0);
 
     // generate the LED file
     n = pop_led(xml_tree,sv);
