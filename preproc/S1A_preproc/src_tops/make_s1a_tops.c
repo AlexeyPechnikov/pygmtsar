@@ -700,7 +700,7 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
     fprintf(stderr,"Working on burst ");
     // loop over the bursts
     for (kk=1;kk<=count;kk++){
-        fprintf(stderr,"#%d ",kk);
+        fprintf(stderr," #%d",kk);
         if (imode == 2) {
             sum_spec_sep = dramp_dmod(xml_tree,kk,cramp,lpb,width,al_start,R,A,bshift,2);
             spec_sep += sum_spec_sep;
@@ -763,7 +763,7 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
         if (xml_tree[ii].sibr != -1){
             search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:processing/safe:facility/safe:software/",tmp_c,3,3,12);
             if (strncmp(&tmp_c[strlen(tmp_c)-3],"236",3) == 0)  {
-
+                printf("(EAP)");
                 //printf("Making elevation antenna pattern correction\n");
    
                 compute_eap(cramp,xml_tree,kk);

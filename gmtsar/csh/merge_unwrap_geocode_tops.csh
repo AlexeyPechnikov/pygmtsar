@@ -103,20 +103,22 @@
     gmt grdmath unwrap.grd mask.grd MUL = unwrap_mask.grd
     proj_ra2ll.csh trans.dat phasefilt.grd phasefilt_ll.grd
     proj_ra2ll.csh trans.dat corr.grd corr_ll.grd
-    proj_ra2ll.csh trans.dat unwrap.grd unwrap_ll.grd
-    proj_ra2ll.csh trans.dat unwrap_mask.grd unwrap_mask_ll.grd
-
     gmt makecpt -T-3.15/3.15/0.05 -Z > phase.cpt
     set BT = `gmt grdinfo -C corr.grd | awk '{print $7}'`
     gmt makecpt -Cgray -T0/$BT/0.05 -Z > corr.cpt
-    set BT = `gmt grdinfo -C unwrap.grd | awk '{print $7}'`
-    set BL = `gmt grdinfo -C unwrap.grd | awk '{print $6}'`
-    gmt makecpt -T$BL/$BT/0.5 -Z > unwrap.cpt
-
     grd2kml.csh phasefilt_ll phase.cpt
     grd2kml.csh corr_ll corr.cpt
-    grd2kml.csh unwrap_mask_ll unwrap.cpt
-    grd2kml.csh unwrap_ll unwrap.cpt
+
+    if (-f unwrap.grd) then
+      proj_ra2ll.csh trans.dat unwrap.grd unwrap_ll.grd
+      proj_ra2ll.csh trans.dat unwrap_mask.grd unwrap_mask_ll.grd
+      set BT = `gmt grdinfo -C unwrap.grd | awk '{print $7}'`
+      set BL = `gmt grdinfo -C unwrap.grd | awk '{print $6}'`
+      gmt makecpt -T$BL/$BT/0.5 -Z > unwrap.cpt
+      grd2kml.csh unwrap_mask_ll unwrap.cpt
+      grd2kml.csh unwrap_ll unwrap.cpt
+    endif
+    
     echo "GEOCODE END"
   endif 
 

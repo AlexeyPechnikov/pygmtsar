@@ -155,15 +155,15 @@ int main(int argc, char **argv){
     head2 = GOUT->header->ny-G2->header->ny-head2;
     if(nfile == 3) head3 = GOUT->header->ny-G3->header->ny-head3;
 
-    n1 = (int)ceil((float)prm2.rshift/incx)+10;
-    if (nfile == 3) n2 = (int)ceil((float)prm3.rshift/incx)+10;
-    if (n1<10) n1 = 10;
-    if (nfile == 3) if (n2<10) n2 = 10;
+    n1 = (int)ceil((float)prm2.rshift+400/incx);
+    if (nfile == 3) n2 = (int)ceil((float)prm3.rshift+400/incx);
+    if (n1<400/incx) n1 = (int)(400/incx);
+    if (nfile == 3) if (n2<400/incx) n2 = (int)(400/incx);
 
     //printf("%d,%d\n",n1,n2);
  
     //printf("hahaha...%d,%d,%d\n",head1,G1->header->ny+head1,G1->header->nx-(ovl12-n1));    
-    for(ii=head1;ii<G1->header->ny+head1-1;ii++){
+    for(ii=head1;ii<G1->header->ny+head1;ii++){
         for(jj=0;jj<G1->header->nx-(ovl12-n1);jj++){
             kk = ii*GOUT->header->nx+jj;
             k = (ii-head1)*G1->header->nx+jj;
@@ -189,14 +189,14 @@ int main(int argc, char **argv){
         for(ii=head2;ii<G2->header->ny+head2;ii++){
             for(jj=G1->header->nx-(ovl12-n1);jj<G1->header->nx+G2->header->nx-ovl12-1-(ovl23-n2);jj++){
                 kk = ii*GOUT->header->nx+jj;
-		k = (ii-head2)*G2->header->nx+jj-G1->header->nx+ovl12;
+		k = (ii-head2)*G2->header->nx+jj-G1->header->nx+ovl12-1;
 		GOUT->data[kk] = G2->data[k];
             }
         }
         for(ii=head3;ii<G3->header->ny+head3;ii++){
-            for(jj=G1->header->nx+G2->header->nx-ovl12-1-(ovl12-n1);jj<GOUT->header->nx;jj++){
+            for(jj=G1->header->nx+G2->header->nx-ovl12-1-(ovl23-n2);jj<GOUT->header->nx;jj++){
                 kk = ii*GOUT->header->nx+jj;
-		k = (ii-head3)*G3->header->nx+jj-(G1->header->nx+G2->header->nx-ovl12-1)+ovl23;
+		k = (ii-head3)*G3->header->nx+jj-(G1->header->nx+G2->header->nx-ovl12-1)+ovl23-1;
 		GOUT->data[kk] = G3->data[k];
             }
         }
