@@ -69,11 +69,11 @@ char *USAGE =  "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd
 "\nExample: make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1 dr.grd da.grd\n"
 "\n         make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml s1a-s1-slc-vv-20140807.tiff S1A20140807 1\n"
 "\nOutput: mode 1: S1A20140807.PRM S1A20140807.LED S1A20140807.SLC\n"
-"\n        mode 2: S1A20140807.PRM S1A20140807.LED S1A20140807.SLCH S1A20140807.SLCL S1A20140807.BB"
+"\n        mode 2: S1A20140807.PRM S1A20140807.LED S1A20140807.SLCH S1A20140807.SLCL S1A20140807.BB\n"
 "\nNote: if dr and da are not given, SLCs will be written with no shifts.\n"
-"\n      s1a-aux.xml and manifest.save should be concatenated to the xml_file for acquisitions acquired before \n"
-"\n      Mar 2015 (IPF version change). If not concatenated or IPF version is 2.43+, elevation antenna pattern \n"
-"\n      correction(EAP) will not be applied\n";
+"\n      s1a-aux.xml and manifest.safe(exclude the first line) should be concatenated to the xml_file for \n"
+"\n      acquisitions acquired before Mar 2015 (IPF version change). If not concatenated or IPF version is 2.43+, \n"
+"\n      elevation antenna pattern correction(EAP) will not be applied\n";
 
 
 int main(int argc, char **argv){
@@ -763,7 +763,7 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
         if (xml_tree[ii].sibr != -1){
             search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:processing/safe:facility/safe:software/",tmp_c,3,3,12);
             if (strncmp(&tmp_c[strlen(tmp_c)-3],"236",3) == 0)  {
-                printf("(EAP)");
+                fprintf(stderr,"(EAP)");
                 //printf("Making elevation antenna pattern correction\n");
    
                 compute_eap(cramp,xml_tree,kk);
