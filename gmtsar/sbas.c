@@ -2,6 +2,12 @@
 /*****************************************************************************************
  *  Program to do InSAR time-series analysis.                                            *
  *  Use Small Baseline Subset (SBAS) algorithm.                                          *
+ *                                                                                       *
+ *  Xiaohua Xu and David T. Sandwell, Jul, 2016                                          *
+ *                                                                                       *
+ *  Taking the old sbas code to add atmospheric correction by means of common point      *
+ *  stacking by Tymofeyeva & Fialko 2015.                                                *
+ *                                                                                       *
  ***************************************************************************************** 
  * Creator: Xiaopeng Tong and David Sandwell 						 *
  *          (Scripps Institution of Oceanography)					 *
@@ -45,6 +51,18 @@ J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
 
 void dgelsy_(const int *m, const int *n,const int *nrhs,double *G, const int *lda,double* b, const int *ldb,int *jpvt,const double *rcond, const int *rank,double *work,const int *lwork,const int *info); 
 
+
+int parse_command_ts(int , char **, float *, double *, double *, double *, int *, int *);
+int allocate_memory_ts(int **,double **,double **,double **,float **,char ***,char ***,int **,double **,int **,double **,double **,double **,int **,float **,float **,float **,float **,float **,float **,int,int,int,int,int,int,int,int);
+int init_array_ts(double *, double *, float *, float *, float *, int , int , int , int , int, int);
+int read_table_data_ts(void *,FILE *,FILE *,char **,char **,int *,float *,int *,float *,float *,int,int,int,int,struct  GMT_GRID **,int *,double *);
+int init_G_ts(double *, double *, int, int, int, int, int *, int *, double *, float, float *, double);
+int lsqlin_sov_ts(int,int,float *,float *,int *,double *,double *,double *,double *,double *,double *,float *,float *,int,int,int,int,double *,int,int,float *,int,float *,int *,double);
+int write_output_ts(void *,struct GMT_GRID *,int,char **,int,int,int,int,int,float *,float *,float *,float *);
+int free_memory_ts(int ,float *,float *,char **,char **,float *,double *,double *,double *,int *,double *,double *,int *,float *,float *,double *,int *,float *,float *,double *,int *);
+
+
+
 char *USAGE = " \n\nUSAGE: sbas intf.tab scene.tab N S xdim ydim [-smooth sf] [-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]\n\n"
 " input: \n"
 "intf.tab		--  list of unwrapped (filtered) interferograms:\n"
@@ -67,27 +85,21 @@ char *USAGE = " \n\nUSAGE: sbas intf.tab scene.tab N S xdim ydim [-smooth sf] [-
 " example:\n"
 "   sbas intf.tab scene.tab 88 28 700 1000 \n\n";
 
-int main(int argc, char **argv)
-{
-	/* define variables */
+int main(int argc, char **argv) {
 
+	/* define variables */
 	char ** gfile = NULL, ** cfile = NULL;
-        char title[64],outfile[36],tmp1[36],tmp2[36],tmp3[36];
-	int i,j,k,p,m,n,nrhs=1,info,rank,xdim,lwork,lworkM,ydim,xin,yin;
-	int nM=4,ldbM;
+	int i,m,n,nrhs=1,xdim,lwork,ydim;
         int N,S;
-        int ldb,lda,*flag = NULL,*jpvt = NULL,*jpvtM = NULL,*H = NULL,*L = NULL;
+        int ldb,lda,*flag = NULL,*jpvt = NULL,*H = NULL,*L = NULL;
 	int flag_rms=0,flag_dem=0;
-	float *phi = NULL,*grdin = NULL,*corin = NULL,sf,*disp = NULL,*res = NULL,*dem = NULL,*bperp = NULL,*vel = NULL;
-	float *var = NULL,old,new, *save_grid = NULL;
+	float *phi = NULL,sf,*disp = NULL,*res = NULL,*dem = NULL,*bperp = NULL,*vel = NULL;
+	float *var = NULL;
 	double *G = NULL,*A = NULL,*Gs = NULL,*d = NULL,*ds = NULL;
-	double *work = NULL,*workM = NULL,*time = NULL,*gM = NULL,*dM = NULL;
-	double rcond=1e-3,pred,rng,wl,theta,scale;
-	double sumxx,sumxy,sumx,sumy;
+	double *work = NULL,*time = NULL;
+	double rng,wl,theta,scale;
 	FILE *infile = NULL, *datefile = NULL;
 	void	*API = NULL; /* GMT control structure */
-	struct	GMT_GRID *CC = NULL;	/* For the correlation grid */
-	struct	GMT_GRID *GG = NULL;	/* For the other grid */
 	struct	GMT_GRID *Out = NULL;	/* For the output grid */
 	
 	if (argc < 7) die("\n",USAGE);
@@ -105,7 +117,7 @@ int main(int argc, char **argv)
 	/* smoothing factor */
 	sf=0;
 
-	/* parse the commands */
+	/* reading in some parameters and open corresponding files */
 	if ((infile = fopen(argv[1],"r")) == NULL) die("Can't open file",argv[1]); 
         if ((datefile = fopen(argv[2],"r")) == NULL) die("Can't open file",argv[2]);
 	N = atoi(argv[3]);
@@ -114,86 +126,139 @@ int main(int argc, char **argv)
         ydim = atoi(argv[6]);
 
 	fprintf(stderr,"\n");
+   
+        /* read in the parameters from command line */ 
+        parse_command_ts(argc,argv,&sf,&wl,&theta,&rng,&flag_rms,&flag_dem);
+
+        /* setting up some parameters */
+        scale=4.0*M_PI/wl/rng/sin(theta/180.0*M_PI);
+	m = N+S-2;
+	n = S; 
+	lwork=max(1,m*n+max(m*n,nrhs)*16);
+	lda=max(1,m);
+	ldb=max(1,max(m,n));
+
+        /* memory allocation */
+        allocate_memory_ts(&jpvt,&work,&d,&ds,&bperp,&gfile,&cfile,&L,&time,&H,&G,&A,&Gs,&flag,&dem,&res,&vel,&phi,&var,&disp,n,m,lwork,ldb,N,S,xdim,ydim);
+
+        /* initialization */
+        init_array_ts(G,Gs,res,dem,disp,n,m,xdim,ydim,N,S);
+     
+        /* reading in the table files  */
+        read_table_data_ts(API,infile,datefile,gfile,cfile,H,bperp,flag,var,phi,S,N,xdim,ydim,&Out,L,time);
+       
+	/* fill the G matrix */
+        init_G_ts(G,Gs,N,S,m,n,L,H,time,sf,bperp,scale);
+
+        /* save G matrix to A as it will get destroyed*/
+        for (i=0;i<m*n;i++) A[i]=G[i];
+
+        /* loop over xdim by ydim pixel */
+        lsqlin_sov_ts(xdim,ydim,disp,vel,flag,d,ds,time,G,Gs,A,var,phi,N,S,m,n,work,lwork,flag_dem,dem,flag_rms,res,jpvt,wl);
+
+	/* write output */
+        write_output_ts(API,Out,argc,argv,xdim,ydim,S,flag_rms,flag_dem,disp,vel,res,dem);
+
+        /* free memory */
+        free_memory_ts(N,phi,var,gfile,cfile,disp,G,A,Gs,H,d,ds,L,res,vel,time,flag,bperp,dem,work,jpvt);
+
+	fclose(infile);
+	fclose(datefile);
 	
-	for (i=7;i<argc;i++) {
-		if (!strcmp(argv[i],"-smooth")) { 
+	if (GMT_Destroy_Session (API)) return EXIT_FAILURE;	/* Remove the GMT machinery */
+
+	return(EXIT_SUCCESS);
+}
+
+
+
+int parse_command_ts(int agc, char **agv, float *sf ,double *wl, double *theta, double *rng, int *flag_rms, int *flag_dem) {
+
+        int i;
+
+	for (i=7;i<agc;i++) {
+		if (!strcmp(agv[i],"-smooth")) { 
 			i++;
-			if (i==argc) die("no option after -smooth!\n","");
-			sf=atof(argv[i]);
-		} else if (!strcmp(argv[i],"-wavelength")) {
+			if (i==agc) die("no option after -smooth!\n","");
+			*sf=atof(agv[i]);
+		} else if (!strcmp(agv[i],"-wavelength")) {
 			i++;
-			if (i==argc) die("no option after -wavelength!\n","");
-			wl=atof(argv[i]);
-		} else if (!strcmp(argv[i],"-incidence")) {
+			if (i==agc) die("no option after -wavelength!\n","");
+			*wl=atof(agv[i]);
+		} else if (!strcmp(agv[i],"-incidence")) {
 			i++;
-			if (i==argc) die("no option after -incidence! \n","");
-			theta=atof(argv[i]);
-		} else if (!strcmp(argv[i],"-range")) {
+			if (i==agc) die("no option after -incidence! \n","");
+			*theta=atof(agv[i]);
+		} else if (!strcmp(agv[i],"-range")) {
 			i++;
-			if (i==argc) die("no option after -range \n","");
-			rng=atof(argv[i]);
-		} else if (!strcmp(argv[i],"-rms")) {
-			flag_rms=1;
+			if (i==agc) die("no option after -range \n","");
+			*rng=atof(agv[i]);
+		} else if (!strcmp(agv[i],"-rms")) {
+			*flag_rms=1;
 			fprintf(stderr,"compute RMS misfit\n");
-		} else if (!strcmp(argv[i],"-dem")) {
-			flag_dem=1;
+		} else if (!strcmp(agv[i],"-dem")) {
+			*flag_dem=1;
 			fprintf(stderr,"compute DEM error\n");
 		} else {
-                fprintf(stderr," %s *** option not recognized ***\n\n",argv[i]);
+                fprintf(stderr," %s *** option not recognized ***\n\n",agv[i]);
                 fprintf(stderr,"%s",USAGE);
                 exit(1);
 		}
 	}
 
-        fprintf(stderr,"\nsetting smoothing to %7.3lf \n",sf);
-        fprintf(stderr,"setting radar wavelength to %7.3lf m \n",wl);
-        fprintf(stderr,"setting radar incidence angle to %7.3lf degree \n", theta);
-        fprintf(stderr,"setting range to %9.3lf m \n", rng);
+        fprintf(stderr,"\nsetting smoothing to %7.3lf \n", *sf);
+        fprintf(stderr,"setting radar wavelength to %7.3lf m \n",*wl);
+        fprintf(stderr,"setting radar incidence angle to %7.3lf degree \n", *theta);
+        fprintf(stderr,"setting range to %9.3lf m \n", *rng);
 
-        scale=4.0*M_PI/wl/rng/sin(theta/180.0*M_PI);
+        return(1);
 
-	m = N+S-2;
-	n = S; 
+}
 
-	lwork=max(1,m*n+max(m*n,nrhs)*16);
-	lda=max(1,m);
-	ldb=max(1,max(m,n));
-	/* ldaM=max(1,S); */
-        ldbM=max(1,max(S,nM));
-        lworkM=max(1,S*nM+max(S*nM,1)*16);
 
-/* memory allocation */
 
-	if ((jpvt = Malloc(int,n)) == NULL) die("memory allocation!","jpvt");
-        if ((jpvtM = Malloc(int,nM)) == NULL) die("memory allocation!","jpvtM");
-        if ((work = Malloc(double, lwork)) == NULL) die("memory allocation!","work");
-        if ((workM = Malloc(double, lworkM)) == NULL) die("memory allocation!","workM");
-        if ((d = Malloc(double,ldb)) == NULL) die("memory allocation!","d");
-        if ((ds = Malloc(double,N)) == NULL) die("memory allocation!","ds");
-        if ((dM = Malloc(double,ldbM)) == NULL) die("memory allocation!","dM");
-        if ((bperp = Malloc(float,N)) == NULL) die("memory allocation!","bperp");
-        if ((gfile = Malloc(char *,N)) == NULL) die("memory allocation!","gfile");
-        if ((cfile = Malloc(char *,N)) == NULL) die("memory allocation!","cfile");
+int allocate_memory_ts(int **jpvt,double **work,double **d,double **ds,float **bperp,char ***gfile,char ***cfile,int **L,double **time,int **H,double **G,double **A,double **Gs,int **flag,float **dem,float **res,float **vel,float **phi,float **var,float **disp,int n,int m,int lwork,int ldb,int N,int S,int xdim,int ydim) {
+
+	int i;
+        char **p1,**p2;
+
+        if ((*jpvt = Malloc(int,n)) == NULL) die("memory allocation!","jpvt");
+        if ((*work = Malloc(double, lwork)) == NULL) die("memory allocation!","work");
+        if ((*d = Malloc(double,ldb)) == NULL) die("memory allocation!","d");
+        if ((*ds = Malloc(double,N)) == NULL) die("memory allocation!","ds");
+        if ((*bperp = Malloc(float,N)) == NULL) die("memory allocation!","bperp");
+        if ((*gfile = Malloc(char *,N)) == NULL) die("memory allocation!","gfile");
+        if ((*cfile = Malloc(char *,N)) == NULL) die("memory allocation!","cfile");
+        p1 = *gfile; p2 = *cfile;
 	for (i=0;i<N;i++) {
-		if ((gfile[i] = Malloc(char,36)) == NULL) die("memory allocation!","gfile[i]");
-		if ((cfile[i] = Malloc(char,36)) == NULL) die("memory allocation!","cfile[i]");
+		if ((p1[i] = Malloc(char,36)) == NULL) die("memory allocation!","gfile[i]");
+		if ((p2[i] = Malloc(char,36)) == NULL) die("memory allocation!","cfile[i]");
 	}
-        if ((L = Malloc(int,S)) == NULL) die("memory allocation!","L");
-        if ((time = Malloc(double, S)) == NULL) die("memory allocation!","time");
-	if ((H = Malloc(int,N*2)) == NULL) die("memory allocation!","H");
-        if ((G = Malloc(double, m*n)) == NULL) die("memory allocation!","G");
-        if ((A = Malloc(double, m*n)) == NULL) die("memory allocation!","A");
-        if ((Gs = Malloc(double, N*n)) == NULL) die("memory allocation!","Gs");
-        if ((gM = Malloc(double, S*nM)) == NULL) die("memory allocation!","gM");
-        if ((flag = Malloc(int, xdim * ydim)) == NULL) die("memory allocation!","flag");
-        if ((dem = Malloc(float, xdim * ydim)) == NULL) die("memory allocation!","dem");
-        if ((res = Malloc(float, xdim * ydim)) == NULL) die("memory allocation!","res");
-        if ((vel = Malloc(float, xdim * ydim)) == NULL) die("memory allocation!","vel");
-        if ((phi = Malloc(float, N*xdim*ydim)) == NULL) die("memory allocation!","phi");
-        if ((var = Malloc(float, N*xdim*ydim)) == NULL) die("memory allocation!","var");
-        if ((disp = Malloc(float, S*xdim*ydim)) == NULL) die("memory allocation!","disp");
+        if ((*L = Malloc(int,S)) == NULL) die("memory allocation!","L");
+        if ((*time = Malloc(double, S)) == NULL) die("memory allocation!","time");
+	if ((*H = Malloc(int,N*2)) == NULL) die("memory allocation!","H");
+        if ((*G = Malloc(double, m*n)) == NULL) die("memory allocation!","G");
+        if ((*A = Malloc(double, m*n)) == NULL) die("memory allocation!","A");
+        if ((*Gs = Malloc(double, N*n)) == NULL) die("memory allocation!","Gs");
+        if ((*flag = Malloc(int, xdim * ydim)) == NULL) die("memory allocation!","flag");
+        if ((*dem = Malloc(float, xdim * ydim)) == NULL) die("memory allocation!","dem");
+        if ((*res = Malloc(float, xdim * ydim)) == NULL) die("memory allocation!","res");
+        if ((*vel = Malloc(float, xdim * ydim)) == NULL) die("memory allocation!","vel");
+        if ((*phi = Malloc(float, N*xdim*ydim)) == NULL) die("memory allocation!","phi");
+        if ((*var = Malloc(float, N*xdim*ydim)) == NULL) die("memory allocation!","var");
+        if ((*disp = Malloc(float, S*xdim*ydim)) == NULL) die("memory allocation!","disp");
 
-/* initialization */
+        return(1);
+
+}
+
+
+
+
+int init_array_ts(double *G, double *Gs, float *res, float *dem, float *disp, int n, int m, int xdim, int ydim, int N, int S) {
+
+        int i,j,k,p;
+
         for (i=0;i<m*n;i++) G[i]=0;
         for (i=0;i<n*N;i++) Gs[i]=0;
 
@@ -206,6 +271,20 @@ int main(int argc, char **argv)
 			}
                 }
         }
+        return(1);
+}
+
+
+
+
+
+
+int read_table_data_ts(void *API,FILE *infile,FILE *datefile,char **gfile,char **cfile,int *H,float *bperp,int *flag,float *var,float *phi,int S,int N,int xdim,int ydim,struct GMT_GRID **Out, int *L, double *time) {
+
+        char tmp1[200],tmp2[200],tmp3[200];
+        int i,j,k,xin,yin;
+        float *corin, *grdin;
+        struct  GMT_GRID *CC = NULL, *GG = NULL;
 
 	printf("read table file ...\n");
         /* read in scene.tab */
@@ -263,12 +342,21 @@ int main(int argc, char **argv)
 				}
                         }
                 }
-		if (Out == NULL && (Out = GMT_Duplicate_Data (API, GMT_IS_GRID, GMT_DUPLICATE_DATA, CC)) == NULL) die("error creating output grid","");	/* Do this once */
+                if (*Out == NULL && (*Out = GMT_Duplicate_Data (API, GMT_IS_GRID, GMT_DUPLICATE_DATA, CC)) == NULL) die("error creating output grid","");	/* Do this once */
 		if (GMT_Destroy_Data (API, &CC)) die("error freeing data",cfile[i]);
 		if (GMT_Destroy_Data (API, &GG)) die("error freeing data",gfile[i]);
 	}
+        return(1);
 
-	/* fill the G matrix */
+}
+
+
+
+
+int init_G_ts(double *G, double *Gs, int N, int S, int m, int n, int *L, int *H, double *time, float sf, float *bperp, double scale) {
+
+        int i,j;
+
         printf("fill the G matrix ...\n");
         for (i=0;i<N;i++) {
                 for (j=0;j<S-1;j++) {
@@ -285,12 +373,24 @@ int main(int argc, char **argv)
                 G[i+N+i*m]=sf/(time[i+1]-time[i]);
                 G[i+N+(i+1)*m]=-sf/(time[i+2]-time[i+1]);
         }
+        return(1);
+}
 
-        /* save G matrix to A as it will get destroyed*/
-        for (i=0;i<m*n;i++) A[i]=G[i];
 
 
-        /* loop over xdim by ydim pixel */
+
+int lsqlin_sov_ts(int xdim, int ydim, float *disp, float *vel, int *flag, double *d, double *ds,double *time, double *G, double *Gs, double *A, float *var, float *phi, int N, int S,int m, int n, double *work,int lwork, int flag_dem, float *dem, int flag_rms, float *res, int *jpvt, double wl) {
+
+        int i,j,k,p,info;
+        int rank,nrhs=1,lda,ldb;
+        double rcond = 1e-3,pred;
+        double sumxx,sumxy,sumx,sumy;
+        float new,old;
+
+        lda=max(1,m);
+        ldb=max(1,max(m,n));
+
+
 	printf("run least-squares problem over %d by %d pixel ...\n",xdim,ydim);
         for (k=0;k<ydim;k++) {
                 for (j=0;j<xdim;j++) {
@@ -330,7 +430,7 @@ int main(int argc, char **argv)
 					for (p=0;p<i;p++) { 
 						disp[i*xdim*ydim+j*ydim+k]=disp[i*xdim*ydim+j*ydim+k]+d[p];
 					}
-					disp[i*xdim*ydim+j*ydim+k]=-79.58*wl*disp[i*xdim*ydim+j*ydim+k];
+					disp[i*xdim*ydim+j*ydim+k]=-79.58*wl*disp[i*xdim*ydim+j*ydim+k];  //1000/4/pi
 				}
 
 				if (flag_dem == 1) dem[j+xdim*k]=d[n-1];
@@ -372,9 +472,31 @@ int main(int argc, char **argv)
                 }
         }
 
-	/* write output */
+        return(1);
+}
+
+
+
+
+int write_output_ts(void *API, struct GMT_GRID *Out,int agc,char **agv, int xdim, int ydim, int S, int flag_rms, int flag_dem, float *disp, float *vel, float *res, float *dem){
+
+        int i,j,k;
+        float *grdin, *save_grid;
+        char tmp1[200],outfile[200];
+
 	printf("write output ...\n");
-        strcpy(title,"displacement time series (mm)");
+
+        strcpy(Out->header->title,"");
+        strcpy(Out->header->remark,"");
+       
+        strcpy(tmp1,"");
+        for (i=0;i<agc;i++) {
+               strcat(tmp1,agv[i]); 
+               strcat(tmp1," ");
+        }
+        if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_COMMAND, tmp1, Out)) die("could not set title","");
+        
+        //strcpy(Out->header->title,"displacement time series (mm)");
 	grdin = Out->data;
         for (i=0;i<S;i++) {
                 strcpy(outfile,"disp_");
@@ -383,9 +505,14 @@ int main(int argc, char **argv)
                                 grdin[j+k*xdim]=disp[i*xdim*ydim+j*ydim+k]; 
                       }
                 }
-                sprintf(tmp1,"%02d",i+1);
+                sprintf(tmp1,"%03d",i+1);
                 strcat(outfile,tmp1);
                 strcat(outfile,".grd");
+                sprintf(tmp1,"Displacement Time Series %03d",i+1);
+                strcpy(Out->header->title,"");
+                strcpy(Out->header->remark,"");
+                if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_REMARK, "Displacement Time Series (mm)", Out)) die("could not set title","");
+                if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, tmp1, Out)) die("could not set title","");
  		if (GMT_Write_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, outfile, Out)) {
 			die("Failed to write output grid",outfile);
 		}
@@ -393,8 +520,11 @@ int main(int argc, char **argv)
 	save_grid = Out->data;	/* Remember the original grid */
 	if (flag_rms == 1) {
 		Out->data = res;
-	        strcpy(Out->header->title,"WRMS reduction %");
 		sprintf(outfile,"rms.grd");
+                strcpy(Out->header->title,"");
+                strcpy(Out->header->remark,"");
+                if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_REMARK, "WRMS reduction from SBAS (mm)", Out)) die("could not set title","");
+                if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, "Weighed Root Mean Square of Fitting", Out)) die("could not set title","");
  		if (GMT_Write_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, outfile, Out)) {
 			die("Failed to write output grid",outfile);
 		}
@@ -402,23 +532,38 @@ int main(int argc, char **argv)
 
 	if (flag_dem == 1) {
 		Out->data = dem;
-		strcpy(Out->header->title,"DEM error (m)");
         	sprintf(outfile,"dem.grd");
+                strcpy(Out->header->title,"");
+                strcpy(Out->header->remark,"");
+                if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_REMARK, "DEM error estimated from SBAS (m)", Out)) die("could not set title","");
+                if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, "Digital Elevation Model Error", Out)) die("could not set title","");
  		if (GMT_Write_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, outfile, Out)) {
 			die("Failed to write output grid",outfile);
 		}
 	}
 
 	Out->data = vel;
-	strcpy(Out->header->title,"mean velocity (mm/yr)");
 	sprintf(outfile,"vel.grd");
+        strcpy(Out->header->title,"");
+        strcpy(Out->header->remark,"");
+        if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_REMARK, "Mean LOS velocity from SBAS (mm/yr)", Out)) die("could not set title","");
+        if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, "Mean Line-Of-Sight velocity from SBAS", Out)) die("could not set title","");
 	if (GMT_Write_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, outfile, Out)) {
 		die("Failed to write output grid",outfile);
 	}
 
 	Out->data = save_grid;	/* Restore the pointer before destroying */
 
-        /* free memory */
+        return(1);
+
+}
+
+
+
+
+int free_memory_ts(int N,float *phi,float *var,char **gfile,char **cfile,float *disp,double *G,double *A,double *Gs,int *H,double *d,double *ds,int *L,float *res,float *vel,double *time,int *flag,float *bperp,float *dem,double *work,int *jpvt) {
+
+        int i;
 
         for (i=0;i<N;i++) {
 		free(gfile[i]);
@@ -443,16 +588,9 @@ int main(int argc, char **argv)
         free(bperp);
         free(dem);
         free(work);
-        free(workM);
 	free(jpvt);
-	free(jpvtM);
-	free(gM);
-	free(dM);
 
-	fclose(infile);
-	fclose(datefile);
-	
-	if (GMT_Destroy_Session (API)) return EXIT_FAILURE;	/* Remove the GMT machinery */
-
-	return(EXIT_SUCCESS);
+        return(1);
 }
+
+
