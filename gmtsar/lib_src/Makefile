@@ -14,7 +14,7 @@ LIB_C		= aastretch.c acpatch.c calc_dop.c conv2d.c do_freq_xcorr.c \
 		  read_orb.c read_xcorr_data.c SAT_llt2rat_sub.c \
 		  rmpatch.c rng_cmp.c rng_ref.c set_prm_defaults.c shift.c \
 		  sio_struct.c siocomplex.c spline.c trans_col.c utils.c utils_complex.c \
-		  write_orb.c
+		  write_orb.c sbas_utils.c
 
 LIB_O		= $(LIB_C:.c=.o)
 LIB		= libgmtsar.$(LIBEXT)
