@@ -49,7 +49,6 @@ void null_sio_struct(struct PRM *p)
 	strncpy(p->orbdir,NULL_CHAR,8);
 	strncpy(p->lookdir,NULL_CHAR,8);
 	strncpy(p->dtype,NULL_CHAR,8);
-	strncpy(p->SLC_file,NULL_CHAR,8);	
 
 	/* ints	*/
 	p->debug_flag = NULL_INT;
@@ -105,11 +104,9 @@ void null_sio_struct(struct PRM *p)
 	p->fd1 = NULL_DOUBLE;
 	p->fdd1 = NULL_DOUBLE;
 	p->fddd1 = NULL_DOUBLE;
-	p->delr = NULL_DOUBLE;	
 
 	p->sub_int_r = NULL_DOUBLE;
 	p->sub_int_a = NULL_DOUBLE;
-	p->sub_double = NULL_DOUBLE;
 	p->stretch_r = NULL_DOUBLE;
 	p->stretch_a = NULL_DOUBLE;
 	p->a_stretch_r = NULL_DOUBLE;

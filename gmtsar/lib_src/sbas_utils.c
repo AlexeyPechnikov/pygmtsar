@@ -283,8 +283,8 @@ int init_G_ts(double *G, double *Gs, int N, int S, int m, int n, int *L, int *H,
 
 int lsqlin_sov_ts(int xdim, int ydim, float *disp, float *vel, int *flag, double *d, double *ds,double *time, double *G, double *Gs, double *A, float *var, float *phi, int N, int S,int m, int n, double *work,int lwork, int flag_dem, float *dem, int flag_rms, float *res, int *jpvt, double wl) {
 
-        int i,j,k,p,info;
-        int rank,nrhs=1,lda,ldb;
+        int i,j,k,p,info=0;
+        int rank=0,nrhs=1,lda,ldb;
         double rcond = 1e-3,pred;
         double sumxx,sumxy,sumx,sumy;
         float new,old;

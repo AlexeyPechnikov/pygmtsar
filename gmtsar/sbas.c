@@ -118,8 +118,8 @@ int main(int argc, char **argv) {
 
         /* setting up some parameters */
         scale=4.0*M_PI/wl/rng/sin(theta/180.0*M_PI);
-	m = N+S-2;
-	n = S; 
+	m = N+S-2;   // number of rows in the G matrix
+	n = S;       // number of columns in the G matrix
 	lwork=max(1,m*n+max(m*n,nrhs)*16);
 	lda=max(1,m);
 	ldb=max(1,max(m,n));
