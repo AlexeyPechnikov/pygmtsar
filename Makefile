@@ -10,6 +10,8 @@ sinclude config.mk
 PREPROCESSORS	= ALOS ENVI ERS S1A CSK TSX RS2
 #
 DIRS		= gmtsar snaphu/src
+ORBITS_URL	= http://topex.ucsd.edu/gmtsar/tar/ORBITS.tar
+ORBITS		= ORBITS.tar
 
 all:	main preprocess
 
@@ -28,6 +30,7 @@ help::
 #!main               : Only compile the main programs
 #!install-preprocess : Only compile & install the preprocesors
 #!install-main       : Only compile & install the main programs
+#!install-orbits     : Obtain ORBITS.tar, prompt for directory, and install files
 #!
 
 preprocess:
@@ -58,6 +61,18 @@ install-main:
 	$(INSTALL) -d $(sharedir)/snaphu/config
 	$(INSTALL) gmtsar/filters/[bfgsxy]* $(sharedir)/filters
 	$(INSTALL) gmtsar/csh/snaphu.conf.* $(sharedir)/snaphu/config
+
+install-orbits:
+	wget $(ORBITS_URL) 2>/dev/null || curl -O $(ORBITS_URL)
+	@if [ -f $(ORBITS) ]; then \
+		read -p "==> Enter directory where the ORBITS subdirectory should be installed: " ORB_DIR ; \
+		mkdir -p $$ORB_DIR/ORBITS ; \
+		echo "Extracting orbits files into $$ORB_DIR/ORBITS";  \
+		tar xf $(ORBITS) -C$$ORB_DIR/ORBITS ; \
+		echo "Run configure --with-orbits-dir=$$ORB_DIR/ORBITS";  \
+	else \
+		echo "Unable to obtain $(ORBITS_URL) - Perhaps you have neither curl nor wget installed?";  \
+	fi
 
 uninstall:
 	for d in $(DIRS) $(PREPROCESSORS); do \

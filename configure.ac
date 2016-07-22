@@ -201,6 +201,49 @@ else
 fi
 AC_MSG_RESULT($TIFF_LIB)
 dnl
+dnl ------------------------------------------------------------------
+dnl Set path to tiff directories with --with-tiff=include|lib
+dnl ------------------------------------------------------------------
+dnl
+AC_MSG_CHECKING(for TIFF include directory)
+if test "X$with_boost_include" = "X"; then	# Must look for it in standard places
+	if [ test -d /sw/include ]; then	# fink
+		TIFF_INC=/sw/include
+	elif [ test -d /opt/local/include ]; then	# macports
+		TIFF_INC=/opt/local/include
+	elif [ test -d /usr/local/include ]; then
+		TIFF_INC=/usr/local/include
+	elif [ test -d /usr/include ]; then	# Ubuntu
+		TIFF_INC=/usr/include
+	elif [ test -d /opt/csw/include ]; then	# Blastwave
+		TIFF_INC=/opt/csw/include
+	elif [ test -d /opt/include ]; then
+		TIFF_INC=/opt/include
+	fi
+else
+	TIFF_INC=$with_tiff_include
+fi
+AC_MSG_RESULT($TIFF_INC)
+AC_MSG_CHECKING(for TIFF library directory)
+if test "X$with_tiff_lib" = "X"; then	# Must look for it in standard places
+	if [ test -d /sw/include ]; then	# fink
+		TIFF_LIB=/sw/lib
+	elif [ test -d /opt/local/include ]; then	# macports
+		TIFF_LIB=/opt/local/lib
+	elif [ test -d /usr/local/include ]; then
+		TIFF_LIB=/usr/local/lib
+	elif [ test -d /usr/include ]; then	# Ubuntu
+		TIFF_LIB=/usr/lib/x86_64-linux-gnu
+	elif [ test -d /opt/csw/include ]; then	# Blastwave
+		TIFF_LIB=/opt/csw/lib
+	elif [ test -d /opt/include ]; then
+		TIFF_LIB=/opt/lib
+	fi
+else
+	TIFF_LIB=$with_tiff_lib/lib
+fi
+AC_MSG_RESULT($TIFF_LIB)
+dnl
 dnl
 dnl ------------------------------------------------------------------
 dnl We use gmt-config to set GMT5 paths and settings
