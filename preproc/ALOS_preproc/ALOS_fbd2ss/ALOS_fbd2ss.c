@@ -108,7 +108,7 @@ struct 	PRM r;
 	  if(necho > nburst) {
              for (j=0;j<ibufsize-headsize;j++) indata[j+headsize]=IQ_mean+NULL_DATA+znew%2;
 	  }
-  	  fwrite((void *)indata+headsize,sizeof(unsigned char),ibufsize-headsize,dataout); 
+  	  fwrite(indata+headsize,sizeof(unsigned char),ibufsize-headsize,dataout); 
 
 	}
 
