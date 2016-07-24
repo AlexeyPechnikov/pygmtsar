@@ -563,6 +563,7 @@ int str2dbs(double *a, char *c){
     return(i);
 }
 
+#ifndef HAVE_ITOA
 int itoa(int d, char *buf, int base) {
     char *p = buf;
     char *p1, *p2;
@@ -600,6 +601,7 @@ int itoa(int d, char *buf, int base) {
     }
     return(1);
 }
+#endif
 
 int null_MEM_STR(){
     int i;
@@ -608,5 +610,3 @@ int null_MEM_STR(){
     }
     return(1); 
 }
-
-

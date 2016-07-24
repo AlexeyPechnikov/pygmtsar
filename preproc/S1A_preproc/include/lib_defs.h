@@ -9,9 +9,11 @@ int get_tree(FILE *, tree *, int);
 int search_tree(tree *, char *, char *, int, int, int);
 int cat_nums(char *, char *);
 int str2ints(int *, char *);
-int itoa(int, char *, int);
 double date2MJD(int, int, int, int, int, double);
 int str_date2JD(char *, char *);
 double str2double(char *);
 int str2dbs(double *, char *);
 int null_MEM_STR();
+#ifndef HAVE_ITOA
+int itoa(int, char *, int);
+#endif
