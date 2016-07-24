@@ -563,7 +563,7 @@ int str2dbs(double *a, char *c){
     return(i);
 }
 
-#ifndef HAVE_ITOA
+#ifndef WIN32
 int itoa(int d, char *buf, int base) {
     char *p = buf;
     char *p1, *p2;

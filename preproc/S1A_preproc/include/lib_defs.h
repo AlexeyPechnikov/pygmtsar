@@ -14,6 +14,6 @@ int str_date2JD(char *, char *);
 double str2double(char *);
 int str2dbs(double *, char *);
 int null_MEM_STR();
-#ifndef HAVE_ITOA
+#ifndef WIN32
 int itoa(int, char *, int);
 #endif

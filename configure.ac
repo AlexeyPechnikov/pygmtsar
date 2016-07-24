@@ -99,7 +99,6 @@ AC_CHECK_PROG(AR, ar, ar, :)
 AC_CHECK_PROG(CSH, csh, csh, bash, )
 AC_CHECK_PROG(LD, ld, ld, :)
 AC_CHECK_PROG(GNUTAR, gnutar, gnutar, :)
-AC_CHECK_FUNC(itoa, AC_DEFINE(HAVE_ITOA), )
 AC_PROG_LN_S
 AC_PROG_INSTALL
 AC_PROG_AWK
