@@ -760,8 +760,20 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
 
         // compute the elevation antenna pattern (EAP) change if ipf version is 2.36 and aux_file and manifest file are concatenated to xml
         ii = search_tree(xml_tree,"/product/",tmp_c,1,0,1);
+        //printf("Hahahaha...%d,%d\n",ii,xml_tree[ii].sib);
         if (xml_tree[ii].sibr != -1){
-            search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:processing/safe:facility/safe:software/",tmp_c,3,3,12);
+            jj = 1;
+            //search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:processing/safe:facility/safe:software/",tmp_c,3,3,12);
+            ii = search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/",tmp_c,1,3,jj);
+            //while(strncmp(xml_tree[ii].name,"metadataWrap",12) != 0 || strncmp(xml_tree[xml_tree[ii].firstchild].name,"xmlData",7) != 0 || strncmp(xml_tree[xml_tree[xml_tree[ii].firstchild].firstchild].name,"safe:processing",15) != 0) {
+            while(strncmp(&xml_tree[ii].name[19],"processing",10) != 0) {
+                jj++;
+                ii = search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/",tmp_c,1,3,jj);
+                if(ii==-1) break;
+                //if(jj==21) printf("%s\n%s\n%s\n",xml_tree[ii].name,xml_tree[xml_tree[ii].firstchild].name,xml_tree[xml_tree[xml_tree[ii].firstchild].firstchild].name)
+            }
+            //printf("find %d\n",jj);
+            search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:processing/safe:facility/safe:software/",tmp_c,3,3,jj);
             if (strncmp(&tmp_c[strlen(tmp_c)-3],"236",3) == 0)  {
                 fprintf(stderr,"(EAP)");
                 //printf("Making elevation antenna pattern correction\n");
@@ -776,6 +788,7 @@ double shift_write_slc(void *API,struct PRM *prm,struct tree *xml_tree,struct bu
                 }
             }
         }
+        //printf("Hahahaha...\n");
 
         // unload the float complex array into a short burst array, multiply by 2 and clip if needed
         for (ii=0;ii<lpb;ii++){
