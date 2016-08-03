@@ -64,7 +64,7 @@ else
  else if ($SSC == 10) then
   @ YR = $T0 / 1000 - 2014
  endif
- @ YDAY = $YR * 356 + $DAY
+ @ YDAY = $YR * 365 + $DAY
 endif
 #
 #  get the needed parameters from temp
