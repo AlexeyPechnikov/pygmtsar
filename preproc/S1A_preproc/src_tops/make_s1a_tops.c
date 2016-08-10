@@ -40,6 +40,8 @@
 #include"lib_defs.h"
 #include "gmtsar.h"
 
+# define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
+
 typedef struct burst_bounds{
     int SL;
     int SC;
@@ -260,6 +262,7 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
     int *kF, *ksa, *ksr, *kea, *ker, *kover;
     double t0=-1.,time;
     char *cflag,*cflag_orig;
+    int first_samp = 1;
 
     // define some of the variables
     prm->first_line = 1;
@@ -274,7 +277,6 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
     prm->stretch_a = 0.0;
     prm->a_stretch_r = 0.0;
     prm->a_stretch_a = 0.0;
-    prm->first_sample = 1;
     strasign(prm->dtype,"a",0,0);
     search_tree(xml_tree,"/product/generalAnnotation/productInformation/rangeSamplingRate/",tmp_c,1,0,1);
     prm->fs = str2double(tmp_c);//rng_samp_rate
@@ -364,6 +366,7 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
         strcpy(cflag,tmp_cc);
         for (j=0;j<lpb;j++){
             flag = (int)strtol(cflag,&cflag,10);
+            first_samp = max(first_samp,flag);
             time = t[i] + (double)j/prm->prf;
             kF[k] = -1;
         // don't use flagged data
@@ -389,6 +392,7 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
             k++;
         }
     }
+    prm->first_sample = first_samp;
     // calculate the burst overlap.  The first one is zero.
     kover[0] = 0;
     for (i=1;i<=count;i++){

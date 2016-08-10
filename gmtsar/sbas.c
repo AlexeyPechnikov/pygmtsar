@@ -3,12 +3,18 @@
  *  Program to do InSAR time-series analysis.                                            *
  *  Use Small Baseline Subset (SBAS) algorithm.                                          *
  *                                                                                       *
- *  Xiaohua Xu and David T. Sandwell, Jul, 2016                                          *
+ *  Xiaohua Xu, Jul 2016                                                                 *
  *                                                                                       *
  *  Taking the old sbas code to add atmospheric correction by means of common point      *
  *  stacking by Tymofeyeva & Fialko 2015.                                                *
  *                                                                                       *
- ***************************************************************************************** 
+ ****************************************************************************************/
+/*****************************************************************************************
+ *  Modification history: 								 *
+ *  07/23/2016 Decomposed the program into subroutines.                                  *
+ *  08/02/2016 Start to build in the atmospheric correction.                             *
+ ****************************************************************************************/
+ /****************************************************************************************
  * Creator: Xiaopeng Tong and David Sandwell 						 *
  *          (Scripps Institution of Oceanography)					 *
  * Date: 12/23/2012  									 *
@@ -123,8 +129,8 @@ int main(int argc, char **argv) {
 	lwork=max(1,m*n+max(m*n,nrhs)*16);
 	lda=max(1,m);
 	ldb=max(1,max(m,n));
-
-        /* memory allocation */
+        
+        /* memory allocation */ // also malloc for atm(nx,ny,S), hit(N,S), sum_vec(N) and atm_rms(S)
         allocate_memory_ts(&jpvt,&work,&d,&ds,&bperp,&gfile,&cfile,&L,&time,&H,&G,&A,&Gs,&flag,&dem,&res,&vel,&phi,&var,&disp,n,m,lwork,ldb,N,S,xdim,ydim);
 
         /* initialization */
