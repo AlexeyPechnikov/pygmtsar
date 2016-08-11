@@ -155,10 +155,10 @@ int main(int argc, char **argv){
     head2 = GOUT->header->ny-G2->header->ny-head2;
     if(nfile == 3) head3 = GOUT->header->ny-G3->header->ny-head3;
 
-    n1 = (int)ceil((float)prm2.rshift+400/incx);
-    if (nfile == 3) n2 = (int)ceil((float)prm3.rshift+400/incx);
-    if (n1<400/incx) n1 = (int)(400/incx);
-    if (nfile == 3) if (n2<400/incx) n2 = (int)(400/incx);
+    n1 = (int)ceil((float)prm2.rshift+(float)prm2.first_sample/incx+10.0);
+    if (nfile == 3) n2 = (int)ceil((float)prm3.rshift+(float)prm3.first_sample/incx+10.0);
+    if (n1<400/incx) n1 = (int)((float)prm2.first_sample/incx+10.0);
+    if (nfile == 3) if (n2<(float)prm3.first_sample/incx+10.0) n2 = (int)((float)prm3.first_sample/incx+10.0);
 
     //printf("%d,%d\n",n1,n2);
  
