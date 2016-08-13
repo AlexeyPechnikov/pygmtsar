@@ -57,8 +57,12 @@ find_package (GMT REQUIRED)
 find_package (TIFF REQUIRED)
 find_package (LAPACK)
 
+# check for math and POSIX functions
+include(ConfigureChecks)
+
 # Add subdirectories
 add_subdirectory (gmtsar)
+add_subdirectory (snaphu/src)
 
 # Configuration done
 message(

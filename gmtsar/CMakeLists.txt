@@ -2,14 +2,11 @@
 #	$Id$
 #
 
-# check for math and POSIX functions
-include(ConfigureChecks)
-
 set (GMTSAR_LINK_LIBS ${GMT_LIBRARY} ${TIFF_LIBRARY} ${LAPACK_LIBRARIES})
 
 if (HAVE_M_LIBRARY)
-        # link the math library
-        set (GMTSAR_LINK_LIBS ${GMTSAR_LINK_LIBS} m)
+	# link the math library
+	set (GMTSAR_LINK_LIBS ${GMTSAR_LINK_LIBS} m)
 endif (HAVE_M_LIBRARY)
 
 include_directories (${GMT_INCLUDE_DIR} ${TIFF_INCLUDE_DIR})
@@ -77,11 +74,11 @@ target_link_libraries (xcorr ${GMTSAR_LINK_LIBS})
 
 # add the install targets
 install (TARGETS gmtsar bperp calc_dop_orb conv esarp extend_orbit make_gaussian_filter offset_topo phase2topo phasediff phasefilt resamp SAT_baseline SAT_llt2rat SAT_look sbas xcorr
-        ARCHIVE DESTINATION lib
-        COMPONENT Runtime
-        LIBRARY DESTINATION lib
-        COMPONENT Runtime
-        RUNTIME DESTINATION bin
-        COMPONENT Runtime)
+	ARCHIVE DESTINATION lib
+	COMPONENT Runtime
+	LIBRARY DESTINATION lib
+	COMPONENT Runtime
+	RUNTIME DESTINATION bin
+	COMPONENT Runtime)
 
 # vim: textwidth=78 noexpandtab tabstop=2 softtabstop=2 shiftwidth=2
