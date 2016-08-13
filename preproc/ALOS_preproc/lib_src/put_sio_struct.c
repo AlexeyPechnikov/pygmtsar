@@ -57,6 +57,8 @@ void put_sio_struct(struct PRM prm, FILE *OUTFILE)
 	if (prm.num_patches != NULL_INT) fprintf(OUTFILE,"num_patches		= %d \n",prm.num_patches);
        	if (prm.SC_clock_start != NULL_DOUBLE) fprintf(OUTFILE,"SC_clock_start		= %16.10lf \n",prm.SC_clock_start);
        	if (prm.SC_clock_stop != NULL_DOUBLE) fprintf(OUTFILE,"SC_clock_stop		= %16.10lf \n",prm.SC_clock_stop);
+       	if (prm.clock_start != NULL_DOUBLE) fprintf(OUTFILE,"clock_start		= %16.12lf \n",prm.clock_start);
+       	if (prm.clock_stop != NULL_DOUBLE) fprintf(OUTFILE,"clock_stop			= %16.12lf \n",prm.clock_stop);
 	if (strncmp(prm.led_file,NULL_CHAR,8) != 0) fprintf(OUTFILE,"led_file		= %s \n",prm.led_file);
 
 	/* from read_ALOS_ldrfile */

@@ -79,4 +79,5 @@ void read_params(struct xcorr *, FILE *);
 void make_mask(struct xcorr);
 void do_highres(struct xcorr, int);
 void allocate_arrays(struct xcorr *);
+
 #endif /* LIB_FUNCTIONS_H */

@@ -31,6 +31,7 @@ num_rng_bins bytes_per_line good_bytes_per_line
 PRF pulse_dur near_range
 num_lines num_patches 
 SC_clock_start SC_clock_stop
+clock_start clock_stop
 */
 /* fast random number generator */
 
@@ -180,7 +181,8 @@ long read_ALOSE_data (FILE *imagefile, FILE *outfile, struct PRM *prm, long *byt
 	}
       
 	/* calculate end time */
-	prm->SC_clock_stop =  get_clock_ALOSE(sdr, tbias);
+	prm->clock_stop =  get_clock_ALOSE(sdr, tbias);
+	prm->SC_clock_stop =  ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_stop;
 
 	/* m is non-zero only in the event of a prf change */
 	prm->num_lines = n - m - 1;
@@ -189,7 +191,7 @@ long read_ALOSE_data (FILE *imagefile, FILE *outfile, struct PRM *prm, long *byt
 
 	/* compute the PRI and round to the nearest integer microsecond then the prf=1./pri */
 
-	pri = (int) (1.e6*86400.*(prm->SC_clock_stop - prm->SC_clock_start)/(prm->num_lines-2.5)+.5);
+	pri = (int) (1.e6*86400.*(prm->clock_stop - prm->clock_start)/(prm->num_lines-2.5)+.5);
 	prm->prf = 1.e3/pri;
 	
 
@@ -208,8 +210,7 @@ double	time;
 
 	//nsd = 24.0*60.0*60.0;
 
-	time = ((double) sdr.sensor_acquisition_year)*1000 +
-		(double) sdr.sensor_acquisition_DOY +
+	time =  (double) sdr.sensor_acquisition_DOY +
 		(double) sdr.sensor_acquisition_msecs_day/1000.0/86400.0 +
 		tbias/86400.0;
 
@@ -285,7 +286,8 @@ double get_clock();
 	if (verbose) printf( "sdr.transmit_polarization = %d \n",sdr.transmit_polarization);
 	if (verbose) printf( "sdr.receive_polarization = %d \n",sdr.receive_polarization);
 
-	prm->SC_clock_start =  get_clock_ALOSE(sdr, tbias);
+	prm->clock_start =  get_clock_ALOSE(sdr, tbias);
+	prm->SC_clock_start =  ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_start;
 
 /* restec format changes - bytof */
 

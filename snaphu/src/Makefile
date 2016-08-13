@@ -1,4 +1,4 @@
-#	$Id$
+#	$Id: Makefile 33 2013-04-06 05:37:15Z pwessel $
 #
 #	makefile for snaphu directory
 #

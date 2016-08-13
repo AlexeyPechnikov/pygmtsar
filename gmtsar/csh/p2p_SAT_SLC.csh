@@ -58,7 +58,18 @@ unset noclobber
   set topo_phase = `grep topo_phase $3 | awk '{print $3}'`
   set shift_topo = `grep shift_topo $3 | awk '{print $3}'`
   set switch_master = `grep switch_master $3 | awk '{print $3}'`
-  set filter = `grep filter1 $3 | awk '{print $3}'` 
+#
+# if filter wavelength is not set then use a default of 200m
+#
+  set filter = `grep filter_wavelength $3 | awk '{print $3}'`
+  if ( "x$filter" == "x" ) then
+  set filter = 200
+  endif
+  echo " "
+  echo "WARNING filter wavelength was not set in config.txt file"
+  echo "        please specify wavelength (e.g., filter_wavelength = 200)"
+  echo "        remove filter1 = gauss_alos_200m"
+  echo $filter
   set dec = `grep dec_factor $3 | awk '{print $3}'` 
   set threshold_snaphu = `grep threshold_snaphu $3 | awk '{print $3}'`
   set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
@@ -170,7 +181,7 @@ unset noclobber
     cp $slave.PRM $slave.PRM0
     SAT_baseline $master.PRM $slave.PRM0 >> $slave.PRM
     xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128
-    fitoffset.csh 4 freq_xcorr.dat >> $slave.PRM
+    fitoffset.csh 2 2 freq_xcorr.dat >> $slave.PRM
     resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
     rm $slave.SLC
     mv $slave.SLCresamp $slave.SLC

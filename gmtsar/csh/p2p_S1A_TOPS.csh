@@ -1,24 +1,22 @@
 #!/bin/csh -f
-#       $Id$
 #
-#  Xiaopeng Tong, Jan 14, 2014
+#  David Dandwell, December 29, 2015
 #
-# process generic L1.1 data
+# process Sentinel-1A TOPS data
 # Automatically process a single frame of interferogram.
 # see instruction.txt for details.
 #
 
-
 alias rm 'rm -f'
 unset noclobber
 #
-  if ($#argv != 3) then
+  if ($#argv < 3) then
     echo ""
-    echo "Usage: p2p_SAT_SLC.csh master_image slave_image configuration_file "
+    echo "Usage: p2p_S1A_TOPS.csh master_image slave_image configuration_file"
     echo ""
-    echo "Example: p2p_SAT_SLC.csh TSX_20110608 TSX_20110619 config.tsx.slc.txt"
+    echo "Example: p2p_S1A_TOPS.csh S1A20150526_F1 S1A20150607_F1 config.tsx.slc.txt "
     echo ""
-    echo "         Place the L1.1 data in a directory called raw and a dem.grd file in "
+    echo "         Place the pre-processed data in a directory called raw and a dem.grd file in "
     echo "         a parallel directory called topo.  Execute this command at the directory"
     echo "         location above raw and topo.  The file dem.grd"
     echo "         is a dem that completely covers the SAR frame - larger is OK."
@@ -29,9 +27,7 @@ unset noclobber
     echo ""
     exit 1
   endif
-
 # start 
-
 #
 #   make sure the files exist
 #
@@ -58,14 +54,24 @@ unset noclobber
   set topo_phase = `grep topo_phase $3 | awk '{print $3}'`
   set shift_topo = `grep shift_topo $3 | awk '{print $3}'`
   set switch_master = `grep switch_master $3 | awk '{print $3}'`
-  set filter = `grep filter1 $3 | awk '{print $3}'` 
+#
+# if filter wavelength is not set then use a default of 200m
+#
+  set filter = `grep filter_wavelength $3 | awk '{print $3}'`
+  if ( "x$filter" == "x" ) then
+  set filter = 200
+  echo " "
+  echo "WARNING filter wavelength was not set in config.txt file"
+  echo "        please specify wavelength (e.g., filter_wavelength = 200)"
+  echo "        remove filter1 = gauss_alos_200m"
+  endif
+  echo $filter
   set dec = `grep dec_factor $3 | awk '{print $3}'` 
   set threshold_snaphu = `grep threshold_snaphu $3 | awk '{print $3}'`
   set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
-
 #
 # read file names of raw data
 #
@@ -125,20 +131,14 @@ unset noclobber
       update_PRM.csh $slave.PRM nrows $m_lines
     endif
 #
-#   calculate SC_vel and SC_height
-#   set the Doppler to be zero
+#   set the higher Doppler terms to zerp to be zero
 #
-    cp $master.PRM $master.PRM0
-    calc_dop_orb $master.PRM0 $master.log $earth_radius 0
-    cat $master.PRM0 $master.log > $master.PRM
-    echo "fdd1                    = 0" >> $master.PRM
-    echo "fddd1                   = 0" >> $master.PRM
+    update_PRM.csh $master.PRM fdd1 0
+    update_PRM.csh $master.PRM fddd1 0
 #
-    cp $slave.PRM $slave.PRM0
-    calc_dop_orb $slave.PRM0 $slave.log $earth_radius 0
-    cat $slave.PRM0 $slave.log > $slave.PRM
-    echo "fdd1                    = 0" >> $slave.PRM
-    echo "fddd1                   = 0" >> $slave.PRM
+    update_PRM.csh $slave.PRM fdd1 0
+    update_PRM.csh $slave.PRM fddd1 0
+#
     rm *.log
     rm *.PRM0
 
@@ -149,7 +149,7 @@ unset noclobber
 #############################################
 # 2 - start from focus and align SLC images #
 #############################################
-  
+
   if ($stage <= 2) then
 # 
 # clean up 
@@ -162,21 +162,16 @@ unset noclobber
     echo "ALIGN - START"
     cd SLC
     cp ../raw/*.PRM .
-    ln -s ../raw/$master.SLC . 
-    ln -s ../raw/$slave.SLC . 
+    ln -s ../raw/$master.SLC .
+    ln -s ../raw/$slave.SLC .
     ln -s ../raw/$master.LED . 
     ln -s ../raw/$slave.LED .
     
-    cp $slave.PRM $slave.PRM0
-    SAT_baseline $master.PRM $slave.PRM0 >> $slave.PRM
-    xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128
-    fitoffset.csh 2 freq_xcorr.dat >> $slave.PRM
-    mv freq_xcorr.dat xcorr_$1_$2.dat0
-    resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-    rm $slave.SLC
-    mv $slave.SLCresamp $slave.SLC
-    cp $slave.PRMresamp $slave.PRM
-        
+#    cp $slave.PRM $slave.PRM0
+#    resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 1
+#    rm $slave.SLC
+#    mv $slave.SLCresamp $slave.SLC
+#    cp $slave.PRMresamp $slave.PRM
     cd ..
     echo "ALIGN - END"
   endif
@@ -184,7 +179,7 @@ unset noclobber
 ##################################
 # 3 - start from make topo_ra    #
 ##################################
-
+#if (6 == 9) then
   if ($stage <= 3) then
 #
 # clean up
@@ -217,7 +212,7 @@ unset noclobber
 #
 #  make sure the range increment of the amplitude image matches the topo_ra.grd
 #
-        set rng = `gmt grdinfo topo/topo_ra.grd | grep x_inc | awk '{print $7}'`
+        set rng = `grdinfo topo/topo_ra.grd | grep x_inc | awk '{print $7}'`
         cd SLC 
         echo " range decimation is:  " $rng
         slc2amp.csh $master.PRM $rng amp-$master.grd
@@ -295,10 +290,9 @@ unset noclobber
       cd intf
       set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
       set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
-
       cd $ref_id"_"$rep_id
       if ((! $?region_cut) || ($region_cut == "")) then
-        set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+        set region_cut = `grdinfo phase.grd -I- | cut -c3-20`
       endif
 
 #
@@ -332,7 +326,7 @@ unset noclobber
 # 6 - start from geocode  #
 ###########################
 
-  if ($stage <= 6) then
+    if ($stage <= 6) then
     cd intf
     set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
     set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `

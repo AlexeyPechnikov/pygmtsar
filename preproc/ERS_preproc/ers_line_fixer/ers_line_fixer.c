@@ -36,6 +36,7 @@
 /*                 Does not change byte order on output.                */
 /*  Jan 23, 2011 - Modified to read near range instead of swst          */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

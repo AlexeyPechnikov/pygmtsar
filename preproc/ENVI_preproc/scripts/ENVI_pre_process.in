@@ -58,8 +58,12 @@
  dump_time_envi.pl $1.baq > $1.time
 
 #  2b) make orbit file 
-set START = `grep SENSING_START $1.time | awk '{print $2}'`
-set END = `grep SENSING_STOP $1.time | awk '{print $2}'`
+set START = `grep SENSING_START0 $1.time | awk '{print $2}'`
+set END = `grep SENSING_STOP0 $1.time | awk '{print $2}'`
+echo "clock_start		= $START" >> $1.PRM
+echo "clock_stop		= $END" >> $1.PRM
+set START = `grep SENSING_STARTY $1.time | awk '{print $2}'`
+set END = `grep SENSING_STOPY $1.time | awk '{print $2}'`
 echo "SC_clock_start		= $START" >> $1.PRM
 echo "SC_clock_stop		= $END" >> $1.PRM
 dump_orbit_envi.pl $START $END $1.LED $ORBITS/ENVI/Doris

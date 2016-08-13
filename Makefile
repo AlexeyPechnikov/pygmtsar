@@ -1,4 +1,4 @@
-#       $Id$
+#       $Id: Makefile 236 2015-08-24 07:09:14Z pwessel $
 #
 #       makefile for top GMT5SAR directory
 
@@ -6,8 +6,9 @@ sinclude config.mk
 
 # Currently, S1A must happen before the CSK, TSZ, and RS2 builds due to dependencies via links
 # We will fix this so one can make anyting in any order
-
+#
 PREPROCESSORS	= ALOS ENVI ERS S1A CSK TSX RS2
+#
 DIRS		= gmtsar snaphu/src
 ORBITS_URL	= http://topex.ucsd.edu/gmtsar/tar/ORBITS.tar
 ORBITS		= ORBITS.tar

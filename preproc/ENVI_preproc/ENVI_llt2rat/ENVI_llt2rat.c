@@ -83,7 +83,7 @@ int main (int argc, char **argv) {
         double r0,rf,a0,af;
         double rad=PI/180.;
 	double fll,rdd,daa,drr;
-        int j,iy,nrec,npad=8000;
+        int j,nrec,npad=8000;
         int goldop();
         int stai,endi,midi;
         double **orb_pos;
@@ -134,6 +134,7 @@ int main (int argc, char **argv) {
 	fprintf(stderr,"%lf\n",prm.RE);
 	fprintf(stderr,"%lf\n",prm.sub_int_a);
 	fprintf(stderr,"%lf\n",prm.SC_clock_start);
+	fprintf(stderr,"%lf\n",prm.clock_start);
 	fprintf(stderr,"%d\n",prm.nrows);
 	fprintf(stderr,"%d\n",prm.num_patches);
 	fprintf(stderr,"%lf\n",prm.near_range);
@@ -173,8 +174,7 @@ int main (int argc, char **argv) {
 
 /* compute the start time, stop time and increment */
 
-        iy=(int)(prm.SC_clock_start/1000.);
-        t1=86400.*(prm.SC_clock_start-1000.*iy)+(prm.nrows-prm.num_valid_az)/(2.*prm.prf);
+        t1=86400.*prm.clock_start+(prm.nrows-prm.num_valid_az)/(2.*prm.prf);
         t2=t1+prm.num_patches*prm.num_valid_az/prm.prf;
 
 /* sample the orbit only every 2th point or about 8 m along track */

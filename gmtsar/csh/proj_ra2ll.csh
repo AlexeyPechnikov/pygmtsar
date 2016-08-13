@@ -27,6 +27,7 @@ unset noclobber
   echo " "
   exit 1
  endif 
+ echo "proj_ra2ll.csh"
 #
 #  extract the phase in the r a positions
 #
@@ -37,8 +38,6 @@ gmt grd2xyz $2 -s -bo3f > rap
 if (! -f raln.grd || ! -f ralt.grd ) then
   gmt gmtconvert $1 -o0,1,3 -bi5d -bo3f > raln
   gmt gmtconvert $1 -o0,1,4 -bi5d -bo3f > ralt
-# awk '{ printf("%f %f %e \n",$1,$2,$4) }' < $1 | gmtconvert -bos3 > raln
-# awk '{ printf("%f %f %e \n",$1,$2,$5) }' < $1 | gmtconvert -bos3 > ralt
 #
 gmt surface raln `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Graln.grd -V
 gmt surface ralt `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Gralt.grd -V
@@ -51,19 +50,32 @@ gmt grdtrack rapln -nl -Gralt.grd -bi4f -bo5f > raplnlt
 #
 gmt gmtconvert raplnlt -bi5f -bo3f -o3,4,2 > llp
 #
-#
 # use higher resolution for data with higher range resolution and PRF
 #
 set rng_samp_rate = `grep rng_samp_rate *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
-echo "rng_samp_rate = " $rng_samp_rate
 set PRF = `grep PRF *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
-echo "PRF = " $PRF
 if ($rng_samp_rate > 35000000 && $PRF > 1000 ) then
-   gmt blockmedian llp `gmt gmtinfo llp -I.0416666666667 -bi3f ` -bi3f -bo3f -I.000416666666667 -r -V > llpb
-   gmt xyz2grd llpb `gmt gmtinfo llpb -I.0416666666667 -bi3f ` -I.000416666666667 -r -fg -G$3 -bi3f
+#
+# use a 60 m grid
+#
+   gmt blockmedian llp `gmt gmtinfo llp -I20s -bi3f ` -bi3f -bo3f -I2s -r -V > llpb
+   gmt xyz2grd llpb `gmt gmtinfo llpb -I20s -bi3f ` -I2s -r -fg -G$3 -bi3f
 else
-   gmt blockmedian llp `gmt gmtinfo llp -I.0833333333334 -bi3f ` -bi3f -bo3f -I0.000833333333334 -r -V > llpb
-   gmt xyz2grd llpb `gmt gmtinfo llpb -I.0833333333334 -bi3f ` -I0.000833333333334 -r -fg -G$3 -bi3f
+#
+# use a 120 m grid
+#
+   gmt blockmedian llp `gmt gmtinfo llp -I40s -bi3f ` -bi3f -bo3f -I4s -r -V > llpb
+   gmt xyz2grd llpb `gmt gmtinfo llpb -I40s -bi3f ` -I4s -r -fg -G$3 -bi3f
+#
+# could use a coarser lon lat grid of 240 m
+#
+#   gmt blockmedian llp `gmt gmtinfo llp -I80s -bi3f ` -bi3f -bo3f -I8s -r -V > llpb
+#   gmt xyz2grd llpb `gmt gmtinfo llpb -I80s -bi3f ` -I8s -r -fg -G$3 -bi3f
+#
+# could use a coarser lon lat grid of 240 m at high latitude for larger lon spacing
+#
+#   gmt blockmedian llp `gmt gmtinfo llp -I160s/80s -bi3f ` -bi3f -bo3f -I16s/8s -r -V > llpb
+#   gmt xyz2grd llpb `gmt gmtinfo llpb -I160s/80s -bi3f ` -I16s/8s -r -fg -G$3 -bi3f
 endif
 #
 # clean

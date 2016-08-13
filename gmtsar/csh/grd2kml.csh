@@ -36,4 +36,5 @@ gmt ps2raster $1.ps -W+k+t"$1" -E$DPI -TG -P -S -V -F$1.png
 rm $1.ps
 rm grad.grd
 rm ps2raster*
+rm psconvert*
 #

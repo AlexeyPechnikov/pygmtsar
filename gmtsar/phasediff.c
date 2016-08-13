@@ -86,8 +86,8 @@ double term1,term2,c,c2,ret,ret2;
 		drho[k] = term1 + term2;
 
 /* New (Eric Lindsey, April 2015): compute the range change using the full nonlinear equation */
-/*              term1 = rho*rho + B*B - 2*rho*B*(sint*cosa-cost*sina);
-                drho[k] = -rho + sqrt(term1);*/
+                //term1 = rho*rho + B*B - 2*rho*B*(sint*cosa-cost*sina);
+                //drho[k] = -rho + sqrt(term1);
 	}
 }
 
@@ -125,6 +125,8 @@ void print_prm_params(struct PRM p1, struct PRM p2)
 	fprintf(stderr," rng_samp_rate %f \n",p2.fs);
 	fprintf(stderr," sc_clock_start %f \n",p2.SC_clock_start);
 	fprintf(stderr," sc_clock_stop %f \n",p2.SC_clock_stop);
+	fprintf(stderr," clock_start %f \n",p2.clock_start);
+	fprintf(stderr," clock_stop %f \n",p2.clock_stop);
 	fprintf(stderr," prf %f \n",p2.prf);
 }
 
@@ -330,6 +332,7 @@ int main (int argc, char **argv)
 	drange = SOL/(2.0*p2.fs);
 	alpha = p2.alpha_start*PI/180.0;
 	cnst = -4.0*PI/p2.lambda;
+
 	for (k=0;k<xdim;k++){
 		range[k]=p1.near_range+k*drange;
 		topo2[k]=0.;

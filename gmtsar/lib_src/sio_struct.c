@@ -49,7 +49,6 @@ void null_sio_struct(struct PRM *p)
 	strncpy(p->orbdir,NULL_CHAR,8);
 	strncpy(p->lookdir,NULL_CHAR,8);
 	strncpy(p->dtype,NULL_CHAR,8);
-	strncpy(p->SLC_file,NULL_CHAR,8);	
 
 	/* ints	*/
 	p->debug_flag = NULL_INT;
@@ -79,8 +78,8 @@ void null_sio_struct(struct PRM *p)
 	p->SC_clock_start = NULL_DOUBLE;
 	p->SC_clock_stop = NULL_DOUBLE;	
 	p->icu_start = NULL_DOUBLE;	
-	p->ref_clock_start = NULL_DOUBLE;
-	p->ref_clock_stop = NULL_DOUBLE;
+	p->clock_start = NULL_DOUBLE;
+	p->clock_stop = NULL_DOUBLE;
 	p->caltone = NULL_DOUBLE;
 	p->RE = NULL_DOUBLE;			
 	p->ra = NULL_DOUBLE;			
@@ -105,11 +104,9 @@ void null_sio_struct(struct PRM *p)
 	p->fd1 = NULL_DOUBLE;
 	p->fdd1 = NULL_DOUBLE;
 	p->fddd1 = NULL_DOUBLE;
-	p->delr = NULL_DOUBLE;	
 
 	p->sub_int_r = NULL_DOUBLE;
 	p->sub_int_a = NULL_DOUBLE;
-	p->sub_double = NULL_DOUBLE;
 	p->stretch_r = NULL_DOUBLE;
 	p->stretch_a = NULL_DOUBLE;
 	p->a_stretch_r = NULL_DOUBLE;
@@ -183,8 +180,8 @@ while(fscanf(fh,"%s = %s \n",name,value) != EOF){
 	if (strcmp(name, "SC_clock_start") == 0) get_double(name,"SC_clock_start",value,&s->SC_clock_start);
 	if (strcmp(name, "SC_clock_stop") == 0) get_double(name,"SC_clock_stop", value, &s->SC_clock_stop);
 	if (strcmp(name, "icu_start") == 0) get_double(name,"icu_start", value, &s->icu_start);
-	if (strcmp(name, "ref_clock_start") == 0) get_double(name,"ref_clock_start", value, &s->ref_clock_start);
-	if (strcmp(name, "ref_clock_stop") == 0) get_double(name,"ref_clock_stop", value, &s->ref_clock_stop);
+	if (strcmp(name, "clock_start") == 0) get_double(name,"clock_start", value, &s->clock_start);
+	if (strcmp(name, "clock_stop") == 0) get_double(name,"clock_stop", value, &s->clock_stop);
 	if (strcmp(name, "caltone") == 0) get_double(name,"caltone", value, &s->caltone);
 	if (strcmp(name, "earth_radius") == 0) get_double(name,"earth_radius", value, &s->RE);
         if (strcmp(name, "equatorial_radius") == 0) get_double(name,"equatorial_radius", value, &s->ra);
@@ -284,6 +281,8 @@ void put_sio_struct(struct PRM prm, FILE *OUTFILE)
 	if (prm.num_patches != NULL_INT) fprintf(OUTFILE,"num_patches		= %d \n",prm.num_patches);
 	if (prm.SC_clock_start != NULL_DOUBLE) fprintf(OUTFILE,"SC_clock_start		= %16.10lf \n",prm.SC_clock_start);
 	if (prm.SC_clock_stop != NULL_DOUBLE) fprintf(OUTFILE,"SC_clock_stop		= %16.10lf \n",prm.SC_clock_stop);
+	if (prm.clock_start != NULL_DOUBLE) fprintf(OUTFILE,"clock_start		= %16.12lf \n",prm.clock_start);
+	if (prm.clock_stop != NULL_DOUBLE) fprintf(OUTFILE,"clock_stop			= %16.12lf \n",prm.clock_stop);
 	if (strncmp(prm.led_file,NULL_CHAR,8) != 0) fprintf(OUTFILE,"led_file		= %s \n",prm.led_file);
 
 	/* from read_ALOS_ldrfile */

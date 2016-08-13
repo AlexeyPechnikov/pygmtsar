@@ -42,6 +42,7 @@ num_rng_bins bytes_per_line good_bytes_per_line
 PRF pulse_dur near_range
 num_lines num_patches 
 SC_clock_start SC_clock_stop
+clock_start clock_stop
 */
 /* fast random number generator */
 
@@ -173,7 +174,8 @@ long read_ALOS_data (FILE *imagefile, FILE *outfile, struct PRM *prm, long *byte
 	/* calculate end time and fix prf */
 	prm->prf = 0.001*prm->prf;
 
-	prm->SC_clock_stop =  get_clock(sdr, tbias);
+	prm->clock_stop =  get_clock(sdr, tbias);
+	prm->SC_clock_stop = ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_stop;
 
 	/* m is non-zero only in the event of a prf change */
 	prm->num_lines = n - m - 1;
@@ -199,8 +201,7 @@ double	time;
 
 	//nsd = 24.0*60.0*60.0;	/* seconds in a day */
 
-	time = ((double) sdr.sensor_acquisition_year)*1000 +
-		(double) sdr.sensor_acquisition_DOY +
+	time =  (double) sdr.sensor_acquisition_DOY +
 		(double) sdr.sensor_acquisition_msecs_day/1000.0/86400.0 +
 		tbias/86400.0;
 
@@ -221,6 +222,8 @@ void print_params(struct PRM *prm)
 	fprintf(stdout,"num_patches		= %d \n",prm->num_patches);
        	fprintf(stdout,"SC_clock_start		= %16.10lf \n",prm->SC_clock_start);
        	fprintf(stdout,"SC_clock_stop		= %16.10lf \n",prm->SC_clock_stop);
+       	fprintf(stdout,"clock_start		= %16.12lf \n",prm->clock_start);
+       	fprintf(stdout,"clock_stop		= %16.12lf \n",prm->clock_stop);
 }
 /***************************************************************************/
 long read_sardata_info(FILE *imagefile, struct PRM *prm, int *header_size, int *line_prefix_size)
@@ -276,7 +279,8 @@ double get_clock();
 
 	*record_length0 = sdr.record_length - line_prefix_size;
 
-	prm->SC_clock_start =  get_clock(sdr, tbias);
+	prm->clock_start =  get_clock(sdr, tbias);
+	prm->SC_clock_start = ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_start;
 
 	/* record_length is 21100 */
 	/* beginning of line has a 412 byte prefix */
@@ -337,7 +341,8 @@ int reset_params(struct PRM *prm, long *byte_offset, int *n, int *m)
 {
 double get_clock();
 
-	prm->SC_clock_start =  get_clock(sdr, tbias);
+	prm->clock_start =  get_clock(sdr, tbias);
+	prm->SC_clock_start = ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_start;
 	prm->prf = sdr.PRF;
 	prm->near_range = sdr.slant_range;
 	*n = sdr.sequence_number;

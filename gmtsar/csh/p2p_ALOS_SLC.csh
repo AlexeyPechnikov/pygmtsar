@@ -62,7 +62,18 @@ unset noclobber
   set topo_phase = `grep topo_phase $3 | awk '{print $3}'`
   set shift_topo = `grep shift_topo $3 | awk '{print $3}'`
   set switch_master = `grep switch_master $3 | awk '{print $3}'`
-  set filter = `grep filter1 $3 | awk '{print $3}'` 
+#
+# if filter wavelength is not set then use a default of 200m
+#
+  set filter = `grep filter_wavelength $3 | awk '{print $3}'`
+  if ( "x$filter" == "x" ) then
+  set filter = 200
+  echo " "
+  echo "WARNING filter wavelength was not set in config.txt file"
+  echo "        please specify wavelength (e.g., filter_wavelength = 200)"
+  echo "        remove filter1 = gauss_alos_200m"
+  endif
+  echo $filter
   set dec = `grep dec_factor $3 | awk '{print $3}'` 
   set threshold_snaphu = `grep threshold_snaphu $3 | awk '{print $3}'`
   set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
@@ -142,9 +153,9 @@ unset noclobber
     echo "ALIGN - START"
     cd SLC
     cp ../raw/*.PRM .
-    ln -s ../raw/IMG-HH-$master.SLC . 
-    ln -s ../raw/IMG-HH-$slave.SLC . 
-    ln -s ../raw/LED-$master . 
+    ln -s ../raw/IMG-HH-$master.SLC .
+    ln -s ../raw/IMG-HH-$slave.SLC .
+    ln -s ../raw/LED-$master .
     ln -s ../raw/LED-$slave .
     
 
@@ -175,9 +186,9 @@ unset noclobber
 
     cp IMG-HH-$slave.PRM IMG-HH-$slave.PRM0
     ALOS_baseline IMG-HH-$master.PRM IMG-HH-$slave.PRM0 >> IMG-HH-$slave.PRM
-    xcorr IMG-HH-$master.PRM IMG-HH-$slave.PRM
-    fitoffset.csh 6 freq_xcorr.dat >> IMG-HH-$slave.PRM
-    resamp IMG-HH-$master.PRM IMG-HH-$slave.PRM IMG-HH-$slave.PRMresamp IMG-HH-$slave.SLCresamp 1
+    xcorr IMG-HH-$master.PRM IMG-HH-$slave.PRM -xsearch 64 -ysearch 64 -nx 32 -ny 64
+    fitoffset.csh 3 3 freq_xcorr.dat >> IMG-HH-$slave.PRM 18
+    resamp IMG-HH-$master.PRM IMG-HH-$slave.PRM IMG-HH-$slave.PRMresamp IMG-HH-$slave.SLCresamp 4
     rm IMG-HH-$slave.SLC
     mv IMG-HH-$slave.SLCresamp IMG-HH-$slave.SLC
     cp IMG-HH-$slave.PRMresamp IMG-HH-$slave.PRM
@@ -261,11 +272,11 @@ unset noclobber
     set rep_id  = `grep SC_clock_start ../SLC/IMG-HH-$rep.PRM | awk '{printf("%d",int($3))}' `
     mkdir $ref_id"_"$rep_id
     cd $ref_id"_"$rep_id
-    ln -s ../../raw/LED-$ref . 
+    ln -s ../../raw/LED-$ref .
     ln -s ../../raw/LED-$rep .
-    ln -s ../../SLC/IMG-HH-$ref.SLC . 
+    ln -s ../../SLC/IMG-HH-$ref.SLC .
     ln -s ../../SLC/IMG-HH-$rep.SLC .
-    cp ../../SLC/IMG-HH-$ref.PRM . 
+    cp ../../SLC/IMG-HH-$ref.PRM .
     cp ../../SLC/IMG-HH-$rep.PRM .
     if($topo_phase == 1) then
       if ($shift_topo == 1) then
@@ -295,10 +306,10 @@ unset noclobber
       set ref_id  = `grep SC_clock_start ../SLC/IMG-HH-$ref.PRM | awk '{printf("%d",int($3))}' `
       set rep_id  = `grep SC_clock_start ../SLC/IMG-HH-$rep.PRM | awk '{printf("%d",int($3))}' `
       cd $ref_id"_"$rep_id
-
       if ((! $?region_cut) || ($region_cut == "")) then
         set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
       endif
+
 #
 # landmask
 #

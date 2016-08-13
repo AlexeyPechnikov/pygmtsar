@@ -8,7 +8,7 @@ INCLUDES	= $(GMT_INC) -Iinclude
 
 PROGS_C		= bperp.c calc_dop_orb.c conv.c esarp.c offset_topo.c phase2topo.c \
 		  phasediff.c phasefilt.c resamp.c xcorr.c extend_orbit.c \
-		  SAT_llt2rat.c SAT_look.c SAT_baseline.c sbas.c 
+		  SAT_llt2rat.c SAT_look.c SAT_baseline.c sbas.c make_gaussian_filter.c
 PROGS_O         = $(PROGS_C:.c=.o)
 PROGS           = $(PROGS_C:.c=)
 

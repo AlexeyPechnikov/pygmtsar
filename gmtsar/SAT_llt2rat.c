@@ -50,7 +50,6 @@
 #include "orbit_ALOS.h"
 #include "llt2xyz.h"
 
-
 # define R 0.61803399
 # define C 0.382
 # define SHFT2(a,b,c) (a)=(b);(b)=(c);
@@ -58,13 +57,14 @@
 # define TOL 2
 
 char    *USAGE = " \n Usage: "
-"SAT_llt2rat master.PRM [-bo[s|d]] < inputfile > outputfile  \n\n"
+"SAT_llt2rat master.PRM prec [-bo[s|d]] < inputfile > outputfile  \n\n"
 "             master.PRM   -  parameter file for master image and points to LED orbit file \n"
+"             precise      -  (0) standard back geocoding, (1) - polynomial refinenent (slower) \n"
 "             inputfile    -  lon, lat, elevation [ASCII] \n"
 "             outputfile   -  range, azimuth, lon, lat, elevation [ASCII default] \n"
 "             -bos or -bod -  binary single or double precision output \n"
 " \n"
-" example: SAT_llt2rat master.PRM < topo.llt > topo.ratll    \n";
+" example: SAT_llt2rat master.PRM 0 < topo.llt > topo.ratll    \n";
 
 
 /* int parse_ALOS_llt2rat(char **, char *);    */
@@ -72,13 +72,15 @@ void read_orb(FILE *, struct PRM *, struct ALOS_ORB *);
 void set_prm_defaults(struct PRM *);
 void hermite_c(double *, double *, double *, int , int , double , double *, int *);
 void set_prm_defaults(struct PRM *);
+void interpolate_ALOS_orbit_slow(struct ALOS_ORB *orb, double time, double *, double *, double *, int *);
+void polyfit(double *, double *, double *, int *, int *);
 
 int main (int argc, char **argv) {
 
         FILE  *fprm1 = NULL;
 	int otype;
-        double rln,rlt,rht,dr,t1,t2,tm;
-        double ts,rng, thet, relp, telp;
+        double rln,rlt,rht,dr,t1,t11,t2,tm;
+        double ts,rng0, thet, relp, telp;
 	double xp[3];
 	double xt[3];
 	double rp[3];
@@ -87,7 +89,10 @@ int main (int argc, char **argv) {
         double r0,rf,a0,af;
         double rad=PI/180.;
 	double fll,rdd,daa,drr;
-        int j,iy,nrec,npad=8000;
+        double dt,dtt,xs,ys,zs;
+        double time[20],rng[20],d[3];  /* arrays used for polynomial refinement of min range */
+        int ir, k, ntt=10, nc=3;           /* size of arrays used for polynomial refinement */
+        int j,nrec,npad=8000,precise = 0;
         int goldop();
         int stai,endi,midi;
         double **orb_pos = NULL;
@@ -99,15 +104,17 @@ int main (int argc, char **argv) {
         int calorb_alos(struct ALOS_ORB*, double **orb_pos, double ts, double t1, int nrec);
 
 /* Make sure usage is correct and files can be opened  */
-	if (argc < 2 || argc > 3) {
+	if (argc < 3 || argc > 4) {
 	  fprintf (stderr,"%s\n", USAGE);
 	  exit(-1); }
 
+        precise = atoi(argv[2]);
+
 /* otype:    1 -- ascii; 2 -- single precision binary; 3 -- double precision binary    */
 	otype=1;
-	if (argc == 3) {
-	if (!strcmp(argv[2],"-bos")) otype=2;
-	else if (!strcmp(argv[2],"-bod")) otype=3;
+	if (argc == 4) {
+	if (!strcmp(argv[3],"-bos")) otype=2;
+	else if (!strcmp(argv[3],"-bod")) otype=3;
 	else {
           fprintf(stderr," %s *** option not recognized ***\n\n",argv[2]);
           fprintf(stderr,"%s",USAGE);
@@ -122,29 +129,7 @@ int main (int argc, char **argv) {
 /* initialize the prm file   */
 	
 	set_prm_defaults(&prm);
-
 	get_sio_struct(fprm1, &prm);
-
-
-/* dubugging  
-	fprintf(stderr,"debug\n");
-	fprintf(stderr,"%s\n",prm.led_file);
-	fprintf(stderr,"%lf\n",prm.fs);
-	fprintf(stderr,"%d\n",prm.num_rng_bins);
-	fprintf(stderr,"%d\n",prm.num_valid_az);
-	fprintf(stderr,"%lf\n",prm.rc);
-	fprintf(stderr,"%lf\n",prm.ra);
-	fprintf(stderr,"%lf\n",prm.prf);
-	fprintf(stderr,"%lf\n",prm.RE);
-	fprintf(stderr,"%lf\n",prm.sub_int_a);
-	fprintf(stderr,"%lf\n",prm.SC_clock_start);
-	fprintf(stderr,"%d\n",prm.nrows);
-	fprintf(stderr,"%d\n",prm.num_patches);
-	fprintf(stderr,"%lf\n",prm.near_range);
-	fprintf(stderr,"rshift = %d\n",prm.rshift);
-	fprintf(stderr,"sub_int_r = %lf\n",prm.sub_int_r);
-	fprintf(stderr,"chirp_ext = %d\n",prm.chirp_ext);
-*/
 
         fclose(fprm1);
 
@@ -164,7 +149,6 @@ int main (int argc, char **argv) {
           }
         }
         prm.fs=rsr;
-
         dr = 0.5*SOL/prm.fs;
         r0 = -10.;
         rf = prm.num_rng_bins + 10.;
@@ -177,13 +161,14 @@ int main (int argc, char **argv) {
 
 /* compute the start time, stop time and increment */
 
-        iy=(int)(prm.SC_clock_start/1000.);
-        t1=86400.*(prm.SC_clock_start-1000.*iy)+(prm.nrows-prm.num_valid_az)/(2.*prm.prf);
+        t1=86400.*prm.clock_start+(prm.nrows-prm.num_valid_az)/(2.*prm.prf);
         t2=t1+prm.num_patches*prm.num_valid_az/prm.prf;
 
 /* sample the orbit only every 2th point or about 8 m along track */
+/* if this is S1A which has a low PRF sample 2 times more often */
 
         ts=2./prm.prf;
+        if(prm.prf < 600.) ts=2./(2.*prm.prf);
         nrec=(int)((t2-t1)/ts);
 
 /* allocate memory for the orbit postion into a 2-dimensional array. It's about 
@@ -199,17 +184,8 @@ int main (int argc, char **argv) {
         }
 
 /* read in the postion of the orbit */
-/*        fprintf(stderr,"ts=%lf,t1=%lf,nrec=%d\n",ts,t1,nrec);   */
-
        (void)calorb_alos(orb, orb_pos, ts, t1, nrec);
         
-/* look at the orb_pos   
-        for(i=0;i<4;i++) { 
-          for (j=0;j<nrec+2*npad;j=j+100) {
-            fprintf(stderr,"%d,  %lf\n",j,orb_pos[i][j]); }
-        }
-*/
-
 /* read the llt points and convert to xyz.  */
 
         while(scanf(" %lf %lf %lf ",&rln,&rlt,&rht) == 3){
@@ -238,18 +214,32 @@ int main (int argc, char **argv) {
             endi=nrec+npad*2-1;
             midi=(stai+(endi-stai)*C);
 
-	    (void)goldop(ts,t1,orb_pos,stai,endi,midi,xp[0],xp[1],xp[2],&rng, &tm);
+	    (void)goldop(ts,t1,orb_pos,stai,endi,midi,xp[0],xp[1],xp[2],&rng0, &tm);
 
-            xt[0]=rng;
-            xt[1]=tm;
+            if(precise == 1) {
 
-/*    fprintf(stderr,"rng = %f, tm = %f",rng,tm);   */
+/* refine this minimum range and azimuth with a polynomial fit */
+            	dt = 1./ntt;  /* make the polynomial 1 second long */
+            	for (k=0; k<ntt; k++){
+                    time[k] = dt*(k - ntt/2 + .5);
+                    t11 = tm+time[k];
+                    interpolate_ALOS_orbit_slow(orb, t11, &xs, &ys, &zs, &ir);
+                    rng[k] = sqrt((xp[0]-xs)*(xp[0]-xs) + (xp[1]-ys)*(xp[1]-ys) + (xp[2]-zs)*(xp[2]-zs)) - rng0;
+            	}
 
+/* fit a second order polynomial to the range versus time function and update the tm and rng0 */
+            	polyfit(time,rng,d,&ntt,&nc);
+                dtt = -d[1]/(2.*d[2]);
+             	tm=tm+dtt;
+             	interpolate_ALOS_orbit_slow(orb, tm, &xs, &ys, &zs, &ir);
+             	rng0 = sqrt((xp[0]-xs)*(xp[0]-xs) + (xp[1]-ys)*(xp[1]-ys) + (xp[2]-zs)*(xp[2]-zs));
 
-/* compute the range and azimuth in pixel space and correct for an azimuth bias*/
-
+           }
+/* compute the range and azimuth in pixel space */
+           xt[0]=rng0;
+           xt[1]=tm;
            xt[0] = (xt[0] - prm.near_range)/dr-(prm.rshift+prm.sub_int_r)+prm.chirp_ext;
-           xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a);
+           xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a)-1;
 
 /* For Envisat correct for biases based on Pinon reflector analysis */
 	   if(prm.SC_identity == 4){
@@ -260,19 +250,15 @@ int main (int argc, char **argv) {
 /* compute the azimuth and range correction if the Doppler is not zero */
 
 	   if(prm.fd1 != 0.){
-	     rdd = (prm.vel*prm.vel)/rng;
+	     rdd = (prm.vel*prm.vel)/rng0;
 	     daa=-0.5*(prm.lambda*prm.fd1)/rdd;
 	     drr=0.5*rdd*daa*daa/dr;
 	     daa=prm.prf*daa;
-             /*fprintf(stderr," rng, rdd, daa, drr %f %f %f %f \n",rng, rdd, daa, drr); */
 	     xt[0] = xt[0] + drr;
 	     xt[1] = xt[1] + daa;
 	   }
 
-/*	   fprintf(stderr,"xt[0] = %f\n",xt[0]);    */
-
-           if(xt[0] < r0 || xt[0] > rf || xt[1] < a0 || xt[1] > af) continue; 
-/*	     fprintf(stderr,"%f %f %f %f %f \n",xt[0],xt[1],rp[2],rp[1],rp[0]); */ 
+             if((xt[0] < r0 || xt[0] > rf || xt[1] < a0 || xt[1] > af) && (otype > 1)) continue; 
 
 	   if (otype == 1) {
 	     fprintf(stdout,"%f %f %f %f %f \n",xt[0],xt[1],rp[2],rp[1],rp[0]);

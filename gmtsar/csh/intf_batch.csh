@@ -73,7 +73,17 @@ unset noclobber
     set master = `grep master_image $3 | awk '{print $3}'`
   endif
 
-  set filter = `grep filter1 $3 | awk '{print $3}'` 
+#
+# if filter wavelength is not set then use a default of 200m
+#
+  set filter = `grep filter_wavelength $3 | awk '{print $3}'`
+  if ( "x$filter" == "x" ) then
+  set filter = 200
+  echo " "
+  echo "WARNING filter wavelength was not set in config.txt file"
+  echo "        please specify wavelength (e.g., filter_wavelength = 200)"
+  echo "        remove filter1 = gauss_alos_200m"
+  endif
   set dec = `grep dec_factor $3 | awk '{print $3}'` 
   set topo_phase = `grep topo_phase $3 | awk '{print $3}'` 
   set shift_topo = `grep shift_topo $3 | awk '{print $3}'` 

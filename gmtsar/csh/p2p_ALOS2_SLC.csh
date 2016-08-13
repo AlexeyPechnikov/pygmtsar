@@ -39,18 +39,10 @@ unset noclobber
 #
 #   make sure the files exist
 #
-  if(! -f raw/$1 ) then
-    echo " no file  raw/"$1
+  if(! -f $3 ) then
+    echo " no configure file: "$3
     exit
   endif
-  if(! -f raw/$2 ) then
-    echo " no file  raw/"$2
-    exit
-  endif
-   if(! -f $3 ) then
-     echo " no configure file: "$3
-     exit
-   endif
 # 
 # read parameters from configuration file
 # 
@@ -62,7 +54,18 @@ unset noclobber
   set topo_phase = `grep topo_phase $3 | awk '{print $3}'`
   set shift_topo = `grep shift_topo $3 | awk '{print $3}'`
   set switch_master = `grep switch_master $3 | awk '{print $3}'`
-  set filter = `grep filter1 $3 | awk '{print $3}'` 
+#
+# if filter wavelength is not set then use a default of 200m
+#
+  set filter = `grep filter_wavelength $3 | awk '{print $3}'`
+  if ( "x$filter" == "x" ) then
+  set filter = 200
+  echo " "
+  echo "WARNING filter wavelength was not set in config.txt file"
+  echo "        please specify wavelength (e.g., filter_wavelength = 200)"
+  echo "        remove filter1 = gauss_alos_200m"
+  endif
+  echo $filter
   set dec = `grep dec_factor $3 | awk '{print $3}'` 
   set threshold_snaphu = `grep threshold_snaphu $3 | awk '{print $3}'`
   set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
@@ -119,8 +122,18 @@ unset noclobber
     if (!($SLC_factor == "")) then  
       set commandline = "$commandline -SLC_factor $SLC_factor"
     endif
-
+#
+# make sure the files exits
+#
     echo $commandline
+    if(! -f $1 ) then
+      echo " no file  "$1
+      exit
+    endif
+    if(! -f $2 ) then
+      echo " no file  "$2
+      exit
+    endif
 #   ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline -rbias -68. 
 #   ALOS_pre_process_SLC IMG-$slave LED-$slave_led $commandline -rbias -68. 
     ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline 
@@ -183,7 +196,7 @@ unset noclobber
     cp IMG-$slave.PRM IMG-$slave.PRM0
     ALOS_baseline IMG-$master.PRM IMG-$slave.PRM0 >> IMG-$slave.PRM
     xcorr IMG-$master.PRM IMG-$slave.PRM -xsearch 64 -ysearch 64 -nx 32 -ny 64
-    fitoffset.csh 4 freq_xcorr.dat >> IMG-$slave.PRM 18
+    fitoffset.csh 2 2 freq_xcorr.dat 18 >> IMG-$slave.PRM
     resamp IMG-$master.PRM IMG-$slave.PRM IMG-$slave.PRMresamp IMG-$slave.SLCresamp 4
     rm IMG-$slave.SLC
     mv IMG-$slave.SLCresamp IMG-$slave.SLC

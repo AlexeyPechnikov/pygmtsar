@@ -3,6 +3,8 @@
 #
 unset noclobber
 #
+# Rewritten by Xiaohua XU for GMT5SAR, Feb 2016
+#
 # Matt WEI Jan 28 2010
 # Modified by Xiaopeng Feb 8 2010 
 # Modified by Matt Feb 12 2010 - zero.hgt and add 0 to names as N01W072.hgt
@@ -16,12 +18,10 @@ error_message:
  echo " "
  echo " Usage: make_dem.csh lonW lonE latS latN DEM_type" 
  echo " "
- echo "        Map range: -RlonW/lonE/latS/latN"
  echo "        DEM_type: 1--SRTM1 2--SRTM3 3--ASTER"
  echo " "
- echo "        Note: 1  a script called run_mosaic.com will be created"
- echo "              2  has not been tested if the tiles cross equator or E180" 
- echo "              3  custom dem.grd also available from http://topex.ucsd.edu/gmtsar "
+ echo "        notes: 1  has not been tested if the tiles cross equator or E180" 
+ echo "               2  custom dem.grd also available from http://topex.ucsd.edu/gmtsar "
  echo " "
  exit 1
 endif 
@@ -35,15 +35,15 @@ endif
   if ($5 == 1) then
     set demdir = "/palsar/DEM/SRTM1/"
     set pixel = 0.000277777778
-    set INC = 1c
+    set INC = 1s
   else if ($5 == 2) then 
     set demdir = "/palsar/DEM/SRTM3/World/"
     set pixel = 0.000833333333333
-    set INC = 3c
+    set INC = 3s
   else if ($5 == 3) then 
     set demdir = "/palsar/DEM/ASTER/World/"
     set pixel = 0.000277777778
-    set INC = 1c
+    set INC = 1s
   else 
     goto error_message
   endif
@@ -87,15 +87,12 @@ set lat_control = 0
 set lon_tmp = $lon10
 set lat_tmp = $lat10
 
-echo "#" > run_mosaic.com
-echo "#" > filelist
+rm *tmp*
 
 while ( $lat_tmp <= $lat20 ) 
-   echo $lat_tmp
-   while ( $lon_tmp <= $lon20 ) 
-#      echo $lon_tmp
-
-# get the hgt file name right
+  echo $lat_tmp
+  while ( $lon_tmp <= $lon20 ) 
+    # get the hgt file name right
       if ($lat_tmp >= 0) then
         set NS = "N"
         @ lat_s = $lat_tmp
@@ -134,54 +131,62 @@ while ( $lat_tmp <= $lat20 )
       set range = `echo "$lon_tmp $lat_tmp" | awk '{print $1"/"$1+1"/"$2"/"$2+1}'` 
       set demlat = $NS$lat_tmp.grd
       echo $demtmp $demlat $range
-
+      
       if (! -e $demdir$demtmp) then   # file does not exist
          set demtmp = "zero.hgt"
       endif
-      echo "ln -s $demdir$demtmp ." >> run_mosaic.com
+      
+      ln -s $demdir$demtmp .
 
 # bytes swap
-      if (-e $demdir$demtmp) then   # file does not exist
-#     echo "ln -s $demdir$demtmp ." >> run_mosaic.com
       if ($system =~ "sparc" || $system =~ "powerpc") then 
-        echo "gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -ZTLh -V " >> run_mosaic.com
+        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLh -V 
       else if ($system =~ "i686" || $system =~ "i386") then
-        echo "gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -ZTLhw -V " >> run_mosaic.com
+        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLhw -V
       endif
-      echo "$demtmpgrd - 1" >> filelist
-#
-      echo "rm -f $demtmp" >> run_mosaic.com
+# paste grd files together along longitude
+      if (-e tmplon.grd) then
+         gmt grdpaste $demtmpgrd tmplon.grd -Gtmplon.grd
+      else
+         cp $demtmpgrd tmplon.grd
       endif
+      
+      rm -f $demtmp
+      
       @ lon_tmp = $lon_tmp + 1
       if ($lon_tmp >= 180) @ lon_tmp = $lon_tmp - 360
    end
-#
+
+# paste grd files together along latitude
+   if (-e tmplat.grd) then
+      gmt grdpaste tmplon.grd tmplat.grd -Gtmplat.grd
+      rm tmplon.grd
+   else
+      mv tmplon.grd tmplat.grd
+   endif
+
    set lon_control = 0
    set lon_tmp = $lon10
    @ lat_tmp = $lat_tmp + 1 
    rm -f $demlat
 end
-#
-    echo "gmt grdblend filelist -R$bound -I$INC -N0 -Gall.grd " >> run_mosaic.com
-    echo "gmt grdreformat all.grd=nf/1/0/-32768 dem_ortho.grd " >> run_mosaic.com
 
-#
-# run_mosaic
-#
-  chmod +x run_mosaic.com
-  ./run_mosaic.com
+#mv tmplat.grd dem_ortho.grd
+gmt grdcut -R$bound tmplat.grd -Gdem_ortho.grd
+
 #
 #  add the egm96 geoid model if available
 #
-  if (-e $demdir/geoid.egm96.grd) then   # file does not exist
-	echo "adding the egm96 geoid to the dem"
-	gmt grdsample $demdir/geoid.egm96.grd `gmt grdinfo -I- dem_ortho.grd` `gmt grdinfo -I dem_ortho.grd` -fg -Gegm96.grd -T
-	gmt grdedit egm96.grd `gmt grdinfo -I- dem_ortho.grd` -V
-	gmt grdmath dem_ortho.grd egm96.grd ADD = dem.grd
-	rm egm96.grd
-   else
-	mv dem_ortho.grd dem.grd
-   endif
+if (-e $demdir/geoid.egm96.grd) then   # file does not exist
+   echo "adding the egm96 geoid to the dem"
+   gmt grdsample $demdir/geoid.egm96.grd `gmt grdinfo -I- dem_ortho.grd` `gmt grdinfo -I dem_ortho.grd` -fg -Gegm96.grd -T
+   gmt grdedit egm96.grd `gmt grdinfo -I- dem_ortho.grd` -V
+   gmt grdmath dem_ortho.grd egm96.grd ADD = dem.grd
+   rm egm96.grd
+else
+   mv dem_ortho.grd dem.grd
+endif
+
 #
 # plot the dem.grd 
 # 
@@ -196,6 +201,13 @@ end
 #
 # clean up
 # 
- rm -f tmp.log all.grd
- rm -f dem.cpt
- rm -f N*.grd S*.grd dem_grad.grd
+  rm -f tmp.log all.grd tmplat.grd
+  rm -f dem.cpt *.bb *.eps
+  rm -f N*.grd S*.grd dem_grad.grd
+
+
+
+
+
+
+

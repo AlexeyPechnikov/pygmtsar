@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-#	$Id$
+#	$Id: config.mk.in 227 2015-08-12 00:25:27Z pwessel $
 #
 #	Standard Makefile Macro Setup for GMT5SAR
 #
@@ -16,8 +16,6 @@ SHELL		= @SHELL@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 GMTSARHOME	= @rootdir@
 ORBITS_DIR	= @ORBITS_DIR@
-BOOST_INC	= @BOOST_INC@
-BOOST_LIB	= @BOOST_LIB@
 TIFF_INC	= @TIFF_INC@
 TIFF_LIB	= @TIFF_LIB@
 LALIBS		= @LALIBS@
@@ -101,7 +99,3 @@ LIBEXT		= @LIBEXT@
 #
 LD_OPT		= @LD_OPT@
 #-------------------------------------------------------------------------------
-#	The various boost library files on the Mac end with the suffix -mt
-#	for multi-threaded versions so we configure MT to be blank or -mt
-#-------------------------------------------------------------------------------
-MT		= @MT@

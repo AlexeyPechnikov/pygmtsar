@@ -133,7 +133,7 @@ struct 	PRM r;
             outdata[2*i] = (unsigned char) clip127(rtest);
             outdata[2*i+1] = (unsigned char) clip127(itest);
 	  }
-  	  fwrite((void *)outdata+headsize,sizeof(unsigned char),obufsize-headsize,dataout); 
+  	  fwrite(outdata+headsize,sizeof(unsigned char),obufsize-headsize,dataout); 
 	}
 
 	/* compute the changes to the output PRM-file */

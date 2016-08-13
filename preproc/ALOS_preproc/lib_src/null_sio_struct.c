@@ -58,9 +58,11 @@ void null_sio_struct(struct PRM *p)
 	/* doubles	*/
 	p->SC_clock_start = NULL_DOUBLE;
 	p->SC_clock_stop = NULL_DOUBLE;	
+	p->clock_start = NULL_DOUBLE;
+	p->clock_stop = NULL_DOUBLE;	
 	p->icu_start = NULL_DOUBLE;	
-	p->ref_clock_start = NULL_DOUBLE;
-	p->ref_clock_stop = NULL_DOUBLE;
+	p->clock_start = NULL_DOUBLE;
+	p->clock_stop = NULL_DOUBLE;
 	p->caltone = NULL_DOUBLE;
 	p->RE = NULL_DOUBLE;			
 	p->rc = NULL_DOUBLE;			

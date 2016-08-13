@@ -22,14 +22,14 @@ SAT = ALOS
 # 4 - start from make and filter interferograms 
 # 5 - start from unwrap phase
 # 6 - start from geocode  
-proc_stage = 1
+proc_stage = 4
 
 ##################################
 #   parameters for preprocess    #
 #   - pre_proc.csh               #
 ##################################
 # num of patches (usually 1~3) 
-num_patches = 
+num_patches =
 
 # earth radius 
 earth_radius = 
@@ -55,7 +55,7 @@ topo_phase = 1
 # if above parameter = 1 then one should have put dem.grd in topo/
 
 # topo_ra shift (1 -- yes; 0 -- no)
-shift_topo = 1
+shift_topo = 0
 
 ####################################################
 #   parameters for make and filter interferograms  #
@@ -68,9 +68,10 @@ shift_topo = 1
 # phase = repeat phase - reference phase
 switch_master = 0
 
-# filters 
-# look at the filter/ folder to choose other filters
-filter1 = gauss_alos_200m
+# set the filter wavelength in meters (default is 200m)
+# this is the wavelength where the filter has a gain of 0.5
+# the images will be sampled at 1/4 wavelength or smaller
+filter_wavelength = 200
 
 # decimation of images 
 # decimation control the size of the amplitude and phase images. It is either 1 or 2.
@@ -86,7 +87,7 @@ dec_factor = 2
 #####################################
 # correlation threshold for snaphu.csh (0~1)
 # set it to be 0 to skip unwrapping.
-threshold_snaphu = 0
+threshold_snaphu = .11
 
 # region to unwrap in radar coordinates (leave it blank if unwrap the whole region)
 #  example format 500/10800/500/27200
@@ -100,11 +101,11 @@ switch_land = 1
 # defo_max = 0 - used for smooth unwrapped phase such as interseismic deformation
 # defo_max = 65 - will allow a phase jump of 65 cycles or 1.82 m of deformation at C-band
 #
-defomax = 0
+defomax = 20
 
 #####################################
 #   parameters for geocode          #
 #   - geocode.csh                   #
 #####################################
 # correlation threshold for geocode.csh (0~1)
-threshold_geocode = .1
+threshold_geocode = .11

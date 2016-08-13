@@ -68,10 +68,10 @@ void get_params(FILE *fh)
                 SC_clock_stop = atof(value);
         if(strcmp(variable,"SC_identity") == 0)
                 SC_identity = atoi(value); 
-        if(strcmp(variable,"ref_clock_start") == 0)
-                ref_clock_start = atof(value);
-        if(strcmp(variable,"ref_clock_stop") == 0)
-                ref_clock_stop = atof(value);
+        if(strcmp(variable,"clock_start") == 0)
+                clock_start = atof(value);
+        if(strcmp(variable,"clock_stop") == 0)
+                clock_stop = atof(value);
         if(strcmp(variable,"ref_identity") == 0)
                 ref_identity = atoi(value);
         if(strcmp(variable,"deskew") == 0)

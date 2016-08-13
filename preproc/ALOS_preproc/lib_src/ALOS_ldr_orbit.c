@@ -25,17 +25,15 @@
 void ALOS_ldr_orbit(struct ALOS_ORB *orb, struct PRM *prm)
 {
 double	t1, t2;
-double  re, height, vg, dyear;
+double  re, height, vg;
 double  re_c, re_start, re_end, vg_start, vg_end, vtot, rdot;
 double  height_start, height_end;
 
 	if (verbose) fprintf(stderr,"ALOS_ldr_orbit\n");
 
-	dyear = 1000.0*floor((prm->SC_clock_start)/1000.0);
-
 	/* ERSDAC  PRM differs by a factor of 1000 */
 	if (ALOS_format == 1) prm->prf = 1000.0 * prm->prf;
-	t1 = (86400.0)*(prm->SC_clock_start - dyear)+(prm->nrows - prm->num_valid_az)/(2.0*prm->prf);
+	t1 = (86400.0)*prm->clock_start+(prm->nrows - prm->num_valid_az)/(2.0*prm->prf);
 	t2 = t1 + prm->num_patches*prm->num_valid_az/prm->prf;
 
 	calc_height_velocity(orb, prm, t1, t1, &height_start, &re_start, &vg_start, &vtot, &rdot);

@@ -70,8 +70,8 @@ while(fscanf(fh,"%s = %s \n",name,value) != EOF){
 	if (strcmp(name, "SC_clock_start") == 0) get_double(name,"SC_clock_start",value,&s->SC_clock_start);
 	if (strcmp(name, "SC_clock_stop") == 0) get_double(name,"SC_clock_stop", value, &s->SC_clock_stop);
 	if (strcmp(name, "icu_start") == 0) get_double(name,"icu_start", value, &s->icu_start);
-	if (strcmp(name, "ref_clock_start") == 0) get_double(name,"ref_clock_start", value, &s->ref_clock_start);
-	if (strcmp(name, "ref_clock_stop") == 0) get_double(name,"ref_clock_stop", value, &s->ref_clock_stop);
+	if (strcmp(name, "clock_start") == 0) get_double(name,"clock_start", value, &s->clock_start);
+	if (strcmp(name, "clock_stop") == 0) get_double(name,"clock_stop", value, &s->clock_stop);
 	if (strcmp(name, "caltone") == 0) get_double(name,"caltone", value, &s->caltone);
 	if (strcmp(name, "earth_radius") == 0) get_double(name,"earth_radius", value, &s->RE);
         if (strcmp(name, "equatorial_radius") == 0) get_double(name,"equatorial_radius", value, &s->ra);

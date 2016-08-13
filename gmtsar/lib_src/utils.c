@@ -102,12 +102,11 @@ double	r;
 void	get_seconds(struct PRM p, double *start, double *end)
 {
 int	m;
-double	dyear, doy;
+double	doy;
 double	n_secs_day;
 
 n_secs_day = 24.0*60.0*60.0;
-dyear = 1000.0*floor(p.SC_clock_start/1000.0);
-doy = p.SC_clock_start - dyear;
+doy = p.clock_start;
 m = p.nrows - p.num_valid_az;
 
 /* also correct the time for the azimuth shift */

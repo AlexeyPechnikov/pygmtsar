@@ -64,9 +64,6 @@ int  ncnt, print_start;
 unsigned short *icu_time1, *icu_time2;
 double icu_time, icu_time_old;
 
-
-//double SC_clock_start,SC_clock_stop;
-
 struct lineparam {
 int	ifc;
 unsigned short	swst_dn;
@@ -149,30 +146,12 @@ and subtract the data suffix (in bytes) */
 first_sample = prefix/2;
 good_bytes_per_line = linelength - suffix;
 
-/* set the spacecraft time */
-/* pj: these are not included in DPAF data.  use fields 126/4, 126/6
-  (p. 19, ESA ANNEX A documetation) from the leader - and convert to SC_clock_start/end, respectively */
-
-/*if (sdr.year < 2000) {
-  year = sdr.year - 1900;
-  }
-  if (sdr.year > 1999) {
-  year = sdr.year - 2000;
-  }
-
-SC_clock_start = year*1000+(sdr.day_of_year)+(sdr.msecs_of_day)/(1000.0*3600.0*24.0);
-*/
-
-/* pj: SC_clock_start/stop do not get written out until read_data_file_dpaf.c; put this code into a subroutine */
-
-
 /* use PRI times the number of lines */ 
 
 fprintf(stdout, "num_lines 		= %d\n",nlines);
 fprintf(stdout, "good_bytes_per_line 	= %d\n",good_bytes_per_line);
 fprintf(stdout, "bytes_per_line 		= %d\n",linelength);
 fprintf(stdout, "first_sample 		= %d\n",first_sample);
-/*fprintf(stdout, "SC_clock_start		= %16.10lf\n",SC_clock_start);*/
 fprintf(stdout, "num_patches		= %d\n",num_patches);
 
 if (linelength != LINELENGTH) {
@@ -212,7 +191,7 @@ while(fread(data,LINELENGTH,1,indata)!=0){
 	info.swst = calc_swst(info);
 
         icu_time=(double)(*icu_time1)*65536.0+(double)(*icu_time2);
-        if((icu_time-icu_time_old) == 1 & print_start == 0) {
+        if(((icu_time-icu_time_old) == 1) & (print_start == 0)) {
                 fprintf(stdout,"icu_start               = %.3lf\n",(icu_time-(ncnt-2)*(info.pri*256)));
 		print_start = 1;
 	}
@@ -224,9 +203,6 @@ while(fread(data,LINELENGTH,1,indata)!=0){
 		/*fprintf(stdout, "near_range		= %lf \n",(info.swst*SOL/2.0));*/
 
 		fprintf(stdout, "PRF 			= %lf\n",(1.0/info.pri)); 
-		/*SC_clock_stop = SC_clock_start+(nlines*info.pri)/(24.0*3600.0);*/
-		/*fprintf(stdout, "SC_clock_stop          = %16.10lf\n",SC_clock_stop);*/
-
 		prior_pri_dn = info.pri_dn;
 		iwrite = 1;
 		}

@@ -40,7 +40,9 @@ Values read here (and or generated) are:
 num_rng_bins bytes_per_line good_bytes_per_line 
 PRF pulse_dur near_range
 num_lines num_patches 
-SC_clock_start SC_clock_stop */
+SC_clock_start SC_clock_stop  - this includes year YYYDDD.DDDDDDD
+clock_start clock_stop        - this has not year for better precision DDD.DDDDDDDDD
+*/
 
 #include "image_sio.h"
 #include "lib_functions.h"
@@ -171,7 +173,8 @@ long read_ALOS_data_SS (FILE *imagefile, FILE *outfile, struct PRM *prm, long *b
         /* read the line header and set the parameters for this subswath */
 	fread((void *) &sdr,line_prefix_size, 1, imagefile);
 	if (swap) swap_ALOS_data_info(&sdr);
-	prm->SC_clock_start =  get_clock(sdr, tbias);
+        prm->clock_start =  get_clock(sdr, tbias);
+        prm->SC_clock_start = ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_start;
 	prm->prf = sdr.PRF;
 	if(prm->near_range < 0) prm->near_range = sdr.slant_range;
 	fseek(imagefile, -1*line_prefix_size, SEEK_CUR);
@@ -269,7 +272,8 @@ long read_ALOS_data_SS (FILE *imagefile, FILE *outfile, struct PRM *prm, long *b
 	/* calculate end time and fix prf */
 	prm->prf = 0.001*PRF[*nsub];
 
-	prm->SC_clock_stop =  get_clock(sdr, tbias);
+        prm->clock_stop =  get_clock(sdr, tbias);
+        prm->SC_clock_stop = ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_stop;
 
 	/* m is non-zero only in the event of a prf change */
 	prm->num_lines = nlines-1;
@@ -291,8 +295,7 @@ double	time;
 
 	//nsd = 24.0*60.0*60.0;	/* seconds in a day */
 
-	time = ((double) sdr.sensor_acquisition_year)*1000 +
-		(double) sdr.sensor_acquisition_DOY +
+	time =  (double) sdr.sensor_acquisition_DOY +
 		(double) sdr.sensor_acquisition_msecs_day/1000.0/86400.0 +
 		tbias/86400.0;
 
@@ -313,6 +316,8 @@ void print_params(struct PRM *prm)
 	fprintf(stdout,"num_patches		= %d \n",prm->num_patches);
        	fprintf(stdout,"SC_clock_start		= %16.10lf \n",prm->SC_clock_start);
        	fprintf(stdout,"SC_clock_stop		= %16.10lf \n",prm->SC_clock_stop);
+       	fprintf(stdout,"clock_start		= %16.12lf \n",prm->clock_start);
+       	fprintf(stdout,"clock_stop		= %16.12lf \n",prm->clock_stop);
 }
 /***************************************************************************/
 long read_sardata_info(FILE *imagefile, struct PRM *prm, int *header_size, int *line_prefix_size)
@@ -368,7 +373,8 @@ double tbias = 0.0, get_clock();
 
 	*record_length0 = sdr.record_length - line_prefix_size;
 
-	prm->SC_clock_start =  get_clock(sdr, tbias);
+        prm->clock_start =  get_clock(sdr, tbias);
+        prm->SC_clock_start = ((double) sdr.sensor_acquisition_year)*1000 + prm->clock_start;
 
 	/* record_length is 21100 */
 	/* beginning of line has a 412 byte prefix */

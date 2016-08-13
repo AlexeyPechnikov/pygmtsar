@@ -88,7 +88,7 @@ unset noclobber
 #
 # put in the alignment parameters 
 #
-  fitoffset.csh 6 freq_xcorr.dat 18 >> $3.PRM
+  fitoffset.csh 3 3 freq_xcorr.dat 18 >> $3.PRM
   mv freq_xcorr.dat xcorr_$2_$3.dat0
 #
 # refocus the second image

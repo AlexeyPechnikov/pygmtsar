@@ -23,7 +23,19 @@ unset noclobber
 #
 #  remove the line with the matching parameter
 #
- grep -v $2 < junk.PRM > junk2.PRM
+ if ($2 != 'clock_start' && $2 != 'clock_stop') then
+   grep -v $2 < junk.PRM > junk2.PRM
+ else
+   if ($2 == 'clock_start') then
+     set tmptime = `grep SC_clock_start < junk.PRM | awk '{print $3}'`
+     grep -v $2 < junk.PRM > junk2.PRM
+     echo 'SC_clock_start' ' = ' $tmptime >> junk2.PRM
+   else
+     set tmptime = `grep SC_clock_stop < junk.PRM | awk '{print $3}'`
+     grep -v $2 < junk.PRM > junk2.PRM
+     echo 'SC_clock_stop' ' = ' $tmptime >> junk2.PRM
+   endif
+ endif
 #
 #  add a new line
 #

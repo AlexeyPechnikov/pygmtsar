@@ -44,6 +44,8 @@ void write_ALOS_prm(FILE *prmfile, char *filename, struct PRM *prm)
 	fprintf(prmfile,"num_patches		= %d \n",prm->num_patches);
        	fprintf(prmfile,"SC_clock_start		= %16.10lf \n",prm->SC_clock_start);
        	fprintf(prmfile,"SC_clock_stop		= %16.10lf \n",prm->SC_clock_stop);
+       	fprintf(prmfile,"clock_start		= %16.12lf \n",prm->clock_start);
+       	fprintf(prmfile,"clock_stop		= %16.12lf \n",prm->clock_stop);
 	fprintf(prmfile,"led_file		= %s \n",prm->led_file);
 
 	/* from read_ALOS_ldrfile */

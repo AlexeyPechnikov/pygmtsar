@@ -61,6 +61,7 @@ unsigned short *icu_time1, *icu_time2;
 double icu_time, icu_time_old;
 
 double SC_clock_start,SC_clock_stop;
+double clock_start,clock_stop;
 
 struct lineparam {
 int	ifc;
@@ -150,6 +151,7 @@ if(endian == -1) {
 }
 
 SC_clock_start = sdr.year*1000+(sdr.day_of_year)+(sdr.msecs_of_day)/(1000.0*3600.0*24.0);
+clock_start = sdr.day_of_year+(sdr.msecs_of_day)/(1000.0*3600.0*24.0);
 /* use PRI times the number of lines */ 
 
 fprintf(stdout, "num_lines	 	= %d\n",nlines-1);
@@ -195,7 +197,7 @@ while(fread(data,LINELENGTH,1,indata)!=0){
 	info.swst = calc_swst(info);
 
         icu_time=(double)(*icu_time1)*65536.0+(double)(*icu_time2);
-        if((icu_time-icu_time_old) == 1 & print_start == 0) {
+        if(((icu_time-icu_time_old) == 1) & (print_start == 0)) {
                 fprintf(stdout,"icu_start               = %.3lf\n",(icu_time-(ncnt-2)*(info.pri*256)));
                 print_start = 1;
         }
@@ -206,8 +208,11 @@ while(fread(data,LINELENGTH,1,indata)!=0){
 /* don't need to print near_range here because it is obtained from ers_line_fixer */
 		/*fprintf(stdout, "near_range		= %lf \n",(info.swst*SOL/2.0)); */
 		SC_clock_stop = SC_clock_start+(nlines*info.pri)/(24.0*3600.0);
+		clock_stop = clock_start+(nlines*info.pri)/(24.0*3600.0);
 		fprintf(stdout, "SC_clock_start		= %16.10lf\n",SC_clock_start);
 		fprintf(stdout, "SC_clock_stop		= %16.10lf\n",SC_clock_stop);
+		fprintf(stdout, "clock_start		= %16.12lf\n",clock_start);
+		fprintf(stdout, "clock_stop		= %16.12lf\n",clock_stop);
 		fprintf(stdout, "PRF 			= %lf\n",(1.0/info.pri));
 		prior_pri_dn = info.pri_dn;
 		iwrite = 1;

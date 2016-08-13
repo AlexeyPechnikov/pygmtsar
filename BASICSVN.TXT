@@ -1,4 +1,4 @@
-#	$Id$
+#	$Id: BASICSVN.TXT 210 2015-08-07 15:46:10Z pwessel $
 #
 For those unfamiliar with subversion, here are some basic commands and approaches
 

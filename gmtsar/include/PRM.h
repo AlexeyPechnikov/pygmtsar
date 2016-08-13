@@ -33,8 +33,8 @@ struct PRM {
 	int fdc_strt;
 	int rec_start;
 	int rec_stop;
-	int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2*/
-	int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2 */
+	int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
+	int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
 	int nrows;
 	int num_lines;
 	int SLC_format;		/* 1 => complex ints (2 bytes)	2 => complex floats (4 bytes) */
@@ -42,8 +42,8 @@ struct PRM {
 	double SC_clock_start;	/* YYDDD.DDDD */
 	double SC_clock_stop;	/* YYDDD.DDDD */
 	double icu_start;	/* onboard clock counter */
-	double ref_clock_start;
-	double ref_clock_stop;
+	double clock_start; /* DDD.DDDDDDDD clock without year has more precision */
+	double clock_stop;  /* DDD.DDDDDDDD clock without year has more precision */
 	double caltone;
 	double RE;			/*local earth eadius */
 	double rc;			/* polar radius */

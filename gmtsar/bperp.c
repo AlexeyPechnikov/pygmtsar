@@ -41,6 +41,8 @@ void print_prm_params (struct PRM p1, struct PRM p2)
 	fprintf(stderr," rng_samp_rate %f \n",p2.fs);
 	fprintf(stderr," sc_clock_start %f \n",p2.SC_clock_start);
 	fprintf(stderr," sc_clock_stop %f \n",p2.SC_clock_stop);
+	fprintf(stderr," clock_start %f \n",p2.clock_start);
+	fprintf(stderr," clock_stop %f \n",p2.clock_stop);
 	fprintf(stderr," prf %f \n",p2.prf);
 }
 

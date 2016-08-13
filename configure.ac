@@ -1,5 +1,5 @@
 dnl -----------------------------------------------------------------
-dnl	$Id$
+dnl	$Id: configure.ac 228 2015-08-12 00:37:33Z pwessel $
 dnl
 dnl     This program is free software; you can redistribute it and/or modify
 dnl     it under the terms of the GNU General Public License as published by
@@ -50,8 +50,6 @@ dnl GMT5SAR-specific make macros
 dnl ------------------------------------------------------------------
 dnl
 AC_SUBST(ORBITS_DIR)
-AC_SUBST(BOOST_INC)
-AC_SUBST(BOOST_LIB)
 AC_SUBST(LALIBS)
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
@@ -78,8 +76,6 @@ dnl Special configure options for GMTSAR installation
 dnl ------------------------------------------------------------------
 dnl
 AC_ARG_WITH(orbits_dir,    [  --with-orbits-dir=      Full path to ORBITS directory[[auto]]], [], [with_orbits_dir=no])
-AC_ARG_WITH(boost_include, [  --with-boost-include=   Full path to boost include directory [[auto]]])
-AC_ARG_WITH(boost_lib,     [  --with-boost-lib=       Full path to boost lib directory [[auto]]])
 AC_ARG_WITH(tiff_include,  [  --with-tiff-include=    Full path to tiff include directory [[auto]]])
 AC_ARG_WITH(tiff_lib,      [  --with-tiff-lib=        Full path to tiff lib directory [[auto]]])
 AC_ARG_WITH(gmt_config,    [  --with-gmt-config=      Full path to gmt-config [[auto]]])
@@ -163,53 +159,47 @@ AC_MSG_CHECKING(for HDF5 libs)
 AC_MSG_RESULT([$HDF5_LDFLAGS $HDF5_LIBS])
 dnl
 dnl ------------------------------------------------------------------
-dnl Set path to boost directories with --with-boost=include|lib
+dnl Set path to tiff directories with --with-tiff=include|lib
 dnl ------------------------------------------------------------------
 dnl
-AC_MSG_CHECKING(for BOOST include directory)
-if test "X$with_boost_include" = "X"; then	# Must look for it in standard places
-	if [ test -d /sw/opt ]; then	# fink
-		flib=`echo /sw/opt/boost*`
-		if [ test -d $flib ]; then	# fink
-			BOOST_INC=$flib/include
-		fi
-	elif [ test -d /opt/local/include/boost ]; then	# macports
-		BOOST_INC=/opt/local/include
-	elif [ test -d /usr/local/include/boost ]; then
-		BOOST_INC=/usr/local/include
-	elif [ test -d /usr/include/boost ]; then	# Ubuntu
-		BOOST_INC=/usr/include
-	elif [ test -d /opt/csw/include/boost ]; then 	# Blastwave
-		BOOST_INC=/opt/csw/include
-	elif [ test -d /opt/include/boost ]; then
-		BOOST_INC=/opt/include
+AC_MSG_CHECKING(for TIFF include directory)
+if test "X$with_TIFF_include" = "X"; then	# Must look for it in standard places
+	if [ test -d /sw/include ]; then	# fink
+		TIFF_INC=/sw/include
+	elif [ test -d /opt/local/include ]; then	# macports
+		TIFF_INC=/opt/local/include
+	elif [ test -d /usr/local/include ]; then
+		TIFF_INC=/usr/local/include
+	elif [ test -d /usr/include ]; then	# Ubuntu
+		TIFF_INC=/usr/include
+	elif [ test -d /opt/csw/include ]; then	# Blastwave
+		TIFF_INC=/opt/csw/include
+	elif [ test -d /opt/include ]; then
+		TIFF_INC=/opt/include
 	fi
 else
-	BOOST_INC=$with_boost_include
+	TIFF_INC=$with_tiff_include
 fi
-AC_MSG_RESULT($BOOST_INC)
-AC_MSG_CHECKING(for BOOST library directory)
-if test "X$with_boost_lib" = "X"; then	# Must look for it in standard places
-	if [ test -d /sw/opt ]; then	# fink
-		flib=`echo /sw/opt/boost*`
-		if [ test -d  $flib ]; then	# fink
-			BOOST_LIB=$flib/lib
-		fi
-	elif [ test -d /opt/local/include/boost ]; then	# macports
-		BOOST_LIB=/opt/local/lib
-	elif [ test -d /usr/local/include/boost ]; then
-		BOOST_LIB=/usr/local/lib
-	elif [ test -d /usr/include/boost ]; then	# Ubuntu
-		BOOST_LIB=/usr/lib/x86_64-linux-gnu
-	elif [ test -d /opt/csw/include/boost ]; then 	# Blastwave
-		BOOST_LIB=/opt/csw/lib
-	elif [ test -d /opt/include/boost ]; then
-		BOOST_LIB=/opt/lib
+AC_MSG_RESULT($TIFF_INC)
+AC_MSG_CHECKING(for TIFF library directory)
+if test "X$with_tiff_lib" = "X"; then	# Must look for it in standard places
+	if [ test -d /sw/include ]; then	# fink
+		TIFF_LIB=/sw/lib
+	elif [ test -d /opt/local/include ]; then	# macports
+		TIFF_LIB=/opt/local/lib
+	elif [ test -d /usr/local/include ]; then
+		TIFF_LIB=/usr/local/lib
+	elif [ test -d /usr/include ]; then	# Ubuntu
+		TIFF_LIB=/usr/lib/x86_64-linux-gnu
+	elif [ test -d /opt/csw/include ]; then	# Blastwave
+		TIFF_LIB=/opt/csw/lib
+	elif [ test -d /opt/include ]; then
+		TIFF_LIB=/opt/lib
 	fi
 else
-	BOOST_LIB=$with_boost_lib/lib
+	TIFF_LIB=$with_tiff_lib/lib
 fi
-AC_MSG_RESULT($BOOST_LIB)
+AC_MSG_RESULT($TIFF_LIB)
 dnl
 dnl ------------------------------------------------------------------
 dnl Set path to tiff directories with --with-tiff=include|lib

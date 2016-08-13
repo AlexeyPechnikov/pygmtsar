@@ -90,7 +90,7 @@ FILE	*prmfile;
 		fclose(prmfile);
 		}
 
-		fprintf(stderr,"SC_identity = %d \n",r[0].SC_identity);
+		printf("SC_identity = %d \n",r[0].SC_identity);
 		orb = malloc(nfiles*sizeof(struct ALOS_ORB));
 		read_all_ldr(r, orb, nfiles);
 		baseline(r, orb, nfiles, input_flag,filename,fs0);
@@ -106,8 +106,8 @@ void read_all_ldr(struct PRM *r, struct ALOS_ORB *orb, int nfiles)
         FILE    *ldrfile;
 
         for (i=0; i<nfiles; i++){
-                if (i == 0) fprintf(stderr,"......master LED file %s \n",r[0].led_file);
-                if (i != 0) fprintf(stderr,".........slave LED file %s \n",r[i].led_file);
+                if (i == 0) printf("......master LED file %s \n",r[0].led_file);
+                if (i != 0) printf(".........slave LED file %s \n",r[i].led_file);
 
                 /* open each ldrfile and read into structure r */
                 if ((ldrfile = fopen(r[i].led_file,"r")) == NULL) die("Can't open ldrfile %s",r[i].led_file);
@@ -142,21 +142,25 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 	double target_rat_ref[3]={0,0,0};
 	double target_rat_rep[3]={0,0,0};
 	double far_range;
+        double prec,dstart;
 
 	/* reference orbit */
 	get_seconds(r[0], &t11, &t12);
 	/* t13 = (t11 + t12)/2.; */
 	dr = 0.5*SOL/fs0;
 	dt = 0.5/r[0].prf;
-	/* rr1 = r[0].near_range; */
 	ns = (int) ((t12 - t11)/dt);	/* seconds of frame */
 	dt = (t12 - t11)/(ns - 1);
 
-        /* set the extension to 20% unless ERS or Envisat and then set to 200% */
-        ns2 = ns*0.2;
-        if(r[0].SC_identity < 3 || r[0].SC_identity == 4) ns2=ns*2;
+        /* set the extension to 50% unless ERS or Envisat and then set to 200% */
+        ns2 = ns*0.5;
+        if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;
 
 	nd = orb[0].nd;
+        for(ii=1;ii<nfiles;ii++){
+                if (nd < orb[ii].nd) nd = orb[ii].nd;
+        }
+
 	pt = malloc(nd*sizeof(double));
 	p = malloc(nd*sizeof(double));
 	pv = malloc(nd*sizeof(double));
@@ -203,6 +207,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		x12 = y12 = z12 = -99999.0;
 		x13 = y13 = z13 = -99999.0;
 
+                /* roughly compute baseline */
 		for (k = -ns2; k<ns + ns2; k++){
 			ts = t11 + k*dt;
 			interpolate_ALOS_orbit(&orb[0], pt, p, pv, ts, &xs, &ys, &zs, &ir);
@@ -216,11 +221,53 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
                         ds = find_dist(xs, ys, zs, x23, y23, z23);
                         if (b3 < 0.0 || ds < b3) endpoint_distance(k, ds, xs, ys, zs, &b3, &x13, &y13, &z13, &m3);
 			}
-
 		/* compute more orbital information at the min baseline based on m1 */
 
 		ts = t11 + m1*dt;
 		calc_height_velocity(&orb[0], &r[0], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
+		/* update the time parameters for precise computation */
+                prec = sqrt((b1+0.0003)*(b1+0.0003)-b1*b1);
+                if (prec < vtot/r[0].prf/2.0){
+                /* check to see if the reference and repeat start times are the same.  If yes do just a crude estimate */
+                        dstart = fabs(t11-t21);
+			dt = prec/vtot;
+                        if(dstart < 10.) dt=1./r[0].prf;
+                	ns = (int) ((t12 - t11)/dt)+1;
+			dt = (t12 - t11)/(ns - 1);
+                	printf("Sampling intervel being %.6f azimuth pixel\n",dt*r[0].prf);
+			ns2 = ns*0.5;
+	        	if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;
+                        
+
+                	/* precisely compute the baseline up to 1mm level */
+                	for (k = -ns2; k<ns + ns2; k++){
+                        	ts = t11 + k*dt;
+                        	interpolate_ALOS_orbit(&orb[0], pt, p, pv, ts, &xs, &ys, &zs, &ir);
+
+                        	ds = find_dist(xs, ys, zs, x21, y21, z21);
+                        	if (b1 < 0.0 || ds < b1) endpoint_distance(k, ds, xs, ys, zs, &b1, &x11, &y11, &z11, &m1);
+
+                        	ds = find_dist(xs, ys, zs, x22, y22, z22);
+                        	if (b2 < 0.0 || ds < b2) endpoint_distance(k, ds, xs, ys, zs, &b2, &x12, &y12, &z12, &m2);
+
+                        	ds = find_dist(xs, ys, zs, x23, y23, z23);
+                        	if (b3 < 0.0 || ds < b3) endpoint_distance(k, ds, xs, ys, zs, &b3, &x13, &y13, &z13, &m3);
+                        	}
+                	/* compute more orbital information at the min baseline based on m1 */
+
+                	ts = t11 + m1*dt;
+                	calc_height_velocity(&orb[0], &r[0], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
+
+                	/* change back the dt settings*/
+        		dt = 0.5/r[0].prf;
+			ns = (int) ((t12 - t11)/dt);    /* seconds of frame */
+			dt = (t12 - t11)/(ns - 1);
+         
+			/* set the extension to 50% unless ERS or Envisat and then set to 200% */
+			ns2 = ns*0.5;
+			if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;        
+
+		}
 		/* fd_orbit = -2.0*rdot/r[0].lambda; */
 
 		/* shouldn't happen ..					*/
@@ -265,11 +312,11 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		r[ii].bperp = bperp;
 
 		/* find expected offset in pixels (rshift and yshift) 	*/
-		/*
+	        /*
 		r[ii].ashift = -1*m1;
-		r[ii].rshift = -1*(int) (r[ii].bpara/dr + (rr2 - rr1)/dr);
+		r[ii].rshift = -1*(int) (r[ii].bpara/dr + (r[ii].near_range - r[0].near_range)/dr);
+		fprintf(stderr,"ashift     =  %d\nrshift    =  %d\n",r[ii].ashift,r[ii].rshift);
 		*/
-
 		/* a more accurate way to estimate offset in pixels    */ 
 		
 		/* since t11 point is out of scene, I need add a fraction of orbit time to it  */
@@ -328,8 +375,8 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		fll= (r[0].ra-r[0].rc)/r[0].ra;
 		xyz2plh(target,target_llt,r[0].ra,fll);
 		
-		fprintf(stderr,"lon_tie_point =  %f\n",target_llt[1]);
-		fprintf(stderr,"lat_tie_point =  %f\n",target_llt[0]);
+		printf("lon_tie_point =  %f\n",(target_llt[1]>180.0) ? target_llt[1]-360.0 : target_llt[1]);
+		printf("lat_tie_point =  %f\n",target_llt[0]);
 
 		llt2rat_sub(filename[0], target_llt, target_rat_ref);
 		llt2rat_sub(filename[ii], target_llt, target_rat_rep);
@@ -367,12 +414,12 @@ FILE *inputfile;
 
 	if (strncmp(argv[1],"-input",6) != 0) {
 
-		fprintf(stderr,"using command line\n");
+		printf("using command line\n");
 		*nfiles = 2;
 
 		} else {
 
-		fprintf(stderr,"using input file \n");
+		printf("using input file \n");
 		*input_flag = 1;
 
 		if ((inputfile=fopen(argv[2],"r")) == NULL) die("Can't open ",argv[2]);

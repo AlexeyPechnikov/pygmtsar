@@ -79,8 +79,8 @@ struct PRM {
 	double SC_clock_start;	/* YYDDD.DDDD */
 	double SC_clock_stop;	/* YYDDD.DDDD */
 	double icu_start;	/* onboard clock counter */
-	double ref_clock_start;
-	double ref_clock_stop;
+	double clock_start;     /* DDD.DDDDDDDD - same as SC_clock_start but no YY so more precision */
+	double clock_stop;      /* DDD.DDDDDDDD - same as SC_clock_stop but no YY so more precision */
 	double caltone;
 	double RE;			/*local earth eadius */
 	double rc;			/* polar radius */

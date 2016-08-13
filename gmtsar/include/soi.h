@@ -13,7 +13,7 @@
 *  4/23/97- 	added parameters for orbit calculations: x_target,      *
 *		y_target,z_target,baseline,alpha,sc_identity,		*
 *		ref_identity,SC_clock_start,SC_clock_stop,              *
-*		ref_clock_start,ref_clock_stop				*
+*		clock_start,clock_stop   				*
 *		-DTS							*
 *									*
 * 4/23/97-	added parameters: rec_start, rec_stop			*
@@ -80,13 +80,13 @@ int rec_stop;
 /* End new parameters 4/23/97 -EJP */ 
 
 /* New parameters 4/23/97 -DTS */
-int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS */
-int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS */
+int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS  (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A*/
+int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS  (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A*/
 double SC_clock_start;	/* YYDDD.DDDD */
 double SC_clock_stop;	/* YYDDD.DDDD */
 double icu_start;       /* onboard clock counter */
-double ref_clock_start;
-double ref_clock_stop;
+double clock_start;     /* DDD.DDDDDDDD  clock without year has more precision */
+double clock_stop;      /* DDD.DDDDDDDD  clock without year has more precision */
 /* End new parameters 4/23/97 -DTS */
 
 double caltone;

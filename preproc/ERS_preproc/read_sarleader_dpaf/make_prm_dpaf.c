@@ -10,7 +10,7 @@
 #include "../include/soi.h"
 #define FACTOR 1000000
 
-void calc_time(char time_string[], double *clock_time); 
+void calc_time(char time_string[], double *clock_time, double *SC_clock_time); 
 
 void make_prm_dpaf(sar)
 struct	SAR_info	sar;
@@ -19,6 +19,7 @@ struct	SAR_info	sar;
 int	SC_identity; /* ERS-1 = 1, ERS2 = 2 */
 
 double SC_clock_start,SC_clock_stop;
+double clock_start,clock_stop;
 
 /* translate from structure holding SAR info */
 /* see SARtape.h and associated include files for more details */
@@ -49,8 +50,8 @@ double SC_clock_start,SC_clock_stop;
 	//sc_clock_start = atof((sar.dpaf_dss->satelite_clock_time+2));
 
 /* pj */	
-	calc_time(sar.dpaf_dss->zero_dop_az_time_f_pixel,&SC_clock_start);
-	calc_time(sar.dpaf_dss->zero_dop_az_time_l_pixel,&SC_clock_stop);
+	calc_time(sar.dpaf_dss->zero_dop_az_time_f_pixel,&clock_start,&SC_clock_start);
+	calc_time(sar.dpaf_dss->zero_dop_az_time_l_pixel,&clock_stop ,&SC_clock_stop);
 
 /*fprintf(stdout,"I_mean			= %lf\n",I_mean);
 fprintf(stdout,"Q_mean			= %lf\n",Q_mean);
@@ -64,12 +65,14 @@ fprintf(stdout, "SC_identity          = %d\n",SC_identity);*/
 
 fprintf(stdout, "SC_clock_start		= %16.10lf\n",SC_clock_start);
 fprintf(stdout, "SC_clock_stop          = %16.10lf\n",SC_clock_stop);
+fprintf(stdout, "clock_start		= %16.12lf\n",clock_start);
+fprintf(stdout, "clock_stop          	= %16.12lf\n",clock_stop);
 
 }
 
 /* pj */
 
-void calc_time(char time_string[],double *clock_time)
+void calc_time(char time_string[],double *clock_time,double *SC_clock_time)
 
   {
     int day_of_month,hour,minute,second,msec,jday,i,month,year,leap;
@@ -148,21 +151,11 @@ zero_dop string */
     }
     
     jday=jday+day_of_month;
-    
     hour = atoi(&time_string[12]);
-    
     minute = atoi(&time_string[15]);
-    
     second = atoi(&time_string[18]);
-    
-//    msec = atoi(&tmp_time_string[21]);
-//   memcpy(string_tmp,&tmp_time_string[21],3);
-   msec =atoi(strncpy(string_tmp,tmp_time_string+21,3));
-//    printf("%3d\n",hour);
-//   printf("%3d\n",minute);
-//   printf("%3d\n",second);
-//   printf("%3d\n",msec);
-//   printf("%s\n",tmp_time_string);
+    msec =atoi(strncpy(string_tmp,tmp_time_string+21,3));
+
 /* add either 1900 or 2000 to the year */
     if(year < 85.) {
 	year = year + 2000.;
@@ -173,7 +166,9 @@ zero_dop string */
 
 /*     calculate clock time; determine fraction of msecs in day */
 
-    *clock_time=(double)(year*1000+jday)+
+   *clock_time=(double)(jday)+
       ((double)(hour*3600*1000+minute*60*1000+second*1000+msec)/
        (double)(24*3600*1000));
+
+    *SC_clock_time=(double)(year*1000)+*clock_time;
   }
