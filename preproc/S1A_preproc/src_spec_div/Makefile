@@ -1,6 +1,6 @@
 include ../../../config.mk
 
-INCLUDES = -I../include -I$(GMTSARHOME)/gmtsar/include $(GMT_INC)
+INCLUDES = -I../include -I$(GMTSARHOME)/gmtsar $(GMT_INC)
 CLIBS = -L../lib -lxmlC $(GMTSAR) $(GMT_LIB) $(LALIBS) -lm
 
 spectral_diversity: spectral_diversity.o

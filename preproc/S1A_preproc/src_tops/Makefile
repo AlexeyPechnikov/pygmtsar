@@ -1,6 +1,6 @@
 include ../../../config.mk
 
-INCLUDES = -I../include -I$(GMTSARHOME)/gmtsar/include -I$(TIFF_INC) $(GMT_INC)
+INCLUDES = -I../include -I$(GMTSARHOME)/gmtsar -I$(TIFF_INC) $(GMT_INC)
 CLIBS = -L../lib -lxmlC $(GMTSAR) $(GMT_LIB) $(LALIBS) -L$(TIFF_LIB) -ltiff -lm
 
 make_s1a_tops: make_s1a_tops.o

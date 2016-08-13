@@ -1,6 +1,6 @@
 #	$Id: Makefile 109 2015-01-19 23:01:24Z sandwell $
 #
-#    makefile for gmtsar/lib_src directory
+#    makefile for gmtsar directory
 #
 include ../../config.mk
 

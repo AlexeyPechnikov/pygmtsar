@@ -65,7 +65,7 @@ GMT_LIB		= @GMT_LIB@
 #-------------------------------------------------------------------------------
 #	Required directives for GMTSAR library
 #-------------------------------------------------------------------------------
-GMTSAR		= -L@rootdir@/gmtsar/lib_src -lgmtsar
+GMTSAR		= -L@rootdir@/gmtsar -lgmtsar
 #
 #-------------------------------------------------------------------------------
 #	Compiler switches and linker flags
