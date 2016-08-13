@@ -1,5 +1,5 @@
 #
-# $Id: ConfigCMake.cmake 16437 2016-05-15 20:02:52Z pwessel $
+# $Id$
 #
 # Useful CMake variables.
 #

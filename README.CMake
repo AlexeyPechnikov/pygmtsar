@@ -1,5 +1,5 @@
 ////
-$Id: CMakeLists.txt 15759 2016-02-24 23:36:11Z pwessel $
+$Id$
 ////
 
 Information for building GMTSAR with CMake
