@@ -51,8 +51,8 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 
-#include <siocomplex.h>
-#include <llt2rat.h>
+#include "siocomplex.h"
+#include "llt2rat.h"
 #include "PRM.h"
 
 /* global variables */

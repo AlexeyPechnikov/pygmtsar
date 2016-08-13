@@ -1,5 +1,5 @@
 #include <string.h>
-#include"lib_functions.h"
+#include "lib_functions.h"
 
 /*------------------------------------------------------*/
 /* set some defaults					*/

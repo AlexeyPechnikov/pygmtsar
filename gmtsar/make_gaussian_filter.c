@@ -11,12 +11,12 @@
  *                                                                         *
  ***************************************************************************/
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include<string.h>
-#include"PRM.h"
-#include"lib_functions.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include "PRM.h"
+#include "lib_functions.h"
 
 double str2double(char *);
 int strasign(char *, char *, int, int);
