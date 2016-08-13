@@ -4,7 +4,7 @@
 
 include ../config.mk
 
-INCLUDES	= $(GMT_INC) -Iinclude
+INCLUDES	= $(GMT_INC) -I./
 
 PROGS_C		= bperp.c calc_dop_orb.c conv.c esarp.c offset_topo.c phase2topo.c \
 		  phasediff.c phasefilt.c resamp.c xcorr.c extend_orbit.c \
