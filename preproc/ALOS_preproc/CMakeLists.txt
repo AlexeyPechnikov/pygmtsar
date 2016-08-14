@@ -23,40 +23,40 @@ target_link_libraries (ALOS ${LINK_LIBS})
 
 set (LINK_LIBS ${LINK_LIBS} ALOS)
 
-add_executable (ALOS_baseline ALOS_baseline/ALOS_baseline.c ALOS_baseline/ALOS_llt2rat_sub.c)
+add_executable (ALOS_baseline ALOS_baseline/ALOS_baseline.c ALOS_baseline/ALOS_llt2rat_sub.c include/image_sio.h include/lib_functions.h include/llt2xyz.h)
 target_link_libraries (ALOS_baseline ${LINK_LIBS})
 
-add_executable (ALOS_fbd2fbs ALOS_fbd2fbs/ALOS_fbd2fbs.c)
+add_executable (ALOS_fbd2fbs ALOS_fbd2fbs/ALOS_fbd2fbs.c include/image_sio.h include/lib_functions.h include/siocomplex.h)
 target_link_libraries (ALOS_fbd2fbs ${LINK_LIBS})
 
-add_executable (ALOS_fbd2fbs_SLC ALOS_fbd2fbs_SLC/ALOS_fbd2fbs_SLC.c)
+add_executable (ALOS_fbd2fbs_SLC ALOS_fbd2fbs_SLC/ALOS_fbd2fbs_SLC.c include/image_sio.h include/lib_functions.h include/siocomplex.h)
 target_link_libraries (ALOS_fbd2fbs_SLC ${LINK_LIBS})
 
-add_executable (ALOS_fbd2ss ALOS_fbd2ss/ALOS_fbd2ss.c)
+add_executable (ALOS_fbd2ss ALOS_fbd2ss/ALOS_fbd2ss.c include/image_sio.h include/lib_functions.h include/siocomplex.h)
 target_link_libraries (ALOS_fbd2ss ${LINK_LIBS})
 
-add_executable (ALOS_fbs2fbd ALOS_fbs2fbd/ALOS_fbs2fbd.c)
+add_executable (ALOS_fbs2fbd ALOS_fbs2fbd/ALOS_fbs2fbd.c include/image_sio.h include/siocomplex.h)
 target_link_libraries (ALOS_fbs2fbd ${LINK_LIBS})
 
-add_executable (ALOS_filter_SLC ALOS_filter_SLC/ALOS_filter_SLC.c)
+add_executable (ALOS_filter_SLC ALOS_filter_SLC/ALOS_filter_SLC.c include/image_sio.h include/siocomplex.h)
 target_link_libraries (ALOS_filter_SLC ${LINK_LIBS})
 
-add_executable (ALOS_llt2rat ALOS_llt2rat/ALOS_llt2rat.c)
+add_executable (ALOS_llt2rat ALOS_llt2rat/ALOS_llt2rat.c include/image_sio.h include/lib_functions.h include/llt2xyz.h)
 target_link_libraries (ALOS_llt2rat ${LINK_LIBS})
 
-add_executable (ALOS_look ALOS_look/ALOS_look.c)
+add_executable (ALOS_look ALOS_look/ALOS_look.c include/image_sio.h include/lib_functions.h include/llt2xyz.h)
 target_link_libraries (ALOS_look ${LINK_LIBS})
 
-add_executable (ALOS_merge ALOS_merge/ALOS_merge.c)
+add_executable (ALOS_merge ALOS_merge/ALOS_merge.c include/image_sio.h include/lib_functions.h)
 target_link_libraries (ALOS_merge ${LINK_LIBS})
 
-add_executable (ALOS_pre_process ALOS_pre_process/ALOS_pre_process.c ALOS_pre_process/parse_ALOS_commands.c ALOS_pre_process/read_ALOS_data.c ALOS_pre_process/read_ALOSE_data.c ALOS_pre_process/swap_ALOS_data_info.c ALOS_pre_process/roi_utils.c)
+add_executable (ALOS_pre_process ALOS_pre_process/ALOS_pre_process.c ALOS_pre_process/parse_ALOS_commands.c ALOS_pre_process/read_ALOS_data.c ALOS_pre_process/read_ALOSE_data.c ALOS_pre_process/swap_ALOS_data_info.c ALOS_pre_process/roi_utils.c include/image_sio.h include/lib_functions.h)
 target_link_libraries (ALOS_pre_process ${LINK_LIBS})
 
-add_executable (ALOS_pre_process_SLC ALOS_pre_process_SLC/ALOS_pre_process_SLC.c ALOS_pre_process_SLC/parse_ALOS_commands.c ALOS_pre_process_SLC/read_ALOS_data_SLC.c ALOS_pre_process_SLC/swap_ALOS_data_info.c)
+add_executable (ALOS_pre_process_SLC ALOS_pre_process_SLC/ALOS_pre_process_SLC.c ALOS_pre_process_SLC/parse_ALOS_commands.c ALOS_pre_process_SLC/read_ALOS_data_SLC.c ALOS_pre_process_SLC/swap_ALOS_data_info.c include/image_sio.h include/lib_functions.h)
 target_link_libraries (ALOS_pre_process_SLC ${LINK_LIBS})
 
-add_executable (ALOS_pre_process_SS ALOS_pre_process_SS/ALOS_pre_process_SS.c ALOS_pre_process_SS/parse_ALOS_commands.c ALOS_pre_process_SS/read_ALOS_data_SS.c ALOS_pre_process_SS/swap_ALOS_data_info.c)
+add_executable (ALOS_pre_process_SS ALOS_pre_process_SS/ALOS_pre_process_SS.c ALOS_pre_process_SS/parse_ALOS_commands.c ALOS_pre_process_SS/read_ALOS_data_SS.c ALOS_pre_process_SS/swap_ALOS_data_info.c include/image_sio.h include/lib_functions.h)
 target_link_libraries (ALOS_pre_process_SS ${LINK_LIBS})
 
 # add the install targets
