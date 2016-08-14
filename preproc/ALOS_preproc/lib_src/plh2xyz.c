@@ -14,7 +14,7 @@
 ************************************************************************/
 
 #include <math.h>
-#include "../include/llt2xyz.h"
+#include "llt2xyz.h"
 
 void plh2xyz( double *plh, double *xyz, double A, double FL )
 /********1*********2*********3*********4*********5*********6*********7*********

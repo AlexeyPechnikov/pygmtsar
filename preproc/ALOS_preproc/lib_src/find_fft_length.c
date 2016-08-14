@@ -1,8 +1,8 @@
-#include"stdio.h"
-#include"stdlib.h"
-#include"math.h"
-#include"image_sio.h"
-#include"lib_functions.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "image_sio.h"
+#include "lib_functions.h"
 int find_fft_length(int n);
 /*-----------------------------------------------------------------------*/
 int	find_fft_length(int	n)
