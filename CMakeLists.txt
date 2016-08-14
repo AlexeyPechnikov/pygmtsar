@@ -55,7 +55,7 @@ find_program (GS gs gswin64)
 # Find dependent libraries
 find_package (GMT REQUIRED)
 find_package (TIFF REQUIRED)
-find_package (LAPACK)
+find_package (LAPACK REQUIRED)
 
 # check for math and POSIX functions
 include(ConfigureChecks)
@@ -63,6 +63,7 @@ include(ConfigureChecks)
 # Add subdirectories
 add_subdirectory (gmtsar)
 add_subdirectory (snaphu/src)
+add_subdirectory (preproc)
 
 # Configuration done
 message(

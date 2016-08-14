@@ -91,7 +91,7 @@ if (GMTSAR_INSTALL_RELOCATABLE)
 	# make executables relocatable on supported platforms (relative RPATH)
 	if (UNIX AND NOT CYGWIN)
 		# find relative libdir from executable dir
-		file (RELATIVE_PATH _rpath /${GMTSAR_BINDIR} /${GMTSAR_LIBDIR})
+		file (RELATIVE_PATH _rpath /${GMTSAR_BINDIR} /lib)
 		# remove trailing /
 		string (REGEX REPLACE "/$" "" _rpath "${_rpath}")
 		if (APPLE)
@@ -110,14 +110,14 @@ else (GMTSAR_INSTALL_RELOCATABLE)
 	if (APPLE)
 		# CMP0042: CMake 3.0: MACOSX_RPATH is enabled by default
 		set (CMAKE_MACOSX_RPATH OFF)
-		set (CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/${GMTSAR_LIBDIR}")
+		set (CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 	else (APPLE)
 		# the RPATH to be used when installing, but only if it's not a
 		# system directory
 		list (FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
-			"${CMAKE_INSTALL_PREFIX}/${GMTSAR_LIBDIR}" isSystemDir)
+			"${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
 		if ("${isSystemDir}" STREQUAL "-1")
-			set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${GMTSAR_LIBDIR}")
+			set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 		endif ("${isSystemDir}" STREQUAL "-1")
 	endif (APPLE)
 endif (GMTSAR_INSTALL_RELOCATABLE)
