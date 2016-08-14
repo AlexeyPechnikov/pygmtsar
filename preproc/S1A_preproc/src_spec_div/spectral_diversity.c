@@ -9,14 +9,14 @@
  * coregistration                                                          *
  ***************************************************************************/
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include<string.h>
-#include"xmlC.h"
-#include"PRM.h"
-#include"lib_functions.h"
-#include"lib_defs.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include "xmlC.h"
+#include "PRM.h"
+#include "lib_functions.h"
+#include "lib_defs.h"
 #include "gmtsar.h"
 
 typedef struct burst_bounds{

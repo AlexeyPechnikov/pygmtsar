@@ -13,8 +13,8 @@
  *                                                                         *
  ***************************************************************************/
 
-#include"image_sio.h"
-#include"siocomplex.h"
+#include "image_sio.h"
+#include "siocomplex.h"
 
 #define clip(A) ( ((A) > 32767) ? 32767 : (((A) < -32768) ? -32768 : A) )
 

@@ -2,7 +2,7 @@
  method: CCRS has 12060 bytes per line. DPAF has 11644. Read 12060 bytes from CCRS file and print 11644 bytes to new file */
 
 #include "../include/soi.h"
-#include<string.h>
+#include <string.h>
 
 main(argc,argv)
 int argc;

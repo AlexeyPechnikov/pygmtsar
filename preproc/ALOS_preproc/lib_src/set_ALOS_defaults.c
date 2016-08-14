@@ -1,5 +1,5 @@
-#include"image_sio.h"
-#include"lib_functions.h"
+#include "image_sio.h"
+#include "lib_functions.h"
 
 /*------------------------------------------------------*/
 /* set some defaults					*/

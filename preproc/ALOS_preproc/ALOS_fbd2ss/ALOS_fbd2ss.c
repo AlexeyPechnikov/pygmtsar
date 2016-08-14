@@ -16,8 +16,8 @@
  *                                                                         *
  ***************************************************************************/
 
-#include"image_sio.h"
-#include"siocomplex.h"
+#include "image_sio.h"
+#include "siocomplex.h"
 #include "lib_functions.h"
 #include <stdio.h>
 #include <stdlib.h>

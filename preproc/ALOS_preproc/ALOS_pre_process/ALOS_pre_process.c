@@ -17,8 +17,8 @@
  * added write_roi
  * *****************************************************************************/
 
-#include"image_sio.h"
-#include"lib_functions.h"
+#include "image_sio.h"
+#include "lib_functions.h"
 
 char    *USAGE = "\n\nUsage: ALOS_pre_process imagefile LEDfile [-near near_range] [-radius RE] [-swap] [-V] [-debug] [-quiet] \n"
 "\ncreates data.raw and writes out parameters (PRM format) to stdout\n"

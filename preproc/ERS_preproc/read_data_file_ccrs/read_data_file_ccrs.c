@@ -8,10 +8,10 @@ in CEOS SAR data file
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include"SARtape.h"
-#include<sys/types.h>
-#include<unistd.h>
-#include<stdio.h>
+#include "SARtape.h"
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
 #include "data_param.h"
 
 #define SWAP_2(x) ( (((x) & 0xff) << 8) | ((unsigned short)(x) >> 8) )

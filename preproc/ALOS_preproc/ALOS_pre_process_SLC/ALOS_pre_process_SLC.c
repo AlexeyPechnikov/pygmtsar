@@ -14,8 +14,8 @@
  * 10/10/10   added command line options for SLC_factor and rbias               *
  * *****************************************************************************/
 
-#include"image_sio.h"
-#include"lib_functions.h"
+#include "image_sio.h"
+#include "lib_functions.h"
 
 char    *USAGE = "\n\nUsage: ALOS_pre_process_SLC imagefile LEDfile [-radius RE] [-swap] [-V] [-debug] [-quiet] \n"
 "\ncreates data.SLC and writes out parameters (PRM format) to stdout\n"

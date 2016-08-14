@@ -3,9 +3,9 @@
 /* 		R. Mellors 	July 1997		*/
 /*				IGPP_SIO		*/
 /*							*/
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "../include/SARtape.h"
 
 int main(argc,argv)

@@ -6,9 +6,9 @@
 /*              modified by Paul F. Jamason, 25-FEB-1998*/
 /*                                                      */
 /*                                                      */
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "../include/SARtape.h"
 void make_prm_dpaf(struct SAR_info);
 

@@ -40,7 +40,7 @@ J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
 /* Use DGELSY to solve the equations */
 /* Calling DGELSY using column-major order */
 
-# include "gmtsar.h"
+#include "gmtsar.h"
 # define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 # define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
 # ifdef DEBUG

@@ -10,11 +10,11 @@
  *  Modification history:                                                                *
  ****************************************************************************************/
 
-#include"gmtsar.h"
-#include<stdio.h>
-#include"PRM.h"
-#include<math.h>
-#include<string.h>
+#include "gmtsar.h"
+#include <stdio.h>
+#include "PRM.h"
+#include <math.h>
+#include <string.h>
 
 char *USAGE = "\n\nUSAGE: merge_swath inputlist output [stem]\n"
 "\ninputlist example: F1/intf/2015036_2015060/S1A_20150609.PRM:F1/intf/2015036_2015060/phasefilt.grd\n"

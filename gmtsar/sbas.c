@@ -46,8 +46,8 @@ J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
 /* Use DGELSY to solve the equations */
 /* Calling DGELSY using column-major order */
 
-# include "gmtsar.h"
-# include "sbas.h"
+#include "gmtsar.h"
+#include "sbas.h"
 # define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
 # ifdef DEBUG
 # define checkpoint() printf("Checkpoint at line %d in file %s\n", __LINE__, __FILE__) 

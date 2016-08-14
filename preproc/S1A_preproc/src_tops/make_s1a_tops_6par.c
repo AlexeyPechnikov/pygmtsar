@@ -13,16 +13,16 @@
  * Date   :  01/14/15 EXU added range stretch and line interpolator        *
  *                                                                         *
  ***************************************************************************/
-#include"tiffio.h"
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include<string.h>
-#include"PRM.h"
-#include"lib_functions.h"
-#include"stateV.h"
-#include"xmlC.h"
-#include"lib_defs.h"
+#include "tiffio.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include "PRM.h"
+#include "lib_functions.h"
+#include "stateV.h"
+#include "xmlC.h"
+#include "lib_defs.h"
 #include "gmtsar.h"
 
 typedef struct burst_bounds{

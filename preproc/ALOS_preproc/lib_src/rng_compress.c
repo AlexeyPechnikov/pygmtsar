@@ -12,8 +12,8 @@
 * Date									*
 ************************************************************************/ 
 
-#include"image_sio.h"
-#include"siocomplex.h"
+#include "image_sio.h"
+#include "siocomplex.h"
 void cfft1d_(int *, fcomplex *, int *);
 
 void rng_compress(cin,nffti,cout,nffto)

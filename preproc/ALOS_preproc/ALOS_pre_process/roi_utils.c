@@ -2,11 +2,11 @@
 // attempts to create a rsc file for roi_pac
 // adapted from make_raw_alos.pl
 // rjm - sdsu 7/2010
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"image_sio.h"
-#include"lib_functions.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "image_sio.h"
+#include "lib_functions.h"
 #define FACTOR 1000000
 
 int prm2roi(struct PRM, double *, double *, int *, double *, double *, int *, int *, int *);

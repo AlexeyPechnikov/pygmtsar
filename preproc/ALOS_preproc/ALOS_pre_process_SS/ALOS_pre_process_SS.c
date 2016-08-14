@@ -14,8 +14,8 @@
  * 10/02/08  added capability to pre_process ScanSAR WB1 data DTS               *
  * *****************************************************************************/
 
-#include"image_sio.h"
-#include"lib_functions.h"
+#include "image_sio.h"
+#include "lib_functions.h"
 
 char    *USAGE = "\n\nUsage: ALOS_pre_process_SS imagefile LEDfile [-near near_range] [-radius RE] [-swath swath#] [-burst_skip] [-num_burst] [-swap] [-V] [-debug] [-quiet] \n"
 "\ncreates data.raw and writes out parameters (PRM format) to stdout\n"

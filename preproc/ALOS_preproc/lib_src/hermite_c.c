@@ -14,7 +14,7 @@
  * *****************************************************************************/
 
 #include "image_sio.h"
-#include"lib_functions.h"
+#include "lib_functions.h"
 
 void hermite_c(double *x, double *y, double *z, int nmax, int nval, double xp, double *yp, int *ir)
 {

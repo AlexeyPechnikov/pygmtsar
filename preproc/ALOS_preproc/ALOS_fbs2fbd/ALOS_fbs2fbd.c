@@ -24,8 +24,8 @@
  *                                                                         *
  ***************************************************************************/
 
-#include"image_sio.h"
-#include"siocomplex.h"
+#include "image_sio.h"
+#include "siocomplex.h"
 
 #define clip127(A) ( ((A) > 127) ? 127 : (((A) < 0) ? 0 : A) )
 

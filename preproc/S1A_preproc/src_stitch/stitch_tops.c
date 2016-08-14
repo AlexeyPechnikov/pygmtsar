@@ -10,11 +10,11 @@
  *  Modification history:                                                                *
  ****************************************************************************************/
 
-#include"gmtsar.h"
-#include<stdio.h>
-#include"PRM.h"
-#include<math.h>
-#include<string.h>
+#include "gmtsar.h"
+#include <stdio.h>
+#include "PRM.h"
+#include <math.h>
+#include <string.h>
 
 char *USAGE = "\n\nUSAGE: stitch_tops stem.in output_stem\n"
 "\noutput: stem.SLC stem.PRM\n"
