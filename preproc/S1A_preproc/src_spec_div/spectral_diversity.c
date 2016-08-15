@@ -38,7 +38,7 @@ typedef struct burst_bounds{
 
 char *USAGE = "\n Usage: spectral_diversity master_stem slave_stem bshfit filter\n"
               "\n Example: spectral_diversity S1A20150322_F1 S1A20150415_F1 0 gauss5x5\n"
-              "\n Output: resitual_shift = 0.001234\n"
+              "\n Output: resitual_shift = 0.001234  [with a file ddphase]\n"
               "\n Note: make sure stem.SLCH stem.SLCL stem.BB exist \n";
 
 int main(int argc, char **argv){
