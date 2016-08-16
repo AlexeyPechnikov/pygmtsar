@@ -60,8 +60,8 @@ endif
 gmt grdmath corr_patch.grd $1 GE 0 NAN mask_patch.grd MUL = mask2_patch.grd
 gmt grdmath corr_patch.grd 0. XOR 1. MIN  = corr_patch.grd
 gmt grdmath mask2_patch.grd corr_patch.grd MUL = corr_tmp.grd 
-gmt grd2xyz phase_patch.grd -ZTLf -N0 > phase.in
-gmt grd2xyz corr_tmp.grd -ZTLf  -N0 > corr.in
+gmt grd2xyz phase_patch.grd -ZTLf -do0 > phase.in
+gmt grd2xyz corr_tmp.grd -ZTLf  -do0 > corr.in
 #
 # run snaphu
 #
@@ -112,7 +112,7 @@ gmt makecpt -Cseis -I -Z -T"$limitL"/"$limitU"/1 -D > unwrap.cpt
 set boundR = `gmt grdinfo unwrap.grd -C | awk '{print ($3-$2)/4}'`
 set boundA = `gmt grdinfo unwrap.grd -C | awk '{print ($5-$4)/4}'`
 gmt grdimage unwrap.grd -Iunwrap_grad.grd -Cunwrap.cpt -JX6.5i -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3i -Y3i -P -K > unwrap.ps
-gmt psscale -D3.3/-1.5/5/0.2h -Cunwrap.cpt -B"$std":"unwrapped phase, rad": -O -E >> unwrap.ps
+gmt psscale -Dx3.3/-1.5+w5/0.2+h+e -Cunwrap.cpt -B"$std":"unwrapped phase, rad": -O >> unwrap.ps
 #
 # clean up
 #
