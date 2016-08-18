@@ -176,9 +176,19 @@ else
   spectral_diversity $mpre $spre $tmp_da $sharedir/filters/gauss25x7 > tmp
 endif
 set res_shift = `grep residual_shift tmp | awk '{print $3}'`
+set spec_sep = `grep spectral_spectrationXdta tmp | awk '{print $3}'`
 echo "Updating azimuth shift...($res_shift)"
-gmt grdmath a.grd $res_shift ADD = tmp.grd
+awk '{print $1,$2,$3}' < ddphase > test
+gmt blockmedian test -R0/$rmax/0/$amax -I500/100 -r -bo3d > test_b
+gmt surface test_b -bi3d -Gtest.grd -R0/$rmax/0/$amax -I1000/500 -T0.8 -r -N1000
+#gmt grdtrend test.grd -N6r -Dtest_b.grd
+gmt grdsample test.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
+#gmt grdmath test.grd test_b.grd SUB FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
+gmt grdmath test_b.grd FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
+gmt grdmath a.grd res_shift.grd ADD = tmp.grd
 mv tmp.grd a.grd
+mv tmp spec_div_output
+rm test*
 
 make_s1a_tops $mxml $mtiff $mpre 1 
 make_s1a_tops $sxml $stiff $spre 1 r.grd a.grd

@@ -51,9 +51,10 @@ int main(int argc, char **argv){
     int bshift=0,llm,lls,nboff = 0;
     short *mf, *mb, *sf, *sb;
     float fmi,fmr,bmi,bmr,fsi,fsr,bsi,bsr;
-    float i1,r1,i2,r2,*real,*imag,*filter,filtin,*freal,*fimag,filtdat,fsum=0.0;
+    float i1,r1,i2,r2,*real,*imag,*filter,filtin,*freal,*fimag,filtdat,fsum=0.0,famp1,famp2;
+    float *amp1,*amp2,*corr;
     double phase,isum=0.0,rsum=0.0; 
-    int yarr, xarr, zz;
+    int yarr, xarr, zz, *zz_r;
     double spec_sep,dta;
 
     if (argc < 5) die("",USAGE);
@@ -86,7 +87,7 @@ int main(int argc, char **argv){
     }
 
     strcpy(tmp_str,"ddphase");
-    if ((OUTP = fopen(tmp_str,"wb")) == NULL) die ("Couldn't open output file: \n",tmp_str);
+    if ((OUTP = fopen(tmp_str,"w")) == NULL) die ("Couldn't open output file: \n",tmp_str);
     //bshift = (int)str2double(argv[3]);
     bbm[0].SLi = bbm[0].SCi = bbm[0].SHi = bbm[0].ELi = bbm[0].ECi = bbm[0].EHi = -1;
     bbs[0].SLi = bbs[0].SCi = bbs[0].SHi = bbs[0].ELi = bbs[0].ECi = bbs[0].EHi = -1-bshift;
@@ -184,6 +185,15 @@ int main(int argc, char **argv){
     imag = (float *)malloc(ntl*spl*sizeof(float));
     freal = (float *)malloc(ntl*spl*sizeof(float));
     fimag = (float *)malloc(ntl*spl*sizeof(float));
+    zz_r = (int *)malloc(ntl*sizeof(int));
+    amp1 = (float *)malloc(ntl*spl*sizeof(float));
+    amp2 = (float *)malloc(ntl*spl*sizeof(float));
+    
+    //real1 = (float *)malloc(ntl*spl*sizeof(float));
+    //real2 = (float *)malloc(ntl*spl*sizeof(float));
+    //imag1 = (float *)malloc(ntl*spl*sizeof(float));
+    //imag2 = (float *)malloc(ntl*spl*sizeof(float));
+    corr = (float *)malloc(ntl*spl*sizeof(float));
     // compute sum real and sum imagenary
     //fprintf(stderr,"Some pars: ntl: %d %d %d, spl: %d %d %d\n",ntlm,ntls,ntl,splm,spls,spl);
     zz = 0;
@@ -214,6 +224,14 @@ int main(int argc, char **argv){
                 r2 = bmr*bsr+bmi*bsi;
                 i2 = bmi*bsr-bmr*bsi;
 
+                amp1[zz*spl+jj] = r1*r1+i1*i1;
+                amp2[zz*spl+jj] = r2*r2+i2*i2;
+                 
+                //real1[zz*spl+jj] = r1;
+                //real2[zz*spl+jj] = r2;
+                //imag1[zz*spl+jj] = i1;
+                //imag2[zz*spl+jj] = i2;
+
                 real[zz*spl+jj] = r1*r2+i1*i2;
                 imag[zz*spl+jj] = i1*r2-r1*i2;
                 //phase = sqrt(real*real+imag*imag)/sqrt((r1*r1+i1*i1)*(r2*r2+i2*i2));
@@ -223,6 +241,7 @@ int main(int argc, char **argv){
                 //rsum += real/1e10;
                 //isum += imag/1e10;
             }
+            zz_r[zz] = ii;
             zz++;
         }
         if(ii>bbm[kkm].EHi && ii>bbs[kks].EHi) {
@@ -245,23 +264,42 @@ int main(int argc, char **argv){
         for(jj=0;jj<spl;jj++) {
             conv2d(real,&zz,&spl,filter,&xarr,&yarr,&filtdat,&ii,&jj,&fsum);
             freal[ii*spl+jj]=filtdat;
-            rsum+=filtdat;
             conv2d(imag,&zz,&spl,filter,&xarr,&yarr,&filtdat,&ii,&jj,&fsum);
             fimag[ii*spl+jj]=filtdat;
-            isum+=filtdat;
+            conv2d(amp1,&zz,&spl,filter,&xarr,&yarr,&filtdat,&ii,&jj,&fsum);
+            famp1 = filtdat;
+            //conv2d(real1,&zz,&spl,filter,&xarr,&yarr,&r1,&ii,&jj,&fsum);
+            //conv2d(real2,&zz,&spl,filter,&xarr,&yarr,&r2,&ii,&jj,&fsum);
+            conv2d(amp2,&zz,&spl,filter,&xarr,&yarr,&filtdat,&ii,&jj,&fsum);
+            famp2 = filtdat;
+            //conv2d(imag1,&zz,&spl,filter,&xarr,&yarr,&i1,&ii,&jj,&fsum);
+            //conv2d(imag2,&zz,&spl,filter,&xarr,&yarr,&i2,&ii,&jj,&fsum);
+            corr[ii*spl+jj] = sqrt((freal[ii*spl+jj]*freal[ii*spl+jj]+fimag[ii*spl+jj]*fimag[ii*spl+jj])/(famp1*famp2));
+
+            if (corr[ii*spl+jj] > 0.3) {
+                rsum+=freal[ii*spl+jj];
+            }
+            if (corr[ii*spl+jj] > 0.3) {
+                isum+=fimag[ii*spl+jj];
+            }
         }
     }
     printf("Image analyzed %dx%d...\n",spl,zz);
     
-    for(ii=0;ii<zz;ii++) {
+    for(ii=0;ii<zz;ii+=10) {
         for(jj=0;jj<spl;jj++) {
-            phase = atan2(fimag[ii*spl+jj],freal[ii*spl+jj]);
-            fwrite(&phase,1,sizeof(double),OUTP);
+            if(corr[ii*spl+jj]>0.3) {
+                //fprintf(OUTP,"%d\t%d\t%.9f\n",jj,zz_r[ii],(float)(sqrt((jj-10000)*(jj-10000)+(zz_r[ii]-5000)*(zz_r[ii]-5000)))/5.0e5);
+                phase = atan2(fimag[ii*spl+jj],freal[ii*spl+jj]);
+                fprintf(OUTP,"%d\t%d\t%.9f\t%.9f\n",jj,zz_r[ii],phase,corr[ii*spl+jj]);
+                //fwrite(&phase,1,sizeof(double),OUTP);
+            }
         }
     }
 
     phase = atan2(isum,rsum);
     printf("residual_phase =  %.6f\n   isum = %.2g   rsum = %.2g\n",phase,isum,rsum);
+    printf("spectral_spectrationXdta = %.6f\n",spec_sep*dta);
     printf("residual_shift = %.12f\n",phase/(2*M_PI*spec_sep*dta));
 
     // free memory and close corresponding files
@@ -269,6 +307,18 @@ int main(int argc, char **argv){
     free(mb);
     free(sf);
     free(sb);
+    free(zz_r);
+    free(amp1);
+    free(amp2);
+    //free(real1);
+    //free(real2);
+    //free(imag1);
+    //free(imag2);
+    free(corr);
+    free(freal);
+    free(fimag);
+    free(real);
+    free(imag);
     fclose(MF);
     fclose(MB);
     fclose(SF);
