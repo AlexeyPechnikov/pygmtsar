@@ -16,18 +16,29 @@
 alias rm 'rm -f'
 unset noclobber
 #
-if ($#argv < 5) then
+if ($#argv < 5 || $#argv > 6) then
  echo " "
- echo "Usage: align_tops.csh master_prefix master_orb_file slave_s1a_prefix slave_orb_file dem.grd" 
+ echo "Usage: align_tops.csh master_prefix master_orb_file slave_s1a_prefix slave_orb_file dem.grd [mode]" 
  echo " "
  echo "Be sure the tiff, xml, orbit and dem files are available in the local directory."
  echo " "
  echo "Example: align_tops.csh s1a-iw3-slc-vv-20150526t014937-20150526t015002-006086-007e23-003 S1A_OPER_AUX_POEORB_OPOD_20150615T155109_V20150525T225944_20150527T005944.EOF.txt s1a-iw3-slc-vv-20150607t014937-20150607t015003-006261-00832e-006 S1A_OPER_AUX_POEORB_OPOD_20150627T155155_V20150606T225944_20150608T005944.EOF.txt dem.grd "
  echo " "
  echo "Output: S1A20150526_F3.PRM S1A20150526_F3.LED S1A20150526_F3.SLC S1A20150607_F3.PRM S1A20150607_F3.LED S1A20150607_F3.SLC "
+ echo ""
+ echo "Note: set mode = 1 for constant correction, set mode = 2 for non-constant correction with mapping the residual azimuth shift"
  echo " "
  exit 1
 endif 
+#
+#  set the running mode
+#
+if ($#argv == 5) then
+    set mode = `echo "1"`
+else
+    set mode = `echo $6`
+endif
+
 #  
 #  make sure the files are available
 #
@@ -177,18 +188,25 @@ else
 endif
 set res_shift = `grep residual_shift tmp | awk '{print $3}'`
 set spec_sep = `grep spectral_spectrationXdta tmp | awk '{print $3}'`
-echo "Updating azimuth shift...($res_shift)"
-awk '{print $1,$2,$3}' < ddphase > test
-gmt blockmedian test -R0/$rmax/0/$amax -I500/100 -r -bo3d > test_b
-gmt surface test_b -bi3d -Gtest.grd -R0/$rmax/0/$amax -I1000/500 -T0.8 -r -N1000
-#gmt grdtrend test.grd -N6r -Dtest_b.grd
-gmt grdsample test.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
-#gmt grdmath test.grd test_b.grd SUB FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
-gmt grdmath test_b.grd FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
-gmt grdmath a.grd res_shift.grd ADD = tmp.grd
-mv tmp.grd a.grd
-mv tmp spec_div_output
-rm test*
+if ($mode == 2) then
+  echo "Updating azimuth shift with mapping the residual da ...(median $res_shift)"
+  awk '{print $1,$2,$3}' < ddphase > test
+  gmt blockmedian test -R0/$rmax/0/$amax -I500/100 -r -bo3d > test_b
+  gmt surface test_b -bi3d -Gtest.grd -R0/$rmax/0/$amax -I1000/500 -T0.8 -r -N1000
+  #gmt grdtrend test.grd -N6r -Dtest_b.grd
+  gmt grdsample test.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
+  #gmt grdmath test.grd test_b.grd SUB FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
+  gmt grdmath test_b.grd FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
+  gmt grdmath a.grd res_shift.grd ADD = tmp.grd
+  mv tmp.grd a.grd
+  mv tmp spec_div_output
+  rm test*
+else
+  echo "Updating azimuth shift with a constant...($res_shift)"
+  gmt grdmath a.grd $res_shift ADD = tmp.grd
+  mv tmp.grd a.grd
+endif
+
 
 make_s1a_tops $mxml $mtiff $mpre 1 
 make_s1a_tops $sxml $stiff $spre 1 r.grd a.grd
