@@ -206,7 +206,10 @@
             spectral_diversity $tmp_master $stem $tmp_da $sharedir/filters/gauss25x7 > tmp 
           endif
 
-          set res_shift = `grep residual_shift tmp | awk '{print $3}'`
+          set spec_sep = `grep spectral_spectrationXdta tmp | awk '{print $3}'`
+          awk '{print $3}' < ddphase > tmp2
+          set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
+
           echo "Updating ashift table with spectral diversity estimate ($res_shift)..."
           gmt grdmath a.grd $res_shift ADD = tmp.grd
           mv tmp.grd a.grd

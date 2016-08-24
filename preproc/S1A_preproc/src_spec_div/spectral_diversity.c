@@ -189,10 +189,6 @@ int main(int argc, char **argv){
     amp1 = (float *)malloc(ntl*spl*sizeof(float));
     amp2 = (float *)malloc(ntl*spl*sizeof(float));
     
-    //real1 = (float *)malloc(ntl*spl*sizeof(float));
-    //real2 = (float *)malloc(ntl*spl*sizeof(float));
-    //imag1 = (float *)malloc(ntl*spl*sizeof(float));
-    //imag2 = (float *)malloc(ntl*spl*sizeof(float));
     corr = (float *)malloc(ntl*spl*sizeof(float));
     // compute sum real and sum imagenary
     //fprintf(stderr,"Some pars: ntl: %d %d %d, spl: %d %d %d\n",ntlm,ntls,ntl,splm,spls,spl);
@@ -227,19 +223,10 @@ int main(int argc, char **argv){
                 amp1[zz*spl+jj] = r1*r1+i1*i1;
                 amp2[zz*spl+jj] = r2*r2+i2*i2;
                  
-                //real1[zz*spl+jj] = r1;
-                //real2[zz*spl+jj] = r2;
-                //imag1[zz*spl+jj] = i1;
-                //imag2[zz*spl+jj] = i2;
-
                 real[zz*spl+jj] = r1*r2+i1*i2;
                 imag[zz*spl+jj] = i1*r2-r1*i2;
                 //phase = sqrt(real*real+imag*imag)/sqrt((r1*r1+i1*i1)*(r2*r2+i2*i2));
                 //phase = atan2(imag[zz*spl+jj],real[zz*spl+jj]);
-                //fwrite(&phase,1,sizeof(double),OUTP);
-
-                //rsum += real/1e10;
-                //isum += imag/1e10;
             }
             zz_r[zz] = ii;
             zz++;
@@ -268,18 +255,16 @@ int main(int argc, char **argv){
             fimag[ii*spl+jj]=filtdat;
             conv2d(amp1,&zz,&spl,filter,&xarr,&yarr,&filtdat,&ii,&jj,&fsum);
             famp1 = filtdat;
-            //conv2d(real1,&zz,&spl,filter,&xarr,&yarr,&r1,&ii,&jj,&fsum);
-            //conv2d(real2,&zz,&spl,filter,&xarr,&yarr,&r2,&ii,&jj,&fsum);
+            
             conv2d(amp2,&zz,&spl,filter,&xarr,&yarr,&filtdat,&ii,&jj,&fsum);
             famp2 = filtdat;
-            //conv2d(imag1,&zz,&spl,filter,&xarr,&yarr,&i1,&ii,&jj,&fsum);
-            //conv2d(imag2,&zz,&spl,filter,&xarr,&yarr,&i2,&ii,&jj,&fsum);
+            
             corr[ii*spl+jj] = sqrt((freal[ii*spl+jj]*freal[ii*spl+jj]+fimag[ii*spl+jj]*fimag[ii*spl+jj])/(famp1*famp2));
 
-            if (corr[ii*spl+jj] > 0.3) {
+            if (corr[ii*spl+jj] > 0.6) {
                 rsum+=freal[ii*spl+jj];
             }
-            if (corr[ii*spl+jj] > 0.3) {
+            if (corr[ii*spl+jj] > 0.6) {
                 isum+=fimag[ii*spl+jj];
             }
         }
@@ -310,10 +295,6 @@ int main(int argc, char **argv){
     free(zz_r);
     free(amp1);
     free(amp2);
-    //free(real1);
-    //free(real2);
-    //free(imag1);
-    //free(imag2);
     free(corr);
     free(freal);
     free(fimag);
