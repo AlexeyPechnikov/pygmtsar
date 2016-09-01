@@ -276,7 +276,7 @@ int main(int argc, char **argv){
             if(corr[ii*spl+jj]>0.3) {
                 //fprintf(OUTP,"%d\t%d\t%.9f\n",jj,zz_r[ii],(float)(sqrt((jj-10000)*(jj-10000)+(zz_r[ii]-5000)*(zz_r[ii]-5000)))/5.0e5);
                 phase = atan2(fimag[ii*spl+jj],freal[ii*spl+jj]);
-                fprintf(OUTP,"%d\t%d\t%.9f\t%.9f\n",jj,zz_r[ii],phase,corr[ii*spl+jj]);
+                fprintf(OUTP,"%d\t%d\t%.9f\t%.9f\n",jj,zz_r[ii]+bshift,phase,corr[ii*spl+jj]);
                 //fwrite(&phase,1,sizeof(double),OUTP);
             }
         }

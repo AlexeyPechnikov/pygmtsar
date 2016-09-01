@@ -26,7 +26,7 @@ if ($#argv < 5 || $#argv > 6) then
  echo " "
  echo "Output: S1A20150526_F3.PRM S1A20150526_F3.LED S1A20150526_F3.SLC S1A20150607_F3.PRM S1A20150607_F3.LED S1A20150607_F3.SLC "
  echo ""
- echo "Note: set mode = 1 for constant correction, set mode = 2 for non-constant correction with mapping the residual azimuth shift"
+ echo "Note: set mode = 0 for constant sum correction, set mode = 1 for constant median correction, set mode = 2 for non-constant correction with mapping the residual azimuth shift"
  echo " "
  exit 1
 endif 
@@ -189,9 +189,9 @@ endif
 
 set spec_sep = `grep spectral_spectrationXdta tmp | awk '{print $3}'`
 awk '{print $3}' < ddphase > tmp2
-set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
 
 if ($mode == 2) then
+  set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
   echo "Updating azimuth shift with mapping the residual da ...(median $res_shift)"
   awk '{print $1,$2,$3}' < ddphase > test
   gmt blockmedian test -R0/$rmax/0/$amax -I500/100 -r -bo3d > test_b
@@ -205,6 +205,11 @@ if ($mode == 2) then
   mv tmp spec_div_output
   rm test*
 else
+  if ($mode == 1) then
+    set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
+  else
+    set res_shift = `grep residual_shift tmp | awk '{print $3}'`
+  endif
   echo "Updating azimuth shift with a constant...(medain $res_shift)"
   gmt grdmath a.grd $res_shift ADD = tmp.grd
   mv tmp.grd a.grd
