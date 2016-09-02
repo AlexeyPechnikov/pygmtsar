@@ -119,7 +119,7 @@ int parse_command_ts(int agc, char **agv, float *sf ,double *wl, double *theta, 
 
 
 
-int allocate_memory_ts(int **jpvt,double **work,double **d,double **ds,float **bperp,char ***gfile,char ***cfile,int **L,double **time,int **H,double **G,double **A,double **Gs,int **flag,float **dem,float **res,float **vel,float **phi,float **var,float **disp,int n,int m,int lwork,int ldb,int N,int S,int xdim,int ydim) {
+int allocate_memory_ts(int **jpvt,double **work,double **d,double **ds,float **bperp,char ***gfile,char ***cfile,int **L,double **time,int **H,double **G,double **A,double **Gs,int **flag,float **dem,float **res,float **vel,float **phi,float **var,float **disp,int n,int m,int lwork,int ldb,int N,int S,int xdim,int ydim, int **hit) {
 
 	int i;
         char **p1,**p2;
@@ -150,6 +150,8 @@ int allocate_memory_ts(int **jpvt,double **work,double **d,double **ds,float **b
         if ((*var = Malloc(float, N*xdim*ydim)) == NULL) die("memory allocation!","var");
         if ((*disp = Malloc(float, S*xdim*ydim)) == NULL) die("memory allocation!","disp");
 
+        if ((*hit = Malloc(int, S*S)) == NULL) die("memory allocation!","hit");
+        printf("Memory Allocation Successful...\n");
         return(1);
 
 }
@@ -332,7 +334,7 @@ int lsqlin_sov_ts(int xdim, int ydim, float *disp, float *vel, int *flag, double
 					for (p=0;p<i;p++) { 
 						disp[i*xdim*ydim+j*ydim+k]=disp[i*xdim*ydim+j*ydim+k]+d[p];
 					}
-					disp[i*xdim*ydim+j*ydim+k]=-79.58*wl*disp[i*xdim*ydim+j*ydim+k];  //1000/4/pi
+					//disp[i*xdim*ydim+j*ydim+k]=-79.58*wl*disp[i*xdim*ydim+j*ydim+k];  //1000/4/pi
 				}
 
 				if (flag_dem == 1) dem[j+xdim*k]=d[n-1];
@@ -363,7 +365,7 @@ int lsqlin_sov_ts(int xdim, int ydim, float *disp, float *vel, int *flag, double
                                         sumy=sumy+disp[i*xdim*ydim+j*ydim+k];
                                         sumx=sumx+time[i];
                                	}
-                                vel[j+xdim*k]=(S*sumxy-sumx*sumy)/(S*sumxx-sumx*sumx)*365.0;
+                                vel[j+xdim*k]=-79.58*wl*(S*sumxy-sumx*sumy)/(S*sumxx-sumx*sumx)*365.0;
 			}
 			else { 
 				for (i=0;i<S;i++) disp[i*xdim*ydim+j*ydim+k] = NAN;
@@ -380,7 +382,7 @@ int lsqlin_sov_ts(int xdim, int ydim, float *disp, float *vel, int *flag, double
 
 
 
-int write_output_ts(void *API, struct GMT_GRID *Out,int agc,char **agv, int xdim, int ydim, int S, int flag_rms, int flag_dem, float *disp, float *vel, float *res, float *dem){
+int write_output_ts(void *API, struct GMT_GRID *Out,int agc,char **agv, int xdim, int ydim, int S, int flag_rms, int flag_dem, float *disp, float *vel, float *res, float *dem, float *screen, double wl){
 
         int i,j,k;
         float *grdin, *save_grid;
@@ -404,7 +406,8 @@ int write_output_ts(void *API, struct GMT_GRID *Out,int agc,char **agv, int xdim
                 strcpy(outfile,"disp_");
                 for (k=0;k<ydim;k++) {
                         for (j=0;j<xdim;j++) {
-                                grdin[j+k*xdim]=disp[i*xdim*ydim+j*ydim+k]; 
+			        //disp[i*xdim*ydim+j*ydim+k]=-79.58*wl*disp[i*xdim*ydim+j*ydim+k];  //1000/4/pi
+                                grdin[j+k*xdim]=-79.58*wl*disp[i*xdim*ydim+j*ydim+k]; 
                       }
                 }
                 sprintf(tmp1,"%03d",i+1);
@@ -443,6 +446,28 @@ int write_output_ts(void *API, struct GMT_GRID *Out,int agc,char **agv, int xdim
 			die("Failed to write output grid",outfile);
 		}
 	}
+        if (1 == 1) {
+                grdin = Out->data;
+	        for (i=0;i<S;i++){
+		        strcpy(outfile,"aps_");
+			for (k=0;k<ydim;k++) {
+	                        for (j=0;j<xdim;j++) {
+	                                grdin[j+k*xdim]=screen[i*xdim*ydim+j*ydim+k]; 
+				}
+			}
+			sprintf(tmp1,"%03d",i+1);
+			strcat(outfile,tmp1);
+			strcat(outfile,".grd");
+			sprintf(tmp1,"Atmospheric Phase Screen %03d",i+1);
+			strcpy(Out->header->title,"");
+			strcpy(Out->header->remark,"");
+			if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_REMARK, "Atmospheric Phase Screen", Out)) die("could not set title","");
+			if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, tmp1, Out)) die("could not set title","");
+			if (GMT_Write_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, outfile, Out)) {
+			        die("Failed to write output grid",outfile);
+			}
+		}
+        }
 
 	Out->data = vel;
 	sprintf(outfile,"vel.grd");
@@ -463,7 +488,7 @@ int write_output_ts(void *API, struct GMT_GRID *Out,int agc,char **agv, int xdim
 
 
 
-int free_memory_ts(int N,float *phi,float *var,char **gfile,char **cfile,float *disp,double *G,double *A,double *Gs,int *H,double *d,double *ds,int *L,float *res,float *vel,double *time,int *flag,float *bperp,float *dem,double *work,int *jpvt) {
+int free_memory_ts(int N,float *phi,float *var,char **gfile,char **cfile,float *disp,double *G,double *A,double *Gs,int *H,double *d,double *ds,int *L,float *res,float *vel,double *time,int *flag,float *bperp,float *dem,double *work,int *jpvt,int *hit) {
 
         int i;
 
@@ -491,8 +516,242 @@ int free_memory_ts(int N,float *phi,float *var,char **gfile,char **cfile,float *
         free(dem);
         free(work);
 	free(jpvt);
+        free(hit);
 
         return(1);
 }
+
+int sum_intfs(float *phi, int *mark, float *screen, int xdim, int ydim, int N) {
+
+        int n,i,j,sum=0;
+
+        for (i=0;i<N;i++) sum+=abs(mark[i]);
+        //fprintf(stderr,"%d sums       ",sum);
+
+        for (i=0;i<ydim;i++) {
+	        for (j=0;j<xdim;j++) {
+		        screen[i*xdim+j] = 0.0;
+		}
+	}
+
+        if (sum != 0) {
+                for (n=0;n<N;n++) {
+	                if (mark[n] == 0) continue;
+	                for (i=0;i<ydim;i++) {
+                                for (j=0;j<xdim;j++) {
+                                        screen[i*xdim+j] += -phi[n*xdim*ydim+i*xdim+j]*(float)mark[n]/(float)sum;
+		                }
+		        }
+	        }
+        }
+
+        return(1);
+
+}
+
+int connect(int *L, int *H, double *time, int *hit, int *mark, int N, int S, int n, int mode) {
+        
+        // mode = 0 for all connections, mode = 1 for even connections
+        
+        int i,j;//,sum = 0;
+	for (i=0;i<N;i++) mark[i] = 0;
+
+        for (i=0;i<S;i++) {
+                if (hit[i*S+n] == 1) {
+                        for(j=0;j<N;j++) {
+                                if (L[i] == H[2*j] && L[n] == H[2*j+1]) mark[j] = -1;
+			}
+		}
+		if (hit[n*S+i] == 1) {
+                        for(j=0;j<N;j++) {
+                                if (L[n] == H[2*j] && L[i] == H[2*j+1]) mark[j] = 1;
+			}
+		}
+
+	}
+
+	/* trim the result */
+        if (mode == 1) {
+                for (i=0;i<S;i++) { 
+                        if (hit[i*S+n] == 1) {
+		                for (j=n;j<S;j++) {
+			                if (hit[n*S+j] == 1 && fabs((time[n]-time[i]) - (time[j]-time[n])) < 5) break;
+			        }
+			        if (j == S) {
+                                        for (j=0;j<N;j++) if (L[i] == H[2*j] && L[n] == H[2*j+1]) mark[j] = 0;
+			        }
+		        }
+		        if (hit[n*S+i] == 1) {
+		                for (j=0;j<n;j++) {
+			                if (hit[j*S+n] == 1 && fabs((time[n]-time[j]) - (time[i]-time[n])) < 5) break;
+			        }
+			        if (j == n) {
+		                        for (j=0;j<N;j++) if (L[n] == H[2*j] && L[i] == H[2*j+1]) mark[j] = 0;
+			        }
+		        }
+                
+
+                }
+        }
+
+/*
+        for (i=0;i<N;i++) sum += mark[i];
+	while (sum != 0) {
+                if (sum > 0) {
+                        j=N-1;
+			while (j>=0 && mark[j] == 0) j--;
+			if (j<0) die("incorrect process of trimming connection verctor","");
+			mark[j] = 0;
+			sum -= 1;
+		}
+		if (sum < 0) {
+                        j=0;
+			while (j<N && mark[j] == 0) j++;
+			if (j>=N) die("incorrect process of trimming connection verctor","");
+			mark[j] = 0;
+			sum += 1;
+		}
+ 
+        }
+*/
+
+        return(1);
+
+}
+
+
+double compute_noise(float *screen,int xdim, int ydim) {
+
+        int i,j,n;
+        double sum=0.0,rms=0.0;
+
+        n=0;
+        for (i=0;i<ydim;i++) {
+                for (j=0;j<xdim;j++) {
+		        if(isnan(screen[i*xdim+j]) == 0) {
+                                sum = sum+(double)screen[i*xdim+j];
+				n++;
+			}
+                }
+        }
+        
+        if (sum != 0) {
+	        sum = sum/(double)n;
+
+	        for (i=0;i<ydim;i++) {
+	                for (j=0;j<xdim;j++) {
+		                if(isnan(screen[i*xdim+j]) == 0) {
+                                        rms = rms+((double)screen[i*xdim+j]-sum)*((double)screen[i*xdim+j]-sum);
+                                }
+                        }
+                }
+
+	        rms = sqrt(rms/(double)n);
+        }
+        //fprintf(stderr,"num points calculated: %d\n",n);	
+        return(rms);
+
+}
+
+
+int apply_screen(float *screen, float *phi, int xdim, int ydim, int N, int *mark){
+        // also correct for the ones not used in estimation of aps. 
+	int i,j,n;
+
+        for(n=0;n<N;n++) {
+	        if (mark[n] != 0) {
+                        //fprintf(stderr,"applying atm screen to intf %d...\n",n);
+	                for(i=0;i<ydim;i++) {
+	                        for(j=0;j<xdim;j++) {
+		                        phi[n*xdim*ydim+i*xdim+j] = phi[n*xdim*ydim+i*xdim+j] + screen[i*xdim+j]*mark[n];
+                                }
+		        }
+		}
+	}
+
+        return(1);
+
+}
+
+
+//int 
+
+int remove_ts(float *phi, float *ts, int xdim, int ydim, int N, int S, int *H, int *L) {
+
+        int i,j,n,h1,h2;
+
+        for (n=0;n<N;n++) {
+	        for (i=0;i<S;i++){
+		        if(H[2*n] == L[i]) h1 = i;
+			if(H[2*n+1] == L[i]) h2 = i;
+		}
+                //fprintf(stderr,"removing deformation for pair %d_%d...\n",L[h1],L[h2]);
+		for (i=0;i<ydim;i++) {
+		        for (j=0;j<xdim;j++){
+			        phi[n*xdim*ydim+i*xdim+j] = phi[n*xdim*ydim+i*xdim+j] - ts[h2*xdim*ydim+i*xdim+j] + ts[h1*xdim*ydim+i*xdim+j];
+			}
+		}
+
+
+	}
+
+        return(1);
+
+}
+
+
+
+int rank_double(double *nums, int *seq, int n) {
+
+        // rank the numbers, seq will record the sequence
+        int i,j,recn,*mark;
+	double *nums2,rec;
+
+	nums2 = (double *)malloc(n*sizeof(double));
+	mark = (int *)malloc(n*sizeof(int));
+
+	for (i=0;i<n;i++) nums2[i] = nums[i];
+	for (i=0;i<n;i++) {
+                if (nums2[i] == 0.0) mark[i]=1; 
+		else mark[i]=0;
+	        //fprintf(stderr,"%d ",mark[i]);
+	}
+	//fprintf(stderr,"\n\n");
+
+	for (i=0;i<n;i++) {
+	        rec = 0.0;
+		for (j=0;j<n;j++) {
+		        if (rec<fabs(nums2[j])) {
+			        rec = fabs(nums2[j]);
+				recn = j;
+			}
+		}
+		if (rec != 0.0) {
+		        seq[i] = recn;
+		        nums2[recn] = 0.0;
+		}
+		else {
+		        break;
+		}
+	}
+        
+	recn = 0;
+	for (i=0;i<n;i++) if (mark[i] != 0) recn++;
+	for (i=0;i<recn;i++) {
+	        for (j=0;j<n;j++) {
+		        if (mark[j] != 0) {
+			        seq[n-recn+i] = j;
+				mark[j] = 0;
+                                break;
+			}
+
+		}
+	}
+
+        return(1);
+
+}
+
+
 
 
