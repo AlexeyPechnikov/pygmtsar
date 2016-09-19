@@ -606,5 +606,6 @@ int null_MEM_STR(){
     for(i=0;i<100;i++){
         STR[i][0] = '\0';
     }
+    N = 0;
     return(1); 
 }

@@ -106,7 +106,8 @@ int main(int argc, char **argv){
     else{
         die (USAGE,"");
     }
-    
+
+    null_MEM_STR();    
     imode = atoi(argv[4]);
     
     // find the number of lines and the maximum line length of the xml file

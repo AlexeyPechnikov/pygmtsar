@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
 */
         // compute time series with tons of smoothing
         for (i=0;i<xdim*ydim*N;i++) tmp_phi[i] = phi[i];
-        sf = 100.0;
+        sf = 1000.0;
         init_G_ts(G,Gs,N,S,m,n,L,H,time,sf,bperp,scale);
         for (i=0;i<m*n;i++) A[i]=G[i];
 
