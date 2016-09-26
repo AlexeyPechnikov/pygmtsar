@@ -8,11 +8,11 @@
  * Date:                                                                        *
  * *****************************************************************************/
 
-//#include "gmtsar.h"
+#include "gmtsar.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-//#include "lib_functions.h"
+#include "lib_functions.h"
 #include "orbit_ALOS.h"
 #define FACTOR 1000000
 
@@ -53,7 +53,7 @@ int	k, nval, nd;
 	nval = 6; /* number of points to use in interpolation */
 	nd = orb->nd;
 
-	//if (debug) fprintf(stderr," time %lf nd %d\n",time,nd);
+	if (debug) fprintf(stderr," time %lf nd %d\n",time,nd);
 
 	/* interpolate for each coordinate direction 	*/
 
@@ -70,14 +70,14 @@ int	k, nval, nd;
 		pv[k] = orb->points[k].vy;
 		}
 	hermite_c(pt, p, pv, nd, nval, time, y, ir);
-	//if (debug) fprintf(stderr, "C pt %lf py %lf pvy %lf time %lf y %lf ir %d \n",*pt,p[0],pv[0],time,*y,*ir);
+	if (debug) fprintf(stderr, "C pt %lf py %lf pvy %lf time %lf y %lf ir %d \n",*pt,p[0],pv[0],time,*y,*ir);
 
 	for (k=0; k<nd; k++) {
 		p[k] = orb->points[k].pz;
 		pv[k] = orb->points[k].vz;
 		}
 	hermite_c(pt, p, pv, nd, nval, time, z, ir);
-	//if (debug) fprintf(stderr, "C pt %lf pz %lf pvz %lf time %lf z %lf ir %d \n",*pt,p[0],pv[0],time,*z,*ir);
+	if (debug) fprintf(stderr, "C pt %lf pz %lf pvz %lf time %lf z %lf ir %d \n",*pt,p[0],pv[0],time,*z,*ir);
 
 }
 /*---------------------------------------------------------------*/

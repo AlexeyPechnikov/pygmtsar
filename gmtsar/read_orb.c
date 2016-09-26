@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-//#include "lib_functions.h"
+#include "lib_functions.h"
 #include "PRM.h"
 #include "sfd_complex.h"
 #include "siocomplex.h"

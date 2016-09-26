@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdio.h>
-//#include "lib_functions.h"
+#include "lib_functions.h"
 #include "PRM.h"
 
 /*------------------------------------------------------*/

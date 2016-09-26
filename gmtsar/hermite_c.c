@@ -13,8 +13,8 @@
  * 10/03/2007   -   converted from FORTRAN to C                                 *
  * *****************************************************************************/
 
-//#include "gmtsar.h"
-//#include "lib_functions.h"
+#include "gmtsar.h"
+#include "lib_functions.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
