@@ -112,8 +112,8 @@
 
           # compute the time difference between first frame and the rest frames
           set tmp_master = `awk 'NR == '$count' {print $0}' < masterlist`
-          if ($tmp_master = "") set tmp_master = `awk 'NR == '$count-1' {print $0}' < masterlist`          
-          if ($tmp_master = "") set tmp_master = `awk 'NR == '$count-2' {print $0}' < masterlist`
+          if ($tmp_master == "") set tmp_master = `awk 'NR == '$count'-1 {print $0}' < masterlist`          
+          if ($tmp_master == "") set tmp_master = `awk 'NR == '$count'-2 {print $0}' < masterlist`
 
           cp $tmp_master.PRM tmp.PRM
           set t1 = `grep clock_start $master.PRM | grep -v SC_clock_start | awk '{printf("%.13f", $3)}'`
