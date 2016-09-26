@@ -1,5 +1,7 @@
 #include <string.h>
-#include "lib_functions.h"
+#include <stdio.h>
+//#include "lib_functions.h"
+#include "PRM.h"
 
 /*------------------------------------------------------*/
 /* set some defaults					*/

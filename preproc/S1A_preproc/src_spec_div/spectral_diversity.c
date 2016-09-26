@@ -179,6 +179,16 @@ int main(int argc, char **argv){
     kks = kkm+nboff;
     ntl = ntlm;
     if (ntl>=ntls) ntl = ntls;
+
+    if (bshift > ntl) {
+        fprintf(stderr,"Images does not overlap, returning 0 to res_shift\n");
+        printf("residual_phase =  %.6f\n   isum = %.2g   rsum = %.2g\n",0.0,0.0,0.0);
+        printf("spectral_spectrationXdta = %.6f\n",spec_sep*dta);
+        printf("residual_shift = %.12f\n",0.0);
+        
+    }
+
+
     spl = splm;
     if (spl>=spls) spl = spls;
     real = (float *)malloc(ntl*spl*sizeof(float));
