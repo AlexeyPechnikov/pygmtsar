@@ -975,9 +975,13 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
     for (ii=0;ii<n_samples;ii++) {
         while (tau_sub[jj]<tau[ii]) jj++;
         if(jj<1 || jj>srtcount) {
-            die("elevationAngle table size not match slantRangeTime table size","");
+            //fprintf(stderr,"\ntheta: %d %d %e %e %d\n",jj,srtcount,tau0,tau[ii],ii);
+            //die("elevationAngle table size not match slantRangeTime table size","");
+            theta[ii] = 0.0;
         }
-        theta[ii] = ((tau[ii]-tau_sub[jj-1])*theta_sub[jj-1] + (tau_sub[jj]-tau[ii])*theta_sub[jj]) / (tau_sub[jj] - tau_sub[jj-1]);
+        else {
+            theta[ii] = ((tau[ii]-tau_sub[jj-1])*theta_sub[jj-1] + (tau_sub[jj]-tau[ii])*theta_sub[jj]) / (tau_sub[jj] - tau_sub[jj-1]);
+        }
     }
     //printf("%d  ",jj);
 
@@ -987,11 +991,15 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
     for (ii=0;ii<n_samples;ii++) {
         while (theta_eap[jj]<theta[ii]) jj++;
         if(jj<1 || jj>srtcount) {
-            die("elevationAngle table size not match slantRangeTime table size","");
+            //fprintf(stderr,"p_corr: %d %d",jj,srtcount);
+            //die("elevationAngle table size not match slantRangeTime table size","");
+            p_corr[ii] = 0.0;
         }
-        real = (Geap[(jj-1)*2]*(theta[ii]-theta_eap[jj-1]) + Geap[jj*2]*(theta_eap[jj]-theta[ii])) / dtheta;
-        imag = (Geap[(jj-1)*2+1]*(theta[ii]-theta_eap[jj-1]) + Geap[jj*2+1]*(theta_eap[jj]-theta[ii])) / dtheta;
-        p_corr[ii] = atan2(imag,real);
+        else {
+            real = (Geap[(jj-1)*2]*(theta[ii]-theta_eap[jj-1]) + Geap[jj*2]*(theta_eap[jj]-theta[ii])) / dtheta;
+            imag = (Geap[(jj-1)*2+1]*(theta[ii]-theta_eap[jj-1]) + Geap[jj*2+1]*(theta_eap[jj]-theta[ii])) / dtheta;
+            p_corr[ii] = atan2(imag,real);
+        }
     }    
     //printf("%d  \n",jj);
 /*

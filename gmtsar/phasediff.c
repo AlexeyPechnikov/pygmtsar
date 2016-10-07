@@ -139,7 +139,7 @@ void fix_prm_params(struct PRM *p, char *s)
 	/* this is the correction for the range and azimuth shifts of the re-aligned SLC images */
         if(p->sub_int_r < 0.) p->sub_int_r = 0.;
         if(p->sub_int_a < 0.) p->sub_int_a = 0.;
-	p->near_range = p->near_range + (p->st_rng_bin - p->chirp_ext + p->rshift+p->sub_int_r-1 )*delr;
+	p->near_range = p->near_range + (p->st_rng_bin - p->chirp_ext + p->rshift+p->sub_int_r - 1)*delr;
 	p->SC_clock_start = p->SC_clock_start + (p->ashift+p->sub_int_a)/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
 	p->SC_clock_stop  = p->SC_clock_start + (p->num_valid_az*p->num_patches)/(p->prf*86400.0);
 
