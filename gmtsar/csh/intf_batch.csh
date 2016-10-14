@@ -73,6 +73,13 @@ unset noclobber
     set master = `grep master_image $3 | awk '{print $3}'`
   endif
 
+  if ($master == "") then
+    echo ""
+    echo "master image not set."
+    echo ""
+    exit 1
+  endif
+
 #
 # if filter wavelength is not set then use a default of 200m
 #
@@ -136,7 +143,20 @@ if ($stage <= 1) then
       echo "OFFSET_TOPO - START"
       cd SLC
       if ($SAT == ALOS) then
-        slc2amp.csh IMG-HH-$master.PRM 2 amp-$master.grd
+        set rng_samp_rate = `grep rng_samp_rate IMG-HH-$master.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+        if ( $?rng_samp_rate) then
+          if ($rng_samp_rate > 25000000) then
+            echo "processing ALOS FBS data"
+            set rng = 2
+          else
+            echo "processing ALOS FBD data"
+            set rng = 1
+          endif
+        else
+          echo "Undefined rng_samp_rate in the master PRM file"
+          exit 1
+        endif
+        slc2amp.csh IMG-HH-$master.PRM $rng amp-$master.grd
       else if ($SAT == ERS || $SAT == ENVI) then
         slc2amp.csh $master.PRM 1 amp-$master.grd
       endif
