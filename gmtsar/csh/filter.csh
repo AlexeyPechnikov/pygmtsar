@@ -86,8 +86,8 @@ errormessage:
   set idec = `cat ijdec | awk -v dc="$dec" '{ print dc*$1 }'`
   set jdec = `cat ijdec | awk -v dc="$dec" '{ print dc*$2 }'`
   if($#argv == 6) then
-    set idec = $5
-    set jdec = $6
+    set idec = $6
+    set jdec = $5
   endif
   echo $filter2 $idec $jdec
 #

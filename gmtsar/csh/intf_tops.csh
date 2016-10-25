@@ -63,6 +63,8 @@
   set region_cut = `grep region_cut $2 | awk '{print $3}'`
   set switch_land = `grep switch_land $2 | awk '{print $3}'`
   set defomax = `grep defomax $2 | awk '{print $3}'`
+  set range_dec = `grep range_dec $3 | awk '{print $3}'`
+  set azimuth_dec = `grep azimuth_dec $3 | awk '{print $3}'`
 
 ##################################
 # 1 - start from make topo_ra  #
@@ -164,7 +166,7 @@ if ($stage <= 2) then
     else
       intf.csh $ref.PRM $rep.PRM
     endif
-    filter.csh $ref.PRM $rep.PRM $filter $dec
+    filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
     echo "INTF.CSH, FILTER.CSH - END"
 
 #
