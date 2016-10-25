@@ -73,6 +73,10 @@ filter1 = gauss_tsx_200m
 # Set the decimation to be 2 if you want images with smaller file size.
 # 
 dec_factor = 4
+# for tops processing, to force the decimation factor
+# recommended range decimation to be 8, azimuth decimation to be 2
+range_dec = 8
+azimuth_dec = 2
 #
 # 
 #####################################

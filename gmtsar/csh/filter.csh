@@ -22,10 +22,10 @@
   gmt set COLOR_MODEL = hsv
   gmt set PROJ_LENGTH_UNIT = inch
 
-  if ($#argv != 4) then
+  if ($#argv != 4 && $#argv != 6) then
 errormessage:
     echo ""
-    echo "Usage: filter.csh master.PRM slave.PRM filter decimation"
+    echo "Usage: filter.csh master.PRM slave.PRM filter decimation [rng_dec azi_dec]"
     echo ""
     echo " Apply gaussian filter to amplitude and phase images."
     echo " "
@@ -85,6 +85,10 @@ errormessage:
   set filter2 = gauss_$3
   set idec = `cat ijdec | awk -v dc="$dec" '{ print dc*$1 }'`
   set jdec = `cat ijdec | awk -v dc="$dec" '{ print dc*$2 }'`
+  if($#argv == 6) then
+    set idec = $5
+    set jdec = $6
+  endif
   echo $filter2 $idec $jdec
 #
 # filter the two amplitude images
