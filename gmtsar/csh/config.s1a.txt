@@ -65,7 +65,7 @@ switch_master = 0
 
 # filters 
 # look at the filter/ folder to choose other filters
-filter1 = gauss_tsx_200m
+filter_wavelength = 200
 
 # decimation of images 
 # decimation control the size of the amplitude and phase images. It is either 1 or 2.
@@ -75,8 +75,8 @@ filter1 = gauss_tsx_200m
 dec_factor = 4
 # for tops processing, to force the decimation factor
 # recommended range decimation to be 8, azimuth decimation to be 2
-range_dec = 8
-azimuth_dec = 2
+range_dec = 
+azimuth_dec = 
 #
 # 
 #####################################
