@@ -22,7 +22,7 @@
 int N = 0;
 int MAX_TREE_SIZE = 600000;	// size of the tree in maximum
 int MAX_CHAR_SIZE = 60000;	// size of char arrays in maximum
-char STR[1000][60000];
+char STR[4000][60000];
 
 int search_tree(tree *list, char *str, char *s_out, int type, int loc, int num){
 /***************************************************************************
@@ -609,3 +609,324 @@ int null_MEM_STR(){
     N = 0;
     return(1); 
 }
+
+
+int prefix_str(char *a, char *b){
+    //put b infront of a
+    char *str;
+    str = (char *)malloc((strlen(a)+strlen(b))*2*sizeof(char));
+
+    strcpy(str,b);
+    strcat(str,a);
+    strcpy(a,str);
+
+    free(str);
+    return(1);
+}
+
+int print_space(int j,FILE *fp) {
+    int i;
+
+    for (i=0;i<j;i++) fprintf(fp,"%s"," ");
+    
+    return(1);
+}
+
+/*
+int find_assembly(struct tree **T, int ct, int ii) {
+
+    char str[2000],str_out[60000];
+    int jj;
+
+    str[0] = '\0';
+    jj = ct;
+    while(T[ii][jj].parent != -1) {
+        prefix_str(str,"/");
+        sscanf(T[ii][jj].name,"%s ",str_out);
+        prefix_str(str,str_out);
+        jj = T[ii][jj].parent;
+    }
+    prefix_str(str,"/");
+    sscanf(T[ii][jj].name,"%s ",str_out);
+    prefix_str(str,str_out);
+    prefix_str(str,"/");
+
+    //fprintf(stderr,"%s\n",str);
+
+
+    jj = search_tree(T[ii],str,str_out,1,0,1);
+    //search_tree(tree *list, char *str, char *s_out, int type, int loc, int num)
+    //fprintf(stderr,"%d found...\n",jj);
+    return(jj);
+
+}
+*/
+
+int print_tree(struct tree *T, int ct, int mode, FILE *fp) {
+
+    char str[200];
+
+    if (strncmp(T[ct].name,"OutOfSpace",10) == 0) {
+        char c[100];
+        cat_nums(c,T[ct].name);
+        if (mode == 1) {
+            fprintf(fp,"<%s>\n",STR[(int)str2double(c)]);
+        }
+        else if (mode == 2) {
+            sscanf(STR[(int)str2double(c)],"%s ",str);
+            fprintf(fp,"</%s>\n",str);
+        }
+        else {
+            sscanf(STR[(int)str2double(c)],"%s ",str);
+            if (strncmp(T[T[ct].firstchild].name,"OutOfSpace",10) == 0) {
+                char c2[100];
+                cat_nums(c2,T[T[ct].firstchild].name);
+                fprintf(fp,"<%s>%s</%s>\n",STR[(int)str2double(c)],STR[(int)str2double(c2)],str);
+            }
+            else {
+                fprintf(fp,"<%s>%s</%s>\n",STR[(int)str2double(c)],T[T[ct].firstchild].name,str);
+            }
+        }
+    }   
+    else {
+        if (mode == 1) {
+            fprintf(fp,"<%s>\n",T[ct].name);
+        }
+        else if(mode == 2) {
+            sscanf(T[ct].name,"%s ",str);
+            fprintf(fp,"</%s>\n",str);
+        }
+        else {
+            sscanf(T[ct].name,"%s ",str);
+            if (strncmp(T[T[ct].firstchild].name,"OutOfSpace",10) == 0) {
+                char c2[100];
+                cat_nums(c2,T[T[ct].firstchild].name);
+                fprintf(fp,"<%s>%s</%s>\n",T[ct].name,STR[(int)str2double(c2)],str);
+            }
+            else {
+                fprintf(fp,"<%s>%s</%s>\n",T[ct].name,T[T[ct].firstchild].name,str);
+            }
+        }
+    }   
+ 
+    return(1);
+
+}
+
+
+int assemble_trees(int nfiles, struct tree **T, int ct, int lvl,FILE *fp){
+
+    int j,k;
+
+    if(ct == 0) fprintf(fp,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+
+    print_space(2*lvl,fp);    
+/*
+    if(T[0][ct].sibr == -1 && T[0][ct].firstchild == -1) {
+        putchar('=');
+    }   
+*/
+
+    if(T[0][ct].firstchild != -1 && T[0][T[0][ct].firstchild].firstchild == -1){
+        print_tree(T[0],ct,3,fp);
+/*
+        for (i=1;i<nfiles;i++) {
+            j = find_assembly(T,ct,i);
+            if (j>=0) {
+                if (strncmp(T[0][ct].name,T[i][j].name,strlen(T[0][ct].name)-1) == 0 && strncmp(T[0][T[0][ct].firstchild].name,T[i][T[i][j].firstchild].name,strlen(T[0][T[0][ct].firstchild].name)-1) == 0) mark = 0;
+                else mark = 1;
+                if (mark == 1) {
+                    print_space(2*lvl,fp);
+                    print_tree(T[i],j,3,fp);
+                }
+            }
+        }
+*/
+
+        if (T[0][ct].sibr != -1){
+            assemble_trees(nfiles,T,T[0][ct].sibr,lvl,fp);
+        }
+        else {
+            j = ct;
+            k = 1;
+            while (T[0][j].sibr == -1 & j != 0) {
+                print_space(2*(lvl-k),fp);
+                print_tree(T[0],T[0][j].parent,2,fp);
+                j = T[0][j].parent;
+                k++;
+            }
+        }
+    }
+    else {
+        print_tree(T[0],ct,1,fp);
+/*
+        for (i=1;i<nfiles;i++) {
+            j = find_assembly(T,ct,i);
+            if (j>=0) {
+                if (strncmp(T[0][ct].name,T[i][j].name,strlen(T[0][ct].name)-1) == 0) mark = 0;
+                else mark = 1;
+                if (mark == 1) {
+                    print_space(2*lvl,fp);
+                    print_tree(T[i],j,1,fp);
+                }
+            }
+        }
+*/
+
+        if (T[0][ct].firstchild != -1){
+            assemble_trees(nfiles,T,T[0][ct].firstchild,lvl+1,fp);
+        }   
+
+      
+
+
+        if (T[0][ct].sibr != -1){
+            assemble_trees(nfiles,T,T[0][ct].sibr,lvl,fp);
+        }
+        if (T[0][ct].firstchild == -1 && T[0][ct].sibr == -1) {
+            j = ct;
+            k = 1;
+            while (T[0][j].sibr == -1 & j != 0) {
+                print_space(2*(lvl-k),fp);
+                print_tree(T[0],T[0][j].parent,2,fp);
+                j = T[0][j].parent;
+                k++;
+            }
+        }
+    }
+
+    return(1);
+
+}
+
+/*
+add_branch(int n, struct tree **T, str, ct) {
+    
+    int i;
+    char str_out[60000];
+    i = search_tree(T[0],str,str_out,1,0,1);
+
+
+    return(1);
+
+}
+*/
+/*
+int add_index(struct tree *T, int ct, int ii) {
+
+    int i;
+
+    //printf("hahaha %d\n",ii);
+    for (i=0;i<ct;i++){
+        if(T[i].parent != -1) T[i].parent = T[i].parent+ii;
+        if(T[i].sibl != -1) T[i].sibl = T[i].sibl+ii;
+        if(T[i].sibr != -1) T[i].sibr = T[i].sibr+ii;
+        if(T[i].firstchild != -1) T[i].firstchild = T[i].firstchild+ii;
+    }
+
+    //printf("hahaha\n");
+
+    return(1);
+}
+
+double time2double(char *str){
+    double k;
+    char s_name[200],s_out[200];
+
+    cat_nums(s_name,str);
+    str_date2JD(s_out, s_name);
+
+    k = str2double(s_out);
+
+    return(k);
+
+}
+*/
+/*
+int edit_tree(int nfiles,int nlmx,struct tree **T){
+
+    // note this is only editing firstchild and sibr, thus its not really getting a good tree structure
+
+    int ii1,jj1,kk1,ct,nn1,ii2,jj2,kk2,kk3,nn2,qq;
+    char tmp_c[60000],s_name[200],s_out[200];
+    double t1,t2;
+  
+    ct = 0;
+    while (T[0][ct].sibr != -1 || T[0][ct].firstchild != -1) {
+        if (T[0][ct].sibr != -1) ct = T[0][ct].sibr;
+        else ct = T[0][ct].firstchild;
+    }
+    printf("Original(first) xml has %d tree elements.\n",ct);
+
+    for (qq=1;qq<nfiles;qq++) {
+        ct = 0;
+        while (T[qq][ct].sibr != -1 || T[qq][ct].firstchild != -1) {
+            if (T[qq][ct].sibr != -1) ct = T[qq][ct].sibr;
+            else ct = T[qq][ct].firstchild;
+        } 
+        add_index(&T[0][nlmx*qq*5],ct+1,nlmx*qq*5);
+    }
+
+    // start editing the useful information to create one xml_tree
+    for (qq=1;qq<nfiles;qq++) {
+
+        // burst List
+        ii1 = search_tree(T[0],"/product/swathTiming/burstList/",tmp_c,3,0,1);
+        nn1 = (int)str2double(tmp_c);
+        kk1 = T[0][ii1].firstchild;
+        for (jj1 = 1;jj1<nn1;jj1++) kk1 = T[0][kk1].sibr;
+        ii2 = search_tree(T[qq],"/product/swathTiming/burstList/",tmp_c,3,0,1);
+        T[0][kk1].sibr = T[0][ii2+nlmx*qq*5].firstchild;
+        nn2 = (int)str2double(tmp_c);
+        kk2 = T[0][ii2+nlmx*qq*5].firstchild;
+        for (jj2 = 1;jj2<nn2;jj2++) {
+            T[0][kk2].parent = ii1;
+            kk2 = T[0][kk2].sibr;
+        }
+        T[0][kk2].parent = ii1;
+        sprintf(tmp_c,"burstList count=\"%d\"",nn1+nn2);
+        strcpy(T[0][ii1].name,tmp_c);
+
+        // orbit List
+        ii1 = search_tree(T[0],"/product/generalAnnotation/orbitList/",tmp_c,3,0,1);
+        nn1 = (int)str2double(tmp_c);
+        kk1 = T[0][ii1].firstchild;
+        for (jj1 = 1;jj1<nn1;jj1++) kk1 = T[0][kk1].sibr;
+        t1 = time2double(T[0][T[0][T[0][kk1].firstchild].firstchild].name);
+        ii2 = search_tree(T[qq],"/product/generalAnnotation/orbitList/",tmp_c,3,0,1);
+        nn2 = (int)str2double(tmp_c);
+        printf("%d %lf\n",nn1,t1);
+        t2 = t1-1;ct = 0;
+        kk2 = T[0][ii2+nlmx*qq*5].firstchild;
+        t2=time2double(T[0][T[0][T[0][kk2].firstchild].firstchild].name);
+        while (t2<t1) {
+            kk2 = T[0][kk2].sibr; 
+            t2=time2double(T[0][T[0][T[0][kk2].firstchild].firstchild].name);
+            ct++;
+        } 
+        T[0][kk1].sibr = kk2;
+        kk2 = T[0][ii2+nlmx*qq*5].firstchild;
+        for (jj2 = 1;jj2<nn2-ct;jj2++) {
+            T[0][kk2].parent = ii1;
+            kk2 = T[0][kk2].sibr;
+        }
+        T[0][kk2].parent = ii1;
+        sprintf(tmp_c,"orbitList count=\"%d\"",nn1+nn2-ct);
+        strcpy(T[0][ii1].name,tmp_c);    
+    
+
+    }
+
+    return(1);
+
+}
+
+
+*/
+
+
+
+
+
+
+
