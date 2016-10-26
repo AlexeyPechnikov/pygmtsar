@@ -2,7 +2,7 @@ include ../../config.mk
 #
 #   make all the files
 #
-DIRS	= lib src_swath src_tops src_orbit src_stitch src_spec_div
+DIRS	= lib src_swath src_tops src_orbit src_stitch src_spec_div src_assembly
 
 all:
 	$(LN_S) -f ../S1A_preproc/include include
