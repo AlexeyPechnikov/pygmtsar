@@ -113,6 +113,7 @@ int main(int argc,char **argv){
     for(ii =0;ii<nfiles;ii++) TIFFClose(tif[ii]);
     TIFFClose(tif_out);
 
+    free(tif);
     for(ii=1;ii<nfiles;ii++) free(xml_tree[ii]);
     free(xml_tree);
     return(1);
