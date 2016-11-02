@@ -25,6 +25,20 @@ char *USAGE = "\n\nUSAGE: merge_swath inputlist output [stem]\n"
 "\nnote: please put the files to stem.in in the order of swath numbers.\n"
 "\n      make sure all images have same num_rng_bin\n";
 
+
+void fix_prm(struct PRM *p) {
+        
+        double delr;
+
+        delr = SOL/p->fs/2.0;
+
+        /* these are from prm2gips */
+        p->near_range = p->near_range + (p->st_rng_bin - p->chirp_ext + p->rshift-1)*delr;
+        p->SC_clock_start = p->SC_clock_start + p->ashift/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
+        p->SC_clock_stop  = p->SC_clock_start + (p->num_valid_az*p->num_patches)/(p->prf*86400.0);
+
+}
+
 int main(int argc, char **argv){
 
     /* define variables */
@@ -72,11 +86,15 @@ int main(int argc, char **argv){
     if ((PRM = fopen(stem[0],"r")) == NULL) die("Couldn't open PRM file: \n",stem[0]);
     null_sio_struct(&prm1);
     get_sio_struct(PRM,&prm1);
+    fix_prm(&prm1);
     fclose(PRM);
+
+    
     
     if ((PRM = fopen(stem[1],"r")) == NULL) die("Couldn't open PRM file: \n",stem[1]);
     null_sio_struct(&prm2);
     get_sio_struct(PRM,&prm2);
+    fix_prm(&prm2);
     fclose(PRM);
 
     if (prm1.prf != prm2.prf) die("Image PRFs are not consistent","");
@@ -86,6 +104,7 @@ int main(int argc, char **argv){
         if ((PRM = fopen(stem[2],"r")) == NULL) die("Couldn't open PRM file: \n",stem[2]);
         null_sio_struct(&prm3);
         get_sio_struct(PRM,&prm3);
+        fix_prm(&prm3);
         fclose(PRM);
         if (prm1.prf != prm3.prf) die("Image PRFs are not consistent","");
         if (prm1.fs != prm3.fs) die("Image range sampling rates are not consistent","");
@@ -161,8 +180,6 @@ int main(int argc, char **argv){
     if (nfile == 3) if (n2<(float)prm3.first_sample/incx+10.0) n2 = (int)((float)prm3.first_sample/incx+10.0);
 
     //printf("%d,%d\n",n1,n2);
- 
-    //printf("hahaha...%d,%d,%d\n",head1,G1->header->ny+head1,G1->header->nx-(ovl12-n1));    
     for(ii=head1;ii<G1->header->ny+head1;ii++){
         for(jj=0;jj<G1->header->nx-(ovl12-n1);jj++){
             kk = ii*GOUT->header->nx+jj;
@@ -170,9 +187,6 @@ int main(int argc, char **argv){
             GOUT->data[kk] = G1->data[k];
         }
     }
-  
-    //printf("hahaha...%d,%d,%d,%d\n",head2,G2->header->ny+head2,G1->header->nx-(ovl12-n1),G1->header->nx+G2->header->nx-ovl12-1-(ovl23-n2));
-    //printf("hahaha...%d,%d,%d,%d\n",head3,G3->header->ny+head3,G1->header->nx+G2->header->nx-ovl12-(ovl23-n2),GOUT->header->nx);
 
     if (nfile != 3) {
         for(ii=head2;ii<G2->header->ny+head2;ii++){
