@@ -12,9 +12,9 @@
     echo ""
     echo "Note: Inputfiles should be as following:"
     echo ""
-    echo "      Swath1_Path:Swath1_repeat.PRM"
-    echo "      Swath2_Path:Swath2_repeat.PRM"
-    echo "      Swath3_Path:Swath3_repeat.PRM"
+    echo "      Swath1_Path:Swath1_master.PRM:Swath1_repeat.PRM"
+    echo "      Swath2_Path:Swath2_master.PRM:Swath2_repeat.PRM"
+    echo "      Swath3_Path:Swath3_master.PRM:Swath3_repeat.PRM"
     echo "      (Use the repeat PRM which contains the shift information.)"
     echo "      e.g. ../F1/intf/2015016_2015030/:S1A20151012_134357_F1.PRM"
     echo ""
@@ -41,6 +41,16 @@
   foreach line (`awk '{print $0}' $1`)
     set pth = `echo $line | awk -F: '{print $1}'`
     set prm = `echo $line | awk -F: '{print $2}'`
+    set prm2 = `echo $line | awk -F: '{print $2}'`
+    set ashift = `grep ashift $prm2 | awk '{print $3}'`
+    set rshift = `grep rshift $prm2 | awk '{print $3}'`
+    set sub_a = `grep sub_int_a $prm2 | awk '{print $3}'`
+    set sub_r = `grep sub_int_r $prm2 | awk '{print $3}'`
+    update_PRM.csh $prm ashift $ashift
+    update_PRM.csh $prm rshift $rshift
+    update_PRM.csh $prm sub_int_a $sub_a
+    update_PRM.csh $prm sub_int_r $sub_r
+
     echo $pth$prm":"$pth"phasefilt.grd" >> tmp_phaselist
     echo $pth$prm":"$pth"corr.grd" >> tmp_corrlist
     echo $pth$prm":"$pth"mask.grd" >> tmp_masklist
