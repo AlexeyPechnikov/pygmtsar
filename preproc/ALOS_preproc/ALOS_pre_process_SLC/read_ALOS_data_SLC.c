@@ -188,8 +188,8 @@ long read_ALOS_data_SLC (FILE *imagefile, FILE *outfile, struct PRM *prm, long *
 	/* m is non-zero only in the event of a prf change */
 	prm->num_lines = n - m - 1;
 
-        /* make sure num lines is divisible by 4 */
-        prm->num_lines = prm->num_lines - prm->num_lines %4;
+        /* make sure num lines is divisible by 32 */
+        prm->num_lines = prm->num_lines - prm->num_lines % 32;
 
 	/* for SLC data the prm->nrows = prm->num_valid_az = prm->num_lines and prm->num_patches = 1 */
 	prm->nrows = prm->num_lines;
