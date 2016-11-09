@@ -39,9 +39,11 @@
 
   # Creating inputfiles for merging
   foreach line (`awk '{print $0}' $1`)
+    set now_dir = `pwd`
     set pth = `echo $line | awk -F: '{print $1}'`
     set prm = `echo $line | awk -F: '{print $2}'`
     set prm2 = `echo $line | awk -F: '{print $2}'`
+    cd $pth
     set ashift = `grep ashift $prm2 | awk '{print $3}'`
     set rshift = `grep rshift $prm2 | awk '{print $3}'`
     set sub_a = `grep sub_int_a $prm2 | awk '{print $3}'`
@@ -50,6 +52,7 @@
     update_PRM.csh $prm rshift $rshift
     update_PRM.csh $prm sub_int_a $sub_a
     update_PRM.csh $prm sub_int_r $sub_r
+    cd $now_dir
 
     echo $pth$prm":"$pth"phasefilt.grd" >> tmp_phaselist
     echo $pth$prm":"$pth"corr.grd" >> tmp_corrlist

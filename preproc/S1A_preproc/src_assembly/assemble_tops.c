@@ -139,13 +139,13 @@ int assemble_tifs(TIFF **tif,TIFF *tif_out,int nfiles) {
         height_all = height_all+height[ii];
     }
 
-    buf = (short *)malloc(sizeof(short)*width*3); // make some extra space in case the width differ for other images
-
     TIFFSetField(tif_out,TIFFTAG_IMAGEWIDTH,width);
     TIFFSetField(tif_out,TIFFTAG_IMAGELENGTH,height_all);
     TIFFSetField(tif_out,TIFFTAG_BITSPERSAMPLE,sizeof(short)*8*2);
     TIFFSetField(tif_out,TIFFTAG_SAMPLEFORMAT,SAMPLEFORMAT_COMPLEXINT);
     TIFFSetField(tif_out,TIFFTAG_PHOTOMETRIC,PHOTOMETRIC_MINISBLACK);
+
+    buf = (short *)_TIFFmalloc(TIFFScanlineSize(tif_out)*2); // make some extra space in case the width differ for other images
     
     printf("Writing TIFF image Width(%d) X Height(%d)...\n",width,height_all);
 
@@ -153,12 +153,12 @@ int assemble_tifs(TIFF **tif,TIFF *tif_out,int nfiles) {
         for (jj=0;jj<height[ii];jj++) {
             nii = jj;
             TIFFReadScanline(tif[ii], buf, nii, s);
-            TIFFWriteScanline(tif_out, buf, ni, s);
+            if (TIFFFlushData(tif_out)) TIFFWriteScanline(tif_out, buf, ni, s);
             ni++;
         }
     }
     
-    free(buf);
+    _TIFFfree(buf);
     free(height);
     
     return(1);
