@@ -66,6 +66,7 @@ char    *USAGE = " \n Usage: "
 " \n"
 " example: SAT_llt2rat master.PRM 0 < topo.llt > topo.ratll    \n";
 
+int npad = 8000;
 
 /* int parse_ALOS_llt2rat(char **, char *);    */
 void read_orb(FILE *, struct PRM *, struct ALOS_ORB *);
@@ -92,7 +93,7 @@ int main (int argc, char **argv) {
         double dt,dtt,xs,ys,zs;
         double time[20],rng[20],d[3];  /* arrays used for polynomial refinement of min range */
         int ir, k, ntt=10, nc=3;           /* size of arrays used for polynomial refinement */
-        int j,nrec,npad=8000,precise = 0;
+        int j,nrec,precise = 0;
         int goldop();
         int stai,endi,midi;
         double **orb_pos = NULL;
@@ -168,7 +169,10 @@ int main (int argc, char **argv) {
 /* if this is S1A which has a low PRF sample 2 times more often */
 
         ts=2./prm.prf;
-        if(prm.prf < 600.) ts=2./(2.*prm.prf);
+        if(prm.prf < 600.) {
+            ts=2./(2.*prm.prf);
+            npad = 20000;
+        }
         nrec=(int)((t2-t1)/ts);
 
 /* allocate memory for the orbit postion into a 2-dimensional array. It's about 
@@ -356,7 +360,7 @@ int calorb_alos(struct ALOS_ORB *orb, double  **orb_pos, double ts, double t1, i
 
 {
         int i,k,nval;
-        int     npad = 8000;   /* number of buffer points to add before and after the acquisition */
+        //int     npad = 8000;   /* number of buffer points to add before and after the acquisition */
 	int    ir;      /* return code: 0 = ok; 1 = interp not in center; 2 = time out of range */
 	double  xs,ys,zs;  /* position at time */
         double *pt,*px,*py,*pz,*pvx,*pvy,*pvz;
