@@ -354,12 +354,6 @@ int main (int argc, char **argv)
 		Bhc = p2.baseline_center*cos(p2.alpha_center*PI/180.0);
 		Bvc = p2.baseline_center*sin(p2.alpha_center*PI/180.0);
 
-fprintf(stderr,"\n");
-fprintf(stderr,"Baseline numbers:\n");
-fprintf(stderr,"Bh0 = %.12f;\nBhc = %.12f;\nBhf = %.12f;\n",Bh0,Bhc,Bhf);
-fprintf(stderr,"Bv0 = %.12f;\nBvc = %.12f;\nBvf = %.12f;\n",Bv0,Bvc,Bvf);
-fprintf(stderr,"Alpha0 = %.12f;\nAlphac = %.12f;\nAlphaf = %.12f;\n\n",p2.alpha_start,p2.alpha_center,p2.alpha_end);
-
 		dBh = (-3.*Bh0 + 4*Bhc -Bhf)/tspan;
 		dBv = (-3.*Bv0 + 4*Bvc -Bvf)/tspan;
 		ddBh = (2.*Bh0 - 4*Bhc + 2*Bhf)/(tspan*tspan);

@@ -229,116 +229,61 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		}
 
         // refine the baseline computation with polynomial fit
-//fprintf(stderr,"%.12f %.12f %.12f\n", t11,t12,t13);
-//fprintf(stderr,"%.12f  %d  %.12f\n",t11,m1,dt);
 
         dstart = fabs(t11-t21);
+        // check whether it's the computation of same orbit.
         if(dstart > 10.) {
 
-        ddt = 0.01/ntt;
-        for (k=0;k<ntt;k++) {
-            time[k] = (k-ntt/2+0.5)*ddt;
-            interpolate_ALOS_orbit_slow(&orb[0], t11+time[k], &xs, &ys, &zs, &ir);
-            bs[k] = find_dist(xs,ys,zs,x21,y21,z21);
-            bs[k] = bs[k]*bs[k];
-        }
-        polyfit(time,bs,d3,&ntt,&nc);
-        ts = t11-d3[1]/(2.0*d3[2]);
-        interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
-        x11 = xs; y11 = ys; z11 = zs;
-        //b1 = find_dist(xs, ys, zs, x21, y21, z21);
-        b1 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
+            ddt = 0.01/ntt;
+            for (k=0;k<ntt;k++) {
+                time[k] = (k-ntt/2+0.5)*ddt;
+                interpolate_ALOS_orbit_slow(&orb[0], t11+time[k], &xs, &ys, &zs, &ir);
+                bs[k] = find_dist(xs,ys,zs,x21,y21,z21);
+                bs[k] = bs[k]*bs[k];
+            }
+            polyfit(time,bs,d3,&ntt,&nc);
+            ts = t11-d3[1]/(2.0*d3[2]);
+            interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
+            x11 = xs; y11 = ys; z11 = zs;
+            b1 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
         
-		/* compute more orbital information at the min baseline based on m1 */
-		calc_height_velocity(&orb[0], &r[0], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
-fprintf(stderr,"%.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f \n",time[0],time[1],time[2],time[3],time[4],time[5],time[6],time[7],time[8],time[9]);
-fprintf(stderr,"%.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f \n",bs[0],bs[1],bs[2],bs[3],bs[4],bs[5],bs[6],bs[7],bs[8],bs[9]);
-fprintf(stderr,"%.6f %.6f %.6f\n",d3[0],d3[1],d3[2]);
+		    /* compute more orbital information at the min baseline based on m1 */
+	    	calc_height_velocity(&orb[0], &r[0], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
+        
+            for (k=0;k<ntt;k++) {
+                time[k] = (k-ntt/2+0.5)*ddt;
+                interpolate_ALOS_orbit_slow(&orb[0], t12+time[k], &xs, &ys, &zs, &ir);
+                bs[k] = find_dist(xs,ys,zs,x22,y22,z22);
+                bs[k] = bs[k]*bs[k];
+            }   
+            polyfit(time,bs,d3,&ntt,&nc);
+            ts = t12-d3[1]/(2.0*d3[2]);
+            interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
+            x12 = xs; y12 = ys; z12 = zs;
+            b2 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
 
-//fprintf(stderr,"%.12f  %d  %.12f\n",t12,m2,dt);
-        for (k=0;k<ntt;k++) {
-            time[k] = (k-ntt/2+0.5)*ddt;
-            interpolate_ALOS_orbit_slow(&orb[0], t12+time[k], &xs, &ys, &zs, &ir);
-            bs[k] = find_dist(xs,ys,zs,x22,y22,z22);
-            bs[k] = bs[k]*bs[k];
-        }   
-        polyfit(time,bs,d3,&ntt,&nc);
-//        ts = t12-d3[1]/(2.0*d3[2]);
-//        interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
-//        b2 = find_dist(xs, ys, zs, x22, y22, z22);
-        ts = t12-d3[1]/(2.0*d3[2]);
-        interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
-        x12 = xs; y12 = ys; z12 = zs;
-        b2 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
-
-
-//fprintf(stderr,"%.12f  %d  %.12f\n",t13,m3,dt);
-        for (k=0;k<ntt;k++) {
-            time[k] = (k-ntt/2+0.5)*ddt;
-            interpolate_ALOS_orbit_slow(&orb[0], t13+time[k], &xs, &ys, &zs, &ir);
-            bs[k] = find_dist(xs,ys,zs,x23,y23,z23);
-            bs[k] = bs[k]*bs[k];
-        }   
-        polyfit(time,bs,d3,&ntt,&nc);
-//        ts = t13-d3[1]/(2.0*d3[2]);
-//        interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
-//        b3 = find_dist(xs, ys, zs, x23, y23, z23);
-        ts = t13-d3[1]/(2.0*d3[2]);
-        interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
-        x13 = xs; y13 = ys; z13 = zs;
-        b3 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
-
-        fprintf(stderr,"%.9f %.9f %.9f\n",b1,b2,b3);
+            for (k=0;k<ntt;k++) {
+                time[k] = (k-ntt/2+0.5)*ddt;
+                interpolate_ALOS_orbit_slow(&orb[0], t13+time[k], &xs, &ys, &zs, &ir);
+                bs[k] = find_dist(xs,ys,zs,x23,y23,z23);
+                bs[k] = bs[k]*bs[k];
+            }   
+            polyfit(time,bs,d3,&ntt,&nc);
+            ts = t13-d3[1]/(2.0*d3[2]);
+            interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
+            x13 = xs; y13 = ys; z13 = zs;
+            b3 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
 
         }
         
-
-
-/*
-		    // update the time parameters for precise computation 
-                prec = sqrt((b1+0.000003)*(b1+0.000003)-b1*b1);
-                if (prec < vtot/r[0].prf/2.0){
-                // check to see if the reference and repeat start times are the same.  If yes do just a crude estimate 
-                        dstart = fabs(t11-t21);
-			dt = prec/vtot;
-                        if(dstart < 10.) dt=1./r[0].prf;
-                	ns = (int) ((t12 - t11)/dt)+1;
-			dt = (t12 - t11)/(ns - 1);
-                	printf("Sampling intervel being %.6f azimuth pixel\n",dt*r[0].prf);
-			ns2 = ns*0.5;
-	        	if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;
-                        
-
-                	// precisely compute the baseline up to 1mm level
-                	for (k = -ns2; k<ns + ns2; k++){
-                        	ts = t11 + k*dt;
-                        	interpolate_ALOS_orbit(&orb[0], pt, p, pv, ts, &xs, &ys, &zs, &ir);
-
-                        	ds = find_dist(xs, ys, zs, x21, y21, z21);
-                        	if (b1 < 0.0 || ds < b1) endpoint_distance(k, ds, xs, ys, zs, &b1, &x11, &y11, &z11, &m1);
-
-                        	ds = find_dist(xs, ys, zs, x22, y22, z22);
-                        	if (b2 < 0.0 || ds < b2) endpoint_distance(k, ds, xs, ys, zs, &b2, &x12, &y12, &z12, &m2);
-
-                        	ds = find_dist(xs, ys, zs, x23, y23, z23);
-                        	if (b3 < 0.0 || ds < b3) endpoint_distance(k, ds, xs, ys, zs, &b3, &x13, &y13, &z13, &m3);
-                        	}
-                	// compute more orbital information at the min baseline based on m1
-
-                	ts = t11 + m1*dt;
-*/                	
-
-            calc_height_velocity(&orb[0], &r[0], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
-
-
-                	// change back the dt settings
-        		dt = 0.5/r[0].prf;
-			ns = (int) ((t12 - t11)/dt);    // seconds of frame
-			dt = (t12 - t11)/(ns - 1);
+        // change back the dt settings
+        dt = 0.5/r[0].prf;
+		ns = (int) ((t12 - t11)/dt);    // seconds of frame
+		dt = (t12 - t11)/(ns - 1);
          
-			// set the extension to 50% unless ERS or Envisat and then set to 200% 
-			ns2 = ns*0.5;
-			if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;        
+		// set the extension to 50% unless ERS or Envisat and then set to 200% 
+		ns2 = ns*0.5;
+		if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;        
 
 	    
 		/* fd_orbit = -2.0*rdot/r[0].lambda; */
@@ -371,8 +316,8 @@ fprintf(stderr,"%.6f %.6f %.6f\n",d3[0],d3[1],d3[2]);
 		bv2 = (x22 - x12)*xu2 + (y22 - y12)*yu2 + (z22 - z12)*zu2;
 		bh2 = sign2*sqrt(b2*b2 - bv2*bv2);
 
-                bv3 = (x23 - x13)*xu3 + (y23 - y13)*yu3 + (z23 - z13)*zu3;
-                bh3 = sign3*sqrt(b3*b3 - bv3*bv3);
+        bv3 = (x23 - x13)*xu3 + (y23 - y13)*yu3 + (z23 - z13)*zu3;
+        bh3 = sign3*sqrt(b3*b3 - bv3*bv3);
 
 		/* angle from horizontal 				*/
 		r[ii].alpha_start = find_alpha_degrees(bv1, bh1);
@@ -394,10 +339,10 @@ fprintf(stderr,"%.6f %.6f %.6f\n",d3[0],d3[1],d3[2]);
 		
 		/* since t11 point is out of scene, I need add a fraction of orbit time to it  */
 
-                pt0 = (24.0*60.0*60.0)*orb[0].id + orb[0].sec;
-                for (k=0; k<nd; k++) pt[k] = pt0 + k*orb[0].dsec;
-                t_sta=t11+2.0;
-                interpolate_ALOS_orbit(&orb[0], pt, p, pv, t_sta, &x_sta, &y_sta, &z_sta, &ir);
+        pt0 = (24.0*60.0*60.0)*orb[0].id + orb[0].sec;
+        for (k=0; k<nd; k++) pt[k] = pt0 + k*orb[0].dsec;
+        t_sta=t11+2.0;
+        interpolate_ALOS_orbit(&orb[0], pt, p, pv, t_sta, &x_sta, &y_sta, &z_sta, &ir);
 
 		re=r[0].RE;
 		far_range = r[0].near_range + dr*r[0].num_rng_bins;
@@ -454,9 +399,9 @@ fprintf(stderr,"%.6f %.6f %.6f\n",d3[0],d3[1],d3[2]);
 		llt2rat_sub(filename[0], target_llt, target_rat_ref);
 		llt2rat_sub(filename[ii], target_llt, target_rat_rep);
 
-                /* find expected offset in pixels (rshift and yshift)   */
-                r[ii].ashift = target_rat_rep[1]-target_rat_ref[1];
-                r[ii].rshift = target_rat_rep[0]-target_rat_ref[0];
+        /* find expected offset in pixels (rshift and yshift)   */
+        r[ii].ashift = target_rat_rep[1]-target_rat_ref[1];
+        r[ii].rshift = target_rat_rep[0]-target_rat_ref[0];
 
 		/* write out prm format 				*/
 		if (input_flag == 0) write_prm_baseline(r[ii]);
