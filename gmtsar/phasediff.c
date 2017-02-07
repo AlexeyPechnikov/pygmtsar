@@ -63,8 +63,10 @@ void calc_drho(int xdim, double *range, double *topo, double avet, double re,
 		double height, double B, double alpha, double *drho)
 {
 int k;
-double rho,sint,cost,cosa,sina;
-double term1,term2,c,c2,ret,ret2;
+/* EX: changing to long double for better precision */
+long double rho,sint,cost,cosa,sina;
+//long double term1,term2,c,c2,ret,ret2;
+long double term1,c,c2,ret,ret2;
 
 	sina = sin(alpha);
 	cosa = cos(alpha);
@@ -81,13 +83,13 @@ double term1,term2,c,c2,ret,ret2;
 		sint = sqrt(1. - cost*cost);
 
 /* compute the range change using equation (c23) in Appendic C */
-		term1 = -B*(sint*cosa-cost*sina);
-		term2 = B*B*(cost*cosa+sint*sina)/(2.*rho);
-		drho[k] = term1 + term2;
+		//term1 = -B*(sint*cosa-cost*sina);
+		//term2 = B*B*(cost*cosa+sint*sina)/(2.*rho);
+		//drho[k] = term1 + term2;
 
 /* New (Eric Lindsey, April 2015): compute the range change using the full nonlinear equation */
-                //term1 = rho*rho + B*B - 2*rho*B*(sint*cosa-cost*sina);
-                //drho[k] = -rho + sqrt(term1);
+        term1 = rho*rho + B*B - 2*rho*B*(sint*cosa-cost*sina);
+        drho[k] = -rho + sqrt(term1);
 	}
 }
 
@@ -351,6 +353,13 @@ int main (int argc, char **argv)
 		
 		Bhc = p2.baseline_center*cos(p2.alpha_center*PI/180.0);
 		Bvc = p2.baseline_center*sin(p2.alpha_center*PI/180.0);
+
+fprintf(stderr,"\n");
+fprintf(stderr,"Baseline numbers:\n");
+fprintf(stderr,"Bh0 = %.12f;\nBhc = %.12f;\nBhf = %.12f;\n",Bh0,Bhc,Bhf);
+fprintf(stderr,"Bv0 = %.12f;\nBvc = %.12f;\nBvf = %.12f;\n",Bv0,Bvc,Bvf);
+fprintf(stderr,"Alpha0 = %.12f;\nAlphac = %.12f;\nAlphaf = %.12f;\n\n",p2.alpha_start,p2.alpha_center,p2.alpha_end);
+
 		dBh = (-3.*Bh0 + 4*Bhc -Bhf)/tspan;
 		dBv = (-3.*Bv0 + 4*Bvc -Bvf)/tspan;
 		ddBh = (2.*Bh0 - 4*Bhc + 2*Bhf)/(tspan*tspan);
@@ -402,6 +411,12 @@ int main (int argc, char **argv)
 
 		/* loop over range to make topographic and model phase corrections */
 		for (k=0; k<xdim; k++){
+//
+//
+            iptr1[k].r = 1;
+            iptr1[k].i = 1;
+//
+//
 			intfp[k] = iptr1[k];
 			pha=cnst*drho[k];
 			if (modelflag) { 
@@ -443,6 +458,12 @@ int main (int argc, char **argv)
 		left_node = GMT_Get_Index (API, RE->header, j, 0);
 		
 		for(k=0;k<xdim;k++){
+//
+//
+            iptr2[k].r = 1;
+            iptr2[k].i = 1;
+//
+//
 			iptr2[k] = Conjg(iptr2[k]);
       			intfp[k] = Cmul(intfp[k],iptr2[k]);
 			RE->data[left_node+k] = intfp[k].r;

@@ -51,7 +51,7 @@ double	sj, hj, f0, f1;
 
 	/* reduced index by 1 */
       	if (xp < x[0] || xp > x[nmax-1]) { 
-      		fprintf(stderr,"interpolation point outside of data constraints\n");
+      		fprintf(stderr,"interpolation point outside of data constraints, %f %f %f\n",xp,x[0],x[nmax-1]);
       		*ir = 2;
       		exit(1);	
       		}
