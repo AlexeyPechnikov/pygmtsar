@@ -405,12 +405,6 @@ int main (int argc, char **argv)
 
 		/* loop over range to make topographic and model phase corrections */
 		for (k=0; k<xdim; k++){
-//
-//
-            iptr1[k].r = 1;
-            iptr1[k].i = 1;
-//
-//
 			intfp[k] = iptr1[k];
 			pha=cnst*drho[k];
 			if (modelflag) { 
@@ -452,14 +446,8 @@ int main (int argc, char **argv)
 		left_node = GMT_Get_Index (API, RE->header, j, 0);
 		
 		for(k=0;k<xdim;k++){
-//
-//
-            iptr2[k].r = 1;
-            iptr2[k].i = 1;
-//
-//
 			iptr2[k] = Conjg(iptr2[k]);
-      			intfp[k] = Cmul(intfp[k],iptr2[k]);
+      		intfp[k] = Cmul(intfp[k],iptr2[k]);
 			RE->data[left_node+k] = intfp[k].r;
 			IM->data[left_node+k] = intfp[k].i; 
 		}
