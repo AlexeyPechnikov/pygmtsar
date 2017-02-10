@@ -206,6 +206,8 @@ int main (int argc, char **argv)
 	struct	GMT_GRID *M = NULL, *T = NULL;	/* Grid structures containing ->header and ->data */
 	struct	GMT_GRID *RE = NULL, *IM = NULL;	/* For the real and imaginary grids */
 
+        double *range2 = NULL;
+
 	/* Begin: Initializing new GMT5 session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
@@ -275,6 +277,7 @@ int main (int argc, char **argv)
 	drho = (double *) malloc(xdim * sizeof(double));
 	drho0 = (double *) malloc(xdim * sizeof(double));
 	range = (double *) malloc(xdim * sizeof(double));
+	range2 = (double *) malloc(xdim * sizeof(double));
 
 	intfp = (fcomplex *) malloc(xdim * sizeof(fcomplex));
 	iptr1 = (fcomplex *) malloc(xdim * sizeof(fcomplex));
@@ -336,7 +339,8 @@ int main (int argc, char **argv)
 	cnst = -4.0*PI/p2.lambda;
 
 	for (k=0;k<xdim;k++){
-		range[k]=p1.near_range+k*drange;
+		//range[k]=p1.near_range+k*drange;
+		range[k]=p1.near_range+k*(1+p1.stretch_r)*drange;
 		topo2[k]=0.;
 		xs[k] = k;
 	}
@@ -376,6 +380,11 @@ int main (int argc, char **argv)
 	/* now go through all the rows 		*/
 	for(j=ydim_start;j<(ydim+ydim_start);j++){
 
+for (k=0;k<xdim;k++){
+    //range[k]=p1.near_range+k*drange;
+    range2[k]= range[k]+j*p1.a_stretch_r;
+}
+
 		/* read data from complex i2 SLC 	*/
 	 	read_SLC_short2float(SLCfile1, p1.SLC_file, d1, &iptr1[0], xdim, 1, DFACT);
 	 	read_SLC_short2float(SLCfile2, p2.SLC_file, d2, &iptr2[0], xdim, 1, DFACT);
@@ -405,6 +414,11 @@ int main (int argc, char **argv)
 
 		/* loop over range to make topographic and model phase corrections */
 		for (k=0; k<xdim; k++){
+//
+//iptr1[k].r = 1.0;
+//iptr1[k].i = 1.0;
+//
+
 			intfp[k] = iptr1[k];
 			pha=cnst*drho[k];
 			if (modelflag) { 
@@ -446,6 +460,12 @@ int main (int argc, char **argv)
 		left_node = GMT_Get_Index (API, RE->header, j, 0);
 		
 		for(k=0;k<xdim;k++){
+
+//
+//iptr2[k].r = 1.0;
+//iptr2[k].i = 1.0;
+//
+
 			iptr2[k] = Conjg(iptr2[k]);
       		intfp[k] = Cmul(intfp[k],iptr2[k]);
 			RE->data[left_node+k] = intfp[k].r;
