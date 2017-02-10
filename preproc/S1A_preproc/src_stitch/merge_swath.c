@@ -35,7 +35,9 @@ void fix_prm(struct PRM *p) {
         /* these are from prm2gips */
         p->near_range = p->near_range + (p->st_rng_bin - p->chirp_ext + p->rshift-1)*delr;
         p->SC_clock_start = p->SC_clock_start + p->ashift/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
+        p->clock_start = p->clock_start + p->ashift/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
         p->SC_clock_stop  = p->SC_clock_start + (p->num_valid_az*p->num_patches)/(p->prf*86400.0);
+        p->clock_stop  = p->clock_start + (p->num_valid_az*p->num_patches)/(p->prf*86400.0);
 
 }
 
@@ -86,7 +88,7 @@ int main(int argc, char **argv){
     if ((PRM = fopen(stem[0],"r")) == NULL) die("Couldn't open PRM file: \n",stem[0]);
     null_sio_struct(&prm1);
     get_sio_struct(PRM,&prm1);
-    //fix_prm(&prm1);
+    fix_prm(&prm1);
     fclose(PRM);
 
     
@@ -94,7 +96,7 @@ int main(int argc, char **argv){
     if ((PRM = fopen(stem[1],"r")) == NULL) die("Couldn't open PRM file: \n",stem[1]);
     null_sio_struct(&prm2);
     get_sio_struct(PRM,&prm2);
-    //fix_prm(&prm2);
+    fix_prm(&prm2);
     fclose(PRM);
 
     if (prm1.prf != prm2.prf) die("Image PRFs are not consistent","");
@@ -104,7 +106,7 @@ int main(int argc, char **argv){
         if ((PRM = fopen(stem[2],"r")) == NULL) die("Couldn't open PRM file: \n",stem[2]);
         null_sio_struct(&prm3);
         get_sio_struct(PRM,&prm3);
-        //fix_prm(&prm3);
+        fix_prm(&prm3);
         fclose(PRM);
         if (prm1.prf != prm3.prf) die("Image PRFs are not consistent","");
         if (prm1.fs != prm3.fs) die("Image range sampling rates are not consistent","");
@@ -132,7 +134,7 @@ int main(int argc, char **argv){
     }
    
     head1 = 0;
-    head2 = (int)round((prm2.clock_start - prm1.clock_start)*86400.0*prm1.prf/incy);
+    head2 = (int)round(((prm2.clock_start - prm1.clock_start)*86400.0*prm1.prf + )/incy);
     if (nfile == 3) head3 = (int)round((prm3.clock_start - prm1.clock_start)*86400.0*prm1.prf/incy);
     minh = MIN(head1,head2);
     if (nfile == 3) minh = MIN(minh,head3);
