@@ -382,7 +382,7 @@ int main (int argc, char **argv)
 
 for (k=0;k<xdim;k++){
     //range[k]=p1.near_range+k*drange;
-    range2[k]= range[k]+j*p1.a_stretch_r;
+    range2[k]= range[k]+j*p1.a_stretch_r*drange;
 }
 
 		/* read data from complex i2 SLC 	*/
