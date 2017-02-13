@@ -86,10 +86,11 @@ errormessage:
   set idec = `cat ijdec | awk -v dc="$dec" '{ print dc*$1 }'`
   set jdec = `cat ijdec | awk -v dc="$dec" '{ print dc*$2 }'`
   if($#argv == 6) then
-    set idec = $6
-    set jdec = $5
+    set idec = `echo $6 $az_lks | awk '{printf("%d",$1/$2)}'`
+    set jdec = `echo $5 $dec_rng | awk '{printf("%d",$1/$2)}'`
+    echo "setting range_dec = $5, azimuth_dec = $6"
   endif
-  echo $filter2 $idec $jdec
+  echo "$filter2 $idec $jdec ($az_lks $dec_rng)" 
 #
 # filter the two amplitude images
 #
