@@ -134,7 +134,7 @@ int main(int argc, char **argv){
     }
    
     head1 = 0;
-    head2 = (int)round(((prm2.clock_start - prm1.clock_start)*86400.0*prm1.prf + )/incy);
+    head2 = (int)round(((prm2.clock_start - prm1.clock_start)*86400.0*prm1.prf)/incy);
     if (nfile == 3) head3 = (int)round((prm3.clock_start - prm1.clock_start)*86400.0*prm1.prf/incy);
     minh = MIN(head1,head2);
     if (nfile == 3) minh = MIN(minh,head3);
