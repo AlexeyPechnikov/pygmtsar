@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#/bin/csh -f
 #       $Id$
 #
 #
@@ -42,7 +42,7 @@
     set now_dir = `pwd`
     set pth = `echo $line | awk -F: '{print $1}'`
     set prm = `echo $line | awk -F: '{print $2}'`
-    set prm2 = `echo $line | awk -F: '{print $2}'`
+    set prm2 = `echo $line | awk -F: '{print $3}'`
     cd $pth
     set ashift = `grep ashift $prm2 | awk '{print $3}'`
     set rshift = `grep rshift $prm2 | awk '{print $3}'`

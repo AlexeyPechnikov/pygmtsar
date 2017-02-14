@@ -10,7 +10,7 @@
 
   if ($#argv != 2) then
     echo ""
-    echo "Usage: merge_batch.csh inputfile config_file"
+    echo "Usage: merge_unwrap_geocode_tops.csh inputfile config_file"
     echo ""
     echo "Note: Inputfiles should be as following:"
     echo ""
@@ -18,8 +18,6 @@
     echo "      IF2_Swath1_Path:master.PRM:repeat.PRM,IF2_Swath2_Path:master.PRM:repeat.PRM,IF1_Swath3_Path:master.PRM:repeat.PRM"
     echo "      (Use the repeat PRM which contains the shift information.)"
     echo "      e.g. ../F1/intf_all/2015092_2015128/:S1A20150403_ALL_F1.PRM:S1A20150509_ALL_F1.PRM,../F2/intf_all/2015092_2015128/:S1A20150403_ALL_F2.PRM:S1A20150509_ALL_F2.PRM,../F3/intf_all/2015092_2015128/:S1A20150403_ALL_F3.PRM:S1A20150509_ALL_F3.PRM"
-    echo ""
-    echo "      Script for merging 3 subswaths TOPS interferograms and then unwrap and geocode for a stack of interferograms."
     echo ""
     echo "      Make sure under each path, the processed phasefilt.grd, corr.grd and mask.grd exist."
     echo "      Also make sure the dem.grd is linked. "
@@ -59,15 +57,15 @@
     
     merge_unwrap_geocode_tops.csh tmp.filelist $2
 
-    if (! -f ../trans.dat) then
+    if (! -f ../trans.dat && -f trans.dat) then
       mv trans.dat ../
       ln -s ../trans.dat .
     endif
-    if (! -f ../raln.grd) then
+    if (! -f ../raln.grd && -f raln.grd) then
       mv raln.grd ../
       ln -s ../raln.grd .
     endif
-    if (! -f ../ralt.grd) then
+    if (! -f ../ralt.grd && -f raln.grd) then
       mv ralt.grd ../
       ln -s ../ralt.grd .
     endif
