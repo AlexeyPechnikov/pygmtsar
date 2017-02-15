@@ -88,7 +88,7 @@ int main(int argc, char **argv){
     if ((PRM = fopen(stem[0],"r")) == NULL) die("Couldn't open PRM file: \n",stem[0]);
     null_sio_struct(&prm1);
     get_sio_struct(PRM,&prm1);
-    fix_prm(&prm1);
+    //fix_prm(&prm1);
     fclose(PRM);
 
     
@@ -96,7 +96,7 @@ int main(int argc, char **argv){
     if ((PRM = fopen(stem[1],"r")) == NULL) die("Couldn't open PRM file: \n",stem[1]);
     null_sio_struct(&prm2);
     get_sio_struct(PRM,&prm2);
-    fix_prm(&prm2);
+    //fix_prm(&prm2);
     fclose(PRM);
 
     if (prm1.prf != prm2.prf) die("Image PRFs are not consistent","");
@@ -106,7 +106,7 @@ int main(int argc, char **argv){
         if ((PRM = fopen(stem[2],"r")) == NULL) die("Couldn't open PRM file: \n",stem[2]);
         null_sio_struct(&prm3);
         get_sio_struct(PRM,&prm3);
-        fix_prm(&prm3);
+        //fix_prm(&prm3);
         fclose(PRM);
         if (prm1.prf != prm3.prf) die("Image PRFs are not consistent","");
         if (prm1.fs != prm3.fs) die("Image range sampling rates are not consistent","");

@@ -44,17 +44,14 @@
     set prm = `echo $line | awk -F: '{print $2}'`
     set prm2 = `echo $line | awk -F: '{print $3}'`
     cd $pth
-    set ashift = `grep ashift $prm2 | awk '{print $3}'`
     set rshift = `grep rshift $prm2 | awk '{print $3}'`
-    set sub_a = `grep sub_int_a $prm2 | awk '{print $3}'`
-    set sub_r = `grep sub_int_r $prm2 | awk '{print $3}'`
+    set fs1 = `grep first_sample $prm | awk '{print $3}'`
+    set fs2 = `grep first_sample $prm2 | awk '{print $3}'`
     cp $prm tmp.PRM
-    update_PRM.csh tmp.PRM ashift $ashift
+    if ($fs2 > $fs1) then
+      update_PRM.csh tmp.PRM first_sample $fs2
+    endif
     update_PRM.csh tmp.PRM rshift $rshift
-    update_PRM.csh tmp.PRM sub_int_a $sub_a
-    update_PRM.csh tmp.PRM sub_int_r $sub_r
-    cd $now_dir
-
     cd $now_dir
 
     echo $pth"tmp.PRM:"$pth"phasefilt.grd" >> tmp_phaselist
@@ -65,7 +62,6 @@
   set pth = `awk -F: 'NR==1 {print $1}' $1`
   set stem = `awk -F: 'NR==1 {print $2}' $1 | awk -F"." '{print $1}'`
   #echo $pth $stem
-  cp $pth$stem".LED" .
 
   echo ""
   echo "Merging START"
@@ -77,7 +73,9 @@
   
   # This step is essential, cut the DEM so it can run faster.
   if (! -f trans.dat) then
-  echo "Recomputing the projection LUT..."
+    set led = `grep led_file $pth$stem".PRM" | awk '{print $3}'`
+    cp $pth$led .
+    echo "Recomputing the projection LUT..."
     gmt grd2xyz --FORMAT_FLOAT_OUT=%lf dem.grd -s | SAT_llt2rat $stem".PRM" 1 -bod > trans.dat
   endif
 

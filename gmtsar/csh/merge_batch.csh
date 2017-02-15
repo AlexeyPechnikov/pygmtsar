@@ -10,7 +10,7 @@
 
   if ($#argv != 2) then
     echo ""
-    echo "Usage: merge_unwrap_geocode_tops.csh inputfile config_file"
+    echo "Usage: merge_batch.csh inputfile config_file"
     echo ""
     echo "Note: Inputfiles should be as following:"
     echo ""
@@ -36,9 +36,8 @@
     exit 1
   endif
 
-  set master = `grep master_image $2 | awk '{print $3}'`
   set input_file = $1
-
+  awk 'NR==1{print $0}' $input_file | awk -F, '{for (i=1;i<=NF;i++) print "../"$i}' | awk -F: '{print $1$2}'> tmpm.filelist 
   
   set now_dir = `pwd`
 
@@ -48,6 +47,25 @@
     mkdir $dir_name
     cd $dir_name
     echo $line | awk -F, '{for (i=1;i<=NF;i++) print "../"$i}' > tmp.filelist
+    paste ../tmpm.filelist tmp.filelist | awk '{print $1","$2}' > tmp
+    rm tmp.filelist
+    
+    foreach f_name (`awk '{print $0}' < tmp`)
+        set mm = `echo $f_name | awk -F, '{print $1}'`
+        set pth = `echo $f_name | awk -F, '{print $2}' | awk -F: '{print $1}'`
+        set f1 = `echo $f_name | awk -F, '{print $2}' | awk -F: '{print $2}'`
+        set f2 = `echo $f_name | awk -F, '{print $2}' | awk -F: '{print $3}'`
+        cp $mm ./supermaster.PRM
+        set rshift = `grep rshift $pth$f1 | awk '{print $3}'`
+        update_PRM.csh supermaster.PRM rshift $rshift
+        set fs1 = `grep first_sample supermaster.PRM | awk '{print $3}'`
+        set fs2 = `grep first_sample $pth$f1 | awk '{print $3}'`
+        if ($fs2 > $fs1) then
+          update_PRM.csh supermaster.PRM first_sample $fs2
+        endif
+        cp supermaster.PRM $pth
+        echo $pth":supermaster.PRM:"$f2 >> tmp.filelist
+    end
     
     if (-f ../trans.dat) ln -s ../trans.dat .
     if (-f ../raln.grd) ln -s ../raln.grd .
@@ -70,7 +88,7 @@
       ln -s ../ralt.grd .
     endif
 
-    cd ..
+    cd $now_dir
 
   end
   
