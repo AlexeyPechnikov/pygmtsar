@@ -365,15 +365,3 @@ int edit_tree(int nfiles,int nlmx,struct tree **T){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-

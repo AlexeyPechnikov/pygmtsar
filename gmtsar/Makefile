@@ -31,7 +31,7 @@ lib:		$(LIB)
 
 PROGS_C		= bperp.c calc_dop_orb.c conv.c esarp.c offset_topo.c phase2topo.c \
 		  phasediff.c phasefilt.c resamp.c xcorr.c extend_orbit.c \
-		  SAT_llt2rat.c SAT_look.c SAT_baseline.c sbas.c make_gaussian_filter.c
+		  SAT_llt2rat.c SAT_look.c SAT_baseline.c make_gaussian_filter.c sbas.c
 PROGS_O         = $(PROGS_C:.c=.o)
 PROGS           = $(PROGS_C:.c=)
 

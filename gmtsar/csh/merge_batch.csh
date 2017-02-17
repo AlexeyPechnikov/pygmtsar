@@ -56,7 +56,7 @@
         set f1 = `echo $f_name | awk -F, '{print $2}' | awk -F: '{print $2}'`
         set f2 = `echo $f_name | awk -F, '{print $2}' | awk -F: '{print $3}'`
         cp $mm ./supermaster.PRM
-        set rshift = `grep rshift $pth$f1 | awk '{print $3}'`
+        set rshift = `grep rshift $pth$f1 | tail -1 | awk '{print $3}'`
         update_PRM.csh supermaster.PRM rshift $rshift
         set fs1 = `grep first_sample supermaster.PRM | awk '{print $3}'`
         set fs2 = `grep first_sample $pth$f1 | awk '{print $3}'`
@@ -72,6 +72,7 @@
     if (-f ../ralt.grd) ln -s ../ralt.grd .
     ln -s ../dem.grd .
     ln -s ../$2 .
+    rm tmp
     
     merge_unwrap_geocode_tops.csh tmp.filelist $2
 

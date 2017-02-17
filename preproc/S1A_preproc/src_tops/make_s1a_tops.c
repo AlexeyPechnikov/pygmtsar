@@ -121,6 +121,7 @@ int main(int argc, char **argv){
         }
     }
     fclose(XML_FILE);
+    printf("Reading in %d lines of info from XML...\n",n);
     xml_tree = (struct tree *)malloc(n*5*sizeof(struct tree));
 
     // generate the xml tree

@@ -44,7 +44,7 @@
     set prm = `echo $line | awk -F: '{print $2}'`
     set prm2 = `echo $line | awk -F: '{print $3}'`
     cd $pth
-    set rshift = `grep rshift $prm2 | awk '{print $3}'`
+    set rshift = `grep rshift $prm2 | tail -1 | awk '{print $3}'`
     set fs1 = `grep first_sample $prm | awk '{print $3}'`
     set fs2 = `grep first_sample $prm2 | awk '{print $3}'`
     cp $prm tmp.PRM
@@ -136,4 +136,4 @@
     echo "GEOCODE END"
   endif 
 
-  rm tmp* *.eps *.bb
+  rm tmp_phaselist tmp_corrlist tmp_masklist *.eps *.bb
