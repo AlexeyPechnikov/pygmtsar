@@ -237,12 +237,12 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
             ddt = 0.01/ntt;
             for (k=0;k<ntt;k++) {
                 time[k] = (k-ntt/2+0.5)*ddt;
-                interpolate_ALOS_orbit_slow(&orb[0], t11+time[k], &xs, &ys, &zs, &ir);
+                interpolate_ALOS_orbit_slow(&orb[0], t11+time[k]+m1*dt, &xs, &ys, &zs, &ir);
                 bs[k] = find_dist(xs,ys,zs,x21,y21,z21);
                 bs[k] = bs[k]*bs[k];
             }
             polyfit(time,bs,d3,&ntt,&nc);
-            ts = t11-d3[1]/(2.0*d3[2]);
+            ts = t11+m1*dt-d3[1]/(2.0*d3[2]);
             interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
             x11 = xs; y11 = ys; z11 = zs;
             b1 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
@@ -252,24 +252,24 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
         
             for (k=0;k<ntt;k++) {
                 time[k] = (k-ntt/2+0.5)*ddt;
-                interpolate_ALOS_orbit_slow(&orb[0], t12+time[k], &xs, &ys, &zs, &ir);
+                interpolate_ALOS_orbit_slow(&orb[0], t11+time[k]+m2*dt, &xs, &ys, &zs, &ir);
                 bs[k] = find_dist(xs,ys,zs,x22,y22,z22);
                 bs[k] = bs[k]*bs[k];
             }   
             polyfit(time,bs,d3,&ntt,&nc);
-            ts = t12-d3[1]/(2.0*d3[2]);
+            ts = t11+m2*dt-d3[1]/(2.0*d3[2]);
             interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
             x12 = xs; y12 = ys; z12 = zs;
             b2 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
 
             for (k=0;k<ntt;k++) {
                 time[k] = (k-ntt/2+0.5)*ddt;
-                interpolate_ALOS_orbit_slow(&orb[0], t13+time[k], &xs, &ys, &zs, &ir);
+                interpolate_ALOS_orbit_slow(&orb[0], t11+time[k]+m3*dt, &xs, &ys, &zs, &ir);
                 bs[k] = find_dist(xs,ys,zs,x23,y23,z23);
                 bs[k] = bs[k]*bs[k];
             }   
             polyfit(time,bs,d3,&ntt,&nc);
-            ts = t13-d3[1]/(2.0*d3[2]);
+            ts = t11+m3*dt-d3[1]/(2.0*d3[2]);
             interpolate_ALOS_orbit_slow(&orb[0], ts, &xs, &ys, &zs, &ir);
             x13 = xs; y13 = ys; z13 = zs;
             b3 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
