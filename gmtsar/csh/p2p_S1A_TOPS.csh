@@ -328,25 +328,31 @@ unset noclobber
 # 6 - start from geocode  #
 ###########################
 
-    if ($stage <= 6) then
-    cd intf
-    set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
-    set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
-    cd $ref_id"_"$rep_id
-    echo " "
-    echo "GEOCODE.CSH - START"
-    rm raln.grd ralt.grd
-    if ($topo_phase == 1) then
-      rm trans.dat
-      ln -s  ../../topo/trans.dat . 
-      echo "threshold_geocode: $threshold_geocode"
-      geocode.csh $threshold_geocode
-    else 
-      echo "topo_ra is needed to geocode"
-      exit 1
+  if ($stage <= 6) then
+    if ($threshold_geocode != 0 ) then
+      cd intf
+      set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
+      set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
+      cd $ref_id"_"$rep_id
+      echo " "
+      echo "GEOCODE.CSH - START"
+      rm raln.grd ralt.grd
+      if ($topo_phase == 1) then
+        rm trans.dat
+        ln -s  ../../topo/trans.dat . 
+        echo "threshold_geocode: $threshold_geocode"
+        geocode.csh $threshold_geocode
+      else 
+        echo "topo_ra is needed to geocode"
+        exit 1
+      endif
+      echo "GEOCODE.CSH - END"
+      cd ../..
+    else
+      echo ""
+      echo "SKIP GEOCODE"
+      echo ""
     endif
-    echo "GEOCODE.CSH - END"
-    cd ../..
   endif
 
 # end

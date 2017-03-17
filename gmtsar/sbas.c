@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
         }
 
         // compute time series after 3rd correction
-        sf = 10.0;
+        sf = 20.0;
         init_array_ts(G,Gs,res,dem,disp,n,m,xdim,ydim,N,S);
         init_G_ts(G,Gs,N,S,m,n,L,H,time,sf,bperp,scale);
         for (i=0;i<m*n;i++) A[i]=G[i];

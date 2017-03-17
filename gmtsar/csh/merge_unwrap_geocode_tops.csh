@@ -37,6 +37,8 @@
     exit 1
   endif
 
+  set region_cut = `grep region_cut $2 | awk '{print $3}'`
+
   # Creating inputfiles for merging
   foreach line (`awk '{print $0}' $1`)
     set now_dir = `pwd`
