@@ -19,13 +19,13 @@
 #include "lib_defs.h"
 
 
-char *USAGE = "\nUsage: assemble_tops name_stem1 name_stem2 ... output_stem\n"
-              "\nExample: assemble_tops s1a-iw1-slc-vv-20150706t135900-20150706t135925-006691-008f28-001 s1a-iw1-slc-vv-20150706t135925-20150706t135950-006691-008f28-001 s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001\n"
-              "\nOutput:1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.xml s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.tiff\n\n";
+char *USAGE = "\nUsage: assemble_tops azi_1 azi_2 name_stem1 name_stem2 ... output_stem\n"
+              "\nExample: assemble_tops 1685 9732 s1a-iw1-slc-vv-20150706t135900-20150706t135925-006691-008f28-001 s1a-iw1-slc-vv-20150706t135925-20150706t135950-006691-008f28-001 s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001\n"
+              "\nOutput:s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.xml s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.tiff\n\n"
+              "\nNote: output files are bursts that covers area between azi_1 and azi_2, set them to 0s to output all bursts\n";
 
-
-int edit_tree(int,int,struct tree **);
-int assemble_tifs(TIFF **,TIFF *,int);
+int edit_tree(int,int,struct tree **,int, int, int *, int*);
+int assemble_tifs(TIFF **,TIFF *,int,int,int,int);
 
 int main(int argc,char **argv){
 
@@ -34,13 +34,21 @@ int main(int argc,char **argv){
     int na,nc,ncmx,nlmx,ii,nfiles,ch;
     char tmp_str[2000];
     struct tree **xml_tree;
+    float azi_1, azi_2;
+    int nb_start,nb_end,lpb;
 
-    if(argc < 4) {
+    if(argc < 6) {
         fprintf(stderr,"%s",USAGE);
-        die("Need at least 2 images to run","");
+        die("Need at least 2 images to run","\n");
     }
 
-    nfiles = argc-2;
+    azi_1 = atof(argv[1]);
+    azi_2 = atof(argv[2]);
+    if (azi_1 >= azi_2 && !(azi_1 == 0 && azi_2 == 0)) {
+        die("azi_2 has to be larger than azi_1","");
+    }
+
+    nfiles = argc-4;
     null_MEM_STR();
     xml_tree = (struct tree **)malloc(nfiles*sizeof(struct tree*));
     TIFFSetWarningHandler(NULL);
@@ -52,7 +60,7 @@ int main(int argc,char **argv){
         nc = 0;
         ncmx = 0;
 
-        strcpy(tmp_str,argv[ii+1]);
+        strcpy(tmp_str,argv[ii+3]);
 	strcat(tmp_str,".xml");
         if ((XML_FILE = fopen(tmp_str,"r")) == NULL) die("Couldn't open xml file: \n",tmp_str);
 	while (EOF != (ch=fgetc(XML_FILE))) {
@@ -71,7 +79,7 @@ int main(int argc,char **argv){
     xml_tree[0] = (struct tree *)malloc(nlmx*nfiles*5*sizeof(struct tree));
     for (ii=1;ii<nfiles;ii++) xml_tree[ii] = &xml_tree[0][nlmx*5*ii];
     for (ii=0;ii<nfiles;ii++) {
-        strcpy(tmp_str,argv[ii+1]);
+        strcpy(tmp_str,argv[ii+3]);
         strcat(tmp_str,".xml");
         if ((XML_FILE = fopen(tmp_str,"r")) == NULL) die("Couldn't open xml file: \n",tmp_str);
         get_tree(XML_FILE,xml_tree[ii],1);
@@ -79,7 +87,7 @@ int main(int argc,char **argv){
     }
     for (ii=1;ii<nfiles;ii++) {
         xml_tree[ii] = (struct tree *)malloc(nlmx*5*sizeof(struct tree));
-        strcpy(tmp_str,argv[ii+1]);
+        strcpy(tmp_str,argv[ii+3]);
         strcat(tmp_str,".xml");
         if ((XML_FILE = fopen(tmp_str,"r")) == NULL) die("Couldn't open xml file: \n",tmp_str);
         get_tree(XML_FILE,xml_tree[ii],1);
@@ -87,7 +95,8 @@ int main(int argc,char **argv){
     }
     
     // modify xml_tree[0] to get parameters from other xml_trees
-    edit_tree(nfiles,nlmx,xml_tree);
+    edit_tree(nfiles,nlmx,xml_tree,azi_1,azi_2,&nb_start,&nb_end);
+    printf("Output burst from #%d to #%d ...\n",nb_start,nb_end);
 
     strcpy(tmp_str,argv[argc-1]);
     strcat(tmp_str,".xml");
@@ -99,7 +108,7 @@ int main(int argc,char **argv){
 
     tif = (TIFF **)malloc(nfiles*sizeof(TIFF *));
     for (ii=0;ii<nfiles;ii++) {
-        strcpy(tmp_str,argv[ii+1]);
+        strcpy(tmp_str,argv[ii+3]);
         strcat(tmp_str,".tiff");
         if ((tif[ii] = TIFFOpen(tmp_str, "rb")) == NULL) die ("Couldn't open tiff file: \n",tmp_str);
     }
@@ -107,8 +116,10 @@ int main(int argc,char **argv){
     strcpy(tmp_str,argv[argc-1]);
     strcat(tmp_str,".tiff");
     if ((tif_out = TIFFOpen(tmp_str, "wb")) == NULL) die ("Couldn't open tiff file: \n",tmp_str);
-     
-    assemble_tifs(tif,tif_out,nfiles);
+    search_tree(xml_tree[0],"/product/swathTiming/linesPerBurst/",tmp_str,1,0,1);
+    lpb = (int)str2double(tmp_str);
+ 
+    assemble_tifs(tif,tif_out,nfiles,nb_start,nb_end,lpb);
 
     for(ii =0;ii<nfiles;ii++) TIFFClose(tif[ii]);
     TIFFClose(tif_out);
@@ -122,10 +133,10 @@ int main(int argc,char **argv){
 
 
 
-int assemble_tifs(TIFF **tif,TIFF *tif_out,int nfiles) {
+int assemble_tifs(TIFF **tif,TIFF *tif_out,int nfiles, int nb_start, int nb_end, int lpb) {
 
     int ii,jj;
-    uint32 width,*height,height_all,ni=0,nii;
+    uint32 width,*height,height_all,ni=0,nii,ni2=0;
     short *buf;
     uint16 s=0;
    
@@ -140,20 +151,23 @@ int assemble_tifs(TIFF **tif,TIFF *tif_out,int nfiles) {
     }
 
     TIFFSetField(tif_out,TIFFTAG_IMAGEWIDTH,width);
-    TIFFSetField(tif_out,TIFFTAG_IMAGELENGTH,height_all);
+    TIFFSetField(tif_out,TIFFTAG_IMAGELENGTH,(nb_end-nb_start+1)*lpb);
     TIFFSetField(tif_out,TIFFTAG_BITSPERSAMPLE,sizeof(short)*8*2);
     TIFFSetField(tif_out,TIFFTAG_SAMPLEFORMAT,SAMPLEFORMAT_COMPLEXINT);
     TIFFSetField(tif_out,TIFFTAG_PHOTOMETRIC,PHOTOMETRIC_MINISBLACK);
 
     buf = (short *)_TIFFmalloc(TIFFScanlineSize(tif_out)*2); // make some extra space in case the width differ for other images
     
-    printf("Writing TIFF image Width(%d) X Height(%d)...\n",width,height_all);
+    printf("Writing TIFF image Width(%d) X Height(%d)...\n",width,(nb_end-nb_start+1)*lpb);
 
     for (ii=0;ii<nfiles;ii++) {
         for (jj=0;jj<height[ii];jj++) {
-            nii = jj;
-            TIFFReadScanline(tif[ii], buf, nii, s);
-            if (TIFFFlushData(tif_out)) TIFFWriteScanline(tif_out, buf, ni, s);
+            if (ni >= lpb*(nb_start-1) && ni < lpb*nb_end) {
+                nii = jj;
+                TIFFReadScanline(tif[ii], buf, nii, s);
+                if (TIFFFlushData(tif_out)) TIFFWriteScanline(tif_out, buf, ni2, s);
+                ni2++;
+            }
             ni++;
         }
     }
@@ -311,12 +325,14 @@ int edit_leaf(struct tree **T, int qq, char *str, int mode) {
 }
 
 
-int edit_tree(int nfiles,int nlmx,struct tree **T){
+int edit_tree(int nfiles,int nlmx,struct tree **T,int azi_1, int azi_2, int *nb_start, int *nb_end){
 
     /* note this is only editing firstchild and sibr, thus its not really getting a good tree structure */
 
-    int ct,qq;
-    //char tmp_c[60000],s_name[200],s_out[200];
+    int ct,qq,i,ii,jj,lpb;
+    char tmp_c[60000];
+    double dta,t0,t1,t2;
+    //char s_name[200],s_out[200];
     //double t1,t2;
 
     ct = 0;
@@ -349,15 +365,74 @@ int edit_tree(int nfiles,int nlmx,struct tree **T){
         // antenna pattern list
         add_branch(T,nlmx,qq,"/product/antennaPattern/antennaPatternList/","antennaPatternList",3);
         // geolocation grid, not used in our program, but anyway
-	add_branch(T,nlmx,qq,"/product/geolocationGrid/geolocationGridPointList/","geolocationGridPointList",2);
+        add_branch(T,nlmx,qq,"/product/geolocationGrid/geolocationGridPointList/","geolocationGridPointList",2);
         
         /* start editing other individual parameters */ 
         edit_leaf(T,qq,"/product/imageAnnotation/imageInformation/numberOfLines/",1);
         edit_leaf(T,qq,"/product/adsHeader/stopTime/",2);
 
-
     }
+    /* edit on how many burst to output */
+    search_tree(T[0],"/product/swathTiming/linesPerBurst/",tmp_c,1,0,1);
+    lpb = (int)str2double(tmp_c);
+    ii = search_tree(T[0],"/product/swathTiming/burstList/",tmp_c,3,0,1);
+    ct = (int)str2double(tmp_c);
+    if (!(azi_1 == 0 && azi_2 == 0)) {
+        printf("Editing burst output based on input azimuth references...\n");
+        search_tree(T[0],"/product/imageAnnotation/imageInformation/azimuthTimeInterval/",tmp_c,1,0,1);
+        dta = str2double(tmp_c);
+        search_tree(T[0],"/product/swathTiming/burstList/burst/azimuthTime/",tmp_c,2,4,1);
+        t0 = str2double(tmp_c);
+        t2 = t0;
+        t1 = t0;
+        *nb_start = -1;
+        *nb_end = -1;
+        for (i=2;i<=ct;i++) {
+            search_tree(T[0],"/product/swathTiming/burstList/burst/azimuthTime/",tmp_c,2,4,i);
+            t2 = str2double(tmp_c);
+            if ((t2-t0)*86400.0/dta >= azi_1 && (t1-t0)*86400.0/dta <= azi_1) *nb_start = i-1;
+            if ((t2-t0)*86400.0/dta >= azi_2 && (t1-t0)*86400.0/dta <= azi_2) *nb_end = i-1;
+            t1 = t2;
+        }
 
+        if (*nb_start == -1) *nb_start = 1;
+        if (*nb_end == -1) *nb_end = ct;
+    
+        ii = search_tree(T[0],"/product/imageAnnotation/imageInformation/numberOfLines/",tmp_c,1,0,1);
+        sprintf(tmp_c,"%d",(int)(-(*nb_start)+(*nb_end)+1)*lpb);
+        strcpy(T[0][T[0][ii].firstchild].name,tmp_c);
+        ii = search_tree(T[0],"/product/imageAnnotation/imageInformation/productFirstLineUtcTime/",tmp_c,1,0,1);
+        search_tree(T[0],"/product/swathTiming/burstList/burst/azimuthTime/",tmp_c,1,4,*nb_start);
+        strcpy(T[0][T[0][ii].firstchild].name,tmp_c);
+        ii = search_tree(T[0],"/product/adsHeader/startTime/",tmp_c,1,0,1);
+        search_tree(T[0],"/product/swathTiming/burstList/burst/azimuthTime/",tmp_c,1,4,*nb_start);
+        strcpy(T[0][T[0][ii].firstchild].name,tmp_c);
+
+        if (*nb_end != ct) {
+            ii = search_tree(T[0],"/product/imageAnnotation/imageInformation/productLastLineUtcTime/",tmp_c,1,0,1);
+            search_tree(T[0],"/product/swathTiming/burstList/burst/azimuthTime/",tmp_c,1,4,*nb_start);
+            search_tree(T[0],"/product/swathTiming/burstList/burst/azimuthTime/",tmp_c,1,4,*nb_end+1);
+            strcpy(T[0][T[0][ii].firstchild].name,tmp_c);
+            ii = search_tree(T[0],"/product/adsHeader/stopTime/",tmp_c,1,0,1);
+            search_tree(T[0],"/product/swathTiming/burstList/burst/azimuthTime/",tmp_c,1,4,*nb_end+1);
+            strcpy(T[0][T[0][ii].firstchild].name,tmp_c);
+        } 
+        ii = search_tree(T[0],"/product/swathTiming/burstList/burst/",tmp_c,1,4,*nb_end);
+        T[0][ii].sibr = -1;
+        ii = search_tree(T[0],"/product/swathTiming/burstList/",tmp_c,3,0,1);
+        jj = search_tree(T[0],"/product/swathTiming/burstList/burst/",tmp_c,1,4,*nb_start);
+        T[0][ii].firstchild = jj;
+
+        ii = search_tree(T[0],"/product/swathTiming/burstList/",tmp_c,1,0,1);
+        sprintf(tmp_c,"%s count=\"%d\"","burstList",*nb_end-*nb_start+1);
+
+        strcpy(T[0][ii].name,tmp_c);
+    }
+    else {
+        *nb_start = 1;
+        *nb_end = ct;
+    }
+    
     return(1);
 
 }
