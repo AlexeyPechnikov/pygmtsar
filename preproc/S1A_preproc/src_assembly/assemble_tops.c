@@ -37,9 +37,9 @@ int main(int argc,char **argv){
     float azi_1, azi_2;
     int nb_start,nb_end,lpb;
 
-    if(argc < 6) {
+    if(argc < 5) {
         fprintf(stderr,"%s",USAGE);
-        die("Need at least 2 images to run","\n");
+        die("Error: Incorrect input...","\n");
     }
 
     azi_1 = atof(argv[1]);
@@ -342,6 +342,8 @@ int edit_tree(int nfiles,int nlmx,struct tree **T,int azi_1, int azi_2, int *nb_
     }
     //printf("Original(first) xml has %d tree elements.\n",ct);
 
+if (nfiles > 1) {
+
     for (qq=1;qq<nfiles;qq++) {
         ct = 0;
         while (T[qq][ct].sibr != -1 || T[qq][ct].firstchild != -1) {
@@ -372,6 +374,8 @@ int edit_tree(int nfiles,int nlmx,struct tree **T,int azi_1, int azi_2, int *nb_
         edit_leaf(T,qq,"/product/adsHeader/stopTime/",2);
 
     }
+}
+
     /* edit on how many burst to output */
     search_tree(T[0],"/product/swathTiming/linesPerBurst/",tmp_c,1,0,1);
     lpb = (int)str2double(tmp_c);
