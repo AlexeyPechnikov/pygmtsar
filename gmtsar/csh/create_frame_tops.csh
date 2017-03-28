@@ -96,8 +96,8 @@
   set date = `grep startTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,1,4)substr($1,6,2)substr($1,9,2)}'`
   set t1 = `grep startTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,12,2)substr($1,15,2)substr($1,18,9)}' | awk '{printf("%.6d",$1+0.5)}'`
   set t2 = `grep stopTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,12,2)substr($1,15,2)substr($1,18,9)}' | awk '{printf("%.6d",$1+0.5)}'`
-  mv new.xml annotation/$head1$date$t1"-"$date$t2"-"$tail1.xml
-  mv new.tiff measurement/$head1$date$t1"-"$date$t2"-"$tail1.tiff
+  mv new.xml annotation/$head1$date"t"$t1"-"$date"t"$t2"-"$tail1.xml
+  mv new.tiff measurement/$head1$date"t"$t1"-"$date"t"$t2"-"$tail1.tiff
   rm *.tiff *.xml tmp1*
   cd ..
 
@@ -143,8 +143,8 @@
   set date = `grep startTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,1,4)substr($1,6,2)substr($1,9,2)}'`
   set t1 = `grep startTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,12,2)substr($1,15,2)substr($1,18,9)}' | awk '{printf("%.6d",$1+0.5)}'`
   set t2 = `grep stopTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,12,2)substr($1,15,2)substr($1,18,9)}' | awk '{printf("%.6d",$1+0.5)}'`
-  mv new.xml annotation/$head1$date$t1"-"$date$t2"-"$tail1.xml
-  mv new.tiff measurement/$head1$date$t1"-"$date$t2"-"$tail1.tiff
+  mv new.xml annotation/$head1$date"t"$t1"-"$date"t"$t2"-"$tail1.xml
+  mv new.tiff measurement/$head1$date"t"$t1"-"$date"t"$t2"-"$tail1.tiff
   rm *.tiff *.xml tmp1*
   cd ..
 
@@ -190,8 +190,8 @@
   set date = `grep startTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,1,4)substr($1,6,2)substr($1,9,2)}'`
   set t1 = `grep startTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,12,2)substr($1,15,2)substr($1,18,9)}' | awk '{printf("%.6d",$1+0.5)}'`
   set t2 = `grep stopTime new.xml | awk -F">" '{print $2}' | awk -F"<" '{print substr($1,12,2)substr($1,15,2)substr($1,18,9)}' | awk '{printf("%.6d",$1+0.5)}'`
-  mv new.xml annotation/$head1$date$t1"-"$date$t2"-"$tail1.xml
-  mv new.tiff measurement/$head1$date$t1"-"$date$t2"-"$tail1.tiff
+  mv new.xml annotation/$head1$date"t"$t1"-"$date"t"$t2"-"$tail1.xml
+  mv new.tiff measurement/$head1$date"t"$t1"-"$date"t"$t2"-"$tail1.tiff
   rm *.tiff *.xml tmp1*
   cd ..
 
