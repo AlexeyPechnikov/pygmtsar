@@ -70,6 +70,7 @@
     if (-f ../trans.dat) ln -s ../trans.dat .
     if (-f ../raln.grd) ln -s ../raln.grd .
     if (-f ../ralt.grd) ln -s ../ralt.grd .
+    if (-f ../landmask_ra.grd ) ln -s ../landmask_ra.grd .
     ln -s ../dem.grd .
     ln -s ../$2 .
     rm tmp
@@ -79,6 +80,10 @@
     if (! -f ../trans.dat && -f trans.dat) then
       mv trans.dat ../
       ln -s ../trans.dat .
+    endif
+    if (! -f ../landmask_ra.grd && -f landmask_ra.grd ) then
+      mv landmask_ra.grd  ../
+      ln -s ../landmask_ra.grd .
     endif
     if (! -f ../raln.grd && -f raln.grd) then
       mv raln.grd ../

@@ -340,7 +340,7 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
     //count = 1;
     search_tree(xml_tree,"/product/imageAnnotation/imageInformation/numberOfLines/",tmp_c,1,0,1);
     ntl = (int)str2double(tmp_c);
-    search_tree(xml_tree,"/product/swathTiming/linesPerBurst/",tmp_c,1,4,0);
+    search_tree(xml_tree,"/product/swathTiming/linesPerBurst/",tmp_c,1,0,1);
     lpb = (int)str2double(tmp_c);
     nlf = count*lpb;
     // allocate some memory
