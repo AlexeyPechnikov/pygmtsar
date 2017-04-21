@@ -29,7 +29,7 @@ int main(int argc, char **argv){
 
 int find_nearest(int i, int j, int *r2, int *is, int *js, int *xs, int *ys) {
 
-    int ct=0,nx,ny,k,nx1,ii;
+    int ct=0,nx,ny,nx1,ii,k=0;
     int rr;
 
     rr = *r2+1e7;
@@ -104,7 +104,6 @@ double nearest_interp(int nx,int ny, float *m, float *m_interp,int radius) {
     int cs=0;
 
     int rr;
-    char tmp[200];
 
     is = (int *)malloc(sizeof(int)*2000);
     js = (int *)malloc(sizeof(int)*2000);
@@ -127,10 +126,10 @@ double nearest_interp(int nx,int ny, float *m, float *m_interp,int radius) {
     for (i=0;i<ny;i++) {
         for (k=0;k<kk;k++) fprintf(stderr,"\b");
         fprintf(stderr,"%d ...",i+1);
-        sprintf(tmp,"%d ...",i+1);
-        kk = strlen(tmp);
+        kk = floor(log10 ((double)(i+1)))+1+4;
         rr = 0; 
         for (j=0;j<nx;j++) {
+
             if (isnan(m[i*nx+j]) == 0) {
                 m_interp[i*nx+j] = m[i*nx+j];
                 rr = 0;
@@ -151,6 +150,7 @@ double nearest_interp(int nx,int ny, float *m, float *m_interp,int radius) {
 
                 //if (rr<0) rr = 0;
                 //rr = 0;
+
                 while (flag == 0 && rr <= (double)(radius*radius)) {
                     ct = find_nearest(i,j,&rr,is,js,xs,ys);
                     cs++;
@@ -171,7 +171,9 @@ double nearest_interp(int nx,int ny, float *m, float *m_interp,int radius) {
                         }
                     }
                 }
+
             }
+        if (i == 0 && rr == -1) fprintf(stderr,"(%d %d %d %d)\n",j,rr,recx,recy);
 
 //if (i == 409 && j == 1422) fprintf(stderr,"(%.5f %d %d %.5f  %.6f %.6f %.6f) ",m_interp[i*nx+j],is[kt]-i,js[kt]-j,m[is[kt]*nx+js[kt]], m[0],m[1],m[2]);
 
@@ -184,7 +186,10 @@ double nearest_interp(int nx,int ny, float *m, float *m_interp,int radius) {
     fprintf(stderr,"\n");
 
     printf("%d number of searches used ...\n",cs);
-    
+    free(is);
+    free(js);
+    free(xs);
+    free(ys);
 
     return(1.0);
 
@@ -226,7 +231,6 @@ int create_grid(void *API, char *file, char *output, int radius) {
     OUT->data = m_interp;
     if (GMT_Write_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, output, OUT)) die("Failed to write output grid",output);
 
-    free(m);
     free(m_interp);
 
     return(1);
