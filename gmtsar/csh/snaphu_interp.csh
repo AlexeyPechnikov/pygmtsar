@@ -1,6 +1,6 @@
 #!/bin/csh -f
+#       $Id$
 #
-# Modified from snaphu.csh by E. Lindsey, April 2015
 #
 alias rm 'rm -f'
 unset noclobber
@@ -8,25 +8,18 @@ unset noclobber
   if ($#argv < 2) then
 errormessage:
     echo ""
-    echo "snaphu_interp.csh - Unwrap the phase, after masking and nearest-neighbor"
-    echo "interpolating over decorrelated areas"
+    echo "snaphu.csh [GMT5SAR] - Unwrap the phase"
     echo " "
-    echo "This script is an alternative to snaphu.csh, and should run significantly"
-    echo "faster and produce fewer unwrapping errors."
-    echo " "
-    echo "Usage: snaphu_interp.csh correlation_threshold maximum_discontinuity [<rng0>/<rngf>/<azi0>/<azif>]"
+    echo "Usage: snaphu.csh correlation_threshold maximum_discontinuity [<rng0>/<rngf>/<azi0>/<azif>]"
     echo ""
     echo "       correlation is reset to zero when < threshold"
     echo "       maximum_discontinuity enables phase jumps for earthquake ruptures, etc."
     echo "       set maximum_discontinuity = 0 for continuous phase such as interseismic "
     echo ""
-    echo "Example: snaphu_interp.csh .12 40 1000/3000/24000/27000"
+    echo "Example: snaphu.csh .12 40 1000/3000/24000/27000"
     echo ""
     echo "Reference:"
-    echo "Unwrapping:"
     echo "Chen C. W. and H. A. Zebker, Network approaches to two-dimensional phase unwrapping: intractability and two new algorithms, Journal of the Optical Society of America A, vol. 17, pp. 401-414 (2000)."
-    echo "Interpolation:" 
-    echo "Agram, P. S. and H. A. Zebker, Sparse Two-Dimensional Phase Unwrapping Using Regular-Grid Methods, IEEE GEOSCIENCE AND REMOTE SENSING LETTERS, VOL. 6, NO. 2, APRIL 2009."
     exit 1
   endif
 #
@@ -61,54 +54,20 @@ if (-e mask_def.grd) then
   else
     cp mask_def.grd mask_def_patch.grd
   endif
-  grdmath corr_patch.grd mask_def_patch.grd MUL = corr_patch.grd -V
+  gmt grdmath corr_patch.grd mask_def_patch.grd MUL = corr_patch.grd -V
 endif
+
+#
+# interpolate, in case there is a big vacant area, do not go too far
+#
+nearest_grid phase_patch.grd tmp.grd 300
+mv tmp.grd phase_patch.grd
 
 gmt grdmath corr_patch.grd $1 GE 0 NAN mask_patch.grd MUL = mask2_patch.grd
 gmt grdmath corr_patch.grd 0. XOR 1. MIN  = corr_patch.grd
 gmt grdmath mask2_patch.grd corr_patch.grd MUL = corr_tmp.grd 
-# phase.in is now created below (old line: grd2xyz phase_patch.grd -ZTLf -N0 > phase.in)
-gmt grd2xyz corr_tmp.grd -ZTLf  -N0 > corr.in
-
-#
-# nearest neighbor interpolation with GDAL
-#
-#mask the phase by correlation
-gmt grdmath mask2_patch.grd phase_patch.grd MUL = phase_patch_mask.grd
-
-# basenames of files
-set in = 'phase_patch_mask'
-set out = 'phase_patch_interp'
-
-# get x,y bounds
-set minx = `gmt grdinfo -C $in.grd |cut -f 2`
-set maxx = `gmt grdinfo -C $in.grd |cut -f 3`
-set nx = `gmt grdinfo -C $in.grd |cut -f 10`
-set boundsx = "$minx $maxx"
-set miny = `gmt grdinfo -C $in.grd |cut -f 4`
-set maxy = `gmt grdinfo -C $in.grd |cut -f 5`
-set ny = `gmt grdinfo -C $in.grd |cut -f 11`
-# for some reason we have to reverse these two
-set boundsy = "$maxy $miny"
-
-# first convert to ascii
-gmt grd2xyz $in.grd -S -V > $in.gmt
-
-# run gdal, then convert back to grd
-gdal_grid -of GTiff -txe $boundsx -tye $boundsy -outsize $nx $ny -l $in -a nearest $in.gmt $out.tiff
-gdal_translate -of GMT -ot Float32 $out.tiff $out.grd
-# hardcoded path for firkin: /home/class239/software/FWTools-2.0.6/bin_safe/gdal_translate -of GMT -ot Float32 $out.tiff $out.grd
-
-# fix the grd header metadata
-gmt grdedit $out.grd -T
-gmt grdedit $out.grd -R$minx/$maxx/$miny/$maxy
-
-# create the snaphu input file
-gmt grd2xyz phase_patch_interp.grd -ZTLf -N0 > phase.in
-
-# we could do all of the above with GMT in one line (but it runs incredibly slow, possibly forever):
-#grd2xyz $in.grd -bo -S | nearneighbor -bi -G${out}_gmt.grd -R$in.grd -S50 -N1
-
+gmt grd2xyz phase_patch.grd -ZTLf -do0 > phase.in
+gmt grd2xyz corr_tmp.grd -ZTLf  -do0 > corr.in
 #
 # run snaphu
 #
@@ -124,9 +83,9 @@ endif
 #
 # convert to grd
 #
-gmt xyz2grd unwrap.out -ZTLf -F `gmt grdinfo -I- phase_patch.grd` `gmt grdinfo -I phase_patch.grd` -Gtmp.grd
+gmt xyz2grd unwrap.out -ZTLf -r `gmt grdinfo -I- phase_patch.grd` `gmt grdinfo -I phase_patch.grd` -Gtmp.grd
 gmt grdmath tmp.grd mask2_patch.grd MUL = tmp.grd
-#
+#gmt grdmath tmp.grd mask_patch.grd MUL = tmp.grd
 #
 # detrend the unwrapped if DEFOMAX = 0 for interseismic
 #
@@ -156,20 +115,21 @@ set tmp = `gmt grdinfo -C -L2 unwrap.grd`
 set limitU = `echo $tmp | awk '{printf("%5.1f", $12+$13*2)}'`
 set limitL = `echo $tmp | awk '{printf("%5.1f", $12-$13*2)}'`
 set std = `echo $tmp | awk '{printf("%5.1f", $13)}'`
-makecpt -Cseis -I -Z -T"$limitL"/"$limitU"/1 -D > unwrap.cpt
+gmt makecpt -Cseis -I -Z -T"$limitL"/"$limitU"/1 -D > unwrap.cpt
 set boundR = `gmt grdinfo unwrap.grd -C | awk '{print ($3-$2)/4}'`
 set boundA = `gmt grdinfo unwrap.grd -C | awk '{print ($5-$4)/4}'`
-grdimage unwrap.grd -Iunwrap_grad.grd -Cunwrap.cpt -JX6.5i -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3i -Y3i -P -K > unwrap.ps
-psscale -D3.3/-1.5/5/0.2h -Cunwrap.cpt -B"$std":"unwrapped phase, rad": -O -E >> unwrap.ps
+gmt grdimage unwrap.grd -Iunwrap_grad.grd -Cunwrap.cpt -JX6.5i -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3i -Y3i -P -K > unwrap.ps
+gmt psscale -Dx3.3/-1.5+w5/0.2+h+e -Cunwrap.cpt -B"$std":"unwrapped phase, rad": -O >> unwrap.ps
 #
 # clean up
 #
 rm tmp.grd corr_tmp.grd unwrap.out tmp2.grd unwrap_grad.grd 
 rm phase.in corr.in 
+mv phase_patch.grd phasefilt_interp.grd
 #
 #   cleanup more
 #
-rm wrap.grd corr_patch.grd phase_patch.grd mask_patch.grd mask2_patch.grd
-rm phase_patch_interp.tiff phase_patch_mask.gmt phase_patch_mask.grd phase_patch_interp.grd
+rm wrap.grd mask_patch.grd mask3.grd mask3.out
+mv corr_patch.grd corr_cut.grd
 #
 
