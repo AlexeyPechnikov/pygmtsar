@@ -443,5 +443,5 @@ dnl ------------------------------------------------------------------
 dnl Update Make macros and preprocess scripts that need the orbits dir
 dnl ------------------------------------------------------------------
 dnl
-AC_OUTPUT(config.mk preproc/ENVI_preproc/scripts/ENVI_pre_process preproc/ERS_preproc/scripts/ERS_pre_process gmtsar/csh/gmtsar_sharedir.csh)
+AC_OUTPUT(config.mk preproc/ENVI_preproc/scripts/ENVI_pre_process preproc/ENVI_preproc/scripts/ENVI_SLC_pre_process preproc/ERS_preproc/scripts/ERS_pre_process gmtsar/csh/gmtsar_sharedir.csh)
 dnl

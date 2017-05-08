@@ -17,6 +17,7 @@ install:	all
 	$(INSTALL) $(SCRIPT)/dump_time_envi.pl $(bindir)
 	$(INSTALL) $(SCRIPT)/find_auxi.pl $(bindir)
 	$(INSTALL) $(SCRIPT)/ENVI_pre_process $(bindir)
+	$(INSTALL) $(SCRIPT)/ENVI_SLC_pre_process $(bindir)
 
 uninstall:
 	for d in $(DIRS); do \
@@ -26,6 +27,7 @@ uninstall:
 	rm -f $(bindir)/dump_time_envi.pl
 	rm -f $(bindir)/find_auxi.pl
 	rm -f $(bindir)/ENVI_pre_process
+	rm -f $(bindir)/ENVI_SLC_pre_process
 
 clean:
 	for d in $(DIRS); do \

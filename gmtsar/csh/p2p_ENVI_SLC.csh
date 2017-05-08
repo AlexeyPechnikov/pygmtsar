@@ -117,12 +117,12 @@ unset noclobber
     echo ""
     echo " PREPROCESS Envisat SLC DATA  -- START"
     cd raw
-    echo "ENVI_SLC_pre_process $master $near_range $earth_radius $npatch $fd"
-    ENVI_SLC_pre_process $master $near_range $earth_radius $npatch $fd
+    echo "ENVI_SLC_pre_process $master $earth_radius "
+    ENVI_SLC_pre_process $master $earth_radius 
     set NEAR = `grep near_range $master.PRM | awk '{print $3}'`
     set RAD = `grep earth_radius $master.PRM | awk '{print $3}'`
-    echo "ENVI_SLC_pre_process $slave $NEAR $RAD $npatch $fd"
-    ENVI_SLC_pre_process $slave $NEAR $RAD $npatch $fd
+    echo "ENVI_SLC_pre_process $slave $RAD "
+    ENVI_SLC_pre_process $slave $RAD 
 #
 #   check patch number, if different, use the smaller one
 #
@@ -138,23 +138,12 @@ unset noclobber
         echo "Number of patches is set to $pch2"
       endif
     endif
-#
-#   set the Doppler to be the average of the two
-#
-    grep fd1 $master.PRM | awk '{printf("%f ",$3)}' > temp
-    grep fd1 $slave.PRM | awk '{printf("%f",$3)}' >> temp
-    set fda = `cat temp | awk '{print( ($1 + $2)/2.)}'`
-    echo " use average Doppler $fda "
-    update_PRM.csh $master.PRM fd1 $fda
-    update_PRM.csh $slave.PRM fd1 $fda
-    rm -r temp
-    cd ..
-    echo " PREPROCESS Envisat SLC DATA  -- END"
   endif
+#
 
 
 #############################################
-# 2 - start from focus and align SLC images #
+# 2 - start from align SLC images #
 #############################################
   
   if ($stage <= 2) then

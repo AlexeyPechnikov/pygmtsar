@@ -7,18 +7,15 @@
 #  produces .SLC .PRM and .LED files from Envisat formatted archive files ( files with extension .E1 .E2 or .N1)
 #
 #
- if ($#argv < 4) then
+ if ($#argv < 2) then
   echo ""
-  echo " Usage: ENVI_SLC_pre_process  <name_stem>  <near_range>  <earth_radius> <num_patches> [Doppler]"
+  echo " Usage: ENVI_SLC_pre_process  <name_stem>  <earth_radius> "
   echo ""
   echo " name_stem     -    filename of the data file"
-  echo " near_range    -    near range (in meters) of the SAR image (put 0 if use default value)"
   echo " earth_radius  -    local earth radius (in meters) (put 0 if use default value)"
-  echo " num_patch     -    number of patches  (put 0 if use default value)" 
-  echo " Doppler       -    Doppler value (blank if use default value)"
   echo ""
   echo " Example: "
-  echo " command line: Envisat_pre_process ASA_IMS_1PNESA20060130_054255_000000182044_00392_20486_0000 978992.922 6378000 5"
+  echo " command line: Envisat_pre_process ASA_IMS_1PNESA20060130_054255_000000182044_00392_20486_0000 6378000 "
   echo " will preprocess Envisat formatted L.1 ASAR data 'ASA_IMS_1PNESA20060130_054255_000000182044_00392_20486_0000.N1' "
   echo " then output parameter file 'ASA_IMS_1PNESA20060130_054255_000000182044_00392_20486_0000.PRM', SLC data file 'ASA_IMS_1PNESA20060130_054255_000000182044_00392_20486_0000.SLC' and LED file 'ASA_IMS_1PNESA20060130_054255_000000182044_00392_20486_0000.LED' "
   echo " with near range close to 978992.922 meters and earth radius 6378000 meters and 5 patches"  
@@ -42,7 +39,6 @@ set FEXTENSION = ""
 set ORBDIR = ""
 set SCID = 0
 
-
 if ( -f $1.N1) then
 set FEXTENSION = "N1"
 set ORBDIR = "ENVI/Doris"
@@ -64,7 +60,6 @@ else
   echo ""
   exit 1
 endif
-
 
 #
 # 1) extract binary data and initial PRM and LED files from archive 
@@ -96,32 +91,17 @@ else
    exit 1
 endif
 
-
 #
-#  4) doppler centroid estimation and orbital information
+#  4) orbital information
 #
 
-if ($#argv == 5) then
-echo "calc_dop_orb_envi $1.PRM $1.log2 $3 $5"
-  calc_dop_orb_envi $1.PRM $1.log2 $3 $5
-else if ($#argv == 4) then
-echo "calc_dop_orb_envi $1.PRM $1.log2 $3"
-  calc_dop_orb_envi $1.PRM $1.log2 $3
-endif
-
+echo "calc_dop_orb_envi $1.PRM $1.log2 $2"
+calc_dop_orb_envi $1.PRM $1.log2 $2 0.
+#
 cat $1.PRM $1.log2 > $1_tmp.PRM
 echo "fdd1                    = 0" >> $1_tmp.PRM
 echo "fddd1                   = 0" >> $1_tmp.PRM
 mv $1_tmp.PRM $1.PRM
-
-
-#
-#  5) change the number of patches
-# 
-  if ($4 != 0) then
-    update_PRM.csh $1.PRM num_patches $4
-    echo "Number of patches is set to $4"
-  endif
 #
 # clean unwanted files
 #
