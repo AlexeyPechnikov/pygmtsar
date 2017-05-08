@@ -688,7 +688,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 
   if(strcasecmp(Str_SC_identity, ".N1") == 0)
 	{
-	SC_identity=4;
+	SC_identity=6;
 	}
   else if(strcasecmp(Str_SC_identity, ".E1") == 0)
 	{
@@ -702,7 +702,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 	SC_identity=0;
 	}
 
-  prm->SC_identity = SC_identity; /* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2 (10) Sentinel-1a*/
+  prm->SC_identity = SC_identity; /* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-Sentinel-1a*/
 
 
 

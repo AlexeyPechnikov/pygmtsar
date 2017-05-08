@@ -157,7 +157,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 
         /* set the extension to 50% unless ERS or Envisat and then set to 200% */
         ns2 = ns*0.5;
-        if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;
+        if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 6 || r[0].SC_identity == 10) ns2=ns*2;
 
 	nd = orb[0].nd;
         for(ii=1;ii<nfiles;ii++){
@@ -283,7 +283,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
          
 		// set the extension to 50% unless ERS or Envisat and then set to 200% 
 		ns2 = ns*0.5;
-		if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 10) ns2=ns*2;        
+		if(r[0].SC_identity < 3 || r[0].SC_identity == 4 || r[0].SC_identity == 6 || r[0].SC_identity == 10) ns2=ns*2;        
 
 	    
 		/* fd_orbit = -2.0*rdot/r[0].lambda; */

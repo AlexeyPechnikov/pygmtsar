@@ -33,7 +33,7 @@ struct PRM {
 	int fdc_strt;
 	int rec_start;
 	int rec_stop;
-	int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
+	int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
 	int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
 	int nrows;
 	int num_lines;

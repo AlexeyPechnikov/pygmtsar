@@ -80,8 +80,8 @@ int rec_stop;
 /* End new parameters 4/23/97 -EJP */ 
 
 /* New parameters 4/23/97 -DTS */
-int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS  (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A*/
-int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS  (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A*/
+int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS  (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A*/
+int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS  (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A*/
 double SC_clock_start;	/* YYDDD.DDDD */
 double SC_clock_stop;	/* YYDDD.DDDD */
 double icu_start;       /* onboard clock counter */
