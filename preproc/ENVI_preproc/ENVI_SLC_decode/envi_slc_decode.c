@@ -371,6 +371,8 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   double 			slant_range_time_ns;
   double			slant_range_time_s;
   double			near_range;
+  EPR_SField                    dop_coef_field;
+  double 			dop_coef1;
   EPR_SField      		pass_field;
   const char *			pass;
   char				orbdir[1];
@@ -408,6 +410,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   prm->a_stretch_r = 0.0;
   prm->a_stretch_a = 0.0;
   prm->first_sample = 1;
+  prm->fd1 = 0.;
   strasign(prm->dtype,"a",0,0);
 
 
@@ -751,6 +754,10 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   slant_range_time_s		= slant_range_time_ns * 0.000000001;
   near_range			= slant_range_time_s * c_speed / 2;
   prm->near_range 		= near_range; //near_range
+
+  dop_coef1 = epr_get_field_elem_as_double(&dop_coef_field,1);
+  printf("dop_coef1  %f\n",dop_coef1);
+  
 
   prm->ra = 6378137.00; //equatorial_radius
   prm->rc = 6356752.31; //polar_radius  
