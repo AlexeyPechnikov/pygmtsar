@@ -124,20 +124,7 @@ unset noclobber
     echo "ENVI_SLC_pre_process $slave $RAD "
     ENVI_SLC_pre_process $slave $RAD 
 #
-#   check patch number, if different, use the smaller one
-#
-    set pch1 = `grep patch $master.PRM | awk '{printf("%d ",$3)}'`
-    set pch2 = `grep patch $slave.PRM | awk '{printf("%d ",$3)}'`
-    echo "Different number of patches: $pch1 $pch2"
-    if ($pch1 != $pch2) then
-      if ($pch1 < $pch2) then
-        update_PRM.csh $slave.PRM num_patches $pch1
-        echo "Number of patches is set to $pch1"
-      else
-        update_PRM.csh $master.PRM num_patches $pch2
-        echo "Number of patches is set to $pch2"
-      endif
-    endif
+  cd ..
   endif
 #
 
