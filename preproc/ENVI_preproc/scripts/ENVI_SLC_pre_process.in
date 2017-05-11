@@ -90,13 +90,12 @@ else
    echo "ERROR: Unknown satellite platform"
    exit 1
 endif
-
 #
-#  4) add the orbital information
+#  4) add the orbital information but keep the FD1
 #
-SAT_baseline $1.PRM $1.PRM > tmp.log
-head -5 tmp.log > tmp2.log
-cat tmp2.log >> $1.PRM
+set FD1 = `grep fd1 $1.PRM | awk '{print $3}'`
+calc_dop_orb $1.PRM $1.log $2 $FD1
+cat $1.PRM $1.log > $1.PRM
 #
 # clean unwanted files
 #
