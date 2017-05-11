@@ -94,7 +94,7 @@ endif
 #  4) add the orbital information but keep the FD1
 #
 set FD1 = `grep fd1 $1.PRM | awk '{print $3}'`
-calc_dop_orb $1.PRM $1.log $earth_radius $FD1
+calc_dop_orb $1.PRM $1.log $2 $FD1
 cat $1.PRM $1.log > $1.PRM
 #
 # clean unwanted files

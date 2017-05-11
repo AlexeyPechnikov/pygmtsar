@@ -818,6 +818,13 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 
 
   printf("\n");
+
+
+  /* Set fd1 to the value of D0 for now and make the assumption that it is close enough, we'll make the precise calculations later */
+  prm->fd1 = dop_coef_value_D0;
+
+
+
   /* End Read Doppler Processing Parameters */
 
   prm->ra = 6378137.00; //equatorial_radius
@@ -938,7 +945,6 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   strasign(prm->srm,"0",0,0); //scnd_rng_mig
   prm->az_res = 0.0;
   //prm.antenna_side = -1;
-  prm->fd1 = dop_coef_value_D0;
   prm->fdd1 = 0.0;
   prm->fddd1 = 0.0;
 
