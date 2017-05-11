@@ -371,8 +371,6 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   double 			slant_range_time_ns;
   double			slant_range_time_s;
   double			near_range;
-  EPR_SField                    dop_coef_field;
-  double 			dop_coef1;
   EPR_SField      		pass_field;
   const char *			pass;
   char				orbdir[1];
@@ -397,6 +395,22 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   int				n_orbit_state_vector;
   int				year_for_state_vectors;
   int				day_for_state_vectors;
+  EPR_SField                    zero_doppler_time_field;
+  const EPR_STime *             zero_doppler_time_mjd;
+  EPR_SField                    attach_flag_field;
+  int                           attach_flag_value;
+  EPR_SField                    dop_coef_field;
+  double                        dop_coef_value_D0;
+  double                        dop_coef_value_D1;
+  double                        dop_coef_value_D2;
+  double                        dop_coef_value_D3;
+  double                        dop_coef_value_D4;
+  EPR_SField                    dop_conf_field;
+  double                        dop_conf_value;
+  EPR_SField                    dop_thresh_flag_field;
+  int                           dop_thresh_flag_value;
+
+
 
   // define some of the variables
   prm->first_line = 1;
@@ -410,7 +424,6 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   prm->a_stretch_r = 0.0;
   prm->a_stretch_a = 0.0;
   prm->first_sample = 1;
-  prm->fd1 = 0.;
   strasign(prm->dtype,"a",0,0);
 
 
@@ -755,9 +768,57 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   near_range			= slant_range_time_s * c_speed / 2;
   prm->near_range 		= near_range; //near_range
 
-  dop_coef1 = epr_get_field_elem_as_double(&dop_coef_field,1);
-  printf("dop_coef1  %f\n",dop_coef1);
-  
+
+  /* Read Doppler Processing Parameters */
+
+  /* Zero Doppler azimuth time at which estimate applies */
+  zero_doppler_time_field       = *(epr_get_field(rec2, "zero_doppler_time"));
+  zero_doppler_time_mjd         = epr_get_field_elem_as_mjd(&zero_doppler_time_field);
+
+  /* Attachment Flag (always set to zero for this ADSR */
+  attach_flag_field		= *(epr_get_field(rec2, "attach_flag"));  
+  attach_flag_value		= epr_get_field_elem_as_double(&attach_flag_field, 0);
+
+  /* 2-way slant range time origin (t0) */
+  /* Already read earlier in program
+  slant_range_time_field        = *(epr_get_field(rec2, "slant_range_time"));
+  slant_range_time_ns           = epr_get_field_elem_as_double(&slant_range_time_field, 0);
+  */
+
+  /* Doppler centroid coefficients as a function of slant range time: D0, D1, D2, D3, and D4. */
+  dop_coef_field		= *(epr_get_field(rec2, "dop_coef"));
+  dop_coef_value_D0		= epr_get_field_elem_as_double(&dop_coef_field, 0);
+  dop_coef_value_D1             = epr_get_field_elem_as_double(&dop_coef_field, 1);
+  dop_coef_value_D2             = epr_get_field_elem_as_double(&dop_coef_field, 2);
+  dop_coef_value_D3             = epr_get_field_elem_as_double(&dop_coef_field, 3);
+  dop_coef_value_D4             = epr_get_field_elem_as_double(&dop_coef_field, 4);
+
+  /* Doppler Centroid Confidence Measure */
+  dop_conf_field		= *(epr_get_field(rec2, "dop_conf"));
+  dop_conf_value		= epr_get_field_elem_as_double(&dop_conf_field, 0);
+
+  /* Doppler Confidence Below Threshold Flag */
+  dop_thresh_flag_field		= *(epr_get_field(rec2, "dop_thresh_flag"));
+  dop_thresh_flag_value		= epr_get_field_elem_as_double(&dop_thresh_flag_field, 0);
+
+  printf("\nINFO:\nDoppler Centroid Coefficients ADSR\n");
+  printf("Zero Doppler azimuth time at which estimate applies: d=%d (days), j=%d (seconds), m=%d (microseconds)\n",zero_doppler_time_mjd->days,zero_doppler_time_mjd->seconds,zero_doppler_time_mjd->microseconds);
+  printf("Attachment Flag (always set to zero for this ADSR): %d\n",attach_flag_value);
+  printf("2-way slant range time origin (t0): %f (ns)\n",slant_range_time_ns);
+  printf("Doppler centroid coefficients as a function of slant range time, D0, D1, D2, D3, and D4: D0=%f (Hz), D1=%f (Hz/s), D2=%f (Hz/s2), D3=%f (Hz/s3), D4=%f (Hz/s4)\n",dop_coef_value_D0,dop_coef_value_D1,dop_coef_value_D2,dop_coef_value_D3,dop_coef_value_D4);
+  printf("Doppler Centroid Confidence Measure: %f\n",dop_conf_value);
+
+  printf("Value between 0 and 1, 0 = poorest confidence, 1= highest confidence\n");
+  printf("If multiple Doppler Centroid estimates were performed, this value is the lowest confidence value attained.\n");
+
+  printf("Doppler Confidence Below Threshold Flag: %d\n",dop_thresh_flag_value);
+
+  printf("0 = confidence above threshold, Doppler Centroid calculated from data\n");
+  printf("1 = confidence below threshold, Doppler Centroid calculated from orbit parameters\n");
+
+
+  printf("\n");
+  /* End Read Doppler Processing Parameters */
 
   prm->ra = 6378137.00; //equatorial_radius
   prm->rc = 6356752.31; //polar_radius  
@@ -877,6 +938,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   strasign(prm->srm,"0",0,0); //scnd_rng_mig
   prm->az_res = 0.0;
   //prm.antenna_side = -1;
+  prm->fd1 = dop_coef_value_D0;
   prm->fdd1 = 0.0;
   prm->fddd1 = 0.0;
 
@@ -907,7 +969,6 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 	orbit_state_vector_time_field 		= *(epr_get_field(rec1, orbit_state_vector_time_field_name));
 	orbit_state_vector_time_value 		= epr_get_field_elem_as_mjd(&orbit_state_vector_time_field);	
 
-	//sv[n_orbit_state_vector-1].yr		= orbit_state_vector_time_value->days;
 	sv[n_orbit_state_vector-1].yr		= year_for_state_vectors;
 	sv[n_orbit_state_vector-1].jd		= day_for_state_vectors; 
 	sv[n_orbit_state_vector-1].sec 	= orbit_state_vector_time_value->seconds;

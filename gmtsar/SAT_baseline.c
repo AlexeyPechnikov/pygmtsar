@@ -91,7 +91,7 @@ FILE	*prmfile;
 		fclose(prmfile);
 		}
 
-		printf("SC_identity = %d \n",r[0].SC_identity);
+		fprintf(stderr,"SC_identity = %d \n",r[0].SC_identity);
 		orb = malloc(nfiles*sizeof(struct ALOS_ORB));
 		read_all_ldr(r, orb, nfiles);
 		baseline(r, orb, nfiles, input_flag,filename,fs0);
@@ -107,8 +107,8 @@ void read_all_ldr(struct PRM *r, struct ALOS_ORB *orb, int nfiles)
         FILE    *ldrfile;
 
         for (i=0; i<nfiles; i++){
-                if (i == 0) printf("......master LED file %s \n",r[0].led_file);
-                if (i != 0) printf(".........slave LED file %s \n",r[i].led_file);
+                if (i == 0) fprintf(stderr,"......master LED file %s \n",r[0].led_file);
+                if (i != 0) fprintf(stderr,".........slave LED file %s \n",r[i].led_file);
 
                 /* open each ldrfile and read into structure r */
                 if ((ldrfile = fopen(r[i].led_file,"r")) == NULL) die("Can't open ldrfile %s",r[i].led_file);
@@ -333,7 +333,7 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 	        /*
 		r[ii].ashift = -1*m1;
 		r[ii].rshift = -1*(int) (r[ii].bpara/dr + (r[ii].near_range - r[0].near_range)/dr);
-		fprintf(stderr,"ashift     =  %d\nrshift    =  %d\n",r[ii].ashift,r[ii].rshift);
+		fprintf(stdout,"ashift     =  %d\nrshift    =  %d\n",r[ii].ashift,r[ii].rshift);
 		*/
 		/* a more accurate way to estimate offset in pixels    */ 
 		
@@ -393,8 +393,8 @@ void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, c
 		fll= (r[0].ra-r[0].rc)/r[0].ra;
 		xyz2plh(target,target_llt,r[0].ra,fll);
 		
-		printf("lon_tie_point =  %f\n",(target_llt[1]>180.0) ? target_llt[1]-360.0 : target_llt[1]);
-		printf("lat_tie_point =  %f\n",target_llt[0]);
+		fprintf(stderr,"lon_tie_point =  %f\n",(target_llt[1]>180.0) ? target_llt[1]-360.0 : target_llt[1]);
+		fprintf(stderr,"lat_tie_point =  %f\n",target_llt[0]);
 
 		llt2rat_sub(filename[0], target_llt, target_rat_ref);
 		llt2rat_sub(filename[ii], target_llt, target_rat_rep);
@@ -432,12 +432,12 @@ FILE *inputfile;
 
 	if (strncmp(argv[1],"-input",6) != 0) {
 
-		printf("using command line\n");
+		fprintf(stderr,"using command line\n");
 		*nfiles = 2;
 
 		} else {
 
-		printf("using input file \n");
+		fprintf(stderr,"using input file \n");
 		*input_flag = 1;
 
 		if ((inputfile=fopen(argv[2],"r")) == NULL) die("Can't open ",argv[2]);

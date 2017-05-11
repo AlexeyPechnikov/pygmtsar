@@ -92,16 +92,11 @@ else
 endif
 
 #
-#  4) orbital information
+#  4) add the orbital information
 #
-
-echo "calc_dop_orb_envi $1.PRM $1.log2 $2"
-calc_dop_orb_envi $1.PRM $1.log2 $2 0.
-#
-cat $1.PRM $1.log2 > $1_tmp.PRM
-echo "fdd1                    = 0" >> $1_tmp.PRM
-echo "fddd1                   = 0" >> $1_tmp.PRM
-mv $1_tmp.PRM $1.PRM
+SAT_baseline $1.PRM $1.PRM > tmp.log
+head -5 tmp.log > tmp2.log
+cat tmp2.log >> $1.PRM
 #
 # clean unwanted files
 #
