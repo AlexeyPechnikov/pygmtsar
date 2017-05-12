@@ -152,8 +152,8 @@ int dump_data(EPR_ELogLevel log_level, const char *infile, FILE* outstream, int 
   EPR_SProductId* product_id;
   EPR_SDatasetId* MAIN_PROC_PM_ID;
   EPR_SDatasetId* MDS1;
-  EPR_SRecord*    rec1;
-  EPR_SRecord*    rec5;
+  EPR_SRecord*    rec1 = NULL;
+  EPR_SRecord*    rec5 = NULL;
   EPR_SField      numlines_field;
   EPR_SField      numpixels_field;
   EPR_SField      line_field;
@@ -332,11 +332,11 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   EPR_SDatasetId* 		GEOLOCATION_GRID_ADS;
   EPR_SRecord*    		mph;
   EPR_SRecord*    		sph;
-  EPR_SRecord*    		rec0;
-  EPR_SRecord*    		rec1;
-  EPR_SRecord*    		rec2;
-  EPR_SRecord*    		rec3;
-  EPR_SRecord*    		rec4;
+  EPR_SRecord*    		rec0 = NULL;
+  EPR_SRecord*    		rec1 = NULL;
+  EPR_SRecord*    		rec2 = NULL;
+  EPR_SRecord*    		rec3 = NULL;
+  EPR_SRecord*    		rec4 = NULL;
 //  EPR_SField*     		azitime0_field;
   EPR_EErrCode    		err_code=e_err_none;
   int             		status;
@@ -801,7 +801,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   dop_thresh_flag_field		= *(epr_get_field(rec2, "dop_thresh_flag"));
   dop_thresh_flag_value		= epr_get_field_elem_as_double(&dop_thresh_flag_field, 0);
 
-  printf("\nINFO:\nDoppler Centroid Coefficients ADSR\n");
+  /*printf("\nINFO:\nDoppler Centroid Coefficients ADSR\n");
   printf("Zero Doppler azimuth time at which estimate applies: d=%d (days), j=%d (seconds), m=%d (microseconds)\n",zero_doppler_time_mjd->days,zero_doppler_time_mjd->seconds,zero_doppler_time_mjd->microseconds);
   printf("Attachment Flag (always set to zero for this ADSR): %d\n",attach_flag_value);
   printf("2-way slant range time origin (t0): %f (ns)\n",slant_range_time_ns);
@@ -817,11 +817,12 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   printf("1 = confidence below threshold, Doppler Centroid calculated from orbit parameters\n");
 
 
-  printf("\n");
+  printf("\n"); */
 
 
   /* Set fd1 to the value of D0 for now and make the assumption that it is close enough, we'll make the precise calculations later */
-  prm->fd1 = dop_coef_value_D0;
+  /* From the corner reflector analysis it appears that the pixels were shifted back to zero Doppler */
+  prm->fd1 = 0.0;
 
 
 
@@ -852,7 +853,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   prm->SLC_scale = 1.0;
  
 
-  start_time_field		= *(epr_get_field(mph, "SENSING_START"));
+  start_time_field		= *(epr_get_field(sph, "FIRST_LINE_TIME"));
   start_time			= epr_get_field_elem_as_str(&start_time_field);
   strcpy(tmp_c,start_time);
   for (int q=0; q<strlen(tmp_c); q++)
@@ -884,7 +885,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   tmp_c[4] = '\0';
   prm->SC_clock_start = prm->clock_start + 1000.*atof(tmp_c);
 		
-  stop_time_field		= *(epr_get_field(mph, "SENSING_STOP"));
+  stop_time_field		= *(epr_get_field(sph, "LAST_LINE_TIME"));
   stop_time			= epr_get_field_elem_as_str(&stop_time_field);
   strcpy(tmp_c,stop_time); 
   for (int q=0; q<strlen(tmp_c); q++)
@@ -1011,7 +1012,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 
   *n_state_vectors = n_orbit_state_vector-1;
 
-  	printf("Ignore message about epr_get_field: field not found, this is expected.\n%d Lines Written for Orbit...\n",n_orbit_state_vector-1);
+  	//printf("Ignore message about epr_get_field: field not found, this is expected.\n%d Lines Written for Orbit...\n",n_orbit_state_vector-1);
 
 
   /* Close product_id and release rest of the allocated memory */
