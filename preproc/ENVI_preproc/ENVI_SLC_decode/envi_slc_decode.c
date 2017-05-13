@@ -33,12 +33,6 @@
 #endif /* if defined(WIN32) && defined(_DEBUG) */
 //#include <typeinfo>
 
-
-
-
-
-
-
 int write_orb(state_vector *sv, FILE *fp, int);
 int dump_data(EPR_ELogLevel log_level, const char *infile, FILE* outstream, int pixflag, unsigned int l0, unsigned int lN, unsigned int p0, unsigned int pN);
 char *remove_ext (char* mystr, char dot, char sep);
@@ -60,9 +54,6 @@ int main(int argc, char **argv){
     
     /* EPR_LogLevel can be set to e_log_debug, e_log_info, e_log_warning or e_log_error */
     enum EPR_LogLevel eloglevel = e_log_error;
-
-
-
 
     if (argc != 2) die (USAGE,"");
       
@@ -342,7 +333,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   int             		status;
   char 				tmp_c[200];
   char 				filename[200];
-//  double 			tmp_d;
+  double 			tbias = 0.;
   int 				tmp_i;
   double 			c_speed = 299792458.0;
   char*				tmp_string;  
@@ -371,6 +362,10 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   double 			slant_range_time_ns;
   double			slant_range_time_s;
   double			near_range;
+  EPR_SField                    geogrid_slant_range_time_field1;
+  EPR_SField                    geogrid_slant_range_time_field2;
+  double                        geogrid_slant_range_time1_ns;
+  double                        geogrid_slant_range_time2_ns;
   EPR_SField      		pass_field;
   const char *			pass;
   char				orbdir[1];
@@ -704,7 +699,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 
   if(strcasecmp(Str_SC_identity, ".N1") == 0)
 	{
-	SC_identity=6;
+	SC_identity=6; 
 	}
   else if(strcasecmp(Str_SC_identity, ".E1") == 0)
 	{
@@ -762,10 +757,21 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   slant_range_time_ns		= 0.0;
   slant_range_time_s		= 0.0;
   near_range			= 0.0;
-  slant_range_time_field	= *(epr_get_field(rec2, "slant_range_time"));
-  slant_range_time_ns 		= epr_get_field_elem_as_double(&slant_range_time_field, 0);   
-  slant_range_time_s		= slant_range_time_ns * 0.000000001;
-  near_range			= slant_range_time_s * c_speed / 2;
+//  slant_range_time_field	= *(epr_get_field(rec2, "slant_range_time"));
+//  slant_range_time_ns 		= epr_get_field_elem_as_double(&slant_range_time_field, 0);   
+
+
+
+  geogrid_slant_range_time_field1        = *(epr_get_field(rec4, "first_line_tie_points.slant_range_times"));
+  geogrid_slant_range_time_field2        = *(epr_get_field(rec4, "last_line_tie_points.slant_range_times"));
+  geogrid_slant_range_time1_ns           = epr_get_field_elem_as_double(&geogrid_slant_range_time_field1, 0);
+  geogrid_slant_range_time2_ns           = epr_get_field_elem_as_double(&geogrid_slant_range_time_field2, 0);
+
+  slant_range_time_ns		= (geogrid_slant_range_time1_ns + geogrid_slant_range_time2_ns) / 2;
+
+
+  slant_range_time_s            = slant_range_time_ns * 0.000000001;
+  near_range                    = slant_range_time_s * c_speed / 2;
   prm->near_range 		= near_range; //near_range
 
 
@@ -780,10 +786,9 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   attach_flag_value		= epr_get_field_elem_as_double(&attach_flag_field, 0);
 
   /* 2-way slant range time origin (t0) */
-  /* Already read earlier in program
+  slant_range_time_ns		= 0;
   slant_range_time_field        = *(epr_get_field(rec2, "slant_range_time"));
   slant_range_time_ns           = epr_get_field_elem_as_double(&slant_range_time_field, 0);
-  */
 
   /* Doppler centroid coefficients as a function of slant range time: D0, D1, D2, D3, and D4. */
   dop_coef_field		= *(epr_get_field(rec2, "dop_coef"));
@@ -801,7 +806,8 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   dop_thresh_flag_field		= *(epr_get_field(rec2, "dop_thresh_flag"));
   dop_thresh_flag_value		= epr_get_field_elem_as_double(&dop_thresh_flag_field, 0);
 
-  /*printf("\nINFO:\nDoppler Centroid Coefficients ADSR\n");
+  /*
+  printf("\nINFO:\nDoppler Centroid Coefficients ADSR\n");
   printf("Zero Doppler azimuth time at which estimate applies: d=%d (days), j=%d (seconds), m=%d (microseconds)\n",zero_doppler_time_mjd->days,zero_doppler_time_mjd->seconds,zero_doppler_time_mjd->microseconds);
   printf("Attachment Flag (always set to zero for this ADSR): %d\n",attach_flag_value);
   printf("2-way slant range time origin (t0): %f (ns)\n",slant_range_time_ns);
@@ -816,13 +822,14 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   printf("0 = confidence above threshold, Doppler Centroid calculated from data\n");
   printf("1 = confidence below threshold, Doppler Centroid calculated from orbit parameters\n");
 
-
-  printf("\n"); */
+  printf("\n");
+  */
 
 
   /* Set fd1 to the value of D0 for now and make the assumption that it is close enough, we'll make the precise calculations later */
-  /* From the corner reflector analysis it appears that the pixels were shifted back to zero Doppler */
-  prm->fd1 = 0.0;
+  /* David noted that this value is about twice of what it is supposed to be, divide by 2 for now */
+  //prm->fd1 = dop_coef_value_D0/2;
+  prm->fd1 = 0;
 
 
 
@@ -875,13 +882,24 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   	sprintf(tmp_c,"%s-0%d-%s%s",year,monthtonum(month),day,&tmp_c[11]);
   else
   	sprintf(tmp_c,"%s-%d-%s%s",year,monthtonum(month),day,&tmp_c[11]);
-  
 
   cat_nums(s_name,tmp_c);
   str_date2JD(s_out, s_name);
 
-  //Why doesn't str2double work here?
-  prm->clock_start = atof(s_out)+1;
+  /* make a time bias correction for ENVI */
+  if(SC_identity == 1) {
+     tbias = 0.;
+  }
+  else if(SC_identity == 2) {
+     tbias = 0.;
+  }
+  else if(SC_identity == 6) {
+     tbias = -4.25/prm->prf/86400.;
+  }
+  else {
+    printf(" SC_identity out of range ");
+  }
+  prm->clock_start = atof(s_out)+1+tbias;
   tmp_c[4] = '\0';
   prm->SC_clock_start = prm->clock_start + 1000.*atof(tmp_c);
 		
