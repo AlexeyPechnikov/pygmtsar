@@ -93,7 +93,11 @@
         ln -s ../raw/$master.LED . 
         ln -s ../raw/$slave.LED .
       endif
-      align.csh $SAT $master $slave $supermaster
+      if ($SAT == ALOS) then
+        align.csh ALOS $master $slave $supermaster
+      else
+        align.csh SAT $master $slave $supermaster
+      endif
       cd ..
       echo "Align $slave to $master via $supermaster - END"
     else 

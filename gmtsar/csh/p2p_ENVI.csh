@@ -163,7 +163,7 @@ if ($#argv < 3) then
     ln -s ../raw/$slave.raw . 
     ln -s ../raw/$master.LED . 
     ln -s ../raw/$slave.LED .
-    align.csh ENVI $master $slave 
+    align.csh SAT $master $slave 
     cd ..
     echo "ALIGN.CSH - END"
   endif

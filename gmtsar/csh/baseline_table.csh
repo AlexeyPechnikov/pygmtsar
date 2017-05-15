@@ -39,11 +39,11 @@ unset noclobber
  @ DAY = $T0 % 1000
 #
 if ($SSC == 1 || $SSC == 2) then
- ERS_baseline $1 $2 > temp
+ SAT_baseline $1 $2 > temp
  @ YR = $T0  / 1000 - 1992
  @ YDAY = $YR * 365 + $DAY
-else if ($SSC == 4) then
- ENVI_baseline $1 $2 > temp
+else if ($SSC == 4 || $SSC == 6) then
+ SAT_baseline $1 $2 > temp
  @ YR = $T0  / 1000 - 1992
  @ YDAY = $YR * 365 + $DAY
 else if ($SSC == 5) then
