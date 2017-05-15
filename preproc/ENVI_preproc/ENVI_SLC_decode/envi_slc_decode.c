@@ -14,19 +14,19 @@
  *                                                                         *
  ***************************************************************************/
 
-#include "tiffio.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <time.h>
+#include "tiffio.h"
 #include "PRM.h"
 #include "lib_functions.h"
 #include "stateV.h"
 #include "xmlC.h"
 #include "lib_defs.h"
-#include <assert.h>
-#include <errno.h>
-#include <time.h>
 #include "epr_api-2.3/src/epr_api.h"
 #if defined(WIN32) && defined(_DEBUG)
 #include <crtdbg.h>
@@ -404,6 +404,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   double                        dop_conf_value;
   EPR_SField                    dop_thresh_flag_field;
   int                           dop_thresh_flag_value;
+  int 				q;
 
 
 
@@ -863,7 +864,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   start_time_field		= *(epr_get_field(sph, "FIRST_LINE_TIME"));
   start_time			= epr_get_field_elem_as_str(&start_time_field);
   strcpy(tmp_c,start_time);
-  for (int q=0; q<strlen(tmp_c); q++)
+  for (q=0; q<strlen(tmp_c); q++)
 	{
 	if(tmp_c[q] == ' ')
 		tmp_c[q] = 'T';
@@ -1049,8 +1050,9 @@ int monthtonum(char * szMonth)
   {
   const char * months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
   int nMonth = 0;
+  int i;
 
-  for (int i = 0; i < 12; ++i)
+  for (i = 0; i < 12; ++i)
    {
     if(strncasecmp(szMonth, months[i], 3) == 0)
       nMonth = i+1;

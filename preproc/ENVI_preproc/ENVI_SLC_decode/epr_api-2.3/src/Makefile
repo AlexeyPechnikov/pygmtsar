@@ -25,6 +25,7 @@ OBJ = 		$(SRC:.c=.o)
 CC =		gcc
 #CFLAGS = 	-O3
 #CFLAGS = 	-m32         # for 64-bit systems, if epr_api version < 2.2
+CFLAGS = 	-w
 
 #CFLAGS = 	-fPIC -ansi -c
 
