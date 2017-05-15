@@ -5,7 +5,7 @@ CSRCS = envi_slc_decode.c
 
 OBJS =  $(CSRCS:.c=.o)
 INCLUDES = -I../../../gmtsar -I../../S1A_preproc/include -I$(TIFF_INC)
-CLIBS = -L../../../gmtsar -lgmtsar -L../lib -L../../S1A_preproc/lib  -lxmlC -lm
+CLIBS = -L../../../gmtsar -lgmtsar -L../lib -lENVI -L../../S1A_preproc/lib  -lxmlC -lm
 
 LIB_SRC =       epr_api-2.3/src/epr_api.c \
                 epr_api-2.3/src/epr_band.c \
