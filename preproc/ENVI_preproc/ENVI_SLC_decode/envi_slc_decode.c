@@ -333,6 +333,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   int             		status;
   char 				tmp_c[200];
   char 				filename[200];
+  double 			rbias = 0.;
   double 			tbias = 0.;
   int 				tmp_i;
   double 			c_speed = 299792458.0;
@@ -387,7 +388,6 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   char				orbit_state_vector_time_field_name[50];
   char				orbit_state_vector_value_field_name[50];
   const EPR_STime *		orbit_state_vector_time_value;
-  int				n_orbit_state_vector;
   int				year_for_state_vectors;
   int				day_for_state_vectors;
   EPR_SField                    zero_doppler_time_field;
@@ -405,7 +405,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   EPR_SField                    dop_thresh_flag_field;
   int                           dop_thresh_flag_value;
   int 				q;
-
+  double			dr;
 
 
   // define some of the variables
@@ -773,7 +773,26 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 
   slant_range_time_s            = slant_range_time_ns * 0.000000001;
   near_range                    = slant_range_time_s * c_speed / 2;
-  prm->near_range 		= near_range; //near_range
+
+  /* convert to pixel space */
+  dr				= 0.5 * c_speed / prm->fs;  
+  
+
+  /* make a bias correction the range for ENVI and ERS*/
+  if(SC_identity == 1) {
+     rbias = 0. * dr;
+  }
+  else if(SC_identity == 2) {
+     rbias = -5.3 * dr;
+  }
+  else if(SC_identity == 6) {
+     rbias = -0.8 * dr;
+  }
+  else {
+    printf(" SC_identity out of range ");
+  }
+
+  prm->near_range 		= near_range + rbias; //near_range
 
 
   /* Read Doppler Processing Parameters */
@@ -887,7 +906,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   cat_nums(s_name,tmp_c);
   str_date2JD(s_out, s_name);
 
-  /* make a time bias correction for ENVI */
+  /* make a time bias correction for ENVI and ERS*/
   if(SC_identity == 1) {
      tbias = 0.;
   }
@@ -900,6 +919,8 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   else {
     printf(" SC_identity out of range ");
   }
+
+
   prm->clock_start = atof(s_out)+1+tbias;
   tmp_c[4] = '\0';
   prm->SC_clock_start = prm->clock_start + 1000.*atof(tmp_c);
@@ -984,54 +1005,49 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
   printf("PRM set for Image File...\n");
 
 
-  //Read orbit state vectors 
-  n_orbit_state_vector			= 1;
-  sprintf(orbit_state_vector_time_field_name,"orbit_state_vectors.%d.state_vect_time_1",n_orbit_state_vector);
-  while(epr_get_field(rec1, orbit_state_vector_time_field_name) != NULL)
-	{
+ //Read orbit state vectors, there should always be five of them
+  for(int n_orbit_state_vector=1;n_orbit_state_vector<6;n_orbit_state_vector++)
+{
 	// Time values
 	sprintf(orbit_state_vector_time_field_name,"orbit_state_vectors.%d.state_vect_time_1",n_orbit_state_vector);
 
-	orbit_state_vector_time_field 		= *(epr_get_field(rec1, orbit_state_vector_time_field_name));
-	orbit_state_vector_time_value 		= epr_get_field_elem_as_mjd(&orbit_state_vector_time_field);	
+	orbit_state_vector_time_field           = *(epr_get_field(rec1, orbit_state_vector_time_field_name));
+	orbit_state_vector_time_value           = epr_get_field_elem_as_mjd(&orbit_state_vector_time_field);
 
-	sv[n_orbit_state_vector-1].yr		= year_for_state_vectors;
-	sv[n_orbit_state_vector-1].jd		= day_for_state_vectors; 
-	sv[n_orbit_state_vector-1].sec 	= orbit_state_vector_time_value->seconds;
+	sv[n_orbit_state_vector-1].yr           = year_for_state_vectors;
+	sv[n_orbit_state_vector-1].jd           = day_for_state_vectors;
+	sv[n_orbit_state_vector-1].sec  = orbit_state_vector_time_value->seconds;
 
 	// x pos
 	sprintf(orbit_state_vector_value_field_name,"orbit_state_vectors.%d.x_pos_1",n_orbit_state_vector);
-	orbit_state_vector_value_field 	= *(epr_get_field(rec1, orbit_state_vector_value_field_name));
-	sv[n_orbit_state_vector-1].x		= (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100;	 
+	orbit_state_vector_value_field  = *(epr_get_field(rec1, orbit_state_vector_value_field_name));
+	sv[n_orbit_state_vector-1].x            = (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100;
 	// y pos
 	sprintf(orbit_state_vector_value_field_name,"orbit_state_vectors.%d.y_pos_1",n_orbit_state_vector);
-	orbit_state_vector_value_field 	= *(epr_get_field(rec1, orbit_state_vector_value_field_name));
-	sv[n_orbit_state_vector-1].y		= (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100;
+	orbit_state_vector_value_field  = *(epr_get_field(rec1, orbit_state_vector_value_field_name));
+	sv[n_orbit_state_vector-1].y            = (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100;
 	// z pos
 	sprintf(orbit_state_vector_value_field_name,"orbit_state_vectors.%d.z_pos_1",n_orbit_state_vector);
-	orbit_state_vector_value_field 	= *(epr_get_field(rec1, orbit_state_vector_value_field_name));
-	sv[n_orbit_state_vector-1].z		= (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100;
+	orbit_state_vector_value_field  = *(epr_get_field(rec1, orbit_state_vector_value_field_name));
+	sv[n_orbit_state_vector-1].z            = (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100;
 
 	// x vel
 	sprintf(orbit_state_vector_value_field_name,"orbit_state_vectors.%d.x_vel_1",n_orbit_state_vector);
-	orbit_state_vector_value_field 	= *(epr_get_field(rec1, orbit_state_vector_value_field_name));
-	sv[n_orbit_state_vector-1].vx		= (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100000;	 
+	orbit_state_vector_value_field  = *(epr_get_field(rec1, orbit_state_vector_value_field_name));
+	sv[n_orbit_state_vector-1].vx           = (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100000;
 	// y vel
 	sprintf(orbit_state_vector_value_field_name,"orbit_state_vectors.%d.y_vel_1",n_orbit_state_vector);
-	orbit_state_vector_value_field 	= *(epr_get_field(rec1, orbit_state_vector_value_field_name));
-	sv[n_orbit_state_vector-1].vy 		= (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100000;
+	orbit_state_vector_value_field  = *(epr_get_field(rec1, orbit_state_vector_value_field_name));
+	sv[n_orbit_state_vector-1].vy           = (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100000;
 	// z vel
 	sprintf(orbit_state_vector_value_field_name,"orbit_state_vectors.%d.z_vel_1",n_orbit_state_vector);
-	orbit_state_vector_value_field 	= *(epr_get_field(rec1, orbit_state_vector_value_field_name));
-	sv[n_orbit_state_vector-1].vz		= (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100000;
+	orbit_state_vector_value_field  = *(epr_get_field(rec1, orbit_state_vector_value_field_name));
+	sv[n_orbit_state_vector-1].vz           = (int)epr_get_field_elem_as_double(&orbit_state_vector_value_field, 0)/100000;
 
-	n_orbit_state_vector++;
-	sprintf(orbit_state_vector_time_field_name,"orbit_state_vectors.%d.state_vect_time_1",n_orbit_state_vector);	
+	*n_state_vectors = n_orbit_state_vector;
 	}
 
-  *n_state_vectors = n_orbit_state_vector-1;
-
-  	//printf("Ignore message about epr_get_field: field not found, this is expected.\n%d Lines Written for Orbit...\n",n_orbit_state_vector-1);
+  printf("LED set for Image File...\n");
 
 
   /* Close product_id and release rest of the allocated memory */
