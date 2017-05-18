@@ -10,7 +10,8 @@
 /***************************************************************************
  * Modification history:                                                   *
  *                                                                         *
- * DATE                                                                    *
+ * Date   : 05/17/2010, Anders Hogrelius                                   *
+ *          Added range and azimuth bias for ERS-1 and ERS-2               *
  *                                                                         *
  ***************************************************************************/
 
@@ -780,7 +781,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 
   /* make a bias correction the range for ENVI and ERS*/
   if(SC_identity == 1) {
-     rbias = 0. * dr;
+     rbias = -10.52 * dr;
   }
   else if(SC_identity == 2) {
      rbias = -5.3 * dr;
@@ -908,7 +909,7 @@ int read_header(EPR_ELogLevel log_level, const char *infile, struct PRM * prm, s
 
   /* make a time bias correction for ENVI and ERS*/
   if(SC_identity == 1) {
-     tbias = 0.;
+     tbias = 19.2501/prm->prf/86400.;
   }
   else if(SC_identity == 2) {
      tbias = 0.;
