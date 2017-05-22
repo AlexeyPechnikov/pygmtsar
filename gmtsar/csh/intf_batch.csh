@@ -4,7 +4,9 @@
 # intf_batch.csh
 # Loop through a list of interferometry pairs
 # modified from process2pass.csh
-# Xiaopeng Tong D.Sandwell Aug 27 2010 
+# Xiaopeng Tong D.Sandwell Aug 27 2010
+# added support for ENVI_SLC 
+# Anders Hogrelius May 22 2017
 
 alias rm 'rm -f'
 unset noclobber
@@ -15,7 +17,7 @@ unset noclobber
     echo "Usage: intf_batch.csh SAT intf.in batch.config"
     echo "  make a stack of interferograms listed in intf.in"
     echo ""
-    echo " SAT can be ALOS ENVISAT and  ERS " 
+    echo " SAT can be ALOS ENVI(ENVISAT) ENVI_SLC and  ERS " 
     echo ""
     echo " format for intf.in:"
     echo "     reference1_name:repeat1_name"
@@ -36,6 +38,12 @@ unset noclobber
     echo "    ENV1_2_127_2925_07195:ENV1_2_127_2925_12706"
     echo "    ENV1_2_127_2925_07195:ENV1_2_127_2925_13207"
     echo ""
+    echo " Example of intf.in for ENVI_SLC is:"
+    echo "    ASA_IMS_1PNESA20030908_175832_000000182019_00399_07968_0000:ASA_IMS_1PNESA20051121_175837_000000172042_00399_19491_0000"
+    echo "    ASA_IMS_1PNESA20040719_175832_000000182028_00399_12477_0000:ASA_IMS_1PNESA20051121_175837_000000172042_00399_19491_0000"
+    echo "    ASA_IMS_1PNESA20040719_175832_000000182028_00399_12477_0000:ASA_IMS_1PNESA20030908_175832_000000182019_00399_07968_0000"
+    echo "    ASA_IMS_1PNESA20051121_175837_000000172042_00399_19491_0000:ASA_IMS_1PNESA20040719_175832_000000182028_00399_12477_0000"
+    echo ""
     echo " batch.config is a config file for making interferograms"
     echo " See example.batch.config for an example"
     echo ""
@@ -43,9 +51,9 @@ unset noclobber
   endif
 
   set SAT = $1
-  if ($SAT != ALOS && $SAT != ENVI && $SAT != ERS) then
+  if ($SAT != ALOS && $SAT != ENVI && $SAT != ERS && $SAT != ENVI_SLC) then
     echo ""
-    echo " SAT can be ALOS ENVISAT and  ERS"
+    echo " SAT can be ALOS ENVI(ENVISAT) ENVI_SLC and  ERS"
     echo ""
     exit 1
   endif
@@ -69,7 +77,7 @@ unset noclobber
 #  set master = `grep master_image $3 | awk '{print $3}'`
   if ($SAT == ALOS) then
     set master = `grep master_image $3 | awk '{print $3}' | awk '{ print substr($1,8,length($1)-7)}'`
-  else if ($SAT == ENVI || $SAT == ERS) then
+  else if ($SAT == ENVI || $SAT == ERS || $SAT == ENVI_SLC) then
     set master = `grep master_image $3 | awk '{print $3}'`
   endif
 
@@ -122,7 +130,7 @@ if ($stage <= 1) then
     if ($SAT == ALOS) then
       cp ../SLC/IMG-HH-$master.PRM master.PRM
       ln -s ../raw/LED-$master .
-    else if ($SAT == ERS || $SAT == ENVI) then
+    else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
       cp ../SLC/$master.PRM master.PRM
       ln -s ../raw/$master.LED .
     endif
@@ -157,7 +165,7 @@ if ($stage <= 1) then
           exit 1
         endif
         slc2amp.csh IMG-HH-$master.PRM $rng amp-$master.grd
-      else if ($SAT == ERS || $SAT == ENVI) then
+      else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
         slc2amp.csh $master.PRM 1 amp-$master.grd
       endif
       cd ..
@@ -223,7 +231,7 @@ if ($stage <= 2) then
       ln -s ../../SLC/IMG-HH-$rep.SLC .
       cp ../../SLC/IMG-HH-$ref.PRM .
       cp ../../SLC/IMG-HH-$rep.PRM .
-    else if ($SAT == ERS || $SAT == ENVI) then
+    else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
       set ref = `echo $line | awk -F: '{print $1}'`
       set rep = `echo $line | awk -F: '{print $2}'`
 
@@ -258,7 +266,7 @@ if ($stage <= 2) then
         intf.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM
         filter.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM $filter $dec
       endif
-    else if ($SAT == ERS || $SAT == ENVI) then
+    else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
       if($topo_phase == 1) then
         if ($shift_topo == 1) then
           ln -s ../../topo/topo_shift.grd .

@@ -3,6 +3,7 @@
 #
 #  Xiaopeng Tong, Mar 2 2010 
 #  modified by D. Sandwell MAR 11 2010
+#  modified by A Hogrelius May 22 2017 (added support for ENVI_SLC)
 #
 #  preprocess all the data based on data.in table file and generate: 
 #  1. raw files
@@ -24,7 +25,7 @@ unset noclobber
     echo "Usage: pre_proc_batch.csh SAT data.in batch.config"
     echo "       preprocess a set of images using a common rear_range and radius"
     echo ""
-    echo " SAT can be ALOS ERS or ENVI(ENVISAT)"
+    echo " SAT can be ALOS ERS ENVI(ENVISAT) ENVI_SLC"
     echo ""
     echo "       format of data.in is:"
     echo "         line 1: master_name "
@@ -45,15 +46,20 @@ unset noclobber
     echo "         ENV1_2_127_2925_12706"
     echo "         ENV1_2_127_2925_13207"
     echo ""
+    echo "       example of data.in for ENVI_SLC is:"
+    echo "         ASA_IMS_1PNESA20030908_175832_000000182019_00399_07968_0000"	
+    echo "         ASA_IMS_1PNESA20040719_175832_000000182028_00399_12477_0000"	
+    echo "         ASA_IMS_1PNESA20051121_175837_000000172042_00399_19491_0000"
+    echo ""
     echo "Example: pre_proc_batch.csh ENVI data.in batch.config"
     echo ""
     exit 1
   endif
 
   set SAT = $1
-  if ($SAT != ALOS && $SAT != ENVI && $SAT != ERS) then
+  if ($SAT != ALOS && $SAT != ENVI && $SAT != ENVI_SLC && $SAT != ERS) then
     echo ""
-    echo " SAT can be ALOS ERS or ENVI(ENVISAT)"
+    echo " SAT can be ALOS ERS ENVI(ENVISAT) or ENVI_SLC"
     echo ""
     exit 1
   endif
@@ -118,7 +124,7 @@ unset noclobber
   echo ""
   echo "preprocess master image"
   set line1 = `awk 'NR==1 {print $0}' $2`
-  if ($SAT == ERS || $SAT == ENVI) then
+  if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
     set master = $line1[1]
   else if ($SAT == ALOS) then
     set master = `echo $line1[1] | awk '{ print substr($1,8,length($1)-7)}'`
@@ -142,6 +148,25 @@ unset noclobber
     baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
     echo "after baseline"
  
+  else if ($SAT == ENVI_SLC) then
+  
+  if ($earth_radius == "") then
+  	set earth_radius = 0
+  endif
+
+    if(! -f $master.SLC || ! -f $master.LED) then
+      ENVI_SLC_pre_process $master $earth_radius
+    endif
+
+    set NEAR = `grep near_range $master.PRM | awk '{print $3}'`
+    set RAD = `grep earth_radius $master.PRM | awk '{print $3}'`
+    set FD1 = `grep fd1 $master.PRM | awk '{print $3}'`
+    set npatch = `grep num_patch $master.PRM | awk '{print $3}'`
+
+    echo "before baseline"
+    baseline_table.csh $master.PRM $master.PRM >! baseline_table.dat
+    baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
+    echo "after baseline"
   else if ($SAT == ALOS) then
 
     if(! -f IMG-HH-$master.raw || ! -f IMG-HH-$master.PRM ) then
@@ -173,6 +198,17 @@ unset noclobber
       endif
       baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
       baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
+
+    else if ($SAT == ENVI_SLC) then
+
+      set slave = $line2
+      if(! -f $slave.SLC || ! -f $slave.LED) then
+        $1_pre_process $slave $RAD
+      endif
+      baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
+      baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
+
+
     else if ($SAT == ALOS) then 
 
       set slave = ` echo $line2 | awk '{ print substr($1,8,length($1)-7)}'`
@@ -216,7 +252,7 @@ unset noclobber
 # make baseline plots
 #
 
-  if ($SAT == ERS || $SAT == ENVI) then
+  if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
     awk '{print 1992+$1/365.25,$2,$7}' < table.gmt > text
 #    awk '{print 1992+$1/365.25,$2,7,$4,$5,$6,$7}' < table.gmt > text
 #    awk '{print 1992+$1/365.25,$2,7,-45,$5,$6,$7}' < table.gmt > text
