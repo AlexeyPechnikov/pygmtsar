@@ -2,6 +2,7 @@
 #       $Id$
 #
 #  April 21, 1999 - David T. Sandwell
+#  May 23, 2017 - Anders Hogrelius, updated to fully support Envisat formatted SLC data
 #
 #  Script to calculate a table of parameters from master and
 #  slave PRM files.
@@ -21,6 +22,12 @@ unset noclobber
   exit 1
  endif
 #
+# Detect if we are dealing with Envisat formatted ERS SLC data without using SC_identity
+# Kludge to get correct SC_identity functionality until we can correct the values throughout the chain
+#
+set ERSSLC = `echo $1|cut -c1-10`
+
+#
 #  get the time information from the master
 #
  set MT0 = `grep SC_clock_start $1 | awk '{print $3}'`
@@ -32,6 +39,7 @@ unset noclobber
  set ST0 = `grep SC_clock_start $2 | awk '{print $3}'`
  set STF = `grep SC_clock_stop $2 | awk '{print $3}'`
  set SSC = `grep SC_identity $2 | awk '{print $3}'`
+
 # 
 # convert the start time to days since 1992
 #
@@ -76,6 +84,8 @@ endif
  set NM  = `grep SC_identity $2 | awk '{print $3}'`
 if ($SSC == 5) then
  set ORB = `grep input_file $2 | awk '{print $3}' | awk '{print substr($1,14,5)}'` 
+else if ($SSC == 6 || $ERSSLC == "SAR_IMS_1P") then
+ set ORB = `grep input_file $2 | awk '{print $3}' | cut -c50-54`
 else if ($SSC == 4) then
  set ORB = `grep input_file $2 | awk '{print $3}' | cut -c17-21`
 else if ($SSC == 1 || $SSC == 2) then
@@ -84,6 +94,7 @@ else
  set ORB = `grep input_file $2 | awk '{print $3}' | awk -F"." '{print $1}'`
 endif
 #
+
  if ($#argv < 3) then
     echo $ORB $ST0 $YDAY $BPL $BPR $XS $YS 
  else 
