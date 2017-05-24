@@ -3,7 +3,6 @@
 #
 #  D. Sandwell FEB 4 2010
 #  M. Wei MAY 4 2010 - ENVISAT
-#  A. Hogrelius May 22 2017 - ENVI_SLC
 # 
 # Align a slave image to a master image and check results
 #
@@ -17,14 +16,14 @@ unset noclobber
     echo "Usage: align.csh SAT master_name slave_name [supermaster_name]"
     echo ""
     echo " The supermaster_namestem is required if this is secondary alignment."
-    echo " SAT = ERS or ENVI or ENVI_SLC or ALOS  or generic SAT"
+    echo " SAT = ERS or ENVI or ALOS  or generic SAT"
     echo ""
     echo "Example: align.csh ALOS IMG-HH-ALPSRP055750660-H1.0__A IMG-HH-ALPSRP049040660-H1.0__A "
     echo ""
     exit 1
   endif
   set SAT = $1
-  if( ($SAT != ALOS) && ($SAT != ENVI) && ($SAT != ENVI_SLC) && ($SAT != ERS) && ($SAT != SAT)) then
+  if( ($SAT != ALOS) && ($SAT != ENVI) && ($SAT != ERS) && ($SAT != SAT)) then
     echo ""
     echo " SAT must be ERS, ENVI, or ALOS or generic SAT"
     echo ""
@@ -54,40 +53,35 @@ unset noclobber
   endif 
   echo "align.csh"
   echo "focusing slave"
-  if ($SAT != ENVI_SLC) then
   sarp.csh $3.PRM 
-  endif
 #
 # get the starting alignment parameters and run xcorr
 #
   cp $2.PRM $2.PRM0
   cp $3.PRM $3.PRM0
   if($#argv == 4) then
-    set RSHIFT = `SAT_baseline $4.PRM $3.PRM | grep rshift | awk '{print $3}'`
-    set ASHIFT = `SAT_baseline $4.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    set RSHIFT = `$1_baseline $4.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    set ASHIFT = `$1_baseline $4.PRM $3.PRM | grep ashift | awk '{print $3}'`
 #
 #   use the PRF of the supermaster in the surrogate master
 #
     set PRF = `grep PRF $4.PRM | awk '{print $3}'`
     update_PRM.csh $2.PRM PRM $PRF
   else
-    set RSHIFT = `SAT_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
-    set ASHIFT = `SAT_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    set RSHIFT = `$1_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    set ASHIFT = `$1_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
   endif
   update_PRM.csh $3.PRM rshift $RSHIFT
   update_PRM.csh $3.PRM ashift $ASHIFT
   echo "align.csh"
   echo "correlate master and slave to find offset parameters"
-  if( $SAT == "ERS" || $SAT == "ENVI_SLC") then
+  if( $SAT == "ERS") then
     xcorr $2.PRM $3.PRM -xsearch 128 -ysearch 128
   else
     xcorr $2.PRM $3.PRM -xsearch 64 -ysearch 64
   endif
 #
-  if ($SAT != ENVI_SLC) then
-    mv $3.SLC $3.SLC0
-  endif
-
+  mv $3.SLC $3.SLC0
   mv $3.PRM junk.PRM
   cp $2.PRM0 $2.PRM
   grep -v shift < junk.PRM > $3.PRM
@@ -101,16 +95,7 @@ unset noclobber
 #
   echo "align.csh"
   echo "refocus slave"
-  if ($SAT != ENVI_SLC) then
-  sarp.csh $3.PRM
-  else
-  echo "resamp $2.PRM $3.PRM $3.PRMresamp $3.SLCresamp 4"
-  resamp $2.PRM $3.PRM $3.PRMresamp $3.SLCresamp 4
-  rm $3.SLC
-  mv $3.SLCresamp $3.SLC
-  cp $3.PRMresamp $3.PRM
-  rm $3.PRMresamp
-  endif
+  sarp.csh $3.PRM 
 #
 rm *SLC0
 rm junk*
