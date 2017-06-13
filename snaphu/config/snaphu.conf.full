@@ -111,6 +111,7 @@
 #   FLOAT_DATA          (phase in radians)
 #
 #INFILEFORMAT		COMPLEX_DATA
+INFILEFORMAT		FLOAT_DATA
 
 # Output file format
 # Allowable formats:
@@ -121,6 +122,7 @@
 #   FLOAT_DATA          (unwrapped phase in radians)
 #
 #OUTFILEFORMAT		ALT_LINE_DATA
+OUTFILEFORMAT		FLOAT_DATA
 
 # Amplitude or power file format
 # Units should be consistent with interferogram.  Allowable formats:
@@ -131,6 +133,7 @@
 #   FLOAT_DATA          (square root of average power of two images)
 #
 #AMPFILEFORMAT		ALT_SAMPLE_DATA
+AMPFILEFORMAT		FLOAT_DATA
 
 # Magnitude file format 
 # Allowable formats:
@@ -151,6 +154,7 @@
 #   FLOAT_DATA          (correlation values between 0 and 1)
 #
 #CORRFILEFORMAT		ALT_LINE_DATA
+CORRFILEFORMAT		FLOAT_DATA
 
 # Unwrapped estimate file format
 # Allowable formats:
@@ -161,6 +165,7 @@
 #   FLOAT_DATA          (unwrapped phase in radians)
 #
 #ESTFILEFORMAT		ALT_LINE_DATA
+ESTFILEFORMAT		FLOAT_DATA
 
 # Unwrapped input file format
 # Allowable formats:
@@ -427,7 +432,7 @@ DEFOTHRESHFACTOR 1.2
 # Maximum phase discontinuity likely (double).  Units are radians or cycles.
 # If abrupt phase discontinuities are not expected, this paramter can be 
 # set to zero.
-DEFOMAX_CYCLE	1.2
+DEFOMAX_CYCLE	0.1
 #DEFOMAX_RAD	7.5398
 
 # Phase variance (cycles^2) reflecting uncertainty in measurement of 

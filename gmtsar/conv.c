@@ -171,7 +171,9 @@ int main(int argc, char **argv)
 
 	idec = atoi(argv[1]);		/* y decimation factor */
 	jdec = atoi(argv[2]);		/* x decimation factor */
-		
+	
+	if (idec <= 0 || jdec <= 0) die("idec and jdec should be positive integers.", "");
+	
 	/* open and filter file */
 	if ((f_filter = fopen(argv[3],"r")) == NULL) die("Can't open filter","");
 
