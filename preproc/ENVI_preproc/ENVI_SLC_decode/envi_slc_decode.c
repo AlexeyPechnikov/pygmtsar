@@ -265,7 +265,6 @@ int dump_data(EPR_ELogLevel log_level, const char *infile, FILE* outstream, int 
     /* this program seemed to fill all memory for some reason?  try to free it */
     epr_free_record(rec5);
     }
-  fclose(outstream);
   epr_close_product(product_id);
   /* Closes product reader API, release all allocated resources */
   epr_close_api();
