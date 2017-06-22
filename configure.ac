@@ -70,7 +70,6 @@ AC_SUBST(SL_VERSION)
 AC_SUBST(MT)
 AC_SUBST(prefix)
 AC_SUBST(rootdir)
-AC_CHECK_HEADER(strings.h)
 dnl
 dnl ------------------------------------------------------------------
 dnl Special configure options for GMTSAR installation
