@@ -27,7 +27,7 @@
   exit 1
  endif
 #
- set ORBITS = "/usr/local/orbits"
+ set ORBITS = "/home/pwessel/UH/RESEARCH/CVSPROJECTS/GMTdev/GMT5SAR/branches/5.3"
  echo " "
  echo "========================="
  echo "Start pre-process $1"

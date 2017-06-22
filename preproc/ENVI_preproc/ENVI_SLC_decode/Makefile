@@ -37,19 +37,19 @@ clean:
 	rm -f $(OBJS) envi_slc_decode envisat_dump_data envisat_dump_header tags core
 
 envi_slc_decode:
-		$(CC) epr_api-2.3/src/*.c \
-		envi_slc_decode.c \
+		$(CC) $(CFLAGS) $(INCLUDES) $(LFLAGS) \
 		-o envi_slc_decode \
-		$(CFLAGS) $(INCLUDES) $(CLIBS)$(LFLAGS)
+		envi_slc_decode.c \
+		epr_api-2.3/src/*.o $(CLIBS)
 
 envisat_dump_data:
-		$(CC) epr_api-2.3/src/*.c \
-		envisat_dump_data.c \
+		$(CC) $(CFLAGS) $(INCLUDES) $(LFLAGS) \
 		-o envisat_dump_data \
-		$(CFLAGS) $(INCLUDES) $(CLIBS)$(LFLAGS)
+		envisat_dump_data.c \
+		epr_api-2.3/src/*.o $(CLIBS)
 
 envisat_dump_header:
-		$(CC) epr_api-2.3/src/*.c \
-		envisat_dump_header.c \
+		$(CC) $(CFLAGS) $(INCLUDES) $(LFLAGS) \
 		-o envisat_dump_header \
-		$(CFLAGS) $(INCLUDES) $(CLIBS)$(LFLAGS)
+		envisat_dump_header.c \
+		epr_api-2.3/src/*.o $(CLIBS)

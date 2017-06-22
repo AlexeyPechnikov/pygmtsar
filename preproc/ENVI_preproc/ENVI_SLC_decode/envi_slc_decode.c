@@ -33,6 +33,7 @@
 #include <crtdbg.h>
 #endif /* if defined(WIN32) && defined(_DEBUG) */
 //#include <typeinfo>
+#include <strings.h>
 
 int write_orb(state_vector *sv, FILE *fp, int);
 int dump_data(EPR_ELogLevel log_level, const char *infile, FILE* outstream, int pixflag, unsigned int l0, unsigned int lN, unsigned int p0, unsigned int pN);
