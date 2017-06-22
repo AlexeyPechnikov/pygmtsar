@@ -32,8 +32,9 @@
 #include <crtdbg.h>
 #endif /* if defined(WIN32) && defined(_DEBUG) */
 //#include <typeinfo>
-
-
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 
 
