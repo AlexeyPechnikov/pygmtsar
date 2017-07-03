@@ -83,7 +83,7 @@ unset noclobber
   mkdir F1
   mkdir F1/raw F1/topo
   cd F1
-  sed "s/.*threshold_geocode.*/threshold_greocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
   cd topo
   ln -s ../../topo/dem.grd .
   cd ../raw
@@ -99,7 +99,7 @@ unset noclobber
   mkdir F2
   mkdir F2/raw F2/topo
   cd F2
-  sed "s/.*threshold_geocode.*/threshold_greocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
   cd topo
   ln -s ../../topo/dem.grd .
   cd ../raw
@@ -115,7 +115,7 @@ unset noclobber
   mkdir F3
   mkdir F3/raw F3/topo
   cd F3
-  sed "s/.*threshold_geocode.*/threshold_greocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
   cd topo
   ln -s ../../topo/dem.grd .
   cd ../raw

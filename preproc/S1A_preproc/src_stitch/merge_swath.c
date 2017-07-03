@@ -176,8 +176,8 @@ int main(int argc, char **argv){
     head2 = GOUT->header->ny-G2->header->ny-head2;
     if(nfile == 3) head3 = GOUT->header->ny-G3->header->ny-head3;
 
-    n1 = (int)ceil((-(float)prm2.rshift+(float)prm2.first_sample+100.0)/incx);
-    if (nfile == 3) n2 = (int)ceil((-(float)prm3.rshift+(float)prm3.first_sample+100.0)/incx);
+    n1 = (int)ceil((-(float)prm2.rshift+(float)prm2.first_sample+150.0)/incx);
+    if (nfile == 3) n2 = (int)ceil((-(float)prm3.rshift+(float)prm3.first_sample+150.0)/incx);
     if (n1<10) n1 = 10;
     if (nfile == 3) if (n2<10) n2 = 10;
 
