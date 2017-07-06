@@ -28,7 +28,6 @@ unset noclobber
   endif
 
 # start 
-
 #
 #   make sure the config file exists
 #
@@ -65,13 +64,12 @@ unset noclobber
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
-
 #
 # read file names of raw data
 #
   set master = ` echo $1 | awk '{ print substr($1,8,length($1)-7)}'`
   set slave =  ` echo $2 | awk '{ print substr($1,8,length($1)-7)}'`
-
+#
   if ($switch_master == 0) then
     set ref = $master
     set rep = $slave
@@ -89,7 +87,7 @@ unset noclobber
 #############################
 # 1 - start from preprocess #
 #############################
-
+#
   if ($stage == 1) then
 #
 # first clean up 
@@ -124,7 +122,7 @@ unset noclobber
 #############################################
 # 2 - start from focus and align SLC images #
 #############################################
-  
+# 
   if ($stage <= 2) then
 # 
 # clean up 
@@ -139,9 +137,9 @@ unset noclobber
     cp ../raw/*.PRM .
     ln -s ../raw/IMG-HH-$master.raw . 
     ln -s ../raw/IMG-HH-$slave.raw . 
-    ln -s ../raw/LED-$master . 
-    ln -s ../raw/LED-$slave .
-    align.csh $SAT IMG-HH-$master IMG-HH-$slave 
+    ln -s ../raw/IMG-HH-$master.LED . 
+    ln -s ../raw/IMG-HH-$slave.LED . 
+    align.csh SAT IMG-HH-$master IMG-HH-$slave 
     cd ..
     echo "ALIGN.CSH - END"
   endif
@@ -149,7 +147,7 @@ unset noclobber
 ##################################
 # 3 - start from make topo_ra  #
 ##################################
-
+#
   if ($stage <= 3) then
 #
 # clean up
@@ -164,7 +162,7 @@ unset noclobber
       echo "USER SHOULD PROVIDE DEM FILE"
       cd topo
       cp ../SLC/IMG-HH-$master.PRM master.PRM 
-      ln -s ../raw/LED-$master . 
+      ln -s ../raw/IMG-HH-$master.LED . 
       if (-f dem.grd) then 
         dem2topo_ra.csh master.PRM dem.grd 
       else 
@@ -218,7 +216,7 @@ unset noclobber
 ##################################################
 # 4 - start from make and filter interferograms  #
 ##################################################
-
+#
   if ($stage <= 4) then
 #
 # clean up
@@ -234,8 +232,8 @@ unset noclobber
     set rep_id  = `grep SC_clock_start ../raw/IMG-HH-$rep.PRM | awk '{printf("%d",int($3))}' `
     mkdir $ref_id"_"$rep_id
     cd $ref_id"_"$rep_id
-    ln -s ../../raw/LED-$ref . 
-    ln -s ../../raw/LED-$rep .
+    ln -s ../../SLC/IMG-HH-$ref.LED . 
+    ln -s ../../SLC/IMG-HH-$rep.LED .
     ln -s ../../SLC/IMG-HH-$ref.SLC . 
     ln -s ../../SLC/IMG-HH-$rep.SLC .
     cp ../../SLC/IMG-HH-$ref.PRM . 
@@ -261,7 +259,7 @@ unset noclobber
 ################################
 # 5 - start from unwrap phase  #
 ################################
-
+#
   if ($stage <= 5 ) then
     if ($threshold_snaphu != 0 ) then
       cd intf
@@ -271,7 +269,6 @@ unset noclobber
       if ((! $?region_cut) || ($region_cut == "")) then
         set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
       endif
-
 #
 # landmask
 #
@@ -284,13 +281,13 @@ unset noclobber
         cd $ref_id"_"$rep_id
         ln -s ../../topo/landmask_ra.grd .
       endif
-
+#
       echo " "
       echo "SNAPHU.CSH - START"
       echo "threshold_snaphu: $threshold_snaphu"
-      
+#
       snaphu.csh $threshold_snaphu $defomax $region_cut
-
+#
       echo "SNAPHU.CSH - END"
       cd ../..
     else 
@@ -302,7 +299,7 @@ unset noclobber
 ###########################
 # 6 - start from geocode  #
 ###########################
-
+#
   if ($stage <= 6) then
     cd intf
     set ref_id  = `grep SC_clock_start ../raw/IMG-HH-$ref.PRM | awk '{printf("%d",int($3))}' `
@@ -323,6 +320,6 @@ unset noclobber
     echo "GEOCODE.CSH - END"
     cd ../..
   endif
-
+#
 # end
 

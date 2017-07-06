@@ -89,7 +89,7 @@ int main (int argc, char **argv) {
 	float ds[5];   /* dummy for output  single precision */
         double r0,rf,a0,af;
         double rad=PI/180.;
-	double fll,rdd,daa,drr;
+	double fll,rdd,daa,drr,dopc;
         double dt,dtt,xs,ys,zs;
         double time[20],rng[20],d[3];  /* arrays used for polynomial refinement of min range */
         int ir, k, ntt=10, nc=3;           /* size of arrays used for polynomial refinement */
@@ -254,8 +254,9 @@ int main (int argc, char **argv) {
 /* compute the azimuth and range correction if the Doppler is not zero */
 
 	   if(prm.fd1 != 0.){
+             dopc = prm.fd1 + prm.fdd1*(prm.near_range + dr*prm.num_rng_bins/2.);
 	     rdd = (prm.vel*prm.vel)/rng0;
-	     daa=-0.5*(prm.lambda*prm.fd1)/rdd;
+	     daa=-0.5*(prm.lambda*dopc)/rdd;
 	     drr=0.5*rdd*daa*daa/dr;
 	     daa=prm.prf*daa;
 	     xt[0] = xt[0] + drr;

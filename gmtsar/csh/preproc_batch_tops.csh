@@ -173,7 +173,6 @@
             cat junk1 junk2 > $stem.PRM
             rm junk1 junk2
             
-            #SAT_llt2rat tmp.PRM 1 < topo.llt > tmp_tmp.dat &
             SAT_llt2rat tmp.PRM 1 < topo.llt > tmpm.dat &
             SAT_llt2rat $stem.PRM 1 < topo.llt > tmp1.dat &
             wait

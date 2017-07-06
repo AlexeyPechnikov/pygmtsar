@@ -15,10 +15,11 @@
  * merged in ALOSE code by Jeff B and David S					*
  * - added options -ALOSE -ALOS
  * added write_roi
+ * writes out generic LED file for both AUIG and ALOSE (ERSDAC)
  * *****************************************************************************/
 
-#include "image_sio.h"
-#include "lib_functions.h"
+#include"image_sio.h"
+#include"lib_functions.h"
 
 char    *USAGE = "\n\nUsage: ALOS_pre_process imagefile LEDfile [-near near_range] [-radius RE] [-swap] [-V] [-debug] [-quiet] \n"
 "\ncreates data.raw and writes out parameters (PRM format) to stdout\n"
@@ -34,6 +35,8 @@ char    *USAGE = "\n\nUsage: ALOS_pre_process imagefile LEDfile [-near near_rang
 "-quad                  adjust parameters for quad pol mod (PRF/2)\n"
 "-ALOSE                 use ERSDAC format \n"
 "-ALOS                  use AUIG format (default) \n"
+"-LED                   write GMTSAR generic LED format output and update PRM (default) \n"
+"-noLED                 do not write GMTSAR generic LED format output \n"
 "-roi                   write roi_pac format output\n"
 "-V 			verbose write information) \n"
 "-debug                 write even more information \n"
@@ -51,10 +54,13 @@ void set_ALOS_defaults(struct PRM *);
 void print_ALOS_defaults(struct PRM *);
 void swap_ALOS_data_info(struct sardata_info *);
 void get_files(struct PRM *, FILE **, FILE **, char *, char *, int);
+int write_ALOS_LED(struct ALOS_ORB *, struct PRM *, char *);
+void write_orb(FILE *, struct ALOS_ORB *);
 // roi_pac stuff
 int write_roi_orbit(struct ALOS_ORB, char *);
 int write_roi(char *, FILE *, struct PRM, struct ALOS_ORB, char *);
 
+int	ledflag;
 int main (int argc, char **argv) 
 {
 FILE	*imagefile, *ldrfile;
@@ -72,6 +78,9 @@ char   	date[8];
 	dopp = 1;
 	roi = quad_pol = debug = verbose = swap = quiet_flag = 0;
 
+	/* default is to use the old LED orbit (must use ALOS_baseline, ALOS_look)  */
+	ledflag = 1;
+
 	nPRF = 0;
 	ALOS_format = 0;
 
@@ -80,6 +89,10 @@ char   	date[8];
 
 	/* read command line */
 	parse_ALOS_commands(argc, argv, USAGE, &prm);
+	fprintf(stderr,"ledflag %d\n", ledflag);
+
+	/* apply an additional timing bias based on corner reflector analysis */
+        tbias = tbias - 0.0020835;
 
 	if (verbose) print_ALOS_defaults(&prm);
 	if (is_big_endian_() == -1) {swap = 1;fprintf(stderr,".... swapping bytes\n");} else {swap = 0;} 
@@ -96,6 +109,9 @@ char   	date[8];
 
 	/* read sarleader; put info into prm; write log file if specified 		*/
 	read_ALOS_sarleader(ldrfile, &prm, &orb);
+
+	/* write out orbit params in generic LED format */
+	if (ledflag) write_ALOS_LED(&orb, &prm, argv[1]);
 
 	/* infer type of data from ldrfile						*/
 	if ((SAR_mode == 2) && (quad_pol == 0)) {

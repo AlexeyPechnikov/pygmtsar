@@ -55,11 +55,11 @@ else
 endif
 echo " range decimation is: " $rng
 
-#   use special ALOS_llt2rat if this is ALOS otherwise use SAT_llt2rat
+#   use special SAT_llt2rat
 
 if ($SC == 5) then
   echo " processing for ALOS data"
-  gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | ALOS_llt2rat $1 0 -bod  > trans.dat
+  gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 0 -bod  > trans.dat
 else 
   echo " processing generic data"
   if($SC == 10) then

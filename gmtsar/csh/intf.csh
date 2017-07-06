@@ -11,7 +11,7 @@
 alias rm 'rm -f'
 gmt set IO_NC4_CHUNK_SIZE classic
 #
-
+#
   if ($#argv < 2) then
 errormessage:
     echo ""
@@ -23,17 +23,11 @@ errormessage:
     echo ""
     exit 1
   endif
-
 #
 # which satellite
 #
   set SC = `grep SC_identity $1 | awk '{print $3}'`
- if ($SC == 5) then
-    cp $2 $2"0"
-    cp $1 $1"0"
-    ALOS_baseline $1 $2 | tail -n6 >> $2
-    ALOS_baseline $1 $1 | grep height >> $1
-  else if ($SC == 1 || $SC == 2 || $SC == 4 || $SC == 6) then
+  if ($SC == 1 || $SC == 2 || $SC == 4 || $SC == 5 || $SC == 6) then
     cp $2 $2"0"
     cp $1 $1"0"
     SAT_baseline $1 $2 | tail -n6 >> $2

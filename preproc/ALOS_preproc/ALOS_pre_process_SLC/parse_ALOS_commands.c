@@ -1,6 +1,7 @@
 #include "image_sio.h"
 #include "lib_functions.h"
 
+int ledflag;
 /* reads options 				*/
 /* start with third arguement			*/
 void parse_ALOS_commands(int na, char **a, char *USAGE, struct PRM *prm)
@@ -47,6 +48,12 @@ for(n = 3; n < na; n++) {
 	} else if (!strcmp(a[n], "-roi")) {
 		roi = 1;
 		fprintf(stderr," writing roi_pac rsc files \n");
+       } else if (!strcmp(a[n], "-LED")) {
+               ledflag = 1;
+               fprintf(stderr," creating *.LED file \n");
+        } else if (!strcmp(a[n], "-noLED")) {
+               ledflag = 0;
+               fprintf(stderr," no *.LED file written (default) \n");
 	} else if (!strncmp(a[n], "-debug",2)) {
 		verbose = debug = 1;
 		fprintf(stderr," debug and verbose output \n");

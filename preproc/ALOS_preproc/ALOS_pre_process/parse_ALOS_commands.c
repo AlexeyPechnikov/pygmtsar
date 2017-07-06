@@ -3,9 +3,11 @@
 
 /* reads options 				*/
 /* start with third arguement			*/
+int ledflag;
 void parse_ALOS_commands(int na, char **a, char *USAGE, struct PRM *prm)
 {
 int	n;
+tbias = 0.;
 
 for(n = 3; n < na; n++) {
 	if (!strcmp(a[n], "-near")) {
@@ -63,6 +65,12 @@ for(n = 3; n < na; n++) {
 	} else if (!strcmp(a[n], "-ALOSA")) {
 		ALOS_format = 0;
 		fprintf(stderr," data is in ALOSA (AUIG) format) \n");
+	} else if (!strcmp(a[n], "-LED")) {
+		ledflag = 1;
+		fprintf(stderr," creating *.LED file \n");
+	} else if (!strcmp(a[n], "-noLED")) {
+		ledflag = 0;
+		fprintf(stderr," no *.LED file written (default) \n");
 	} else if (!strcmp(a[n], "-roi")) {
 		roi = 1;
 		fprintf(stderr," writing roi_pac rsc files \n");

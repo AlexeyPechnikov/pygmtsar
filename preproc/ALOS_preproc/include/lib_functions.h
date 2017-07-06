@@ -10,6 +10,8 @@
 
 /* function prototypes 				*/
 void ALOS_ldr_orbit(struct ALOS_ORB *, struct PRM *);
+int write_ALOS_LED(struct ALOS_ORB *, struct PRM *, char *);
+void write_orb(FILE *, struct ALOS_ORB *);
 void calc_height_velocity(struct ALOS_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
 void calc_dop(struct  PRM *);
 void cfft1d_(int *, fcomplex *, int *);

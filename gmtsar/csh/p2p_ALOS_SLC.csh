@@ -155,8 +155,8 @@ unset noclobber
     cp ../raw/*.PRM .
     ln -s ../raw/IMG-HH-$master.SLC .
     ln -s ../raw/IMG-HH-$slave.SLC .
-    ln -s ../raw/LED-$master .
-    ln -s ../raw/LED-$slave .
+    ln -s ../raw/IMG-HH-$master.LED .
+    ln -s ../raw/IMG-HH-$slave.LED .
     
 
 # if images do not match, convert the FBD image to FBS
@@ -185,7 +185,7 @@ unset noclobber
     endif
 
     cp IMG-HH-$slave.PRM IMG-HH-$slave.PRM0
-    ALOS_baseline IMG-HH-$master.PRM IMG-HH-$slave.PRM0 >> IMG-HH-$slave.PRM
+    SAT_baseline IMG-HH-$master.PRM IMG-HH-$slave.PRM0 >> IMG-HH-$slave.PRM
     xcorr IMG-HH-$master.PRM IMG-HH-$slave.PRM -xsearch 64 -ysearch 64 -nx 32 -ny 64
     fitoffset.csh 3 3 freq_xcorr.dat >> IMG-HH-$slave.PRM 18
     resamp IMG-HH-$master.PRM IMG-HH-$slave.PRM IMG-HH-$slave.PRMresamp IMG-HH-$slave.SLCresamp 4
@@ -215,7 +215,7 @@ unset noclobber
       echo "USER SHOULD PROVIDE DEM FILE"
       cd topo
       cp ../SLC/IMG-HH-$master.PRM master.PRM 
-      ln -s ../raw/LED-$master . 
+      ln -s ../raw/IMG-HH-$master.LED . 
       if (-f dem.grd) then 
         dem2topo_ra.csh master.PRM dem.grd 
       else 
@@ -272,10 +272,10 @@ unset noclobber
     set rep_id  = `grep SC_clock_start ../SLC/IMG-HH-$rep.PRM | awk '{printf("%d",int($3))}' `
     mkdir $ref_id"_"$rep_id
     cd $ref_id"_"$rep_id
-    ln -s ../../raw/LED-$ref .
-    ln -s ../../raw/LED-$rep .
     ln -s ../../SLC/IMG-HH-$ref.SLC .
     ln -s ../../SLC/IMG-HH-$rep.SLC .
+    ln -s ../../raw/IMG-HH-$ref.LED .
+    ln -s ../../raw/IMG-HH-$rep.LED .
     cp ../../SLC/IMG-HH-$ref.PRM .
     cp ../../SLC/IMG-HH-$rep.PRM .
     if($topo_phase == 1) then

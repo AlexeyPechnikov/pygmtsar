@@ -23,9 +23,9 @@ unset noclobber
     exit 1
   endif
   set SAT = $1
-  if( ($SAT != ALOS) && ($SAT != ENVI) && ($SAT != ERS) && ($SAT != SAT)) then
+  if( ($SAT != ENVI) && ($SAT != ERS) && ($SAT != SAT)) then
     echo ""
-    echo " SAT must be ERS, ENVI, or ALOS or generic SAT"
+    echo " SAT must be ERS, ENVI, or generic SAT"
     echo ""
     exit 1
   endif

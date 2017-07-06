@@ -12,7 +12,7 @@ here=`pwd`
 sharedir=`gmtsar_sharedir.csh`
 bin=`which gmtsar_sharedir.csh`
 dir=`dirname $bin`
-modules="ALOS_baseline ALOS_fbd2fbs ALOS_fbd2fbs_SLC ALOS_fbd2ss ALOS_llt2rat ALOS_look ALOS_merge \
+modules="ALOS_fbd2fbs ALOS_fbd2fbs_SLC ALOS_fbd2ss ALOS_look ALOS_merge \
 	ALOS_pre_process ALOS_pre_process_SLC ALOS_pre_process_SS ENVI_baseline ENVI_llt2rat ENVI_look \
 	ENVI_pre_process ERS_baseline ERS_llt2rat ERS_pre_process SAT_baseline SAT_llt2rat SAT_look \
 	align.csh align_batch.csh asa_cat asa_im_decode baseline_table.csh bperp calc_dop_orb \

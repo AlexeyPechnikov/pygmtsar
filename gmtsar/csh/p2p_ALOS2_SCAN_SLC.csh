@@ -171,8 +171,8 @@ unset noclobber
     cp ../../raw/*.PRM .
     ln -s ../../raw/IMG-$master-$subswath.SLC . 
     ln -s ../../raw/IMG-$slave-$subswath.SLC . 
-    ln -s ../../raw/LED-$master_led . 
-    ln -s ../../raw/LED-$slave_led .
+    ln -s ../../raw/IMG-$master-$subswath.LED . 
+    ln -s ../../raw/IMG-$slave-$subswath.LED . 
     
 
 # if images do not match, convert the FBD image to FBS
@@ -201,7 +201,7 @@ unset noclobber
     endif
 
     cp IMG-$slave-$subswath.PRM IMG-$slave-$subswath.PRM0
-    ALOS_baseline IMG-$master-$subswath.PRM IMG-$slave-$subswath.PRM0 >> IMG-$slave-$subswath.PRM
+    SAT_baseline IMG-$master-$subswath.PRM IMG-$slave-$subswath.PRM0 >> IMG-$slave-$subswath.PRM
 #
 #  there is a bug in xcorr so xsearch and ysearch must be the same
 #
@@ -243,7 +243,7 @@ unset noclobber
       echo "USER SHOULD PROVIDE DEM FILE"
       cd topo
       cp ../SLC/IMG-$master-$subswath.PRM master.PRM 
-      ln -s ../../raw/LED-$master_led . 
+      ln -s ../../raw/IMG-$master-$subswath.LED .
      
       if (-f ../../topo/dem.grd) then 
         ln -s ../../topo/dem.grd .
@@ -304,8 +304,8 @@ unset noclobber
     set rep_id  = `grep SC_clock_start ../SLC/IMG-$rep-$subswath.PRM | awk '{printf("%d",int($3))}' `
     mkdir $ref_id"_"$rep_id
     cd $ref_id"_"$rep_id
-    ln -s ../../../raw/LED-$master_led . 
-    ln -s ../../../raw/LED-$slave_led  .
+    ln -s ../../../raw/IMG-$ref-$subswath.LED .
+    ln -s ../../../raw/IMG-$rep-$subswath.LED .
     ln -s ../../SLC/IMG-$ref-$subswath.SLC . 
     ln -s ../../SLC/IMG-$rep-$subswath.SLC .
     cp ../../SLC/IMG-$ref-$subswath.PRM . 

@@ -55,7 +55,7 @@ else if ($SSC == 4 || $SSC == 6) then
  @ YR = $T0  / 1000 - 1992
  @ YDAY = $YR * 365 + $DAY
 else if ($SSC == 5) then
- ALOS_baseline $1 $2 > temp
+ SAT_baseline $1 $2 > temp
  @ YR1 = $T0 / 1000
  if ($YR1 < 2013) then
   @ YR = $T0  / 1000 - 2006

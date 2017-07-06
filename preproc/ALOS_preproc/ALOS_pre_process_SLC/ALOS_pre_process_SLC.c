@@ -14,8 +14,8 @@
  * 10/10/10   added command line options for SLC_factor and rbias               *
  * *****************************************************************************/
 
-#include "image_sio.h"
-#include "lib_functions.h"
+#include"image_sio.h"
+#include"lib_functions.h"
 
 char    *USAGE = "\n\nUsage: ALOS_pre_process_SLC imagefile LEDfile [-radius RE] [-swap] [-V] [-debug] [-quiet] \n"
 "\ncreates data.SLC and writes out parameters (PRM format) to stdout\n"
@@ -28,6 +28,8 @@ char    *USAGE = "\n\nUsage: ALOS_pre_process_SLC imagefile LEDfile [-radius RE]
 "-swap                  do byte-swap (should be automatic) \n"
 "-ALOS1                 ALOS2 L1.1 data format \n"
 "-ALOS2                 ALOS2 L1.1 data format (default)\n"
+"-LED                   write generic LED file\n"
+"-noLED                 oldstyle use ldr file for orbits directlyn"
 "-V                     verbose write information \n"
 "-debug                 write even more information \n"
 "-quiet                 don't write any information \n"
@@ -43,6 +45,7 @@ void print_ALOS_defaults(struct PRM *);
 void swap_ALOS_data_info(struct sardata_info *);
 void get_files(struct PRM *, FILE **, FILE **, char *, char *, int);
 
+int ledflag;
 int main (int argc, char **argv) 
 {
 FILE	*imagefile, *ldrfile;
@@ -63,6 +66,9 @@ struct 	ALOS_ORB orb;
         rbias = 0.0;
         prefix_off = 132;
 
+        /* default is to use the new LED orbit */
+        ledflag = 1;
+
 	nPRF = 0;
 
 	null_sio_struct(&prm);
@@ -70,6 +76,9 @@ struct 	ALOS_ORB orb;
 
 	/* read command line */
 	parse_ALOS_commands(argc, argv, USAGE, &prm);
+
+        /* shift the start time if this is ALOS1 */
+        if(prefix_off == 0) tbias = tbias - 0.0020835;
 
 	if (verbose) print_ALOS_defaults(&prm);
 	if (is_big_endian_() == -1) {swap = 1;fprintf(stderr,".... swapping bytes\n");} else {swap = 0;} 
@@ -86,6 +95,11 @@ struct 	ALOS_ORB orb;
 
 	/* read sarleader; put info into prm; write log file if specified 		*/
 	read_ALOS_sarleader(ldrfile, &prm, &orb);
+
+// AUGUST 2016
+       /* write out orbit params in generic LED format */
+       if (ledflag) write_ALOS_LED(&orb, &prm, argv[1]);
+// AUGUST 2016
 
 	/* read Level 1.1 file;  put info into prm; convert to *.SLC format 		*/
 	/* if PRF changes halfway through, create new set of header and data files      */

@@ -141,30 +141,25 @@ errormessage:
   gmt makecpt -T0./.8/0.1 -Cgray -Z -N > corr.cpt
   echo "N  255   255   254" >> corr.cpt
   gmt grdimage corr.grd $scale -Ccorr.cpt -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3 -Y3 -P -K > corr.ps
-  gmt psscale -Dx3.3/-1.5+w5/0.2+h+e -Ccorr.cpt -B0.2:correlation: -O >> corr.ps
+  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Ccorr.cpt -B0.2:correlation: -O >> corr.ps
 #
 # form the phase 
 #
   echo "making phase..."
   gmt grdmath imagfilt.grd realfilt.grd ATAN2 mask.grd MUL FLIPUD = phase.grd
   gmt makecpt -Crainbow -T-3.15/3.15/0.1 -Z -N > phase.cpt
-# gmt makecpt -Cgray -T-3.14/3.14/0.1 -Z -N > phase_bw.cpt
-# echo "N  255   255   254" >> phase_bw.cpt
   gmt grdimage phase.grd $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase.cpt -X1.3 -Y3 -P -K > phase.ps
-  gmt psscale -Dx3.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phase.ps
+  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phase.ps
 #
 #  make the Werner/Goldstein filtered phase
 #
   echo "filtering phase..."
-# phasefilt -imag imagfilt.grd -real realfilt.grd -amp1 amp1.grd -amp2 amp2.grd -psize 16 -complex_out
   phasefilt -imag imagfilt.grd -real realfilt.grd -amp1 amp1.grd -amp2 amp2.grd -psize 16 
   gmt grdedit filtphase.grd `gmt grdinfo mask.grd -I- --FORMAT_FLOAT_OUT=%.12lg` 
   gmt grdmath filtphase.grd mask.grd MUL FLIPUD = phasefilt.grd
   rm filtphase.grd
   gmt grdimage phasefilt.grd $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase.cpt -X1.3 -Y3 -P -K > phasefilt.ps
-  gmt psscale -Dx3.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phasefilt.ps
-# gmt grdimage phasefilt.grd $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase_bw.cpt -X1.3 -Y3 -P -K > phase_bw.ps
-# gmt psscale -D3.3/-1.5/5/0.2h -Cphase_bw.cpt -B1.57:"phase, rad": -O >> phase_bw.ps
+  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phasefilt.ps
 # 
 #  form the phase gradients
 #
