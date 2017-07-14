@@ -1,5 +1,5 @@
 sinclude ../../../config.mk
-# Makefile for lib src 
+# Makefile for lib_src 
 LIB = libALOS.a
 INCLUDES = -I../include
 
@@ -15,8 +15,8 @@ SRCS =	utils.c \
 	read_ALOS_sarleader.c \
 	set_ALOS_defaults.c \
 	write_ALOS_prm.c \
-        write_ALOS_LED.c \
-        write_orb.c \
+	write_ALOS_LED.c \
+	write_orb.c \
 	rng_expand.c \
 	rng_compress.c \
 	rng_filter.c \
