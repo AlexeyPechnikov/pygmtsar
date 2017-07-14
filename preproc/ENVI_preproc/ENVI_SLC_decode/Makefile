@@ -26,7 +26,10 @@ LIB_SRC =       epr_api-2.3/src/epr_api.c \
                 epr_api-2.3/src/epr_typconv.c
 
 
-all:	envi_slc_decode envisat_dump_data envisat_dump_header
+all:	epr envi_slc_decode envisat_dump_data envisat_dump_header
+
+epr:		$(LIB_SRC)
+	(cd epr_api-2.3/src/; make)
 
 install:
 	$(INSTALL) $(PROG) $(bindir)
@@ -35,6 +38,7 @@ install:
 
 clean:
 	rm -f $(OBJS) envi_slc_decode envisat_dump_data envisat_dump_header tags core
+	(cd epr_api-2.3/src/; make clean)
 
 envi_slc_decode:
 		$(CC) $(CFLAGS) $(INCLUDES) $(LFLAGS) \
