@@ -426,7 +426,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 
 
 
-int write_output_ts(void *API, struct GMT_GRID *Out,int64_t agc,char **agv, int64_t xdim, int64_t ydim, int64_t S, int64_t flag_rms, int64_t flag_dem, float *disp, float *vel, float *res, float *dem, float *screen, double wl, int64_t n_atm){
+int write_output_ts(void *API, struct GMT_GRID *Out,int64_t agc,char **agv, int64_t xdim, int64_t ydim, int64_t S, int64_t flag_rms, int64_t flag_dem, float *disp, float *vel, float *res, float *dem, float *screen, double wl, int64_t n_atm,int64_t *L){
 
         int64_t i,j,k;
         float *grdin, *save_grid;
@@ -442,6 +442,7 @@ int write_output_ts(void *API, struct GMT_GRID *Out,int64_t agc,char **agv, int6
                strcat(tmp1,agv[i]); 
                strcat(tmp1," ");
         }
+        strcpy(Out->header->command,"");
         if (GMT_Set_Comment (API, GMT_IS_GRID, GMT_COMMENT_IS_COMMAND, tmp1, Out)) die("could not set title","");
         
         //strcpy(Out->header->title,"displacement time series (mm)");
@@ -454,7 +455,7 @@ int write_output_ts(void *API, struct GMT_GRID *Out,int64_t agc,char **agv, int6
                                 grdin[j+k*xdim]=-79.58*wl*disp[i*xdim*ydim+j*ydim+k]; 
                       }
                 }
-                sprintf(tmp1,"%03lld",i+1);
+                sprintf(tmp1,"%07lld",L[i]);
                 strcat(outfile,tmp1);
                 strcat(outfile,".grd");
                 sprintf(tmp1,"Displacement Time Series %03lld",i+1);
@@ -499,7 +500,7 @@ int write_output_ts(void *API, struct GMT_GRID *Out,int64_t agc,char **agv, int6
 	                                grdin[j+k*xdim]=screen[i*xdim*ydim+j*ydim+k]; 
 				}
 			}
-			sprintf(tmp1,"%03lld",i+1);
+			sprintf(tmp1,"%07lld",L[i]);
 			strcat(outfile,tmp1);
 			strcat(outfile,".grd");
 			sprintf(tmp1,"Atmospheric Phase Screen %03lld",i+1);

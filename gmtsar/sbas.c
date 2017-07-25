@@ -394,7 +394,7 @@ init_G_ts(G,Gs,N,S,m,n,L,H,time,sf,bperp,scale);
 */
 
 
-    write_output_ts(API,Out,argc,argv,xdim,ydim,S,flag_rms,flag_dem,disp,vel,res,dem,screen,wl,n_atm);
+    write_output_ts(API,Out,argc,argv,xdim,ydim,S,flag_rms,flag_dem,disp,vel,res,dem,screen,wl,n_atm,L);
 
     /* free memory */
 
