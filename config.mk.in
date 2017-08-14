@@ -27,7 +27,7 @@ GMT5SAR_VERSION = @PACKAGE_VERSION@
 
 # Compilers, if $CC not set in environment
 CC		= @CC@
-CXX		= @CXX@
+#CXX		= @CXX@
 
 # Preprocessing:
 CPP		= @CPP@
@@ -72,7 +72,7 @@ GMTSAR		= -L@rootdir@/gmtsar -lgmtsar
 #-------------------------------------------------------------------------------
 #
 CFLAGS		= @CFLAGS@
-CXXFLAGS	= @CXXFLAGS@
+#CXXFLAGS	= @CXXFLAGS@
 LDFLAGS		= @LDFLAGS@
 #
 #-------------------------------------------------------------------------------

@@ -7,7 +7,7 @@ INCLUDES = -I../include -I../../../gmtsar -I$(TIFF_INC)
 CLIBS = -L../../../gmtsar -lgmtsar -L../lib -lxmlC -L$(TIFF_LIB) -ltiff -lm
 
 $(PROG): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(CLIBS) 
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(CLIBS) 
 
 all:	$(PROG)
 
