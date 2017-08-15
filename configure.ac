@@ -40,7 +40,6 @@ AC_CYGWIN
 AC_CANONICAL_SYSTEM
 AC_LANG_C
 AC_PROG_CC
-AC_PROG_CXX
 AC_PROG_CPP
 AC_PREFIX_DEFAULT(`pwd`)
 AC_PATH_XTRA
@@ -52,7 +51,6 @@ dnl
 AC_SUBST(ORBITS_DIR)
 AC_SUBST(LALIBS)
 AC_SUBST(CFLAGS)
-AC_SUBST(CXXFLAGS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(HDF5_CPPFLAGS)
 AC_SUBST(HDF5_LDFLAGS)
@@ -409,8 +407,6 @@ elif test "$os" = "ULTRIX" ; then	# Dec Ultrix cc options
 	CFLAGS="$CFLAGS -Olimit 1500"
 fi
 AC_MSG_RESULT($CFLAGS)
-AC_MSG_CHECKING(C++ compiler options for GMT5SAR)
-AC_MSG_RESULT($CXXFLAGS)
 dnl
 dnl ------------------------------------------------------------------
 dnl Determine CPPFLAGS for this platform
