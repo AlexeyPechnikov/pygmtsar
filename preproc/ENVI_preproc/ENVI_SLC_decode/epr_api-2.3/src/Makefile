@@ -37,7 +37,5 @@ default:	$(OBJ)
 #		ar ...
 
 clean:		
-		rm *.o
+		rm -f *.o
 		@echo "removed all object files"
-
-
