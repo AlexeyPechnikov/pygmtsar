@@ -206,22 +206,18 @@ dnl Set path to tiff directories with --with-tiff=include|lib
 dnl ------------------------------------------------------------------
 dnl
 AC_MSG_CHECKING(for TIFF include directory)
-if test "X$with_boost_include" = "X"; then	# Must look for it in standard places
-	if [ test -d /sw/include ]; then	# fink
-		TIFF_INC=/sw/include
-	elif [ test -d /opt/local/include ]; then	# macports
-		TIFF_INC=/opt/local/include
-	elif [ test -d /usr/local/include ]; then
-		TIFF_INC=/usr/local/include
-	elif [ test -d /usr/include ]; then	# Ubuntu
-		TIFF_INC=/usr/include
-	elif [ test -d /opt/csw/include ]; then	# Blastwave
-		TIFF_INC=/opt/csw/include
-	elif [ test -d /opt/include ]; then
-		TIFF_INC=/opt/include
-	fi
-else
-	TIFF_INC=$with_tiff_include
+if [ test -d /sw/include ]; then	# fink
+	TIFF_INC=/sw/include
+elif [ test -d /opt/local/include ]; then	# macports
+	TIFF_INC=/opt/local/include
+elif [ test -d /usr/local/include ]; then
+	TIFF_INC=/usr/local/include
+elif [ test -d /usr/include ]; then	# Ubuntu
+	TIFF_INC=/usr/include
+elif [ test -d /opt/csw/include ]; then	# Blastwave
+	TIFF_INC=/opt/csw/include
+elif [ test -d /opt/include ]; then
+	TIFF_INC=/opt/include
 fi
 AC_MSG_RESULT($TIFF_INC)
 AC_MSG_CHECKING(for TIFF library directory)
