@@ -16,7 +16,7 @@ $(PROG): $(OBJS)
 	$(LINK.c) -o $@ $(OBJS) $(CLIBS) $(FLIBS) $(VEC)
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c -o $*.o -I$(INC) -I/usr/local/GMT5SAR/gmtsar/include
+	$(CC) $(CFLAGS) -c $*.c -o $*.o -I$(INC) -I/usr/local/GMTSAR/gmtsar/include
 
 install:
 	\mv $(PROG) ../../bin

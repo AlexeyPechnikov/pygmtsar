@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 #	$Id: config.mk.in 227 2015-08-12 00:25:27Z pwessel $
 #
-#	Standard Makefile Macro Setup for GMT5SAR
+#	Standard Makefile Macro Setup for GMTSAR
 #
 # Edit this file only, NOT the makefile itself.
 #-------------------------------------------------------------------------------
@@ -22,12 +22,11 @@ LALIBS		= @LALIBS@
 bindir		= $(DESTDIR)@prefix@/bin
 sharedir	= $(DESTDIR)@prefix@/share/gmtsar
 
-# GMT5SAR version number
-GMT5SAR_VERSION = @PACKAGE_VERSION@
+# GMTSAR version number
+GMTSAR_VERSION = @PACKAGE_VERSION@
 
 # Compilers, if $CC not set in environment
 CC		= @CC@
-#CXX		= @CXX@
 
 # Preprocessing:
 CPP		= @CPP@
@@ -72,7 +71,6 @@ GMTSAR		= -L@rootdir@/gmtsar -lgmtsar
 #-------------------------------------------------------------------------------
 #
 CFLAGS		= @CFLAGS@
-#CXXFLAGS	= @CXXFLAGS@
 LDFLAGS		= @LDFLAGS@
 #
 #-------------------------------------------------------------------------------

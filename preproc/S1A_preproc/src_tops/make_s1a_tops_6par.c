@@ -71,7 +71,7 @@ int main(int argc, char **argv){
     int ch, n=0, nc=0, nlmx=0, imode=0;
     double rng, azi, stretch_a, a_stretch_a, stretch_r, a_stretch_r;
 
-    // Begin: Initializing new GMT5 session 
+    // Begin: Initializing new GMT session 
     void    *API = NULL; // GMT API control structure 
     if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
     

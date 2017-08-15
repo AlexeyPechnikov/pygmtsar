@@ -22,7 +22,7 @@
 
 #include "gmtsar.h"
 
-char *USAGE = "bperp [GMT5SAR] - Perpendicular baseline processing\n\n"
+char *USAGE = "bperp [GMTSAR] - Perpendicular baseline processing\n\n"
 "   Usage: bperp rep.PRM phase.grd bperp.grd \n\n"
 "   rep.PRM    -  input repeat PRM file that provides the interferometric baseline \n"   
 "   phase.grd  -  input phase grd file that provides the dimensions of the grd file \n"   
@@ -89,7 +89,7 @@ int main (int argc, char **argv)
 
 	if (argc < 4) die("\n", USAGE); 
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	/* open PRM file */ 

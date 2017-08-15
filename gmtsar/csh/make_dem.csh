@@ -3,7 +3,7 @@
 #
 unset noclobber
 #
-# Rewritten by Xiaohua XU for GMT5SAR, Feb 2016
+# Rewritten by Xiaohua XU for GMTSAR, Feb 2016
 #
 # Matt WEI Jan 28 2010
 # Modified by Xiaopeng Feb 8 2010 

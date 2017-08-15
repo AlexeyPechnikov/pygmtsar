@@ -5,7 +5,7 @@ For those unfamiliar with subversion, here are some basic commands and approache
 Before you start making any edits, make sure your working copy is up-to-date by
 running
 	svn up
-in the top GMT5SAR directory.  That will minimize any conflicts.
+in the top GMTSAR directory.  That will minimize any conflicts.
 
 After making any changes to the code, make an entry in the ChangeLog file,
 with the most recent changes on top, following the format of others.

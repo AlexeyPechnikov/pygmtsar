@@ -8,7 +8,7 @@ unset noclobber
   if ($#argv < 2) then
 errormessage:
     echo ""
-    echo "snaphu.csh [GMT5SAR] - Unwrap the phase"
+    echo "snaphu.csh [GMTSAR] - Unwrap the phase"
     echo " "
     echo "Usage: snaphu.csh correlation_threshold maximum_discontinuity [<rng0>/<rngf>/<azi0>/<azif>]"
     echo ""

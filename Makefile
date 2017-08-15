@@ -1,6 +1,6 @@
 #       $Id: Makefile 236 2015-08-24 07:09:14Z pwessel $
 #
-#       makefile for top GMT5SAR directory
+#       makefile for top GMTSAR directory
 
 sinclude config.mk
 
@@ -17,7 +17,7 @@ all:	main preprocess
 
 help::
 		@grep '^#!' Makefile | cut -c3-
-#!----------------- MAKE HELP FOR GMT5SAR-----------------
+#!----------------- MAKE HELP FOR GMTSAR-----------------
 #!
 #!make <target>, where <target> can be:
 #!

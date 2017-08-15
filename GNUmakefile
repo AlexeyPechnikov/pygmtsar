@@ -1,9 +1,9 @@
 #-------------------------------------------------------------------------------
 #  $Id: GNUmakefile 210 2015-08-07 15:46:10Z pwessel $
 #
-#       makefile for top GMT5SAR directory
+#       makefile for top GMTSAR directory
 #
-#	!!! THIS MAKEFILE IS GMT5SAR GMT DEVELOPERS ONLY !!!
+#	!!! THIS MAKEFILE IS GMTSAR GMT DEVELOPERS ONLY !!!
 #
 #	This makefile extends the regular Makefile by adding
 #	targets to build tarballs, get latest GNU config files.
@@ -18,17 +18,17 @@ include Makefile
 FTPDIR	= ..
 
 create:
-# We make the $(PACKAGE_TARNAME)-$(GMT5SAR_VERSION) link from scratch each time
-	cd ..; rm -f $(PACKAGE_TARNAME)-$(GMT5SAR_VERSION); $(LN_S) $(notdir $(PWD)) $(PACKAGE_TARNAME)-$(GMT5SAR_VERSION)
+# We make the $(PACKAGE_TARNAME)-$(GMTSAR_VERSION) link from scratch each time
+	cd ..; rm -f $(PACKAGE_TARNAME)-$(GMTSAR_VERSION); $(LN_S) $(notdir $(PWD)) $(PACKAGE_TARNAME)-$(GMTSAR_VERSION)
 
 tar:	distro
 
 distro: create
 	$(MAKE) spotless
 	find . -type l -exec rm -f {} \;
-	COPYFILE_DISABLE=true $(GNUTAR) --owner 0 --group 0 --mode a=rX,u=rwX -cjhvf $(FTPDIR)/$(PACKAGE_TARNAME)-$(GMT5SAR_VERSION)-src.tar.bz2 \
-		-C .. $(PACKAGE_TARNAME)-$(GMT5SAR_VERSION) --exclude GNUmakefile --exclude .svn
-	rm -f $(PACKAGE_TARNAME)-$(GMT5SAR_VERSION)
+	COPYFILE_DISABLE=true $(GNUTAR) --owner 0 --group 0 --mode a=rX,u=rwX -cjhvf $(FTPDIR)/$(PACKAGE_TARNAME)-$(GMTSAR_VERSION)-src.tar.bz2 \
+		-C .. $(PACKAGE_TARNAME)-$(GMTSAR_VERSION) --exclude GNUmakefile --exclude .svn
+	rm -f $(PACKAGE_TARNAME)-$(GMTSAR_VERSION)
 
 latest-config:
 		curl "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD" -s -R -o config.sub

@@ -55,11 +55,11 @@ int main (int argc, char *argv[]) {
 	int ineg = 0;
 	void	*API = NULL; /* GMT API control structure */
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	if(argc < 3){
-          fprintf(stderr,"esarp [GMT5SAR] - Produce SAR processed image\n\n");
+          fprintf(stderr,"esarp [GMTSAR] - Produce SAR processed image\n\n");
           fprintf(stderr,"\nUsage: %s filein.PRM fileout.SLC [R4]\n\n",argv[0]);
           exit(-1);
         }

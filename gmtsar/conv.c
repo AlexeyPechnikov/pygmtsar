@@ -23,7 +23,7 @@
 
 #include "gmtsar.h"
 
-char *USAGE = "conv [GMT5SAR] - 2-D image convolution\n\n"
+char *USAGE = "conv [GMTSAR] - 2-D image convolution\n\n"
 "Usage: conv idec jdec filter_file input output \n"
 "   idec           - row decimation factor \n"
 "   jdec           - column decimation factor \n"
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 
 	if (argc < 6) die("\n",USAGE);
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	ibuff = 512;

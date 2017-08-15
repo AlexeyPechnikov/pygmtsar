@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 	
     if (argc < 7) die("\n",USAGE);
 
-    /* Begin: Initializing new GMT5 session */
+    /* Begin: Initializing new GMT session */
     if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
     /* default parameters are for ALOS-1 */

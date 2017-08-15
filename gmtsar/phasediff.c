@@ -54,7 +54,7 @@
 
 #include "gmtsar.h"
 
-char    *USAGE = "phasediff [GMT5SAR] - Compute phase difference of two images\n\n"
+char    *USAGE = "phasediff [GMTSAR] - Compute phase difference of two images\n\n"
 "\nUsage: "
 "phasediff ref.PRM rep.PRM [-topo topo_ra.grd] [-model modelphase.grd]\n (topo_ra and model in GMT grd format)\n";
 
@@ -208,7 +208,7 @@ int main (int argc, char **argv)
 
         double *range2 = NULL;
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	verbose = 0;

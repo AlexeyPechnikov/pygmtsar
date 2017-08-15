@@ -12,7 +12,7 @@
 /***************************************************************************
  * Modification history:                                                   *
  *                                                                         *
- * DATE: Nov 23 2012 - modified to Use GMT5 i/o functions [P.Wessel]       *
+ * DATE: Nov 23 2012 - modified to Use GMT i/o functions [P.Wessel]       *
  * DATE: Nov 9 2010  - modified to read and write grd files                *
  *                   - use a linear relationship between the stacked       *
  *                     residual phase and DEM corrections                  *
@@ -22,7 +22,7 @@
  ***************************************************************************/
 #include "gmtsar.h"
 
-char *USAGE = "phase2topo [GMT5SAR] - Compute residual topography\n\n"
+char *USAGE = "phase2topo [GMTSAR] - Compute residual topography\n\n"
 "Usage: phase2topo master.PRM topo_in.grd res_phase.grd topo_out.grd \n \n"
 "    master.PRM    - master PRM files used for mapping \n"
 "    topo_in.grd   - name of input topography in the radar co-ordinates of the master. \n"
@@ -68,7 +68,7 @@ int main (int argc, char **argv)
 
 	if (argc < 5) die("\n", USAGE);
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	/* Get header from grd rat file */ 

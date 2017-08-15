@@ -1,9 +1,9 @@
 *****************************************************************************************************
 #	$Id: README.TXT 211 2015-08-07 15:49:42Z pwessel $
 #
-INSTRUCTIONS FOR INSTALLING AND RUNNING GMT5SAR 
+INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR 
 
-Copyright (c) 2009-2015
+Copyright (c) 2009-2017
 David T. Sandwell  -  dsandwell@ucsd.edu
 Rob Mellors        -  rmellors@geology.sdsu.edu
 Xiaopeng Tong      -  xitong@ucsd.edu
@@ -25,18 +25,18 @@ March    11, 2010
 March    25, 2010
 June      8, 2010
 September 27, 2010
-April 4, 2013	Converted to use GMT5 and redone the entire install procedure.  Linking with GMT5
-	means GMT5SAR will use the FFTs recognized by GMT5: Accelerate Framework on OS X, FFTW,
-	KISS FFT, or Brenner Fortran-translated FFT. GMT5 selects the fastest FFT given the
+April 4, 2013	Converted to use GMT API and redone the entire install procedure.  Linking with GMT
+	means GMTSAR will use the FFTs recognized by GMT: Accelerate Framework on OS X, FFTW,
+	KISS FFT, or Brenner Fortran-translated FFT. GMT selects the fastest FFT given the
 	dimensions and the availability of libraries.
 
 *****************************************************************************************************
 
-1) Obtain GMT5 from SOEST and install [see "Obtaining GMT" on gmt.soest.hawaii.edu].
+1) Obtain GMT from SOEST and install [see "Obtaining GMT" on gmt.soest.hawaii.edu].
    Make sure all the required libraries (e.g., netcdf, GDAL, PCRE) have been installed
    before you start the GMT build/install procedure.
 
-2) Go to the GMT5SAR WIKI and follow the instructions.
+2) Go to the GMTSAR WIKI and follow the instructions.
    http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
 
 3) Download orbit files for ERS and ENVISAT. No need for ALOS orbit data because it is built in raw file.
@@ -45,14 +45,14 @@ April 4, 2013	Converted to use GMT5 and redone the entire install procedure.  Li
 
    http://topex.ucsd.edu/gmtsar/downloads
 
-4) Obtain GMT5SAR subversion. Go to the GMT5SAR WIKI and follow the instructions.
+4) Obtain GMTSAR subversion. Go to the GMTSAR WIKI and follow the instructions.
    http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
      
 	autoconf
 
    (When we install you can specify a system directory such as /usr/local, assuming you have permission).
 
-4) Configure GMT5SAR:	
+4) Configure GMTSAR:	
    Run the configure script.  To see all options, run
 
 	./configure --help
@@ -68,7 +68,7 @@ April 4, 2013	Converted to use GMT5 and redone the entire install procedure.  Li
 
    If you are a developer you may also want to add --enable-debug so you can
    run the programs in a visual debugger.
-   Note: If you ever decide to move the orbits directory then you must also reconfigure GMT5SAR.
+   Note: If you ever decide to move the orbits directory then you must also reconfigure GMTSAR.
    
 5) To build all executables, type
 	make

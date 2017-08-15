@@ -245,7 +245,7 @@ for(n = 1; n < na; n++) {
 return(EXIT_SUCCESS);
 }
 
-char *USAGE  = "phasefilt [GMT5SAR] - Apply adaptive non-linear phase filter\n\n"
+char *USAGE  = "phasefilt [GMTSAR] - Apply adaptive non-linear phase filter\n\n"
 "\n USAGE:\nphasefilt -imag imag.grd -real real.grd [-alpha alpha][-psize size][-amp1 amp1.grd -amp2 amp2.grd][-diff][-v]\n"
 " applies Goldstein adaptive filter to phase [output: filtphase.grd]\n"
 " or applies modified Goldstein adaptive filter to phase [output: filtphase.grd, corrfilt.grd]\n"
@@ -280,7 +280,7 @@ int main(int argc, char **argv){
 	void *API = NULL; /* GMT API control structure */
 	struct	GMT_GRID *RE = NULL, *IM = NULL, *T = NULL;	/* Grid structure containing ->header and ->data */
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	debug = verbose = corrflag = comflag = 0;

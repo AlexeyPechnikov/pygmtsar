@@ -34,7 +34,7 @@ int main (int argc, char **argv)
 
 	/* get the information from the command line */
 	if (argc < 6){
-		printf("\noffset_topo [GMT5SAR] - Determine topography offset\n \n");
+		printf("\noffset_topo [GMTSAR] - Determine topography offset\n \n");
 		printf("\nUsage: offset_topo amp_master.grd topo_ra.grd rshift ashift ns [topo_shift.grd] \n \n");
 		printf("   amp_master.grd - amplitude image of master \n");
 		printf("   topo_ra.grd    - topo in range/azimuth coordinates of master \n");
@@ -45,7 +45,7 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	xshft = atoi(argv[3]);

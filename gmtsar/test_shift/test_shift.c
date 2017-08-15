@@ -11,7 +11,7 @@ double arg;
 
 	void    *API = NULL; /* GMT API control structure */
 
-       /* Begin: Initializing new GMT5 session */
+       /* Begin: Initializing new GMT session */
         API = GMT_Create_Session (argv[0], 0U, 0U, NULL);
 
 datai  = (fcomplex *) malloc(nd*sizeof(fcomplex));

@@ -1,8 +1,8 @@
 #!/bin/bash
 #	$Id$
-# Uninstall GMT5SAR installation (share and executables)
+# Uninstall GMTSAR installation (share and executables)
 #
-printf "gmtsar_uninstall.sh will uninstall the GMT5SAR executables and share directory\n" >&2
+printf "gmtsar_uninstall.sh will uninstall the GMTSAR executables and share directory\n" >&2
 printf "You may need sudo privileges on this computer.\n\nContinue? (y/n) [y]:" >&2
 read answer
 if [ "X$answer" = "Xn" ]; then

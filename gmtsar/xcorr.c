@@ -30,7 +30,7 @@
 /*-------------------------------------------------------*/
 #include "gmtsar.h"
 
-char	*USAGE = "xcorr [GMT5SAR] - Compute 2-D cross-correlation of two images\n\n"
+char	*USAGE = "xcorr [GMTSAR] - Compute 2-D cross-correlation of two images\n\n"
 "\nUsage: xcorr master.PRM slave.PRM [-time] [-real] [-freq] [-nx n] [-ny n] [-xsearch xs] [-ysearch ys]\n"
 "master.PRM     	PRM file for reference image\n"
 "slave.PRM     	 	PRM file of secondary image\n"
@@ -255,7 +255,7 @@ int main(int argc,char **argv)
 	xc.interp_flag = 0;
 	xc.corr_flag = 2;
 
-	/* Begin: Initializing new GMT5 session */
+	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	if (argc < 3) die (USAGE, "");
