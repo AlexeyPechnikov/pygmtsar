@@ -19,7 +19,7 @@ ORBITS_DIR	= @ORBITS_DIR@
 TIFF_INC	= @TIFF_INC@
 TIFF_LIB	= @TIFF_LIB@
 LALIBS		= @LALIBS@
-bindir		= $(DESTDIR)@prefix@/bin
+bindir		= $(DESTDIR)@bindir@
 sharedir	= $(DESTDIR)@prefix@/share/gmtsar
 
 # GMTSAR version number
