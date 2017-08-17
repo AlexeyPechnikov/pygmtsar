@@ -150,6 +150,7 @@ unset noclobber
     p2p_S1A_TOPS.csh $mpre2 $spre2 $5
     cd ../F3
     p2p_S1A_TOPS.csh $mpre3 $spre3 $5
+    cd ..
   else if ($seq == 2) then
     cd F1/raw
     align_tops.csh $f1m $2 $f1s $4 dem.grd >& log &
