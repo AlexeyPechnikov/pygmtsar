@@ -16,6 +16,14 @@ if ($#argv < 2 || $#argv > 3) then
  exit 1
 endif 
 #
+if ( -f ~/.quiet ) then
+	set V = ""
+	set VS = ""
+else
+	set V = "-V"
+	set VS = "-S -V"
+endif
+
 #
 set DX = `gmt grdinfo $1.grd -C | cut -f8`
 set DPI = `gmt gmtmath -Q $DX INV RINT = `
@@ -23,18 +31,16 @@ set DPI = `gmt gmtmath -Q $DX INV RINT = `
 gmt set COLOR_MODEL = hsv
 gmt set PS_MEDIA = letter
 #
-gmt grdgradient $1.grd -Ggrad.grd -V -Nt0.7 -A60 
+gmt grdgradient $1.grd -Ggrad.grd $V -Nt0.7 -A60 
 if ($#argv == 3) then
-  gmt grdimage $1.grd -Igrad.grd -C$2 $3 -Jx1id -P -Y2 -X2 -Q  -V > $1.ps 
+  gmt grdimage $1.grd -Igrad.grd -C$2 $3 -Jx1id -P -Y2i -X2i -Q $V > $1.ps 
 else if ($#argv == 2) then
-  gmt grdimage $1.grd -Igrad.grd -C$2 -Jx1id -P -Y2 -X2 -Q  -V > $1.ps
+  gmt grdimage $1.grd -Igrad.grd -C$2 -Jx1id -P -Y2i -X2i -Q $V > $1.ps
 endif
 #
 #   now make the kml and png
 #
-gmt ps2raster $1.ps -W+k+t"$1" -E$DPI -TG -P -S -V -F$1.png
-rm $1.ps
-rm grad.grd
-rm ps2raster*
-rm psconvert*
+echo "Make $1.kml and $1.png"
+gmt psconvert $1.ps -W+k+t"$1" -E$DPI -TG -P $VS -F$1.png
+rm -f $1.ps grad.grd ps2raster* psconvert*
 #

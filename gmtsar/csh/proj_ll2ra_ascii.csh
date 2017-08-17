@@ -5,6 +5,12 @@
 #
 alias rm 'rm -f'
 unset noclobber
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 #
 #
 #  project an xy file from lon/lat coordinates into range/azimuth coordinates
@@ -39,8 +45,8 @@ gmt gmtconvert $1 -o3,4,1 -bi5d -bo3f > lla
 #awk '{ printf("%f %f %e \n",$4,$5,$1) }' < $1 | gmtconvert -bos3 > llr 
 #awk '{ printf("%f %f %e \n",$4,$5,$2) }' < $1 | gmtconvert -bos3 > lla 
 #
-gmt surface llr `gmt gmtinfo $2 -I0.01` -bi3f -I0.005 -T.50 -Gllr.grd -V
-gmt surface lla `gmt gmtinfo $2 -I0.01` -bi3f -I0.005 -T.50 -Glla.grd -V
+gmt surface llr `gmt gmtinfo $2 -I0.01` -bi3f -I0.005 -T.50 -Gllr.grd $V
+gmt surface lla `gmt gmtinfo $2 -I0.01` -bi3f -I0.005 -T.50 -Glla.grd $V
 #
 gmt grdtrack $2 -nl -Gllr.grd > llpr 
 gmt grdtrack llpr -nl -Glla.grd > llpra 

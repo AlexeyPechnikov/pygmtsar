@@ -19,9 +19,15 @@ errormessage:
     exit 1
   endif
 #
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 #   first mask the phase and phase gradient using the correlation
 #
-gmt grdmath corr.grd $1 GE 0 NAN mask.grd MUL = mask2.grd -V
+gmt grdmath corr.grd $1 GE 0 NAN mask.grd MUL = mask2.grd $V
 gmt grdmath phase.grd mask2.grd MUL = phase_mask.grd
 if (-e xphase.grd) then
   gmt grdmath xphase.grd mask2.grd MUL = xphase_mask.grd
@@ -37,22 +43,31 @@ endif
 #
 #   look at the masked phase
 #
-set boundR = `gmt grdinfo display_amp.grd -C | awk '{print ($3-$2)/4}'`
-set boundA = `gmt grdinfo display_amp.grd -C | awk '{print ($5-$4)/4}'`
-gmt grdimage phase_mask.grd -JX6.5i -Cphase.cpt -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3i -Y3i -P -K > phase_mask.ps
-gmt psscale -D3.3/-1.5/5/0.2h -Cphase.cpt -B1.57:"phase, rad": -O >> phase_mask.ps
+gmt grdimage phase_mask.grd -JX6.5i -Cphase.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > phase_mask.ps
+gmt psscale -Rphase_mask.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phase_mask.ps
+gmt psconvert -Tf -P -Z phase_mask.ps
+echo "Masked phase map: phase_mask.pdf"
 if (-e xphase_mask.grd) then
-  gmt grdimage xphase_mask.grd -JX8i -Cphase_grad.cpt -X.2i -Y.5i -P > xphase_mask.ps
-  gmt grdimage yphase_mask.grd -JX8i -Cphase_grad.cpt -X.2i -Y.5i -P > yphase_mask.ps
+  gmt grdimage xphase_mask.grd -JX8i -Cphase_grad.cpt -X.2i -Y.5i -P -K > xphase_mask.ps
+  gmt psscale -Rxphase_mask.grd -J -DJTC+w5i/0.2i+h -Cphase_grad.cpt -Bxa1.57+l"Phase" -By+lrad -O >> xphase_mask.ps
+  gmt psconvert -Tf -P -Z xphase_mask.ps
+  echo "Masked x phase map: xphase_mask.pdf"
+  gmt grdimage yphase_mask.grd -JX8i -Cphase_grad.cpt -X.2i -Y.5i -P -K > yphase_mask.ps
+  gmt psscale -Ryphase_mask.grd -J -DJTC+w5i/0.2i+h -Cphase_grad.cpt -Bxa1.57+l"Phase" -By+lrad -O >> yphase_mask.ps
+  gmt psconvert -Tf -P -Z yphase_mask.ps
+  echo "Masked y phase map: yphase_mask.pdf"
 endif
 if (-e unwrap_mask.grd) then 
-  gmt grdimage unwrap_mask.grd -JX6.5i -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cunwrap.cpt -X1.3i -Y3i -P -K > unwrap_mask.ps
-  set std = `gmt grdinfo -C -L2 unwrap_mask.grd | awk '{printf("%5.1f", $13)}'`
-  gmt psscale -D3.3/-1.5/5/0.2h -Cunwrap.cpt -B"$std":"unwrapped phase, rad": -O -E >> unwrap_mask.ps
+  gmt grdimage unwrap_mask.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cunwrap.cpt -X1.3i -Y3i -P -K > unwrap_mask.ps
+  gmt psscale -Runwrap_mask.grd -J -DJTC+w5i/0.2i+h+e -Cunwrap.cpt -Bxaf+l"Unwrapped phase" -By+lrad -O >> unwrap_mask.ps
+  gmt psconvert -Tf -P -Z unwrap_mask.ps
+  echo "Unwrapped masked phase map: unwrap_mask.pdf"
 endif
 if (-e phasefilt_mask.grd) then 
-  gmt grdimage phasefilt_mask.grd -JX6.5i -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt_mask.ps
-  gmt psscale -D3.3/-1.5/5/0.2h -Cphase.cpt -B1.57:"phase, rad": -O >> phasefilt_mask.ps
+  gmt grdimage phasefilt_mask.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt_mask.ps
+  gmt psscale -Rphasefilt_mask.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt_mask.ps
+  gmt psconvert -Tf -P -Z phasefilt_mask.ps
+  echo "Filtered masked phase map: phasefilt_mask.pdf"
 endif
 # line-of-sight displacement
 if (-e unwrap_mask.grd) then
@@ -62,10 +77,11 @@ if (-e unwrap_mask.grd) then
   set tmp = `gmt grdinfo -C -L2 los.grd`
   set limitU = `echo $tmp | awk '{printf("%5.1f", $12+$13*2)}'`
   set limitL = `echo $tmp | awk '{printf("%5.1f", $12-$13*2)}'`
-  set std = `echo $tmp | awk '{printf("%5.1f", $13)}'`
   gmt makecpt -Cpolar -Z -T"$limitL"/"$limitU"/1 -D > los.cpt
-  gmt grdimage los.grd -Ilos_grad.grd -Clos.cpt -B"$boundR":Range:/"$boundA":Azimuth:WSen -JX6.5i -X1.3i -Y3i -P -K > los.ps
-  gmt psscale -D3.3/-1.5/4/0.2h -Clos.cpt -B"$std":"LOS displacement, mm":/:"range decrease": -O -E >> los.ps 
+  gmt grdimage los.grd -Ilos_grad.grd -Clos.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -JX6.5i -X1.3i -Y3i -P -K > los.ps
+  gmt psscale -Rlos.grd -J -DJTC+w5i/0.2i+h+e -Clos.cpt -Bxaf+l"LOS displacement [range decrease @~\256@~]" -By+lmm -O >> los.ps 
+  gmt psconvert -Tf -P -Z los.ps
+  echo "Line-of-sight map: los.pdf"
 endif
 
 #

@@ -31,6 +31,12 @@ endif
   set scale = -JX8i
 #
 # set local variables
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 #
   if ($5 == 1) then
     set demdir = "/palsar/DEM/SRTM1/"
@@ -140,9 +146,9 @@ while ( $lat_tmp <= $lat20 )
 
 # bytes swap
       if ($system =~ "sparc" || $system =~ "powerpc") then 
-        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLh -V 
+        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLh $V 
       else if ($system =~ "i686" || $system =~ "i386") then
-        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLhw -V
+        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLhw $V
       endif
 # paste grd files together along longitude
       if (-e tmplon.grd) then
@@ -160,9 +166,9 @@ while ( $lat_tmp <= $lat20 )
 # paste grd files together along latitude
    if (-e tmplat.grd) then
       gmt grdpaste tmplon.grd tmplat.grd -Gtmplat.grd
-      rm tmplon.grd
+      rm -f tmplon.grd
    else
-      mv tmplon.grd tmplat.grd
+      mv -f tmplon.grd tmplat.grd
    endif
 
    set lon_control = 0
@@ -180,23 +186,26 @@ gmt grdcut -R$bound tmplat.grd -Gdem_ortho.grd
 if (-e $demdir/geoid.egm96.grd) then   # file does not exist
    echo "adding the egm96 geoid to the dem"
    gmt grdsample $demdir/geoid.egm96.grd `gmt grdinfo -I- dem_ortho.grd` `gmt grdinfo -I dem_ortho.grd` -fg -Gegm96.grd -T
-   gmt grdedit egm96.grd `gmt grdinfo -I- dem_ortho.grd` -V
+   gmt grdedit egm96.grd `gmt grdinfo -I- dem_ortho.grd` $V
    gmt grdmath dem_ortho.grd egm96.grd ADD = dem.grd
-   rm egm96.grd
+   rm -f egm96.grd
 else
-   mv dem_ortho.grd dem.grd
+   mv -f dem_ortho.grd dem.grd
 endif
 
 #
 # plot the dem.grd 
 # 
-  gmt grd2cpt dem.grd -Cgray -Z -V > dem.cpt 
-  gmt grdimage dem.grd $scale -P -V -X0.2i -Cdem.cpt > dem.ps 
+  gmt grd2cpt dem.grd -Cgray -Z $V > dem.cpt 
+  gmt grdimage dem.grd $scale -Baf -BWSne -P $V -X0.2i -Cdem.cpt -K > dem.ps 
+  gmt psscale -Rdem.grd -J -DJTC+w5i/0.2i+h -Cdem.cpt -Baf -O >> dem.ps
+  gmt psconvert -Tf -P -Z dem.ps
+  echo "DEM map: dem.pdf"
 #
 #   make a kml file of shaded relief
 #
-  gmt grdgradient dem.grd -N.7 -A325 -Gdem_grad.grd -V
-  gmt grd2cpt dem_grad.grd -Cgray -Z -V > dem_grad.cpt
+  gmt grdgradient dem.grd -N.7 -A325 -Gdem_grad.grd $V
+  gmt grd2cpt dem_grad.grd -Cgray -Z $V > dem_grad.cpt
   grd2kml.csh dem_grad dem_grad.cpt
 #
 # clean up
@@ -204,10 +213,3 @@ endif
   rm -f tmp.log all.grd tmplat.grd
   rm -f dem.cpt *.bb *.eps
   rm -f N*.grd S*.grd dem_grad.grd
-
-
-
-
-
-
-

@@ -10,6 +10,12 @@ if ($#argv != 3) then
   exit 1
 endif
 
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 # correlation threshold for the detrending
 set corr_threshold = 0.2
 
@@ -113,7 +119,7 @@ foreach n ( 1 2 3 4 5 )
   gmt grdedit phasefilt_nodetrend.grd -R$near_range/$far_range/$azi_start/$azi_end
 
   # subtract the fitted trend
-  gmt grdmath -V phasefilt_nodetrend.grd X $rslope MUL SUB Y $aslope MUL SUB 2 PI MUL MOD PI SUB = phasefilt.grd
+  gmt grdmath $V phasefilt_nodetrend.grd X $rslope MUL SUB Y $aslope MUL SUB 2 PI MUL MOD PI SUB = phasefilt.grd
 
   # edit the coordinates back
   gmt grdedit phasefilt.grd -Rcorr.grd

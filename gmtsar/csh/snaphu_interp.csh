@@ -23,6 +23,12 @@ errormessage:
     exit 1
   endif
 #
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 # prepare the files adding the correlation mask
 #
 if ($#argv == 3 ) then
@@ -43,7 +49,7 @@ if (-e landmask_ra.grd) then
   else 
     gmt grdsample landmask_ra.grd `gmt grdinfo -I phase_patch.grd` -Glandmask_ra_patch.grd
   endif
-  gmt grdmath phase_patch.grd landmask_ra_patch.grd MUL = phase_patch.grd -V
+  gmt grdmath phase_patch.grd landmask_ra_patch.grd MUL = phase_patch.grd $V
 endif
 #
 # user defined mask 
@@ -54,7 +60,7 @@ if (-e mask_def.grd) then
   else
     cp mask_def.grd mask_def_patch.grd
   endif
-  gmt grdmath corr_patch.grd mask_def_patch.grd MUL = corr_patch.grd -V
+  gmt grdmath corr_patch.grd mask_def_patch.grd MUL = corr_patch.grd $V
 endif
 
 #
@@ -97,14 +103,14 @@ endif
 #
 # landmask
 if (-e landmask_ra.grd) then
-  gmt grdmath unwrap.grd landmask_ra_patch.grd MUL = tmp.grd -V
+  gmt grdmath unwrap.grd landmask_ra_patch.grd MUL = tmp.grd $V
   mv tmp.grd unwrap.grd
 endif
 #
 # user defined mask
 #
 if (-e mask_def.grd) then
-  gmt grdmath unwrap.grd mask_def_patch.grd MUL = tmp.grd -V
+  gmt grdmath unwrap.grd mask_def_patch.grd MUL = tmp.grd $V
   mv tmp.grd unwrap.grd
 endif
 #
@@ -118,18 +124,19 @@ set std = `echo $tmp | awk '{printf("%5.1f", $13)}'`
 gmt makecpt -Cseis -I -Z -T"$limitL"/"$limitU"/1 -D > unwrap.cpt
 set boundR = `gmt grdinfo unwrap.grd -C | awk '{print ($3-$2)/4}'`
 set boundA = `gmt grdinfo unwrap.grd -C | awk '{print ($5-$4)/4}'`
-gmt grdimage unwrap.grd -Iunwrap_grad.grd -Cunwrap.cpt -JX6.5i -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3i -Y3i -P -K > unwrap.ps
-gmt psscale -Dx3.3/-1.5+w5/0.2+h+e -Cunwrap.cpt -B"$std":"unwrapped phase, rad": -O >> unwrap.ps
+gmt grdimage unwrap.grd -Iunwrap_grad.grd -Cunwrap.cpt -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > unwrap.ps
+gmt psscale -Runwrap.grd -J -DJTC+w5/0.2+h+e -Cunwrap.cpt -Bxaf+l"Unwrapped phase" -By+lrad -O >> unwrap.ps
+gmt psconvert -Tf -P -Z unwrap.ps
+echo "Unwrapped phase map: unwrap.pdf"
 #
 # clean up
 #
-rm tmp.grd corr_tmp.grd unwrap.out tmp2.grd unwrap_grad.grd 
-rm phase.in corr.in 
-mv phase_patch.grd phasefilt_interp.grd
+rm -f tmp.grd corr_tmp.grd unwrap.out tmp2.grd unwrap_grad.grd 
+rm -f phase.in corr.in 
+mv -f phase_patch.grd phasefilt_interp.grd
 #
 #   cleanup more
 #
-rm wrap.grd mask_patch.grd mask3.grd mask3.out
-mv corr_patch.grd corr_cut.grd
+rm -f wrap.grd mask_patch.grd mask3.grd mask3.out
+mv -f corr_patch.grd corr_cut.grd
 #
-

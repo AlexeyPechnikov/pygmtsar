@@ -14,12 +14,18 @@ if ($#argv != 1) then
   exit 1
 endif
 
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 echo ""
 echo "MAKE LANDMASK -- START"
 echo "REQUIRE FULL RESOLUTION COASTLINE FROM GMT"
 echo ""
    
-gmt grdlandmask -Glandmask.grd `gmt grdinfo -I- dem.grd` `gmt grdinfo -I dem.grd`  -V -NNaN/1 -Df
+gmt grdlandmask -Glandmask.grd `gmt grdinfo -I- dem.grd` `gmt grdinfo -I dem.grd`  $V -NNaN/1 -Df
 proj_ll2ra.csh trans.dat landmask.grd landmask_ra.grd
 # if the landmask region is smaller than the region_cut pad with NaN
 gmt grd2xyz landmask_ra.grd -bo > landmask_ra.xyz

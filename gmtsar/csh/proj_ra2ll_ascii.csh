@@ -4,6 +4,12 @@
 #
 alias rm 'rm -f'
 unset noclobber
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 #
 #
 #  project an ASCII file from range/azimuth coordinates into lon/lat coordinates
@@ -36,8 +42,8 @@ if (! -f raln.grd || ! -f ralt.grd ) then
 # awk '{ if ($4 > 180.) printf("%f %f %e \n",$1,$2,$4-360.); else printf("%f %f %e \n",$1,$2,$4) }' < $1 | gmtconvert -bos3 > raln
 # awk '{ printf("%f %f %e \n",$1,$2,$5) }' < $1 | gmtconvert -bos3 > ralt
 #
-gmt surface raln `gmt gmtinfo $2 -I16/32` -bi3f -I8/32 -T.50 -Graln.grd -V
-gmt surface ralt `gmt gmtinfo $2 -I16/32` -bi3f -I8/32 -T.50 -Gralt.grd -V
+gmt surface raln `gmt gmtinfo $2 -I16/32` -bi3f -I8/32 -T.50 -Graln.grd $V
+gmt surface ralt `gmt gmtinfo $2 -I16/32` -bi3f -I8/32 -T.50 -Gralt.grd $V
 endif
 
 #

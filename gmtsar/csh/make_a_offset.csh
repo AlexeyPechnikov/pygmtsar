@@ -157,17 +157,15 @@ set scl = `echo $scl1 $scl2 | awk '{if ($1<$2) {print $1} else {print $2} }'`
 
 set bounds = `gmt grdinfo -I- azi_offset_ll.grd`
 
-gmt gmtdefaults -Ds >.gmtdefaults4
+gmt gmtdefaults -Ds > gmt.conf
 gmt set MAP_FRAME_TYPE plain
 
-gmt psbasemap -B0.25 -Jm$scl"c"  $bounds -K -P  >azioff_ll.ps
-gmt pscoast  -J -R -K -O -P -Dh -I1 -W0.5p -S >> azioff_ll.ps
+gmt psbasemap -Baf -BWSne -Jm$scl"c" $bounds -K -P > azioff_ll.ps
+gmt pscoast -J -R -K -O -Dh -I1 -W0.5p -S >> azioff_ll.ps
+gmt grdimage s_dem.grd -Idem_grd.grd -J -R -Ctopo.cpt -K -O -Q >> azioff_ll.ps
+gmt grdimage azi_offset_ll.grd -Idem_grd.grd -J -R -Cazioff.cpt -Q -K -O >> azioff_ll.ps
+gmt psscale -Razi_offset_ll.grd -J -DJTC+w5c/0.35c+e -Cazioff.cpt -I -Bxaf -By+lm -O >> azioff_ll.ps 
+gmt psconvert azioff_ll.ps -P -Tg -Z
+echo "Azimuth/Offset map: azioff_ll.pdf"
 
-gmt grdimage s_dem.grd -Idem_grd.grd -J -R -Ctopo.cpt -K -P -O   -Q -B >>azioff_ll.ps
-
-gmt grdimage azi_offset_ll.grd -Idem_grd.grd -J -R -Cazioff.cpt -Q -P -K -O >>azioff_ll.ps
-
-gmt psscale -D1.5c/3c/5c/0.35c -Cazioff.cpt -I -E -B1::/:m: -O   >>azioff_ll.ps 
-gmt ps2raster azioff_ll.ps -P -Tg
-
-rm aoff_ll.grd aoff.grd aoff.llo azi.dat dem_grd.grd grey_tmp.cpt ps2rast* raln* ralt* s_dem.grd temp.dat topo.cpt
+rm -f aoff_ll.grd aoff.grd aoff.llo azi.dat dem_grd.grd grey_tmp.cpt ps2rast* raln* ralt* s_dem.grd temp.dat topo.cpt

@@ -125,11 +125,12 @@ errormessage:
   gmt grdmath realfilt.grd imagfilt.grd HYPOT  = amp.grd 
   gmt grdmath amp.grd 0.5 POW FLIPUD = display_amp.grd 
   set AMAX = `gmt grdinfo -L2 display_amp.grd | grep stdev | awk '{ print 3*$5 }'`
-  set boundR = `gmt grdinfo display_amp.grd -C | awk '{print ($3-$2)/4}'`
-  set boundA = `gmt grdinfo display_amp.grd -C | awk '{print ($5-$4)/4}'`
   gmt grd2cpt display_amp.grd -Z -D -L0/$AMAX -Cgray > display_amp.cpt
   echo "N  255   255   254" >> display_amp.cpt
-  gmt grdimage display_amp.grd -Cdisplay_amp.cpt $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3 -Y3 -P > display_amp.ps
+  gmt grdimage display_amp.grd -Cdisplay_amp.cpt $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > display_amp.ps
+  gmt psscale -Rdisplay_amp.grd -J -DJTC+w5i/0.2i+h+ef -Cdisplay_amp.cpt -Bx0+l"Amplitude (histogram equalized)" -O >> display_amp.ps
+  gmt psconvert -Tf -P -Z display_amp.ps
+  echo "Amplitude map: display_amp.pdf"
 #
 # form the correlation
 #
@@ -140,16 +141,20 @@ errormessage:
   conv 1 1 $filter3 tmp2.grd=bf corr.grd
   gmt makecpt -T0./.8/0.1 -Cgray -Z -N > corr.cpt
   echo "N  255   255   254" >> corr.cpt
-  gmt grdimage corr.grd $scale -Ccorr.cpt -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3 -Y3 -P -K > corr.ps
-  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Ccorr.cpt -B0.2:correlation: -O >> corr.ps
+  gmt grdimage corr.grd $scale -Ccorr.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > corr.ps
+  gmt psscale -Rcorr.grd -J -DJTC+w5i/0.2i+h+ef -Ccorr.cpt -Baf+lCorrelation -O >> corr.ps
+  gmt psconvert -Tf -P -Z corr.ps
+  echo "Correlation map: corr.pdf"
 #
 # form the phase 
 #
   echo "making phase..."
   gmt grdmath imagfilt.grd realfilt.grd ATAN2 mask.grd MUL FLIPUD = phase.grd
   gmt makecpt -Crainbow -T-3.15/3.15/0.1 -Z -N > phase.cpt
-  gmt grdimage phase.grd $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase.cpt -X1.3 -Y3 -P -K > phase.ps
-  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phase.ps
+  gmt grdimage phase.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phase.ps
+  gmt psscale -Rphase.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -B1.57+l"Phase" -By+lrad -O >> phase.ps
+  gmt psconvert -Tf -P -Z phase.ps
+  echo "Phase map: phase.pdf"
 #
 #  make the Werner/Goldstein filtered phase
 #
@@ -158,8 +163,10 @@ errormessage:
   gmt grdedit filtphase.grd `gmt grdinfo mask.grd -I- --FORMAT_FLOAT_OUT=%.12lg` 
   gmt grdmath filtphase.grd mask.grd MUL FLIPUD = phasefilt.grd
   rm filtphase.grd
-  gmt grdimage phasefilt.grd $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase.cpt -X1.3 -Y3 -P -K > phasefilt.ps
-  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phasefilt.ps
+  gmt grdimage phasefilt.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
+  gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
+  gmt psconvert -Tf -P -Z phasefilt.ps
+  echo "Filtered phase map: phasefilt.pdf"
 # 
 #  form the phase gradients
 #
@@ -169,8 +176,8 @@ errormessage:
 #  gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
 #  gmt makecpt -Cgray -T-0.7/0.7/0.1 -Z -N > phase_grad.cpt
 #  echo "N  255   255   254" >> phase_grad.cpt
-#  gmt grdimage xphase.grd $scale -Cphase_grad.cpt -X.2 -Y.5 -P > xphase.ps
-#  gmt grdimage yphase.grd $scale -Cphase_grad.cpt -X.2 -Y.5 -P > yphase.ps
+#  gmt grdimage xphase.grd $scale -Cphase_grad.cpt -X.2i -Y.5i -P > xphase.ps
+#  gmt grdimage yphase.grd $scale -Cphase_grad.cpt -X.2i -Y.5i -P > yphase.ps
 #
   mv mask.grd tmp.grd 
   gmt grdmath tmp.grd FLIPUD = mask.grd

@@ -5,6 +5,12 @@
 #
 alias rm 'rm -f'
 unset noclobber
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 #
 #
 #  project a grd file from lon/lat coordinates into range/azimuth coordinates
@@ -40,8 +46,8 @@ gmt grd2xyz $2 -s -bo3f -fg > llp
 gmt gmtconvert $1 -o3,4,0 -bi5d -bo3f > llr
 gmt gmtconvert $1 -o3,4,1 -bi5d -bo3f > lla
 #
-gmt surface llr `gmt gmtinfo llp -I0.08333333333 -bi3f` -bi3f -I.00083333333333 -T.50 -Gllr.grd -V
-gmt surface lla `gmt gmtinfo llp -I0.08333333333 -bi3f` -bi3f -I.00083333333333 -T.50 -Glla.grd -V
+gmt surface llr `gmt gmtinfo llp -I0.08333333333 -bi3f` -bi3f -I.00083333333333 -T.50 -Gllr.grd $V
+gmt surface lla `gmt gmtinfo llp -I0.08333333333 -bi3f` -bi3f -I.00083333333333 -T.50 -Glla.grd $V
 #
 gmt grdtrack llp -nl -Gllr.grd -bi3f -bo4f > llpr 
 gmt grdtrack llpr -nl -Glla.grd -bi4f -bo5f > llpra 

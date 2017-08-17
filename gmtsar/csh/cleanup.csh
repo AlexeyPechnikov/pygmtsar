@@ -25,42 +25,42 @@ endif
 if( $1 == all) then
   echo ""
   echo "clean up all"
-  rm -r SLC
-  rm -r intf
-  rm raw/*.PRM*
-  rm raw/*.raw 
-  rm raw/*.LED
-  rm raw/*.SLC
+  rm -rf SLC
+  rm -rf intf
+  rm -f raw/*.PRM*
+  rm -f raw/*.raw 
+  rm -f raw/*.LED
+  rm -f raw/*.SLC
   cd topo
-  ls | grep -v dem.grd | xargs rm
+  ls | grep -v dem.grd | xargs rm -f
   cd ..
   echo ""
 endif
 if( $1 == raw) then
   echo ""
   echo "clean up raw/ folder"
-  rm raw/*.PRM*
-  rm raw/*.raw
-  rm raw/*.LED
+  rm -f raw/*.PRM*
+  rm -f raw/*.raw
+  rm -f raw/*.LED
   echo ""
 endif
 if( $1 == SLC) then
   echo ""
   echo "clean up SLC/ folder"
-  rm -r SLC/*
+  rm -rf SLC/*
   echo ""
 endif
 if( $1 == intf) then
   echo ""
   echo "clean up intf/ folder"
-  rm -r intf/*
+  rm -rf intf/*
   echo ""
 endif
 if ( $1 == topo ) then 
   echo ""
   echo "clean up topo/ folder"
   cd topo
-  ls | grep -v dem.grd | xargs rm 
+  ls | grep -v dem.grd | xargs rm -f
   cd ..
   echo ""
 endif

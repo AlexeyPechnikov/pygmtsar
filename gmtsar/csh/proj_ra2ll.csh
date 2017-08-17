@@ -4,6 +4,12 @@
 #
 alias rm 'rm -f'
 unset noclobber
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 #
 #
 #  project a grd file from range/azimuth coordinates into lon/lat coordinates
@@ -39,8 +45,8 @@ if (! -f raln.grd || ! -f ralt.grd ) then
   gmt gmtconvert $1 -o0,1,3 -bi5d -bo3f > raln
   gmt gmtconvert $1 -o0,1,4 -bi5d -bo3f > ralt
 #
-gmt surface raln `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Graln.grd -V
-gmt surface ralt `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Gralt.grd -V
+gmt surface raln `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Graln.grd $V
+gmt surface ralt `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Gralt.grd $V
 endif
 #
 gmt grdtrack rap -nl -Graln.grd -bi3f -bo4f > rapln
@@ -58,23 +64,23 @@ if ($rng_samp_rate > 35000000 && $PRF > 1000 ) then
 #
 # use a 60 m grid
 #
-   gmt blockmedian llp `gmt gmtinfo llp -I20s -bi3f ` -bi3f -bo3f -I2s -r -V > llpb
+   gmt blockmedian llp `gmt gmtinfo llp -I20s -bi3f ` -bi3f -bo3f -I2s -r $V > llpb
    gmt xyz2grd llpb `gmt gmtinfo llpb -I20s -bi3f ` -I2s -r -fg -G$3 -bi3f
 else
 #
 # use a 120 m grid
 #
-   gmt blockmedian llp `gmt gmtinfo llp -I40s -bi3f ` -bi3f -bo3f -I4s -r -V > llpb
+   gmt blockmedian llp `gmt gmtinfo llp -I40s -bi3f ` -bi3f -bo3f -I4s -r $V > llpb
    gmt xyz2grd llpb `gmt gmtinfo llpb -I40s -bi3f ` -I4s -r -fg -G$3 -bi3f
 #
 # could use a coarser lon lat grid of 240 m
 #
-#   gmt blockmedian llp `gmt gmtinfo llp -I80s -bi3f ` -bi3f -bo3f -I8s -r -V > llpb
+#   gmt blockmedian llp `gmt gmtinfo llp -I80s -bi3f ` -bi3f -bo3f -I8s -r $V > llpb
 #   gmt xyz2grd llpb `gmt gmtinfo llpb -I80s -bi3f ` -I8s -r -fg -G$3 -bi3f
 #
 # could use a coarser lon lat grid of 240 m at high latitude for larger lon spacing
 #
-#   gmt blockmedian llp `gmt gmtinfo llp -I160s/80s -bi3f ` -bi3f -bo3f -I16s/8s -r -V > llpb
+#   gmt blockmedian llp `gmt gmtinfo llp -I160s/80s -bi3f ` -bi3f -bo3f -I16s/8s -r $V > llpb
 #   gmt xyz2grd llpb `gmt gmtinfo llpb -I160s/80s -bi3f ` -I16s/8s -r -fg -G$3 -bi3f
 endif
 #

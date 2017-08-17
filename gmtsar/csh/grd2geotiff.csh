@@ -16,22 +16,30 @@ if ($#argv < 2 || $#argv > 3) then
 endif 
 #
 #
+if ( -f ~/.quiet ) then
+	set V = ""
+	set VS = ""
+else
+	set V = "-V"
+	set VS = "-S -V"
+endif
+
 set DX = `gmt grdinfo $1.grd -C | cut -f8`
-set DPI = `gmtmath -Q $DX INV RINT = `
+set DPI = `gmt math -Q $DX INV RINT = `
 echo $DPI
-gmtset COLOR_MODEL = hsv
-gmtset PAPER_MEDIA = letter
+gmt set COLOR_MODEL = hsv
+gmt set PAPER_MEDIA = letter
 #
-grdgradient $1.grd -Ggrad.grd -V -Nt0.7 -A60 
+gmt grdgradient $1.grd -Ggrad.grd $V -Nt0.7 -A60 
 if ($#argv == 3) then
-  grdimage $1.grd -Igrad.grd -C$2 $3 -Jx1id -P -Y2 -X2 -Q  -V > $1.ps 
+  gmt grdimage $1.grd -Igrad.grd -C$2 $3 -Jx1id -P -Y2i -X2i -Q $V > $1.ps 
 else if ($#argv == 2) then
-  grdimage $1.grd -Igrad.grd -C$2 -Jx1id -P -Y2 -X2 -Q  -V > $1.ps
+  gmt grdimage $1.grd -Igrad.grd -C$2 -Jx1id -P -Y2i -X2i -Q $V > $1.ps
 endif
 #
 #   now make the geotiff 
 #
-ps2raster $1.ps -W+g+t"$1" -E$DPI -P -S -V
-rm $1.ps
-rm grad.grd
+echo "Make $1.tiff"
+gmt psconvert $1.ps -W+g+t"$1" -E$DPI -P $VS
+rm -f $1.ps grad.grd
 #

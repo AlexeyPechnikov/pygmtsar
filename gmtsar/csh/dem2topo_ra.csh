@@ -2,7 +2,7 @@
 #       $Id$
 # Matt WEI Feb 1 2010
 # modified by Xiaopeng Feb 9 2010
-# modifed by E. Feilding, DST, XT to add TSX data Jan 10 2014
+# modified by E. Fielding, DST, XT to add TSX data Jan 10 2014
 #=======================================================================
 #  script to make topography for interferograms 
 #  The USGS elevations are height above WGS84 so this is OK.
@@ -21,7 +21,12 @@ endif
 #
 # local variables 
 #
-  set scale = -JX8i
+  set scale = -JX7i
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
 #
 #========================Mosaic topo data===============================
 
@@ -59,14 +64,14 @@ if($SC == 10) then
      gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 0 -bod  > trans.dat
 endif
 #
-# use an aximuth spacing of 2 for low PRF data such as S1A TOPS
+# use an azimuth spacing of 2 for low PRF data such as S1A TOPS
 #
 if ($PRF < 1000) then
-  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -bo3d -r -V > temp.rat 
-  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r -V
+  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -bo3d -r $V > temp.rat 
+  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
 else
-  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -bo3d -r -V > temp.rat 
-  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r -V
+  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -bo3d -r $V > temp.rat 
+  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
 endif
 # 
 # flip top to bottom for both ascending and descending passes
@@ -75,8 +80,11 @@ endif
 # 
 # plotting
 # 
-  gmt grd2cpt topo_ra.grd -Cgray -V -Z > topo_ra.cpt 
-  gmt grdimage topo_ra.grd $scale -X0.2i -P -Ctopo_ra.cpt -V > topo_ra.ps
+  gmt grd2cpt topo_ra.grd -Cgray $V -Z > topo_ra.cpt 
+  gmt grdimage topo_ra.grd $scale -P -Ctopo_ra.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen $V -K > topo_ra.ps
+  gmt psscale -Rtopo_ra.grd -J -DJTC+w5i/0.2i+h -Ctopo_ra.cpt -Bxaf -By+lm -O >> topo_ra.ps
+  gmt psconvert -Tf -P -Z topo_ra.ps
+  echo "Topo range/azimuth map: topo_ra.pdf"
 #
 #  clean up
 #

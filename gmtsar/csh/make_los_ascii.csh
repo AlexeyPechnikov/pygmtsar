@@ -11,13 +11,19 @@
 	echo "output: los.lltnde"
 	exit 1
   endif
-  
+
+if ( -f ~/.quiet ) then
+    set V = ""
+else
+	set V = "-V"
+endif
+
 gmt  grdsample $2 -Gtmp_topo.grd `grdinfo $1 -I-` `grdinfo $1 -I` -F
 gmt  grdmath $1 0 MUL 1 ADD tmp_topo.grd MUL = tmp_topo.grd
 gmt  grd2xyz $1 > tmp.xyz
 gmt  grd2xyz tmp_topo.grd > tmp_topo.xyz
-gmt  blockmedian tmp.xyz `grdinfo $1 -I-` $3 -V > tmp_b.xyz
-gmt  blockmedian tmp_topo.xyz `grdinfo $1 -I-` $3 -V > tmp_topo_b.xyz
+gmt  blockmedian tmp.xyz `grdinfo $1 -I-` $3 $V > tmp_b.xyz
+gmt  blockmedian tmp_topo.xyz `grdinfo $1 -I-` $3 $V > tmp_topo_b.xyz
 
   set SAT = $5
   if($SAT == ERS) then
