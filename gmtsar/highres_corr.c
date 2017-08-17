@@ -7,7 +7,7 @@
 /*-------------------------------------------------------------------------------*/
 void do_highres_corr(void *API, struct xcorr xc, int iloc)
 {
-int	i, j, ic, jc;
+int	i, j, ic, jc, k;
 int	nx, ny, nx2, ny2, ifc;
 float	max_corr, ipeak, jpeak, sub_xoff, sub_yoff;
 
@@ -31,10 +31,11 @@ float	max_corr, ipeak, jpeak, sub_xoff, sub_yoff;
 	/* use values centered around highest value	*/
 	for (i=0; i<ny; i++) {
 		for (j=0; j<nx; j++) {
-			xc.md[i*nx+j].r = powf(xc.corr[(ic+i)*xc.nxc + (jc+j)], 0.25f);
+			if ((k = (ic+i)*xc.nxc + (jc+j)) < 0) continue;
+			xc.md[i*nx+j].r = powf(xc.corr[k], 0.25f);
 			xc.md[i*nx+j].i = 0.0f;
-			}
 		}
+	}
 
 	if (debug) print_complex(xc.md, nx, ny, 1);
 
