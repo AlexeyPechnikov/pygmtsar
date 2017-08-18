@@ -25,7 +25,7 @@ dnl 1. Location of GMT include and library files
 dnl 2. Location of ORBITS directory
 dnl ------------------------------------------------------------------
 dnl
-AC_INIT(GMTSAR, 5.0.0, gmtsar-l@ucsd.edu)
+AC_INIT(GMTSAR, 5.5.0, gmtsar-l@ucsd.edu)
 dnl
 dnl ------------------------------------------------------------------
 dnl The remainder should need no editing
@@ -70,6 +70,7 @@ AC_SUBST(exec_prefix)
 AC_SUBST(prefix)
 AC_SUBST(rootdir)
 AC_SUBST(bindir)
+AC_SUBST(GMTSAR_VERSION)
 dnl
 dnl ------------------------------------------------------------------
 dnl Special configure options for GMTSAR installation
@@ -432,6 +433,7 @@ else
 	CFLAGS="$CFLAGS "'$(CPPFLAGS)'
 	AC_MSG_RESULT(yes)
 fi
+GMTSAR_VERSION=$(AC_PACKAGE_VERSION)
 dnl
 dnl ------------------------------------------------------------------
 dnl Update Make macros and preprocess scripts that need the orbits dir
