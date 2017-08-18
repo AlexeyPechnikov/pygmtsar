@@ -19,6 +19,8 @@ ORBITS_DIR	= @ORBITS_DIR@
 TIFF_INC	= @TIFF_INC@
 TIFF_LIB	= @TIFF_LIB@
 LALIBS		= @LALIBS@
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
 bindir		= $(DESTDIR)@bindir@
 sharedir	= $(DESTDIR)@prefix@/share/gmtsar
 
