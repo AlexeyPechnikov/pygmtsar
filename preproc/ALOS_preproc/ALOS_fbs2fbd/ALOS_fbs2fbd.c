@@ -26,6 +26,9 @@
 
 #include "image_sio.h"
 #include "siocomplex.h"
+#include "lib_functions.h"
+
+void rng_compress (fcomplex *cin, int nffti, fcomplex *cout,int nffto);
 
 #define clip127(A) ( ((A) > 127) ? 127 : (((A) < 0) ? 0 : A) )
 
@@ -33,7 +36,7 @@ char    *USAGE = "ALOS_FBS2FBD FBS.PRM FBD.PRM \n"
 "  FBS.PRM   PRM file for input  image in fine beam single polarization (FBS 28 MHz) (input) \n" 
 "  FBD.PRM   PRM file for output image in fine beam HH-polarization (FBD 14 MHz) (output) \n";
 
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
 FILE	*prmfile, *datafile, *prmout, *dataout;
 unsigned char	*indata, *outdata;

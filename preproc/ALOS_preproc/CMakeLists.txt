@@ -12,7 +12,8 @@ include_directories (include)
 add_library (ALOS lib_src/utils.c lib_src/null_sio_struct.c
 	lib_src/get_sio_struct.c lib_src/put_sio_struct.c lib_src/calc_dop.c
 	lib_src/hermite_c.c lib_src/ALOS_ldr_orbit.c lib_src/ALOSE_orbits_utils.c
-	lib_src/interpolate_ALOS_orbit.c lib_src/read_ALOS_sarleader.c
+	lib_src/interpolate_ALOS_orbit.c lib_src/read_ALOS_sarleader.c lib_src/write_ALOS_LED.c
+	lib_src/write_orb.c
 	lib_src/set_ALOS_defaults.c lib_src/write_ALOS_prm.c lib_src/rng_expand.c
 	lib_src/rng_compress.c lib_src/rng_filter.c lib_src/find_fft_length.c
 	lib_src/siocomplex.c lib_src/polyfit.c lib_src/plh2xyz.c lib_src/xyz2plh.c

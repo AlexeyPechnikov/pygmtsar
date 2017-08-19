@@ -17,9 +17,7 @@
 
 void cfft1d_(int *, fcomplex *, int *);
 
-void rng_filter(cin,nffti,cout)
-int nffti;
-fcomplex *cin, *cout;
+void rng_filter (fcomplex *cin, int nffti, fcomplex *cout)
 {
 	int i, dir, nf, nt;
         nf = .70*nffti/2;

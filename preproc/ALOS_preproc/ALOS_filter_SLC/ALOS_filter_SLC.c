@@ -15,13 +15,17 @@
 
 #include "image_sio.h"
 #include "siocomplex.h"
+#include "lib_functions.h"
+
+extern void rng_filter (fcomplex *cin, int nffti, fcomplex *cout);
+extern void rng_compress (fcomplex *cin, int nffti, fcomplex *cout,int nffto);
 
 #define clip(A) ( ((A) > 32767) ? 32767 : (((A) < -32768) ? -32768 : A) )
 
 char    *USAGE = "ALOS_filter_SLC file.PRM  \n"
                  "  file.PRM  PRM file for input  image \n";
 
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
 FILE	*prmfile, *datafile, *dataout;
 short int *indata, *outdata;

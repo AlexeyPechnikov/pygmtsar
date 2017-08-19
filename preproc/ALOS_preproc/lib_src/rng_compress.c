@@ -16,9 +16,7 @@
 #include "siocomplex.h"
 void cfft1d_(int *, fcomplex *, int *);
 
-void rng_compress(cin,nffti,cout,nffto)
-int nffti, nffto;
-fcomplex *cin, *cout;
+void rng_compress (fcomplex *cin, int nffti, fcomplex *cout,int nffto)
 {
 	int i, dir, n4;
         n4 = nffti/4;
