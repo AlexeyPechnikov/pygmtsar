@@ -58,31 +58,12 @@ gmt gmtconvert raplnlt -bi5f -bo3f -o3,4,2 > llp
 #
 # use higher resolution for data with higher range resolution and PRF
 #
-set rng_samp_rate = `grep rng_samp_rate *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
-set PRF = `grep PRF *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
-if ($rng_samp_rate > 35000000 && $PRF > 1000 ) then
+set pix_m = `ls gauss_* | awk -F_ '{print $2/4}'` # Use 1/4 the filter width
+set incs = `m2s.csh $pix_m llp`			  # Get fine and crude grid interval for lookup grids
 #
-# use a 60 m grid
-#
-   gmt blockmedian llp `gmt gmtinfo llp -I20s -bi3f ` -bi3f -bo3f -I2s -r $V > llpb
-   gmt xyz2grd llpb `gmt gmtinfo llpb -I20s -bi3f ` -I2s -r -fg -G$3 -bi3f
-else
-#
-# use a 120 m grid
-#
-   gmt blockmedian llp `gmt gmtinfo llp -I40s -bi3f ` -bi3f -bo3f -I4s -r $V > llpb
-   gmt xyz2grd llpb `gmt gmtinfo llpb -I40s -bi3f ` -I4s -r -fg -G$3 -bi3f
-#
-# could use a coarser lon lat grid of 240 m
-#
-#   gmt blockmedian llp `gmt gmtinfo llp -I80s -bi3f ` -bi3f -bo3f -I8s -r $V > llpb
-#   gmt xyz2grd llpb `gmt gmtinfo llpb -I80s -bi3f ` -I8s -r -fg -G$3 -bi3f
-#
-# could use a coarser lon lat grid of 240 m at high latitude for larger lon spacing
-#
-#   gmt blockmedian llp `gmt gmtinfo llp -I160s/80s -bi3f ` -bi3f -bo3f -I16s/8s -r $V > llpb
-#   gmt xyz2grd llpb `gmt gmtinfo llpb -I160s/80s -bi3f ` -I16s/8s -r -fg -G$3 -bi3f
-endif
+set R =  `gmt gmtinfo llp -I$incs[2] -bi3f `
+gmt blockmedian llp $R -bi3f -bo3f -I$incs[1] -r -V > llpb
+gmt xyz2grd llpb $R -I$incs[1]  -r -fg -G$3 -bi3f
 #
 # clean
 #

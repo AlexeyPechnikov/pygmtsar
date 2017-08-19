@@ -63,9 +63,10 @@ shift_topo = 0
 # phase = repeat phase - reference phase
 switch_master = 0
 
-# filters 
-# look at the filter/ folder to choose other filters
-filter1 = gauss_tsx_100m
+# set the filter wavelength in meters (default is 200m)
+# this is the wavelength where the filter has a gain of 0.5
+# the images will be sampled at 1/4 wavelength or smaller
+filter_wavelength = 200
 
 # decimation of images 
 # decimation control the size of the amplitude and phase images. It is either 1 or 2.

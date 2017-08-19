@@ -186,6 +186,7 @@ unset noclobber
   cd merge
   ln -s ../$5 .
   ln -s ../topo/dem.grd .
+  ln -s ../F1/intf/*/gauss* .
   if (-f tmp.filelist) then
     rm tmp.filelist
   endif

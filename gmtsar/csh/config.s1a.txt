@@ -65,18 +65,18 @@ switch_master = 0
 
 # filters 
 # look at the filter/ folder to choose other filters
+# for tops processing, to force the decimation factor
+# recommended range decimation to be 8, azimuth decimation to be 2
 filter_wavelength = 200
+range_dec = 8
+azimuth_dec = 2 
 
 # decimation of images 
 # decimation control the size of the amplitude and phase images. It is either 1 or 2.
 # Set the decimation to be 1 if you want higher resolution images.
 # Set the decimation to be 2 if you want images with smaller file size.
 # 
-dec_factor = 4
-# for tops processing, to force the decimation factor
-# recommended range decimation to be 8, azimuth decimation to be 2
-range_dec = 
-azimuth_dec = 
+dec_factor = 2
 #
 # 
 #####################################

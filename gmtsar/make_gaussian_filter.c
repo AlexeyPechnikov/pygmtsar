@@ -44,7 +44,7 @@ int main(int argc, char **argv){
     w = (int)str2double(argv[4]);
     if (rng_dec < 1 || rng_dec > 4) die("Incorrect range decimation factor: \n",argv[2]);
     if (azi_dec < 1 || azi_dec > 4) die("Incorrect azimuth decimation factor: \n",argv[3]);
-    if (w < 20 || w > 10000) die("Incorrect wavelength: \n",argv[4]);
+    if (w < 2 || w > 10000) die("Incorrect wavelength: \n",argv[4]);
     
     // get the prm
     get_prm(&prm, argv[1]);

@@ -12,7 +12,7 @@
 # processing stage  #
 #####################
 # 1 - start from preprocess
-# 2 - start from align SLC images
+# 2 - start from focus and align SLC images
 # 3 - start from make topo_ra 
 # 4 - start from make and filter interferograms 
 # 5 - start from unwrap phase
@@ -63,16 +63,17 @@ shift_topo = 0
 # phase = repeat phase - reference phase
 switch_master = 0
 
-# filters 
-# look at the filter/ folder to choose other filters
-filter1 = gauss_tsx_100m
+# set the filter wavelength in meters (default is 100m)
+# this is the wavelength where the filter has a gain of 0.5
+# the images will be sampled at 1/4 wavelength or smaller
+filter_wavelength = 100
 
-# decimation of images 
+ decimation of images 
 # decimation control the size of the amplitude and phase images. It is either 1 or 2.
 # Set the decimation to be 1 if you want higher resolution images.
 # Set the decimation to be 2 if you want images with smaller file size.
 # 
-dec_factor = 2
+dec_factor = 1
 #
 # 
 #####################################
@@ -95,11 +96,11 @@ switch_land = 1
 # defo_max = 0 - used for smooth unwrapped phase such as interseismic deformation
 # defo_max = 65 - will allow a phase jump of 65 cycles or 1.82 m of deformation at C-band
 #
-defomax = 10
+defomax = 0
 
 #####################################
 #   parameters for geocode          #
 #   - geocode.csh                   #
 #####################################
 # correlation threshold for geocode.csh (0~1)
-threshold_geocode = .12
+threshold_geocode = .14
