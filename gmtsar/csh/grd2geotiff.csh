@@ -28,7 +28,7 @@ set DX = `gmt grdinfo $1.grd -C | cut -f8`
 set DPI = `gmt math -Q $DX INV RINT = `
 echo $DPI
 gmt set COLOR_MODEL = hsv
-gmt set PAPER_MEDIA = letter
+gmt set PAPER_MEDIA = tabloid
 #
 gmt grdgradient $1.grd -Ggrad.grd $V -Nt0.7 -A60 
 if ($#argv == 3) then

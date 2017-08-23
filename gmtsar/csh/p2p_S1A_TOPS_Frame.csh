@@ -10,59 +10,32 @@
 alias rm 'rm -f'
 unset noclobber
 #
-  if ($#argv < 5 || $#argv > 6) then
+  if ($#argv !=  7) then
     echo ""
-    echo "Usage: p2p_S1A_TOPS.csh Master.SAFE Master.EOF Slave.SAFE Slave.EOF config.s1a.txt mode"
+    echo "Usage: p2p_S1A_TOPS_Frame.csh Master.SAFE Master.EOF Slave.SAFE Slave.EOF config.s1a.txt polarization parallel"
     echo ""
-    echo "Example: p2p_S1A_TOPS.csh S1A_IW_SLC__1SDV_20150607T014936_20150607T015003_006261_00832E_3626.SAFE S1A_OPER_AUX_POEORB_OPOD_20150615T155109_V20150525T225944_20150527T005944.EOF S1A_IW_SLC__1SSV_20150526T014935_20150526T015002_006086_007E23_679A.SAFE S1A_OPER_AUX_POEORB_OPOD_20150627T155155_V20150606T225944_20150608T005944.EOF config.s1a.txt "
+    echo "Example: p2p_S1A_TOPS_Frame.csh S1A_IW_SLC__1SDV_20150607T014936_20150607T015003_006261_00832E_3626.SAFE S1A_OPER_AUX_POEORB_OPOD_20150615T155109_V20150525T225944_20150527T005944.EOF S1A_IW_SLC__1SSV_20150526T014935_20150526T015002_006086_007E23_679A.SAFE S1A_OPER_AUX_POEORB_OPOD_20150627T155155_V20150606T225944_20150608T005944.EOF config.s1a.txt vv 1"
     echo ""
     echo "	Place the .SAFE file in the raw folder, DEM in the topo folder"
     echo "	During processing, F1, F2, F3 and merge folder will be generated"
     echo "	Final results will be placed in the merge folder, with phase"	
     echo "	, corr and amp [unwrapped phase]."
-    echo "	mode = 11/12, process vv, mode = 21/22, process vh, default is vv"
-    echo "	mode = 11/21, process sequentially, mode = 12/22, process parallely, default is sequentially"
+    echo "      polarization = vv vh hh or hv
+    echo "      parallel = 0-sequential  1-parallel
     echo ""
     exit 1
   endif
 # start 
-#
-# determine mode
-#
-
-  if ($#argv == 5) then
-    set md = 1
-    set seq = 1
-    echo "Processing VV data squentially..."
-  else if ($6 == 11) then
-    set md = 1
-    set seq = 1
-    echo "Processing VV data squentially..."
-  else if ($6 == 21) then
-    set md = 2
-    set seq = 1
-    echo "Processing VH data squentially..."
-  else if ($6 == 12) then
-    set md = 1
-    set seq = 2
-    echo "Processing VV data parallelly..."
-  else if ($6 == 22) then
-    set md = 2
-    set seq = 2
-    echo "Processing VH data parallelly..."
-  else
-    echo "Invalid mode ..."
-    exit 1
-  endif
-
 # 
 # set polarization
 # 
-  if ($md == 1) then
-    set pol = vv
-  else
-    set pol = vh
-  endif
+  set pol = $6 
+  echo $pol
+#
+# set processing mode seq
+#
+  set seq = $7
+  echo $seq
 #:<<supercalifragilisticexpialidocious
 #
 # determine file names
@@ -127,11 +100,10 @@ unset noclobber
   ln -s ../../raw/$3/*/$f3s.tiff .
   ln -s ../../raw/$4 .
   cd ../..
-
 # 
 # process data
 # 
-  if ($seq == 1) then
+  if ($seq == 0) then
     cd F1/raw
     align_tops.csh $f1m $2 $f1s $4 dem.grd
     set mpre1 = `echo $f1m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
@@ -151,7 +123,7 @@ unset noclobber
     cd ../F3
     p2p_S1A_TOPS.csh $mpre3 $spre3 $5
     cd ..
-  else if ($seq == 2) then
+  else if ($seq == 1) then
     cd F1/raw
     align_tops.csh $f1m $2 $f1s $4 dem.grd >& log &
     set mpre1 = `echo $f1m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
@@ -206,8 +178,4 @@ unset noclobber
   echo $pth3":"$prm3m":"$prm3s >> tmp.filelist
 
   merge_unwrap_geocode_tops.csh tmp.filelist $5
-
-
-
-    
 
