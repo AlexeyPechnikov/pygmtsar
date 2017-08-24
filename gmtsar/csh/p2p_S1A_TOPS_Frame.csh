@@ -19,9 +19,9 @@ unset noclobber
     echo "	Place the .SAFE file in the raw folder, DEM in the topo folder"
     echo "	During processing, F1, F2, F3 and merge folder will be generated"
     echo "	Final results will be placed in the merge folder, with phase"	
-    echo "	, corr and amp [unwrapped phase]."
-    echo "      polarization = vv vh hh or hv
-    echo "      parallel = 0-sequential  1-parallel
+    echo "	corr [unwrapped phase]."
+    echo "	polarization = vv vh hh or hv "
+    echo "	parallel = 0-sequential  1-parallel "
     echo ""
     exit 1
   endif
