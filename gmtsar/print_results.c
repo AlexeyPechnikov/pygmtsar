@@ -7,7 +7,7 @@
 #include "siocomplex.h"
 #include "xcorr.h"
 /*-------------------------------------------------------------------------------*/
-void print_results(struct xcorr xc, int iloc)
+void print_results(struct xcorr *xc, int iloc)
 { 
 int	ishft;
 int	interp;
@@ -15,32 +15,32 @@ float	xoff, xfrac;
 float	yoff, yfrac;
 float	corr;
 	
-	xoff = xc.loc[iloc].xoff;
-	xfrac = xc.loc[iloc].xfrac;
-	yoff = xc.loc[iloc].yoff;
-	yfrac = xc.loc[iloc].yfrac;
-	corr = xc.loc[iloc].corr;
+	xoff = xc->loc[iloc].xoff;
+	xfrac = xc->loc[iloc].xfrac;
+	yoff = xc->loc[iloc].yoff;
+	yfrac = xc->loc[iloc].yfrac;
+	corr = xc->loc[iloc].corr;
 
-	if (xc.interp_flag) {
-		interp = xc.interp_factor;
+	if (xc->interp_flag) {
+		interp = xc->interp_factor;
 		} else {
 		interp = 1;
 		}
 
-	ishft = (int) xc.loc[iloc].y * xc.astretcha;
+	ishft = (int) xc->loc[iloc].y * xc->astretcha;
 	
-	/* account for range interpolation (xc.ri) */
-	if (debug) fprintf(stdout, " xoff %f xfrac %f xoff/ri %f rshift %d yoff %f yfrac %f ashift %d\n", xoff, xfrac, xoff / (float) xc.ri, xc.x_offset, yoff, yfrac, xc.y_offset);
+	/* account for range interpolation (xc->ri) */
+	if (debug) fprintf(stdout, " xoff %f xfrac %f xoff/ri %f rshift %d yoff %f yfrac %f ashift %d\n", xoff, xfrac, xoff / (float) xc->ri, xc->x_offset, yoff, yfrac, xc->y_offset);
 
-	xoff = (xoff / (float) xc.ri) - (xfrac / (float) xc.ri) + xc.x_offset;
-	yoff = yoff - yfrac + xc.y_offset + ishft;
+	xoff = (xoff / (float) xc->ri) - (xfrac / (float) xc->ri) + xc->x_offset;
+	yoff = yoff - yfrac + xc->y_offset + ishft;
 
 	if (verbose) {
 		fprintf(stdout, " location %d (%3d,%3d) interpolation (range %d corr %d) correlation %6.2f offset (%6.3f,%6.3f) \n"
-		,iloc, xc.loc[iloc].x, xc.loc[iloc].y, xc.ri, interp, corr, xoff, yoff);
+		,iloc, xc->loc[iloc].x, xc->loc[iloc].y, xc->ri, interp, corr, xoff, yoff);
 		}
 
-	fprintf(xc.file," %d %6.3f %d %6.3f %6.2f \n",xc.loc[iloc].x,xoff,xc.loc[iloc].y,yoff,corr);
+	fprintf(xc->file," %d %6.3f %d %6.3f %6.2f \n",xc->loc[iloc].x,xoff,xc->loc[iloc].y,yoff,corr);
 }
 /*-------------------------------------------------------------------------------*/
 void print_complex(struct FCOMPLEX *a, int ny, int nx, int real_flag)

@@ -38,7 +38,7 @@ int	i, j, isign;
 	GMT_FFT_2D (API, (float *)c3, N, M, GMT_FFT_INV, GMT_FFT_COMPLEX);
 }
 /*-------------------------------------------------------------------------------*/
-void do_freq_corr (void *API, struct xcorr xc, int iloc)
+void do_freq_corr (void *API, struct xcorr *xc, int iloc)
 {
 	int 	i, j, ii;
 	float	ipeak, jpeak;
@@ -51,35 +51,35 @@ void do_freq_corr (void *API, struct xcorr xc, int iloc)
 
 	/* d1, c1 is the master					*/
 	/* d2, c2 is the slave					*/
-	if (debug) print_complex(xc.c1, xc.npy, xc.npx, 1);
-	if (debug) print_complex(xc.c2, xc.npy, xc.npx, 1);
+	if (debug) print_complex(xc->c1, xc->npy, xc->npx, 1);
+	if (debug) print_complex(xc->c2, xc->npy, xc->npx, 1);
 
 	/* multiply c1 and c2 uisng fft */
-	fft_multiply (API, xc.npx, xc.npy, xc.c1, xc.c2, xc.c3);
+	fft_multiply (API, xc->npx, xc->npy, xc->c1, xc->c2, xc->c3);
 
 	/* transfer results into correlation matrix		*/
-	for (i=0; i<xc.nyc; i++) {
-		for (j=0; j<xc.nxc; j++) {
+	for (i=0; i<xc->nyc; i++) {
+		for (j=0; j<xc->nxc; j++) {
 
-			ii = (i + xc.ny_corr / 2)*xc.npx + j + (xc.nx_corr / 2);
-			xc.corr[i*xc.nxc + j] = Cabs(xc.c3[ii]); 
-			cave += xc.corr[i*xc.nxc + j];
+			ii = (i + xc->ny_corr / 2)*xc->npx + j + (xc->nx_corr / 2);
+			xc->corr[i*xc->nxc + j] = Cabs(xc->c3[ii]); 
+			cave += xc->corr[i*xc->nxc + j];
 
-			if (xc.corr[i*xc.nxc + j] > cmax) {
-				cmax = xc.corr[i*xc.nxc + j];
-				jpeak = j - xc.nxc / 2.0f;
-				ipeak = i - xc.nyc / 2.0f;
+			if (xc->corr[i*xc->nxc + j] > cmax) {
+				cmax = xc->corr[i*xc->nxc + j];
+				jpeak = j - xc->nxc / 2.0f;
+				ipeak = i - xc->nyc / 2.0f;
 				}
 			}
 		}
 
 	if ((ipeak == -999.0) || (jpeak == -999.0)){
-		fprintf(stderr,"error! jpeak %f ipeak %f cmax %lf xc %f \n", jpeak, ipeak, cmax, xc.corr[100]);
+		fprintf(stderr,"error! jpeak %f ipeak %f cmax %lf xc %f \n", jpeak, ipeak, cmax, xc->corr[100]);
 		exit(1);
 		}
 
 	/* calculate normalized correlation at best point */
-	cave /= (xc.nxc * xc.nyc);
+	cave /= (xc->nxc * xc->nyc);
 
 	/* estimate maximum correlation using frequency - poor */
 	max_corr = (cmax/cave);
@@ -88,12 +88,12 @@ void do_freq_corr (void *API, struct xcorr xc, int iloc)
 	if (ipeak != -999.0) max_corr = calc_time_corr(xc, (int) ipeak, (int) jpeak);
 
 	/* put values into correlation matrix and scale to max correlation */
-	for (i=0; i<xc.nxc*xc.nyc; i++) xc.corr[i] = max_corr * xc.corr[i] / cmax;
+	for (i=0; i<xc->nxc*xc->nyc; i++) xc->corr[i] = max_corr * xc->corr[i] / cmax;
 
-	if (debug) fprintf(stderr," (freq) jpeak %f xoffset %d corr %4.2lf \n", jpeak, xc.x_offset, max_corr);
-	if (debug) fprintf(stderr," (freq) ipeak %f yoffset %d corr %4.2lf \n", ipeak, xc.y_offset, max_corr);
+	if (debug) fprintf(stderr," (freq) jpeak %f xoffset %d corr %4.2lf \n", jpeak, xc->x_offset, max_corr);
+	if (debug) fprintf(stderr," (freq) ipeak %f yoffset %d corr %4.2lf \n", ipeak, xc->y_offset, max_corr);
 
-	xc.loc[iloc].xoff = -1 * jpeak;
-	xc.loc[iloc].yoff = -1 * ipeak;
-	xc.loc[iloc].corr = (float)max_corr;
+	xc->loc[iloc].xoff = -1 * jpeak;
+	xc->loc[iloc].yoff = -1 * ipeak;
+	xc->loc[iloc].corr = (float)max_corr;
 }

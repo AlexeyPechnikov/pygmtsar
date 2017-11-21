@@ -180,12 +180,13 @@ for (n = 3; n < na; n++) {
 	}
 }
 /*---------------------------------------------------------------------------*/
-void handle_prm(char **argv, struct xcorr *xc, int nfiles)
-{
+void handle_prm(void *API, char **argv, struct xcorr *xc, int nfiles) {
+
 int	i;
 char	**filename;
 FILE	*prmfile;
 struct	PRM *r;
+char    tmp_c[1024];
 
 	if (debug) fprintf(stderr,"handle_prm %d\n", nfiles);
 
@@ -196,39 +197,67 @@ struct	PRM *r;
 
 	for (i=0; i<nfiles; i++){
 		strcpy(filename[i],argv[i+1]);
-		if ((prmfile = fopen(filename[i],"r")) == NULL) die("Can't open prmfile ",filename[i]);
+        strcpy(tmp_c,&filename[i][strlen(filename[i])-4]);
+        //fprintf(stderr,"%s\n",tmp_c);
+        if (strcmp(tmp_c,".PRM") == 0) {
+        
+            //fprintf(stderr," Reading in PRM file: %s\n",filename[i]);
+		    if ((prmfile = fopen(filename[i],"r")) == NULL) die("Can't open prmfile ",filename[i]);
 
-		get_sio_struct(prmfile, &r[i]);
+		    get_sio_struct(prmfile, &r[i]);
 
-		if (i == 0) {
-			strcpy(xc->data1_name,r[i].SLC_file);
-			if ((xc->data1 = fopen(xc->data1_name,"r")) == NULL) die("Cannot open SLC_file",xc->data1_name);
-			xc->m_nx = r[i].num_rng_bins;
-			xc->m_ny = r[i].num_patches*r[i].num_valid_az;
+		    if (i == 0) {
+			    strcpy(xc->data1_name,r[i].SLC_file);
+			    if ((xc->data1 = fopen(xc->data1_name,"r")) == NULL) die("Cannot open SLC_file",xc->data1_name);
+			    xc->m_nx = r[i].num_rng_bins;
+			    xc->m_ny = r[i].num_patches*r[i].num_valid_az;
 			}
 
-		if (i == 1) {
-			strcpy(xc->data2_name,r[i].SLC_file);
-			xc->data2 = fopen(xc->data2_name,"r");
-			if ((xc->data2 = fopen(xc->data2_name,"r")) == NULL) die("Cannot open SLC_file",xc->data2_name);
-			xc->s_nx = r[i].num_rng_bins;
-			xc->s_ny = r[i].num_patches*r[i].num_valid_az;
-			xc->x_offset = r[i].rshift;
-			xc->y_offset = r[i].ashift;
-		}
-		/* added rjm 5/25/2010 to avoid div by zero and Nan */
-		if (r[0].prf > 0) {
-			xc->astretcha = (r[1].prf - r[0].prf) / r[0].prf;
+		    if (i == 1) {
+			    strcpy(xc->data2_name,r[i].SLC_file);
+			    xc->data2 = fopen(xc->data2_name,"r");
+			    if ((xc->data2 = fopen(xc->data2_name,"r")) == NULL) die("Cannot open SLC_file",xc->data2_name);
+			    xc->s_nx = r[i].num_rng_bins;
+			    xc->s_ny = r[i].num_patches*r[i].num_valid_az;
+			    xc->x_offset = r[i].rshift;
+			    xc->y_offset = r[i].ashift;
+		    }
+		    /* added rjm 5/25/2010 to avoid div by zero and Nan */
+		    if (r[0].prf > 0) {
+			    xc->astretcha = (r[1].prf - r[0].prf) / r[0].prf;
 			} else {
-			xc->astretcha = 0.0;
+			    xc->astretcha = 0.0;
 			}
 
-		if (xc->offset_flag == 1) {
-			xc->x_offset = xc->y_offset = 0;
-			fprintf(stderr," setting ashift and rshift to zero\n");
+		    if (xc->offset_flag == 1) {
+			    xc->x_offset = xc->y_offset = 0;
+			    fprintf(stderr," setting ashift and rshift to zero\n");
 			}
 
-	fclose(prmfile);
+	        fclose(prmfile);
+        }
+        else {
+            //fprintf(stderr," Reading in netcdf file: %s\n",filename[i]);
+            xc->format = 2;
+            
+            if (i == 0) {
+                if ((xc->D1 = GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_CONTAINER_AND_DATA, NULL, filename[i], NULL)) == NULL) die("cannot open topofile",filename[i]);
+                strcpy(xc->data1_name,filename[i]);
+                xc->m_nx = xc->D1->header->nx;
+                xc->m_ny = xc->D1->header->ny;
+            }
+            if (i == 1) {
+                if ((xc->D2 = GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_CONTAINER_AND_DATA, NULL, filename[i], NULL)) == NULL) die("cannot open topofile",filename[i]);
+                strcpy(xc->data2_name,filename[i]);
+                xc->s_nx = xc->D2->header->nx;
+                xc->s_ny = xc->D2->header->ny;
+                xc->x_offset = 0;
+                xc->y_offset = 0;
+            }
+            //fprintf(stderr,"nx: %d, ny: %d\n",xc->s_nx,xc->s_ny);
+            
+            
+        }
 	}
 	fprintf(stderr," %d %d %d %d %d %d %f\n", xc->m_nx, xc->m_ny, xc->s_nx, xc->s_ny, xc->x_offset, xc->y_offset, xc->astretcha);
 

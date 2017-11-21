@@ -50,7 +50,8 @@ char	*USAGE = "xcorr [GMTSAR] - Compute 2-D cross-correlation of two images\n\n"
 "output: \n freq_xcorr.dat (default) \n time_xcorr.dat (if -time option))\n"
 "\nuse fitoffset.csh to convert output to PRM format\n"
 "\nExample:\n"
-"xcorr IMG-HH-ALPSRP075880660-H1.0__A.PRM IMG-HH-ALPSRP129560660-H1.0__A.PRM -nx 20 -ny 50 \n";
+"xcorr IMG-HH-ALPSRP075880660-H1.0__A.PRM IMG-HH-ALPSRP129560660-H1.0__A.PRM -nx 20 -ny 50 \n"
+"xcorr file1.grd file2.grd -nx 20 -ny 50 (takes grids with real numbers)\n";
 
 /*-------------------------------------------------------------------------------*/
 int do_range_interpolate(void *API, struct FCOMPLEX *c, int nx, int ri, struct FCOMPLEX *work)
@@ -77,72 +78,72 @@ int	i;
 /* c1, c2, and c3 are npy by npx						*/
 /* d1, d2 are npy by nx (length of line in SLC)					*/
 /*-------------------------------------------------------------------------------*/
-void assign_values(void *API, struct xcorr xc, int iloc)
+void assign_values(void *API, struct xcorr *xc, int iloc)
 {
 int	i, j, k, sx, mx;
 double	mean1, mean2;
 
 	/* master and slave x offsets */
-	mx = xc.loc[iloc].x - xc.npx/2;
-	sx = xc.loc[iloc].x + xc.x_offset - xc.npx/2;
+	mx = xc->loc[iloc].x - xc->npx/2;
+	sx = xc->loc[iloc].x + xc->x_offset - xc->npx/2;
 
-	for (i=0; i<xc.npy; i++){
-		for (j=0; j<xc.npx; j++){
-			k = i*xc.npx + j;
+	for (i=0; i<xc->npy; i++){
+		for (j=0; j<xc->npx; j++){
+			k = i*xc->npx + j;
 
-			xc.c3[k].i = xc.c3[k].r = 0.0f;
+			xc->c3[k].i = xc->c3[k].r = 0.0f;
 
-			xc.c1[k].r = xc.d1[i*xc.m_nx + mx + j].r;
-			xc.c1[k].i = xc.d1[i*xc.m_nx + mx + j].i;
+			xc->c1[k].r = xc->d1[i*xc->m_nx + mx + j].r;
+			xc->c1[k].i = xc->d1[i*xc->m_nx + mx + j].i;
 
-			xc.c2[k].r = xc.d2[i*xc.s_nx + sx + j].r;
-			xc.c2[k].i = xc.d2[i*xc.s_nx + sx + j].i;
+			xc->c2[k].r = xc->d2[i*xc->s_nx + sx + j].r;
+			xc->c2[k].i = xc->d2[i*xc->s_nx + sx + j].i;
 			}
 		}
 
 	/* range interpolate */
-	if (xc.ri > 1) {
-		for (i=0; i<xc.npy; i++) {
-			do_range_interpolate(API, &xc.c1[i*xc.npx], xc.npx, xc.ri, xc.ritmp);
-			do_range_interpolate(API, &xc.c2[i*xc.npx], xc.npx, xc.ri, xc.ritmp);
+	if (xc->ri > 1) {
+		for (i=0; i<xc->npy; i++) {
+			do_range_interpolate(API, &xc->c1[i*xc->npx], xc->npx, xc->ri, xc->ritmp);
+			do_range_interpolate(API, &xc->c2[i*xc->npx], xc->npx, xc->ri, xc->ritmp);
 			}
 		}
 
 	/* convert to amplitude and demean */
 	mean1 = mean2 = 0.0;
-	for (i=0; i<xc.npy*xc.npx; i++) {
-		xc.c1[i].r = Cabs(xc.c1[i]);
-		xc.c1[i].i = 0.0f;
+	for (i=0; i<xc->npy*xc->npx; i++) {
+		xc->c1[i].r = Cabs(xc->c1[i]);
+		xc->c1[i].i = 0.0f;
 
-		xc.c2[i].r = Cabs(xc.c2[i]);
-		xc.c2[i].i = 0.0f;
+		xc->c2[i].r = Cabs(xc->c2[i]);
+		xc->c2[i].i = 0.0f;
 
-		mean1 += xc.c1[i].r;
-		mean2 += xc.c2[i].r;
+		mean1 += xc->c1[i].r;
+		mean2 += xc->c2[i].r;
 		}
 
-	mean1 /= (double) (xc.npy * xc.npx);
-	mean2 /= (double) (xc.npy * xc.npx);
+	mean1 /= (double) (xc->npy * xc->npx);
+	mean2 /= (double) (xc->npy * xc->npx);
 
-	for (i=0; i<xc.npy*xc.npx; i++) {
-		xc.c1[i].r = xc.c1[i].r - (float)mean1;
-		xc.c2[i].r = xc.c2[i].r - (float)mean2;
+	for (i=0; i<xc->npy*xc->npx; i++) {
+		xc->c1[i].r = xc->c1[i].r - (float)mean1;
+		xc->c2[i].r = xc->c2[i].r - (float)mean2;
 		}
 
 	/* apply mask */
-	for (i=0; i<xc.npy*xc.npx; i++) {
-			xc.c1[i].i = xc.c2[i].i = 0.0f;
-			xc.c2[i].r = xc.c2[i].r * (float) xc.mask[i];
+	for (i=0; i<xc->npy*xc->npx; i++) {
+			xc->c1[i].i = xc->c2[i].i = 0.0f;
+			xc->c2[i].r = xc->c2[i].r * (float) xc->mask[i];
 
-			xc.i1[i] = (int) (xc.c1[i].r);
-			xc.i2[i] = (int) (xc.c2[i].r);
+			xc->i1[i] = (int) (xc->c1[i].r);
+			xc->i2[i] = (int) (xc->c2[i].r);
 		}
 
 	if (debug) fprintf(stderr," mean %lf\n", mean1);
 	if (debug) fprintf(stderr," mean %lf\n", mean2);
 }
 /*-------------------------------------------------------------------------------*/
-void do_correlation(void *API, struct xcorr xc)
+void do_correlation(void *API, struct xcorr *xc)
 {
 	int	i, j, iloc, istep;
 
@@ -150,35 +151,35 @@ void do_correlation(void *API, struct xcorr xc)
 	istep = 1;
 
 	/* allocate arrays   			*/
-	allocate_arrays(&xc);
+	allocate_arrays(xc);
 
 	/* make mask 				*/
 	make_mask(xc);
 	
 	iloc = 0;
-	for (i=0; i<xc.nyl; i+=istep){
+	for (i=0; i<xc->nyl; i+=istep){
 
 		/* read in data for each row */
 		read_xcorr_data(xc, iloc);
 
-		for (j=0; j<xc.nxl; j++){
+		for (j=0; j<xc->nxl; j++){
 
-			if (debug) fprintf(stderr," initial: iloc %d (%d,%d)\n",iloc, xc.loc[iloc].x,xc.loc[iloc].y);
+			if (debug) fprintf(stderr," initial: iloc %d (%d,%d)\n",iloc, xc->loc[iloc].x,xc->loc[iloc].y);
 
 			/* copy values from d1,d2 (real) to c1,c2 (complex) */
 			assign_values(API, xc, iloc);
 
-			if (debug) print_complex(xc.c1, xc.npy, xc.npx, 1);
-			if (debug) print_complex(xc.c2, xc.npy, xc.npx, 1);
+			if (debug) print_complex(xc->c1, xc->npy, xc->npx, 1);
+			if (debug) print_complex(xc->c2, xc->npy, xc->npx, 1);
 
 			/* correlate patch with data over offsets in time domain */
-			if (xc.corr_flag < 2) do_time_corr(xc, iloc); 
+			if (xc->corr_flag < 2) do_time_corr(xc, iloc); 
 
 			/* correlate patch with data over offsets in freq domain */
-			if (xc.corr_flag == 2) do_freq_corr(API, xc, iloc); 
+			if (xc->corr_flag == 2) do_freq_corr(API, xc, iloc); 
 
 			/* oversample correlation surface  to obtain sub-pixel resolution */
-			if (xc.interp_flag == 1) do_highres_corr(API, xc, iloc); 
+			if (xc->interp_flag == 1) do_highres_corr(API, xc, iloc); 
 
 			/* write out results */
 			print_results(xc, iloc);
@@ -191,19 +192,19 @@ void do_correlation(void *API, struct xcorr xc)
 /* want to avoid circular correlation so mask out most of b			*/
 /* could adjust shape for different geometries					*/
 /*-------------------------------------------------------------------------------*/
-void make_mask(struct xcorr xc)
+void make_mask(struct xcorr *xc)
 {
 int i,j,imask;
 imask = 0;
 
-	for (i=0; i<xc.npy; i++){
-		for (j=0; j<xc.npx; j++){
-			 xc.mask[i*xc.npx + j] = 1;
-			if ((i < xc.ysearch) || (i >= (xc.npy - xc.ysearch))) {
-				xc.mask[i*xc.npx +j] = imask;
+	for (i=0; i<xc->npy; i++){
+		for (j=0; j<xc->npx; j++){
+			 xc->mask[i*xc->npx + j] = 1;
+			if ((i < xc->ysearch) || (i >= (xc->npy - xc->ysearch))) {
+				xc->mask[i*xc->npx +j] = imask;
 				}
-			if ((j < xc.xsearch) || (j >= (xc.npx - xc.xsearch))) {
-				xc.mask[i*xc.npx + j] = imask;
+			if ((j < xc->xsearch) || (j >= (xc->npx - xc->xsearch))) {
+				xc->mask[i*xc->npx + j] = imask;
 				}
 			}
 		}
@@ -243,42 +244,44 @@ int	nx, ny, nx_exp, ny_exp;
 int main(int argc,char **argv)
 {
 	int	input_flag, nfiles;
-	struct	xcorr xc;
+	struct	xcorr *xc;
 	clock_t start, end;
 	double	cpu_time;
 	void	*API = NULL; /* GMT API control structure */
+
+    xc = (struct xcorr *)malloc(sizeof(struct xcorr));
 
 	verbose = 0;
 	debug = 0;
 	input_flag = 0;
 	nfiles = 2;
-	xc.interp_flag = 0;
-	xc.corr_flag = 2;
+	xc->interp_flag = 0;
+	xc->corr_flag = 2;
 
 	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session (argv[0], 0U, 0U, NULL)) == NULL) return EXIT_FAILURE;
 
 	if (argc < 3) die (USAGE, "");
 
-	set_defaults(&xc);
+	set_defaults(xc);
 	
-	parse_command_line(argc, argv, &xc, &nfiles, &input_flag, USAGE);
+	parse_command_line(argc, argv, xc, &nfiles, &input_flag, USAGE);
 
 	/* read prm files */
-	if (input_flag == 0) handle_prm(argv, &xc, nfiles);
+	if (input_flag == 0) handle_prm(API,argv, xc, nfiles);
 
-	if (debug) print_params(&xc);
+	if (debug) print_params(xc);
 
 	/* output file */
-	if (xc.corr_flag == 0) strcpy(xc.filename,"time_xcorr.dat");
-	if (xc.corr_flag == 1) strcpy(xc.filename,"time_xcorr_Gatelli.dat");
-	if (xc.corr_flag == 2) strcpy(xc.filename,"freq_xcorr.dat");
+	if (xc->corr_flag == 0) strcpy(xc->filename,"time_xcorr.dat");
+	if (xc->corr_flag == 1) strcpy(xc->filename,"time_xcorr_Gatelli.dat");
+	if (xc->corr_flag == 2) strcpy(xc->filename,"freq_xcorr.dat");
 
-	xc.file = fopen(xc.filename,"w");
-	if (xc.file == NULL) die("Can't open output file",xc.filename); 
+	xc->file = fopen(xc->filename,"w");
+	if (xc->file == NULL) die("Can't open output file",xc->filename); 
 
 	/* x locations, y locations */
-	get_locations(&xc);
+	get_locations(xc);
 
 	/* calculate correlation at all points */
 	start = clock();
@@ -287,15 +290,15 @@ int main(int argc,char **argv)
 
 	/* write the a_stretch_a based on the PRF differences */
 /*
-        fprintf(xc.file,"a_stretch_a  =  %f \n",xc.astretcha);
+        fprintf(xc->file,"a_stretch_a  =  %f \n",xc->astretcha);
 */
 
 	end = clock();
 	cpu_time  = ((double) (end-start)) / CLOCKS_PER_SEC;	
 	fprintf(stdout, " elapsed time: %lf \n", cpu_time);
 
-	fclose(xc.data1); 
-	fclose(xc.data2);
+	fclose(xc->data1); 
+	fclose(xc->data2);
 
 	if (GMT_Destroy_Session (API)) return EXIT_FAILURE;	/* Remove the GMT machinery */
 

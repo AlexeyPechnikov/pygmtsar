@@ -16,7 +16,7 @@ struct locs {
 	};
 
 struct xcorr{
-	int	format;		/* type of input data [0 short complex, 1 real float] */
+	int	format;		/* type of input data [0 short complex, 1 real float, 3 real grd] */
 	int	corr_flag;	/* type of correlation flag 0 = standard; 1 = Gatelli; 2 = fft */
 	int	offset_flag;	/* set offset to zero (ignore prm)  */
 	int	interp_flag;	/* interpolation flag 1 = yes 0 = no */
@@ -69,5 +69,7 @@ struct xcorr{
 	char	data2_name[128];
 	char	filename[128];
 	struct  locs *loc;
+    struct GMT_GRID *D1;
+    struct GMT_GRID *D2;
 	};
 #endif /* XCORR_H */

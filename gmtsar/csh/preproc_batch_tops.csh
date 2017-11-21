@@ -30,6 +30,10 @@
     echo "  Note:"
     echo "    The names must be in time order in each line to be stitched together"
     echo ""
+    echo "Reference: Xu, X., Sandwell, D.T., Tymofyeyeva, E., González-Ortega, A. and Tong, X., "
+    echo "    2017. Tectonic and Anthropogenic Deformation at the Cerro Prieto Geothermal "
+    echo "    Step-Over Revealed by Sentinel-1A InSAR. IEEE Transactions on Geoscience and "
+    echo "    Remote Sensing."
     exit 1
   endif
 
