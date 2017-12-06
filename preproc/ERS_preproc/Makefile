@@ -14,8 +14,6 @@ install:	all
 	done
 	$(INSTALL) $(SCRIPT)/dump_orbit_ers.pl $(bindir)
 	$(INSTALL) $(SCRIPT)/ERS_pre_process $(bindir)
-	$(INSTALL) $(bindir)/ENVI_baseline $(bindir)/ERS_baseline
-	$(INSTALL) $(bindir)/ENVI_llt2rat  $(bindir)/ERS_llt2rat
 
 uninstall:
 	for d in $(DIRS); do \
@@ -23,8 +21,6 @@ uninstall:
 	done
 	rm -f $(bindir)/dump_orbit_ers.pl
 	rm -f $(bindir)/ERS_pre_process
-	rm -f $(bindir)/ERS_baseline
-	rm -f $(bindir)/ERS_llt2rat
 
 clean:
 	for d in $(DIRS); do \

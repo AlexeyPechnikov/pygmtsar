@@ -1,7 +1,7 @@
 include ../../config.mk
 
 LIB	= lib/ibENVI.a
-DIRS	= ASA_CAT Dop_orbit ENVI_baseline ENVI_decode ENVI_llt2rat ENVI_look ENVI_SLC_decode
+DIRS	= ASA_CAT Dop_orbit ENVI_decode ENVI_SLC_decode
 SCRIPT	= scripts
 
 all:	$(LIB)
