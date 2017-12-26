@@ -83,7 +83,11 @@ endif
  set YS  = `grep yshift temp | awk '{print $3}'`
  set NM  = `grep SC_identity $2 | awk '{print $3}'`
 if ($SSC == 5) then
- set ORB = `grep input_file $2 | awk '{print $3}' | awk '{print substr($1,14,5)}'` 
+ if ($YR1 < 2013) then
+   set ORB = `grep input_file $2 | awk '{print $3}' | awk '{print substr($1,14,5)}'` 
+ else
+   set ORB = `grep input_file $2 | awk '{print $3}' | awk '{print substr($1,13,5)}'` 
+ endif
 else if ($SSC == 6 || $ERSSLC == "SAR_IMS_1P") then
  set ORB = `grep input_file $2 | awk '{print $3}' | cut -c50-54`
 else if ($SSC == 4) then
