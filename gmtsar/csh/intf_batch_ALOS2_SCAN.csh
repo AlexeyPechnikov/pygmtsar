@@ -82,11 +82,12 @@ unset noclobber
   set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
+  set range_dec = `grep range_dec $3 | awk '{print $3}'`
+  set azimuth_dec = `grep azimuth_dec $3 | awk '{print $3}'`
 #
 # loop over 5 subswath
 #
-# foreach subswath (1 2 3 4 5)
-  foreach subswath (2 3 4 5)
+  foreach subswath (1 2 3 4 5)
   mkdir -p F$subswath
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   cd F$subswath
@@ -199,6 +200,7 @@ if ($stage <= 2) then
       echo ""
       echo "INTF.CSH, FILTER.CSH - START"
       cd intf
+      rm -r $ref_id"_"$rep_id
       mkdir $ref_id"_"$rep_id
       cd $ref_id"_"$rep_id
       ln -s ../../SLC/IMG-HH-$ref-F$subswath.LED .
@@ -214,15 +216,18 @@ if ($stage <= 2) then
         if ($shift_topo == 1) then
           ln -s ../../topo/topo_shift.grd .
           intf.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM -topo topo_shift.grd
-          filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec 2 8
+#          filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec 2 8
+          filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec $range_dec $azimuth_dec
         else
           ln -s ../../topo/topo_ra.grd .
           intf.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM -topo topo_ra.grd
-          filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec 2 8
+#          filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec 2 8
+          filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec $range_dec $azimuth_dec
         endif
       else
         intf.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM
-        filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec 2 8
+#        filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec 2 8
+        filter.csh IMG-HH-$ref-F$subswath.PRM IMG-HH-$rep-F$subswath.PRM $filter $dec $range_dec $azimuth_dec
       endif
     endif
     echo "INTF.CSH, FILTER.CSH - END"
