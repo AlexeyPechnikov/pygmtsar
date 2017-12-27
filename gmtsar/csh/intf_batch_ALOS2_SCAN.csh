@@ -1,10 +1,9 @@
 #!/bin/csh -f 
 #       $Id$
 #
-# intf_batch.csh
 # Loop through a list of interferometry pairs
 # modified from process2pass.csh
-# Xiaopeng Tong D.Sandwell Aug 27 2010 
+# 
 
 alias rm 'rm -f'
 unset noclobber
@@ -23,12 +22,11 @@ unset noclobber
     echo "     reference3_name:repeat3_name"
     echo "     ......"
     echo ""
-    echo " Example of intf.in for ALOS:"
-    echo "    IMG-HH-ALPSRP096010650-H1.0__A:IMG-HH-ALPSRP236920650-H1.0__A"
-    echo "    IMG-HH-ALPSRP089300650-H1.0__A:IMG-HH-ALPSRP096010650-H1.0__A"
-    echo "    IMG-HH-ALPSRP089300650-H1.0__A:IMG-HH-ALPSRP236920650-H1.0__A"
+    echo " Example of intf.in for ALOS2 ScanSAR"
+    echo "    IMG-HH-ALOS2101532950-160409-WBDR1.1__D:IMG-HH-ALOS2149142950-170225-WBDR1.1__D"
+    echo "    IMG-HH-ALOS2101532950-160409-WBDR1.1__D:IMG-HH-ALOS2155352950-170408-WBDR1.1__D"
     echo ""
-    echo " batch.config is a config file for making interferograms"
+    echo " batch.alos2.config is a config file for making interferograms"
     echo " See example.batch.config for an example"
     echo ""
     exit 1
@@ -41,7 +39,6 @@ unset noclobber
     echo ""
     exit 1
   endif
-
 #
 # make sure the file exsit
 #
@@ -49,7 +46,6 @@ unset noclobber
     echo "no input file:" $2
     exit
   endif
-
   if (! -f $3) then
     echo "no config file:" $3
     exit
@@ -58,7 +54,6 @@ unset noclobber
 # read parameters from configuration file
 # 
   set stage = `grep proc_stage $3 | awk '{print $3}'`
-#  set master = `grep master_image $3 | awk '{print $3}'`
   if ($SAT == ALOS) then
     set master = `grep master_image $3 | awk '{print $3}' | awk '{ print substr($1,8,length($1)-7)}'`
   endif
@@ -69,7 +64,6 @@ unset noclobber
     echo ""
     exit 1
   endif
-
 #
 # if filter wavelength is not set then use a default of 200m
 #
@@ -88,12 +82,11 @@ unset noclobber
   set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
-
-  
 #
 # loop over 5 subswath
 #
-  foreach subswath (1 2 3 4 5)
+# foreach subswath (1 2 3 4 5)
+  foreach subswath (2 3 4 5)
   mkdir -p F$subswath
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   cd F$subswath
@@ -118,7 +111,7 @@ if ($stage <= 1) then
     cd topo
     if ($SAT == ALOS) then
       cp ../SLC/IMG-HH-$master-F$subswath.PRM master.PRM
-      ln -s ../../raw/LED-$master .
+      ln -s ../SLC/IMG-HH-$master-F$subswath.LED .
     endif
     if (-f ../../topo/dem.grd) then
       ln -s ../../topo/dem.grd . 
@@ -129,7 +122,6 @@ if ($stage <= 1) then
     endif
     cd ..
     echo "DEM2TOPOPHASE.CSH - END"
-
 #
 # shift topo_ra
 #
@@ -178,7 +170,6 @@ if ($stage <= 1) then
 
 endif # stage 1
 
-
 ##################################################
 # 2 - start from make and filter interferograms  #
 #                unwrap phase and geocode        #
@@ -186,17 +177,13 @@ endif # stage 1
 
 if ($stage <= 2) then
 #
-
-#
 # make working directories
 #
   echo ""
   echo "START FORM A STACK OF INTERFEROGRAMS"
-  echo ""
 
   mkdir -p intf/
   ln -s ../$2 . 
-
 #
 # loop over intf.in
 #
@@ -214,8 +201,8 @@ if ($stage <= 2) then
       cd intf
       mkdir $ref_id"_"$rep_id
       cd $ref_id"_"$rep_id
-      ln -s ../../../raw/LED-$ref .
-      ln -s ../../../raw/LED-$rep .
+      ln -s ../../SLC/IMG-HH-$ref-F$subswath.LED .
+      ln -s ../../SLC/IMG-HH-$rep-F$subswath.LED .
       ln -s ../../SLC/IMG-HH-$ref-F$subswath.SLC .
       ln -s ../../SLC/IMG-HH-$rep-F$subswath.SLC .
       cp ../../SLC/IMG-HH-$ref-F$subswath.PRM .
@@ -239,7 +226,6 @@ if ($stage <= 2) then
       endif
     endif
     echo "INTF.CSH, FILTER.CSH - END"
-
     
     if ($region_cut == "") then
       set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
