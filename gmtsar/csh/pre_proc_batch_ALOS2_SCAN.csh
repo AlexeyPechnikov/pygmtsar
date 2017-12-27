@@ -1,13 +1,11 @@
 #!/bin/csh -f
 #       $Id$
 #
-#  Xiaopeng Tong, Mar 2 2010 
-#  modified by D. Sandwell MAR 11 2010
-#
 #  preprocess all the data based on data.in table file and generate: 
 #  1. SLC files
 #  2. PRM files 
-#  3. time-baseline plot for user to create stacking pairs 
+#  3. LED files
+#  4. time-baseline plot for user to create stacking pairs 
 
 #  format in data.in table file: 
 #  	line 1: master_name  
@@ -41,7 +39,6 @@ unset noclobber
 #
 # read parameters from configuration file
 #
-
   set earth_radius = `grep earth_radius $2 | awk '{print $3}'`
   set SLC_factor = `grep SLC_factor $2 | awk '{print $3}'`
   
@@ -54,7 +51,6 @@ unset noclobber
   endif
 
   echo $commandline
-
 #
 # open and read data.in table 
 #
@@ -133,10 +129,9 @@ unset noclobber
 # make baseline plots
 #
 
-  awk '{print 2006.5+($1-181)/365.25,$2,$7}' < table.gmt > text
-#    awk '{print 2006.5+($1-181)/365.25,$2,9,$4,$5,$6,$7}' < table.gmt > text
+  awk '{print 2014.5+($1-181)/365.25,$2,$7}' < table.gmt > text
+#  awk '{print 2014.5+($1-181)/365.25,$2,9,$4,$5,$6,$7}' < table.gmt > text
   set region = `gmt gmtinfo text -C | awk '{print $1-0.5, $2+0.5, $3-500, $4+500}'`
-# set region = `minmax text -C | awk '{print $1-0.5, $2+0.5, -1200, 1200}'`
   gmt pstext text -JX8.8i/6.8i -R$region[1]/$region[2]/$region[3]/$region[4] -D0.2/0.2 -X1.5i -Y1i -K -N -F+f8,Helvetica+j5 > stacktable_all.ps
   awk '{print $1,$2}' < text > text2
   gmt psxy text2 -Sp0.2c -G0 -R -JX -Ba1:"year":/a200g00f100:"baseline (m)":WSen -O >> stacktable_all.ps
