@@ -10,10 +10,8 @@
 #  format in data.in table file: 
 #  	line 1: master_name  
 # 	line 2 and below: slave_name
-
 alias rm 'rm -f'
 unset noclobber
-
 #
 # check the number of arguments 
 # 
@@ -74,7 +72,6 @@ unset noclobber
   endif
 
   set RAD = `grep earth_radius IMG-HH-$master-F$subswath.PRM | awk '{print $3}'`
-  #set SLC_factor = `grep SLC_factor IMG-HH-$master-F$subswath.PRM | awk '{print $3}'`
   set rng_samp_rate_m = `grep rng_samp_rate IMG-HH-$master-F$subswath.PRM | awk 'NR == 1 {printf("%d", $3)}'`
 
   baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$master-F$subswath.PRM >! baseline_table.dat
