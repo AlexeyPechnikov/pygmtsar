@@ -92,7 +92,8 @@ install (PROGRAMS align.csh align_ALOS2_SCAN.csh align_ALOS_SLC.csh align_batch.
 	p2p_S1A_TOPS.csh p2p_S1A_TOPS_Frame.csh p2p_SAT_SLC.csh p2p_TSX_SLC.csh pre_proc.csh pre_proc_batch.csh
 	pre_proc_batch_ALOS2_SCAN.csh pre_proc_batch_ALOS_SLC.csh pre_proc_init.csh preproc_batch_tops.csh
 	preproc_batch_tops_esd.csh proj_ll2ra.csh proj_ll2ra_ascii.csh proj_model.csh proj_ra2ll.csh
-	proj_ra2ll_ascii.csh sarp.csh slc2amp.csh snaphu.csh snaphu_interp.csh stack.csh stack_corr.csh update_PRM.csh
+	proj_ra2ll_ascii.csh sarp.csh slc2amp.csh snaphu.csh snaphu_interp.csh stack.csh stack_corr.csh 
+	update_PRM.csh select_pairs.csh
 	RUNTIME DESTINATION bin
 	COMPONENT Runtime)
 
