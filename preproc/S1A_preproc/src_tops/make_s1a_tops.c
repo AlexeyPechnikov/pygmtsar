@@ -264,8 +264,9 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
     int *kF, *ksa, *ksr, *kea, *ker, *kover;
     double t0=-1.,time;
     char *cflag,*cflag_orig;
-    int first_samp = 1;
+    int first_samp = 1; 
 
+    int lines_this_burst = 0;
     // define some of the variables
     prm->first_line = 1;
     prm->st_rng_bin = 1;
@@ -365,8 +366,10 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
         search_tree(xml_tree,"/product/swathTiming/burstList/burst/azimuthAnxTime/",tmp_c,1,4,i);
         t[i] = str2double(tmp_c);
         search_tree(xml_tree,"/product/swathTiming/burstList/burst/firstValidSample/",tmp_cc,1,4,i);
+//        printf("%d\n",get_words(&tmp_cc));
+        lines_this_burst=get_words(&tmp_cc);
         strcpy(cflag,tmp_cc);
-        for (j=0;j<lpb;j++){
+        for (j=0;j<lines_this_burst;j++){
             flag = (int)strtol(cflag,&cflag,10);
             first_samp = max(first_samp,flag);
             time = t[i] + (double)j/prm->prf;
@@ -945,7 +948,9 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
     search_tree(xml_tree,"/auxiliaryCalibration/calibrationParamsList/calibrationParams/elevationAntennaPattern/elevationAngleIncrement/",tmp_str,1,3,mode);
     dtheta = str2double(tmp_str);  
 
-    search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:orbitReference/safe:extension/s1:orbitProperties/s1:ascendingNodeTime/",tmp_str,2,3,14);
+//    search_tree(xml_tree,"/xfdu:XFDU/metadataSection/metadataObject/metadataWrap/xmlData/safe:orbitReference/safe:extension/s1:orbitProperties/s1:ascendingNodeTime/",tmp_str,2,3,14);
+    search_tree(xml_tree,"/product/imageAnnotation/imageInformation/ascendingNodeTime/",tmp_str,2,1,1);
+
     anx_time = (str2double(tmp_str)-(int)str2double(tmp_str))*86400.0;
     t_brst = (t_brst-(int)t_brst)*86400.0;
     
@@ -1168,5 +1173,19 @@ double arg, f;
         return (f);
 }
 
+// added by Kang Wang
+int get_words(char *buffer){                                        // Function that gets the word count, by counting the spaces.
+    int count;
+    int wordcount = 0;
+    char ch;
 
+    for (count = 0; count < strlen(buffer); count ++){
+        ch = buffer[count];
+        if((isblank(ch)) || (buffer[count] == '\0')){                   // if the character is blank, or null byte add 1 to the wordcounter
+            wordcount += 1;
+        }
+    }
+//    printf("%d\n\n", wordcount);
+    return wordcount+1;
+}
 
