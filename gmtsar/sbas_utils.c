@@ -138,8 +138,8 @@ int allocate_memory_ts(int64_t **jpvt,double **work,double **d,double **ds,float
         if ((*cfile = Malloc(char *,N)) == NULL) die("memory allocation!","cfile");
         p1 = *gfile; p2 = *cfile;
 	for (i=0;i<N;i++) {
-		if ((p1[i] = Malloc(char,36)) == NULL) die("memory allocation!","gfile[i]");
-		if ((p2[i] = Malloc(char,36)) == NULL) die("memory allocation!","cfile[i]");
+		if ((p1[i] = Malloc(char,256)) == NULL) die("memory allocation!","gfile[i]");
+		if ((p2[i] = Malloc(char,256)) == NULL) die("memory allocation!","cfile[i]");
 	}
         if ((*L = Malloc(int64_t,S)) == NULL) die("memory allocation!","L");
         if ((*time = Malloc(double, S)) == NULL) die("memory allocation!","time");
