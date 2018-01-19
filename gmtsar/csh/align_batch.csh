@@ -39,7 +39,6 @@
     echo ""
     exit 1
   endif
- 
 #
 # make working directories
 #
@@ -58,46 +57,24 @@
     set master = `echo $line | awk -F: '{print $1}'`
     set slave = `echo $line | awk -F: '{print $2}'`
     set supermaster = `echo $line | awk -F: '{print $3}'`
-    set masterstem = ` echo $master | awk '{ print substr($1,8,length($1)-7)}'`
-    set slavestem =  ` echo $slave | awk '{ print substr($1,8,length($1)-7)}'`
-    set supermasterstem = ` echo $supermaster | awk '{ print substr($1,8,length($1)-7)}'`
 
     if ($master != "" && $slave != "" && $supermaster != "") then
       echo " "
       echo "Align $slave to $master via $supermaster - START"
       cd SLC
-      if ($SAT == ALOS) then
-        cp ../raw/IMG-HH-$masterstem.PRM .
-        cp ../raw/IMG-HH-$slavestem.PRM .
-        cp ../raw/IMG-HH-$supermasterstem.PRM .
-      else if ($SAT == ENVI || $SAT == ERS) then
-        cp ../raw/$master.PRM .
-        cp ../raw/$slave.PRM .
-        cp ../raw/$supermaster.PRM .
-      endif
+      cp ../raw/$master.PRM .
+      cp ../raw/$slave.PRM .
+      cp ../raw/$supermaster.PRM .
 #
 #  need to add the SLF_file name to the master PRM's
 #
-      if ($SAT == ALOS) then 
-        update_PRM.csh IMG-HH-$masterstem.PRM SLC_file IMG-HH-$masterstem.SLC
-        update_PRM.csh IMG-HH-$supermasterstem.PRM SLC_file IMG-HH-$supermasterstem.SLC
-        ln -s ../raw/IMG-HH-$masterstem.raw . 
-        ln -s ../raw/IMG-HH-$slavestem.raw . 
-        ln -s ../raw/LED-$masterstem . 
-        ln -s ../raw/LED-$slavestem .
-      else if ($SAT == ENVI || $SAT == ERS) then
-        update_PRM.csh $master.PRM SLC_file $master.SLC
-        update_PRM.csh $supermaster.PRM SLC_file $supermaster.SLC
-        ln -s ../raw/$master.raw . 
-        ln -s ../raw/$slave.raw . 
-        ln -s ../raw/$master.LED . 
-        ln -s ../raw/$slave.LED .
-      endif
-      if ($SAT == ALOS) then
-        align.csh ALOS $master $slave $supermaster
-      else
-        align.csh SAT $master $slave $supermaster
-      endif
+      update_PRM.csh $master.PRM SLC_file $master.SLC
+      update_PRM.csh $supermaster.PRM SLC_file $supermaster.SLC
+      ln -s ../raw/$master.raw . 
+      ln -s ../raw/$slave.raw . 
+      ln -s ../raw/$master.LED . 
+      ln -s ../raw/$slave.LED .
+      align.csh SAT $master $slave $supermaster
       cd ..
       echo "Align $slave to $master via $supermaster - END"
     else 
