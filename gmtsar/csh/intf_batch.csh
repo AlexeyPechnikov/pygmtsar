@@ -49,7 +49,7 @@ unset noclobber
     echo ""
     exit 1
   endif
-
+#
   set SAT = $1
   if ($SAT != ALOS && $SAT != ENVI && $SAT != ERS && $SAT != ENVI_SLC) then
     echo ""
@@ -57,7 +57,6 @@ unset noclobber
     echo ""
     exit 1
   endif
-
 #
 # make sure the file exsit
 #
@@ -74,20 +73,13 @@ unset noclobber
 # read parameters from configuration file
 # 
   set stage = `grep proc_stage $3 | awk '{print $3}'`
-#  set master = `grep master_image $3 | awk '{print $3}'`
-  if ($SAT == ALOS) then
-    set master = `grep master_image $3 | awk '{print $3}' | awk '{ print substr($1,8,length($1)-7)}'`
-  else if ($SAT == ENVI || $SAT == ERS || $SAT == ENVI_SLC) then
-    set master = `grep master_image $3 | awk '{print $3}'`
-  endif
-
+  set master = `grep master_image $3 | awk '{print $3}'`
   if ($master == "") then
     echo ""
     echo "master image not set."
     echo ""
     exit 1
   endif
-
 #
 # if filter wavelength is not set then use a default of 200m
 #
@@ -107,13 +99,11 @@ unset noclobber
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
-
-  
-
+#
 ##################################
 # 1 - start from make topo_ra  #
 ##################################
-
+#
 if ($stage <= 1) then
 #
 # clean up
@@ -127,13 +117,8 @@ if ($stage <= 1) then
     echo "DEM2TOPOPHASE.CSH - START"
     echo "USER SHOULD PROVIDE DEM FILE"
     cd topo
-    if ($SAT == ALOS) then
-      cp ../SLC/IMG-HH-$master.PRM master.PRM
-      ln -s ../raw/LED-$master .
-    else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
-      cp ../SLC/$master.PRM master.PRM
-      ln -s ../raw/$master.LED .
-    endif
+    cp ../SLC/$master.PRM master.PRM
+    ln -s ../raw/$master.LED .
     if (-f dem.grd) then
       dem2topo_ra.csh master.PRM dem.grd
     else
@@ -142,7 +127,6 @@ if ($stage <= 1) then
     endif
     cd ..
     echo "DEM2TOPOPHASE.CSH - END"
-
 #
 # shift topo_ra
 #
@@ -151,7 +135,7 @@ if ($stage <= 1) then
       echo "OFFSET_TOPO - START"
       cd SLC
       if ($SAT == ALOS) then
-        set rng_samp_rate = `grep rng_samp_rate IMG-HH-$master.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+        set rng_samp_rate = `grep rng_samp_rate $master.PRM | awk 'NR == 1 {printf("%d", $3)}'`
         if ( $?rng_samp_rate) then
           if ($rng_samp_rate > 25000000) then
             echo "processing ALOS FBS data"
@@ -164,7 +148,7 @@ if ($stage <= 1) then
           echo "Undefined rng_samp_rate in the master PRM file"
           exit 1
         endif
-        slc2amp.csh IMG-HH-$master.PRM $rng amp-$master.grd
+        slc2amp.csh $master.PRM $rng amp-$master.grd
       else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
         slc2amp.csh $master.PRM 1 amp-$master.grd
       endif
@@ -180,7 +164,7 @@ if ($stage <= 1) then
       echo "Wrong paramter: shift_topo "$shift_topo
       exit 1
     endif
-
+#
     else if ($topo_phase == 0) then
       echo "NO TOPOPHASE IS SUBSTRACTED"
     else
@@ -188,18 +172,15 @@ if ($stage <= 1) then
       exit 1
     endif
   endif
-
+#
 endif # stage 1
-
-
+#
 ##################################################
 # 2 - start from make and filter interferograms  #
 #                unwrap phase and geocode        #
 ##################################################
-
-if ($stage <= 2) then
 #
-
+if ($stage <= 2) then
 #
 # make working directories
 #
@@ -213,60 +194,23 @@ if ($stage <= 2) then
 #
   foreach line (`awk '{print $0}' $2`)
 
-    if ($SAT == ALOS) then
-      set ref = `echo $line | awk -F: '{print $1}' | awk '{ print substr($1,8,length($1)-7)}'`
-      set rep = `echo $line | awk -F: '{print $2}' | awk '{ print substr($1,8,length($1)-7)}'`
-     
-      set ref_id  = `grep SC_clock_start ./SLC/IMG-HH-$ref.PRM | awk '{printf("%d",int($3))}' `
-      set rep_id  = `grep SC_clock_start ./SLC/IMG-HH-$rep.PRM | awk '{printf("%d",int($3))}' `
-
-      echo ""
-      echo "INTF.CSH, FILTER.CSH - START"
-      cd intf
-      mkdir $ref_id"_"$rep_id
-      cd $ref_id"_"$rep_id
-      ln -s ../../raw/LED-$ref .
-      ln -s ../../raw/LED-$rep .
-      ln -s ../../SLC/IMG-HH-$ref.SLC .
-      ln -s ../../SLC/IMG-HH-$rep.SLC .
-      cp ../../SLC/IMG-HH-$ref.PRM .
-      cp ../../SLC/IMG-HH-$rep.PRM .
-    else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
-      set ref = `echo $line | awk -F: '{print $1}'`
-      set rep = `echo $line | awk -F: '{print $2}'`
-
-      set ref_id  = `grep SC_clock_start ./SLC/$ref.PRM | awk '{printf("%d",int($3))}' `
-      set rep_id  = `grep SC_clock_start ./SLC/$rep.PRM | awk '{printf("%d",int($3))}' `
-
-      echo ""
-      echo "INTF.CSH, FILTER.CSH - START"
-      cd intf
-      mkdir $ref_id"_"$rep_id
-      cd $ref_id"_"$rep_id
-      ln -s ../../raw/$ref.LED .
-      ln -s ../../raw/$rep.LED .
-      ln -s ../../SLC/$ref.SLC .
-      ln -s ../../SLC/$rep.SLC .
-      cp ../../SLC/$ref.PRM .
-      cp ../../SLC/$rep.PRM .
-    endif
-
-    if ($SAT == ALOS) then 
-      if($topo_phase == 1) then
-        if ($shift_topo == 1) then
-          ln -s ../../topo/topo_shift.grd .
-          intf.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM -topo topo_shift.grd
-          filter.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM $filter $dec
-        else
-          ln -s ../../topo/topo_ra.grd .
-          intf.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM -topo topo_ra.grd
-          filter.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM $filter $dec
-        endif
-      else
-        intf.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM
-        filter.csh IMG-HH-$ref.PRM IMG-HH-$rep.PRM $filter $dec
-      endif
-    else if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
+    set ref = `echo $line | awk -F: '{print $1}'`
+    set rep = `echo $line | awk -F: '{print $2}'`
+    set ref_id  = `grep SC_clock_start ./SLC/$ref.PRM | awk '{printf("%d",int($3))}' `
+    set rep_id  = `grep SC_clock_start ./SLC/$rep.PRM | awk '{printf("%d",int($3))}' `
+#
+    echo ""
+    echo "INTF.CSH, FILTER.CSH - START"
+    cd intf
+    mkdir $ref_id"_"$rep_id
+    cd $ref_id"_"$rep_id
+    ln -s ../../raw/$ref.LED .
+    ln -s ../../raw/$rep.LED .
+    ln -s ../../SLC/$ref.SLC .
+    ln -s ../../SLC/$rep.SLC .
+    cp ../../SLC/$ref.PRM .
+    cp ../../SLC/$rep.PRM .
+#
       if($topo_phase == 1) then
         if ($shift_topo == 1) then
           ln -s ../../topo/topo_shift.grd .
@@ -281,16 +225,12 @@ if ($stage <= 2) then
         intf.csh $ref.PRM $rep.PRM
         filter.csh $ref.PRM $rep.PRM $filter $dec
       endif
-    endif
     echo "INTF.CSH, FILTER.CSH - END"
-
-    
+#
     if ($region_cut == "") then
       set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
     endif
-
     if ($threshold_snaphu != 0 ) then
-
       if ($switch_land == 1) then
         cd ../../topo
         if (! -f landmask_ra.grd) then
@@ -300,18 +240,15 @@ if ($stage <= 2) then
         cd $ref_id"_"$rep_id
         ln -s ../../topo/landmask_ra.grd .
       endif
-
       echo ""
       echo "SNAPHU.CSH - START"
       echo "threshold_snaphu: $threshold_snaphu"
       snaphu.csh $threshold_snaphu $defomax $region_cut
       echo "SNAPHU.CSH - END"
-
     else 
       echo ""
       echo "SKIP UNWRAP PHASE"
     endif
-
     echo " "
     echo "GEOCODE.CSH - START"
     rm raln.grd ralt.grd
@@ -327,11 +264,9 @@ if ($stage <= 2) then
     echo "GEOCODE.CSH - END"
  
     cd ../..
-
   end # loop of foreach 
 endif # stage 2
-
-  echo ""
-  echo "END FORM A STACK OF INTERFEROGRAMS"
-  echo ""
+echo ""
+echo "END FORM A STACK OF INTERFEROGRAMS"
+echo ""
 
