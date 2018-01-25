@@ -14,7 +14,7 @@ LIB_C		= aastretch.c acpatch.c calc_dop.c conv2d.c do_freq_xcorr.c \
 		  read_orb.c read_xcorr_data.c SAT_llt2rat_sub.c \
 		  rmpatch.c rng_cmp.c rng_ref.c set_prm_defaults.c shift.c \
 		  sio_struct.c siocomplex.c spline.c trans_col.c utils.c utils_complex.c \
-		  write_orb.c sbas_utils.c stringutils.c update_PRM.c
+		  write_orb.c sbas_utils.c stringutils.c update_PRM.c rng_filter.c
 
 LIB_O		= $(LIB_C:.c=.o)
 LIB		= libgmtsar.$(LIBEXT)
@@ -30,7 +30,7 @@ $(LIB):		$(LIB_O)
 lib:		$(LIB)
 
 PROGS_C		= bperp.c calc_dop_orb.c conv.c esarp.c offset_topo.c phase2topo.c \
-		  phasediff.c phasefilt.c resamp.c xcorr.c extend_orbit.c \
+		  phasediff.c phasefilt.c resamp.c xcorr.c extend_orbit.c filter_SLC.c\
 		  SAT_llt2rat.c SAT_look.c SAT_baseline.c make_gaussian_filter.c sbas.c \
                   nearest_grid.c fitoffset.c
 

@@ -70,6 +70,7 @@ void read_xcorr_data(struct xcorr *xc, int iloc);
 void rmpatch (fcomplex **data, int nrows, double delr, double fd, double fdd, double fddd);
 void rng_cmp (void *API, int ranfft, fcomplex *data, fcomplex *ref);
 void rng_ref (void *API, int ranfft, float delr, fcomplex *ref1);
+void rng_filter (void *API, fcomplex *cin, int nffti, fcomplex *cout);
 void shift (void *API, int ranfft, fcomplex *data, double shift);
 int trans_col (void *API, int xnum, int ynum, fcomplex **data);
 int read_SLC_short2float(FILE *SLCfile, char *name, short *sdata, fcomplex *cdata, int xdim, int psize, double dfact);
