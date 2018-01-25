@@ -10,7 +10,7 @@
 
 /***************************************************************************
  * Modification history:                                                   *
- *                                                                         *
+ * 012518  modified to use GMT5 API                                        *
  ***************************************************************************/
 
 #include "soi.h"
@@ -18,18 +18,17 @@
 
 #define clip(A) ( ((A) > 32767) ? 32767 : (((A) < -32768) ? -32768 : A) )
 
-char    *USAGE = "filter_SLC file.PRM  \n"
-                 "  file.PRM  PRM file for input  image \n";
+char    *USAGE = "\nfilter_SLC file.PRM  \n\n"
+                   "           file.PRM   -  PRM file for input image \n";
 
 int main (int argc, char **argv)
 {
-FILE	*prmfile, *datafile, *dataout;
+FILE	*datafile, *dataout;
 short int *indata, *outdata;
 fcomplex *cin, *cout;
-float rtest, itest;
-int	i, j, k, np, nffti, i0;
+float   rtest, itest;
+int     j, k, nrows, nffti;
 int 	ibufsize, obufsize, nsamp, headsize;
-size_t	n;
 struct 	PRM r;
 void    *API = NULL; /* GMT API control structure */
 
@@ -39,25 +38,23 @@ void    *API = NULL; /* GMT API control structure */
 	if (argc < 2) die (USAGE,"");
 	
 	/* flags defined in global_flags.h */
-	verbose = 1;	debug = 1;
+	verbose = 0;	debug = 0;
 
 	/* fill the struct with default parameters */
 	null_sio_struct(&r);
 
 	/* open input PRM file and read the parameters */
-	if ((prmfile = fopen(argv[1],"r")) == NULL) die("Can't open ",argv[1]);
-	//get_sio_struct(prmfile, &r);
-	get_prm(&r, prmfile);
+	get_prm(&r, argv[1]);
 	
-	/* open input raw data file */
-	if ((datafile = fopen(r.input_file,"rb")) == NULL) die("Can't open ",r.input_file);
+	/* open input SLC data file */
+	if ((datafile = fopen(r.SLC_file,"rb")) == NULL) die("Can't open ",r.input_file);
 
 	/* assemble the output filename and open for writing */
-	r.input_file[strlen(argv[1])-4]=0;
-	strcat(r.input_file,".SLCF");
+	r.SLC_file[strlen(argv[1])-4]=0;
+	strcat(r.SLC_file,".SLCF");
 	
 	/* open output file for single look complex	 image */
-	if ((dataout = fopen(r.input_file,"wb")) == NULL) die("Can't open ",r.input_file);
+	if ((dataout = fopen(r.SLC_file,"wb")) == NULL) die("Can't open ",r.input_file);
 
 	/* compute the sizes for the input and output buffers and allocate the memory */
 	ibufsize = r.num_rng_bins*2;
@@ -89,7 +86,9 @@ void    *API = NULL; /* GMT API control structure */
 	}
 		
 	/* read the input and output SLC files */
-	for (k=0; k< r.num_lines; k++) {
+        nrows = r.num_valid_az * r.num_patches;
+        if (debug) fprintf(stderr," nrows %d \n",nrows);
+	for (k=0; k< nrows; k++) {
 		fread((void *)indata,sizeof(short int),ibufsize,datafile);
 
 	/* fill the complex array with complex indata */
@@ -125,7 +124,6 @@ void    *API = NULL; /* GMT API control structure */
 	free(outdata);
 	free(cin);
 	free (cout);
-	fclose(prmfile);
 	fclose(datafile);
 	fclose(dataout);
 	if (GMT_Destroy_Session (API)) return EXIT_FAILURE;     /* Remove the GMT machinery */
