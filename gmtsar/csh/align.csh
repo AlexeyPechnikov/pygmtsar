@@ -66,7 +66,7 @@ unset noclobber
 #   use the PRF of the supermaster in the surrogate master
 #
     set PRF = `grep PRF $4.PRM | awk '{print $3}'`
-    update_PRM.csh $2.PRM PRM $PRF
+    update_PRM.csh $2.PRM PRF $PRF
   else
     set RSHIFT = `$1_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
     set ASHIFT = `$1_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
