@@ -410,8 +410,8 @@ int main( int argc, char *argv[] )
    char  sss[3];
    //char  sfracsec_start[6];
    //char  sfracsec_end[6];
-   char  sensingStopTime[27];
-   char  ssensingStopTime[27];
+   char  sensingStopTime[32];
+   char  ssensingStopTime[32];
    //char  sensingStartTime[27];
    //char  ssensingStartTime[27];
    //char  start_lat[20];
@@ -421,7 +421,7 @@ int main( int argc, char *argv[] )
    char  totsize[22];
    char  ds_size[21];
    char  num_dsr[11];
-   char  secduration[8];
+   char  secduration[16];
 
 
 
@@ -1192,7 +1192,6 @@ int main( int argc, char *argv[] )
 
   /* updating the MPH and SPH of concatenated data */
 
-
      if(ii==(numFiles-1)){
         sscanf(mph.sensingStop, "%2d-%3c-%4d %2d:%2d:%lf", &eday, emonthstr, &eyear, &ehour, &emin, &eseconds);
         if(strcmp(emonthstr,"JAN")==0){emonth =1;}
@@ -1234,8 +1233,6 @@ int main( int argc, char *argv[] )
     sprintf(secduration,"%08d",duration);
 
     memcpy(mphPtr2 +    0 +  9 + 30, secduration,8);
-
-    
     
   /* Update DSD_SIZE and NUM_DSR in SPH of output frame file pointer */
    totfilesize = bytesToBeWritten + mphSize + mph.sphSize;
