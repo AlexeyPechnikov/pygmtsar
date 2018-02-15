@@ -202,8 +202,8 @@
   echo ""
   echo "Editing name of the new file..."
   set tail2 = `echo $a | awk '{print substr($1,length($1)-22,23)}'`
-  set t1 = `ls new.SAFE/annotation/*.xml | awk '{print substr($1,length($1)-43,6)}' | gmt gmtinfo -C | awk '{print $1}'`
-  set t2 = `ls new.SAFE/annotation/*.xml | awk '{print substr($1,length($1)-27,6)}' | gmt gmtinfo -C | awk '{print $2}'`
+  set t1 = `ls new.SAFE/annotation/*.xml | awk '{print substr($1,length($1)-43,6)}' | gmt gmtinfo -C | awk '{printf("%.6d", $1)}'`
+  set t2 = `ls new.SAFE/annotation/*.xml | awk '{print substr($1,length($1)-27,6)}' | gmt gmtinfo -C | awk '{printf("%.6d", $2)}'`
   set date1 = `ls new.SAFE/annotation/*.xml | awk '{print substr($1,length($1)-52,8)}' | gmt gmtinfo -C | awk '{print $1}'`
   set a = `awk NR==1'{print $0}' $filelist`
   set head2 = `echo $a | awk '{print substr($1,length($1)-71,17)}'`
