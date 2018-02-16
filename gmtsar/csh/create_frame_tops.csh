@@ -15,6 +15,7 @@
     echo "  format of two_pins.llt (lon2/lat2 comes later than lon1/lat1 in orbit time):"
     echo "    lon1 lat1"
     echo "    lon2 lat2"
+    echo "    (drop more columns if you want subsath 2 and 3 to have different boundaries)"
     echo ""
     echo "  outputs:"
     echo "    new.SAFE --> datetime1-datetime2.SAFE"
@@ -36,6 +37,8 @@
       set mode = `echo "vh"`
     endif
   endif
+
+  set ncol = `awk '{print NF}' $3 | head -1`
 
   echo "Combining $mode data..."
 
@@ -80,15 +83,15 @@
   make_s1a_tops $f0.xml $f0.tiff tmp1 0
   ext_orb_s1a tmp1.PRM ../$orb tmp1
   
-  set ll1 = `awk NR==1'{print $0}' ../$tps`
-  set ll2 = `awk NR==2'{print $0}' ../$tps`
+  set ll1 = `awk NR==1'{print $1,$2}' ../$tps`
+  set ll2 = `awk NR==2'{print $1,$2}' ../$tps`
 
   set tmpazi = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{print $2}'`
   shift_atime_PRM.csh tmp1.PRM $tmpazi
   set azi1 = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
   set azi2 = `echo "$ll2 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
 
-  echo "Working on bursts covering $azi1 - $azi2 ..."
+  echo "Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2)..."
 
   assemble_tops $azi1 $azi2 $a new
   
@@ -128,15 +131,21 @@
   make_s1a_tops $f0.xml $f0.tiff tmp1 0
   ext_orb_s1a tmp1.PRM ../$orb tmp1
   
-  set ll1 = `awk NR==1'{print $0}' ../$tps`
-  set ll2 = `awk NR==2'{print $0}' ../$tps`
+  if ($ncol >= 4) then
+    set ll1 = `awk NR==1'{print $3,$4}' ../$tps`
+    set ll2 = `awk NR==2'{print $3,$4}' ../$tps`
+  else
+    set ll1 = `awk NR==1'{print $1,$2}' ../$tps`
+    set ll2 = `awk NR==2'{print $1,$2}' ../$tps`
+  endif
+    
 
   set tmpazi = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{print $2}'`
   shift_atime_PRM.csh tmp1.PRM $tmpazi
   set azi1 = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
   set azi2 = `echo "$ll2 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
 
-  echo "Working on bursts covering $azi1 - $azi2 ..."
+  echo "Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2) ..."
   assemble_tops $azi1 $azi2 $a new 
   
   set tail1 = `echo $f1 | awk '{print substr($1,length($1)-16,17)}'`
@@ -175,15 +184,20 @@
   make_s1a_tops $f0.xml $f0.tiff tmp1 0
   ext_orb_s1a tmp1.PRM ../$orb tmp1
 
-  set ll1 = `awk NR==1'{print $0}' ../$tps`
-  set ll2 = `awk NR==2'{print $0}' ../$tps`
+  if ($ncol >= 6) then
+    set ll1 = `awk NR==1'{print $5,$6}' ../$tps`
+    set ll2 = `awk NR==2'{print $5,$6}' ../$tps`
+  else
+    set ll1 = `awk NR==1'{print $1,$2}' ../$tps`
+    set ll2 = `awk NR==2'{print $1,$2}' ../$tps`
+  endif
 
   set tmpazi = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{print $2}'`
   shift_atime_PRM.csh tmp1.PRM $tmpazi
   set azi1 = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
   set azi2 = `echo "$ll2 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
 
-  echo "Working on bursts covering $azi1 - $azi2 ..."
+  echo "Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2) ..."
   assemble_tops $azi1 $azi2 $a new
 
   set tail1 = `echo $f1 | awk '{print substr($1,length($1)-16,17)}'`
