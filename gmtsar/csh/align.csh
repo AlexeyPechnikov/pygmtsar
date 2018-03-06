@@ -23,6 +23,8 @@ unset noclobber
     exit 1
   endif
   set SAT = $1
+  if ($SAT == "CSK_Raw") set SAT = `echo "SAT"`
+
   if( ($SAT != ENVI) && ($SAT != ERS) && ($SAT != SAT)) then
     echo ""
     echo " SAT must be ERS, ENVI, or generic SAT"
