@@ -202,15 +202,18 @@ int main (int argc, char **argv) {
 
 /* compute the topography due to the difference between the local radius and center radius */
 
-            thet = rlt * rad;
-            if(prm.rc > 6350000. && prm.ra > 6350000. && prm.RE > 6350000.) {
-		relp=1./sqrt((cos(thet)/prm.ra)*(cos(thet)/prm.ra)+(sin(thet)/prm.rc)*(sin(thet)/prm.rc));
-		telp=relp-prm.RE;
-            }
-            else {
-		telp=0.;
- 	    }
-            rp[2]=rht + telp;
+//            thet = rlt * rad;
+//            if(prm.rc > 6350000. && prm.ra > 6350000. && prm.RE > 6350000.) {
+//		relp=1./sqrt((cos(thet)/prm.ra)*(cos(thet)/prm.ra)+(sin(thet)/prm.rc)*(sin(thet)/prm.rc));
+//		telp=relp-prm.RE;
+//           }
+//            else {
+//		telp=0.;
+// 	    }
+//            rp[2]=rht + telp;
+
+        // compute based on definition from phasediff.
+        rp[2] = sqrt(xp[0]*xp[0]+xp[1]*xp[1]+xp[2]*xp[2]) - prm.RE;
 
 /* minimum for each point */
 
@@ -266,7 +269,7 @@ int main (int argc, char **argv) {
              if((xt[0] < r0 || xt[0] > rf || xt[1] < a0 || xt[1] > af) && (otype > 1)) continue; 
 
 	   if (otype == 1) {
-	     fprintf(stdout,"%f %f %f %f %f \n",xt[0],xt[1],rp[2],rp[1],rp[0]);
+	     fprintf(stdout,"%.9f %.9f %.9f %.9f %.9f \n",xt[0],xt[1],rp[2],rp[1],rp[0]);
 	   }
 	   else if (otype == 2 ) { 
 	     ds[0]=(float)xt[0];
