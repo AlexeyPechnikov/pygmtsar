@@ -23,7 +23,7 @@ unset noclobber
     exit 1
   endif
   set SAT = $1
-  if ($SAT == "CSK_Raw") set SAT = `echo "SAT"`
+  if ($SAT == "CSK_RAW") set SAT = `echo "SAT"`
 
   if( ($SAT != ENVI) && ($SAT != ERS) && ($SAT != SAT)) then
     echo ""

@@ -198,7 +198,7 @@ unset noclobber
     echo ""
     echo " Pre-Process ENVISAT SLC data - END"
     echo ""  
-  else if ($SAT == "ALOS_SLC" || $SAT == "ALOS2" || $SAT == "ALOS2_Scan") then
+  else if ($SAT == "ALOS_SLC" || $SAT == "ALOS2" || $SAT == "ALOS2_SCAN") then
     echo ""
     echo " Pre-Process ALOS SLC data - START"
     echo ""
@@ -248,7 +248,7 @@ unset noclobber
     echo ""
     echo " Pre-Process ALOS SLC data - END"
     echo ""
-  else if ($SAT == "CSK_Raw") then
+  else if ($SAT == "CSK_RAW") then
     echo ""
     echo " Pre-Process CSK Raw data - START"
     echo ""
@@ -301,9 +301,9 @@ unset noclobber
     echo ""
     echo " Pre-Process CSK Raw data - END"
     echo ""
-  else if ($SAT == "CSK_SLC" || $SAT == "TSX" || $SAT == "S1_Stripe" || $SAT == "RS2") then
+  else if ($SAT == "CSK_SLC" || $SAT == "TSX" || $SAT == "S1_STRIP" || $SAT == "RS2") then
     echo ""
-    echo " Pre-Process CSK/TSX/RS2/S1_Stripe SLC data - START"
+    echo " Pre-Process CSK/TSX/RS2/S1_STRIP SLC data - START"
     echo ""
     if ($SAT == "CSK_SLC") then     
       make_slc_csk $master.h5 $master

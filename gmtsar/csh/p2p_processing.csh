@@ -13,8 +13,8 @@
     echo "Example: p2p_processing.csh ALOS IMG-HH-ALPSRP055750660-H1.0__A IMG-HH-ALPSRP049040660-H1.0__A [config.alos.txt]"
     echo ""
     echo "    Put the data and orbit files in the raw folder, put DEM in the topo folder"
-    echo "    The SAT needs to be specified, choices with in ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_Scan"
-    echo "    S1_Strip, S1_TOPS, ENVI_SLC, CSK_Raw, CSK_SLC, TSX, RS2"
+    echo "    The SAT needs to be specified, choices with in ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_SCAN"
+    echo "    S1_STRIP, S1_TOPS, ENVI_SLC, CSK_RAW, CSK_SLC, TSX, RS2"
     echo ""
     echo "    Make sure the files from the same date have the same stem, e.g. aaaa.tif aaaa.xml aaaa.cos aaaa.EOF, etc"
     echo ""
@@ -66,6 +66,7 @@
   set threshold_geocode = `grep threshold_geocode $conf | awk '{print $3}'`
   set region_cut = `grep region_cut $conf | awk '{print $3}'`
   set mask_water = `grep mask_water $conf | awk '{print $3}'`
+  set switch_land = `grep switch_land $conf | awk '{print $3}'`
   set defomax = `grep defomax $conf | awk '{print $3}'`
   set range_dec = `grep range_dec $conf | awk '{print $3}'`
   set azimuth_dec = `grep azimuth_dec $conf | awk '{print $3}'`
@@ -102,7 +103,7 @@
     echo ""
     echo "PREPROCESS - START"
     echo ""
-    if ($SAT == "ALOS" || $SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_Scan") then
+    if ($SAT == "ALOS" || $SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_SCAN") then
       if(! -f raw/$master ) then
         echo " no file  raw/"$master
         exit
@@ -146,7 +147,7 @@
         echo " no file  raw/"$slave.baq
         exit
       endif
-    else if ($SAT == "S1_Strip" || $SAT == "S1_TOPS") then
+    else if ($SAT == "S1_STRIP" || $SAT == "S1_TOPS") then
       if(! -f raw/$master.xml ) then
         echo " no file  raw/"$master".xml"
         exit
@@ -171,7 +172,7 @@
           echo " no file  raw/"$slave".EOF"
         endif
       endif
-    else if ($SAT == "CSK_Raw" || $SAT == "CSK_SLC") then
+    else if ($SAT == "CSK_RAW" || $SAT == "CSK_SLC") then
       if(! -f raw/$master.h5 ) then
         echo " no file  raw/"$master".h5"
         exit
@@ -252,7 +253,7 @@
     echo "ALIGN.CSH - START"
     echo ""
     cd SLC
-    if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_Raw") then
+    if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
       cp ../raw/*.PRM .
       ln -s ../raw/$master.raw . 
       ln -s ../raw/$slave.raw . 
@@ -263,7 +264,7 @@
       else
         align.csh SAT $master $slave
       endif
-    else if ($SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_Scan" || $SAT == "S1_Strip" || $SAT == "CSK_SLC" || $SAT == "RS2" || $SAT == "ENVI_SLC" || $SAT == "TSX") then
+    else if ($SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_SCAN" || $SAT == "S1_STRIP" || $SAT == "CSK_SLC" || $SAT == "RS2" || $SAT == "ENVI_SLC" || $SAT == "TSX") then
       cp ../raw/*.PRM .
       ln -s ../raw/$master.SLC . 
       ln -s ../raw/$slave.SLC . 
@@ -271,7 +272,7 @@
       ln -s ../raw/$slave.LED .
       cp $slave.PRM $slave.PRM0
       SAT_baseline $master.PRM $slave.PRM0 >> $slave.PRM
-      if ($SAT == "ALOS2_Scan") then
+      if ($SAT == "ALOS2_SCAN") then
         xcorr $master.PRM $slave.PRM -xsearch 32 -ysearch 256 -nx 32 -ny 128
         awk '{print $4}' < freq_xcorr.dat > tmp.dat
         set amedian = `sort -n tmp.dat | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }'`
@@ -434,7 +435,7 @@
 #
 # landmask
 #
-      if ($mask_water == 1) then
+      if ($mask_water == 1 || $switch_land == 1) then
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask.csh $region_cut

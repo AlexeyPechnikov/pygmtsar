@@ -2,15 +2,15 @@
 
 # create a configure file for p2p_processing.csh
 # syntax: pop_config.csh SAT
-# SAT can be  ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_Scan
-# S1_Strip, S1_TOPS,, CSK_Raw, CSK_SLC, TSX, RS2
+# SAT can be  ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_SCAN
+# S1_STRIP, S1_TOPS,, CSK_RAW, CSK_SLC, TSX, RS2
 
 if ($#argv != 1) then
   echo ""
   echo "Usage: pop_config.csh SAT"
   echo ""
-  echo "       SAT can be ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_Scan"
-  echo "       S1_Strip, S1_TOPS, CSK_Raw, CSK_SLC, TSX, RS2"
+  echo "       SAT can be ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_SCAN"
+  echo "       S1_STRIP, S1_TOPS, CSK_RAW, CSK_SLC, TSX, RS2"
   echo ""
   exit 1
 endif
@@ -55,12 +55,12 @@ echo "# Doppler centroid "
 echo "fd1 = "
 echo ""
 
-if ($SAT == "ALOS2") then
+if ($SAT == "ALOS_SLC") then
   echo "# SLC scale factor to convert float to int "
   echo "SLC_factor = 0.02"
   echo ""
 else 
-  if ($SAT == "ALOS_SLC" || $SAT == "ALOS2_Scan") then
+  if ($SAT == "ALOS2" || $SAT == "ALOS2_SCAN") then
     echo "# SLC scale factor to convert float to int"
     echo "SLC_factor = 2.0"
     echo ""
@@ -105,7 +105,7 @@ echo "# filters "
 echo "# look at the filter/ folder to choose other filters"
 echo "# for tops processing, to force the decimation factor"
 echo "# recommended range decimation to be 8, azimuth decimation to be 2"
-if ($SAT == "ALOS2_Scan") then
+if ($SAT == "ALOS2_SCAN") then
   echo "filter_wavelength = 400"
 else if ($SAT == "RS2" || $SAT == "TSX") then
   echo "filter_wavelength = 100"
@@ -120,7 +120,7 @@ echo "# Set the decimation to be 2 if you want images with smaller file size."
 echo "# "
 if ($SAT == "RS2" || $SAT == "TSX") then
   echo "dec_factor = 1 "
-else if ($SAT == "ALOS2_Scan") then
+else if ($SAT == "ALOS2_SCAN") then
   echo "dec_factor = 4 "
 else
   echo "dec_factor = 2 "
