@@ -235,7 +235,7 @@
     echo "PREPROCESS - END"
     echo ""
   endif
- exit 
+ 
 #############################################
 # 2 - start from focus and align SLC images #
 #############################################
