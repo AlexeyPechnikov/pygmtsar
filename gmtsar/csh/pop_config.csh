@@ -55,12 +55,12 @@ echo "# Doppler centroid "
 echo "fd1 = "
 echo ""
 
-if ($SAT == $SAT == "ALOS2") then
+if ($SAT == "ALOS2") then
   echo "# SLC scale factor to convert float to int "
   echo "SLC_factor = 0.02"
   echo ""
 else 
-  if ($SAT == "ALOS_SLC" || "ALOS2_Scan") then
+  if ($SAT == "ALOS_SLC" || $SAT == "ALOS2_Scan") then
     echo "# SLC scale factor to convert float to int"
     echo "SLC_factor = 2.0"
     echo ""
