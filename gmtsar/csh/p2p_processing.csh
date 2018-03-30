@@ -14,7 +14,7 @@
     echo ""
     echo "    Put the data and orbit files in the raw folder, put DEM in the topo folder"
     echo "    The SAT needs to be specified, choices with in ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_Scan"
-    echo "    S1_Stripe, S1_TOPS, ENVI_SLC, CSK_Raw, CSK_SLC, TSX, RS2"
+    echo "    S1_Strip, S1_TOPS, ENVI_SLC, CSK_Raw, CSK_SLC, TSX, RS2"
     echo ""
     echo "    Make sure the files from the same date have the same stem, e.g. aaaa.tif aaaa.xml aaaa.cos aaaa.EOF, etc"
     echo ""
@@ -146,7 +146,7 @@
         echo " no file  raw/"$slave.baq
         exit
       endif
-    else if ($SAT == "S1_Stripe" || $SAT == "S1_TOPS") then
+    else if ($SAT == "S1_Strip" || $SAT == "S1_TOPS") then
       if(! -f raw/$master.xml ) then
         echo " no file  raw/"$master".xml"
         exit
@@ -263,7 +263,7 @@
       else
         align.csh SAT $master $slave
       endif
-    else if ($SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_Scan" || $SAT == "S1_Stripe" || $SAT == "CSK_SLC" || $SAT == "RS2" || $SAT == "ENVI_SLC" || $SAT == "TSX") then
+    else if ($SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_Scan" || $SAT == "S1_Strip" || $SAT == "CSK_SLC" || $SAT == "RS2" || $SAT == "ENVI_SLC" || $SAT == "TSX") then
       cp ../raw/*.PRM .
       ln -s ../raw/$master.SLC . 
       ln -s ../raw/$slave.SLC . 

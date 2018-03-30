@@ -3,14 +3,14 @@
 # create a configure file for p2p_processing.csh
 # syntax: pop_config.csh SAT
 # SAT can be  ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_Scan
-# S1_Stripe, S1_TOPS,, CSK_Raw, CSK_SLC, TSX, RS2
+# S1_Strip, S1_TOPS,, CSK_Raw, CSK_SLC, TSX, RS2
 
 if ($#argv != 1) then
   echo ""
   echo "Usage: pop_config.csh SAT"
   echo ""
   echo "       SAT can be ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_Scan"
-  echo "       S1_Stripe, S1_TOPS, CSK_Raw, CSK_SLC, TSX, RS2"
+  echo "       S1_Strip, S1_TOPS, CSK_Raw, CSK_SLC, TSX, RS2"
   echo ""
   exit 1
 endif
@@ -55,12 +55,12 @@ echo "# Doppler centroid "
 echo "fd1 = "
 echo ""
 
-if ($SAT == "ALOS_SLC" || $SAT == "ALOS2") then
-  echo "# SLC scale factor to convert float to int ( 0.01 is good for ALOS1 L1.1)"
+if ($SAT == $SAT == "ALOS2") then
+  echo "# SLC scale factor to convert float to int "
   echo "SLC_factor = 0.02"
   echo ""
 else 
-  if ($SAT == "ALOS2_Scan") then
+  if ($SAT == "ALOS_SLC" || "ALOS2_Scan") then
     echo "# SLC scale factor to convert float to int"
     echo "SLC_factor = 2.0"
     echo ""
