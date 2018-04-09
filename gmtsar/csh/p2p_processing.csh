@@ -283,7 +283,7 @@
         rm tmp2.dat
       else
         xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128
-        fitoffset.csh 2 2 freq_xcorr.dat 10 >> $slave.PRM
+        fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
       endif
       resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
       rm $slave.SLC

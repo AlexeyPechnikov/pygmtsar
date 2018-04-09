@@ -36,15 +36,13 @@
  ****************************************************************************************/
 
 /* Reference: 
-P. Berardino, G. Fornaro, R. Lanari, and E. Sansosti, “A new algorithm
-for surface deformation monitoring based on small baseline differential
-SAR interferograms,” IEEE Trans. Geosci. Remote Sensing, vol. 40, pp.
-2375–2383, Nov. 2002.
+P. Berardino, G. Fornaro, R. Lanari, and E. Sansosti, “A new algorithm for surface deformation monitoring based on small baseline differential SAR interferograms,” IEEE Trans. Geosci. Remote Sensing, vol. 40, pp. 2375–2383, Nov. 2002.
 
-Schmidt, D. A., and R. Bürgmann(2003),
-Time-dependent land uplift and subsidence in the Santa Clara valley, 
-California, from a large interferometric synthetic aperture radar data set, 
-J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
+Schmidt, D. A., and R. Bürgmann 2003, Time-dependent land uplift and subsidence in the Santa Clara valley, California, from a large interferometric synthetic aperture radar data set, J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
+
+Tong, X. and Schmidt, D., 2016. Active movement of the Cascade landslide complex in Washington from a coherence-based InSAR time series method. Remote Sensing of Environment, 186, pp.405-415.
+
+Tymofyeyeva, E. and Fialko, Y., 2015. Mitigation of atmospheric phase delays in InSAR data, with application to the eastern California shear zone. Journal of Geophysical Research: Solid Earth, 120(8), pp.5952-5963.
 */
 
 /* Use DGELSY to solve the equations */
@@ -59,28 +57,33 @@ J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
 # define checkpoint()
 # endif
 
-char *USAGE = " \n\nUSAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] [-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]\n\n"
+char *USAGE = "USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] [-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]\n\n"
 " input: \n"
-"intf.tab		--  list of unwrapped (filtered) interferograms:\n"
+"  intf.tab             --  list of unwrapped (filtered) interferograms:\n"
 "   format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp \n"
-"scene.tab		--  list of the SAR scenes in chronological order\n"
+"  scene.tab            --  list of the SAR scenes in chronological order\n"
 "   format:   scene_id   number_of_days \n"
 "   note:     the number_of_days is relative to a reference date \n"
-"N             		--  number of the interferograms\n"
-"S             		--  number of the SAR scenes \n"
-"xdim and ydim 		--  dimension of the interferograms\n"
-"-smooth sf		--  smoothing factors, default=0 \n"
-"-atm ni		    --  number of iterations for atmospheric correction, default=0(skip atm correction) \n"
-"-wavelength wl		--  wavelength of the radar wave (m) default=0.236 \n"
-"-incidence theta 	--  incidence angle of the radar wave (degree) default=37 \n" 
-"-range rng 		--  range distance from the radar to the center of the interferogram (m) default=866000 \n" 
-"-rms 			--  output RMS of the data misfit grids (mm): rms.grd\n" 
-"-dem 			--  output DEM error (m): dem.grd \n\n" 
+"  N                    --  number of the interferograms\n"
+"  S                    --  number of the SAR scenes \n"
+"  xdim and ydim        --  dimension of the interferograms\n"
+"  -smooth sf           --  smoothing factors, default=0 \n"
+"  -atm ni              --  number of iterations for atmospheric correction, default=0(skip atm correction) \n"
+"  -wavelength wl       --  wavelength of the radar wave (m) default=0.236 \n"
+"  -incidence theta     --  incidence angle of the radar wave (degree) default=37 \n" 
+"  -range rng           --  range distance from the radar to the center of the interferogram (m) default=866000 \n" 
+"  -rms                 --  output RMS of the data misfit grids (mm): rms.grd\n" 
+"  -dem                 --  output DEM error (m): dem.grd \n\n" 
 " output: \n"
-"disp_##.grd   		--  cumulative displacement time series (mm) grids\n"
-"vel.grd 		--  mean velocity (mm/yr) grids \n\n"
+"  disp_##.grd          --  cumulative displacement time series (mm) grids\n"
+"  vel.grd              --  mean velocity (mm/yr) grids \n\n"
 " example:\n"
-"   sbas intf.tab scene.tab 88 28 700 1000 \n\n";
+"  sbas intf.tab scene.tab 88 28 700 1000 \n\n"
+"REFERENCES: \n"
+"Berardino P., G. Fornaro, R. Lanari, and E. Sansosti, “A new algorithm for surface deformation monitoring based on small baseline differential SAR interferograms,” IEEE Trans. Geosci. Remote Sensing, vol. 40, pp. 2375–2383, Nov. 2002. \n\n"
+"Schmidt, D. A., and R. Bürgmann 2003, Time-dependent land uplift and subsidence in the Santa Clara valley, California, from a large interferometric synthetic aperture radar data set, J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9. \n\n"
+"Tong, X. and Schmidt, D., 2016. Active movement of the Cascade landslide complex in Washington from a coherence-based InSAR time series method. Remote Sensing of Environment, 186, pp.405-415. \n\n"
+"Tymofyeyeva, E. and Fialko, Y., 2015. Mitigation of atmospheric phase delays in InSAR data, with application to the eastern California shear zone. Journal of Geophysical Research: Solid Earth, 120(8), pp.5952-5963.\n";
 
 int main(int argc, char **argv) {
 
