@@ -194,11 +194,14 @@ if ($mode == 2) then
   set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
   echo "Updating azimuth shift with mapping the residual da ...(median $res_shift)"
   awk '{print $1,$2,$3}' < ddphase > test
-  gmt blockmedian test -R0/$rmax/0/$amax -I500/100 -r -bo3d > test_b
-  gmt surface test_b -bi3d -Gtest.grd -R0/$rmax/0/$amax -I1000/500 -T0.8 -r -N1000
-  #gmt grdtrend test.grd -N6r -Dtest_b.grd
-  gmt grdsample test.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
-  #gmt grdmath test.grd test_b.grd SUB FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
+  #gmt blockmedian test -R0/$rmax/0/$amax -I500/100 -r -bo3d > test_b
+  #gmt surface test_b -bi3d -Gtest.grd -R0/$rmax/0/$amax -I1000/500 -T0.8 -r -N1000
+  #gmt grdsample test.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
+
+  gmt blockmedian test -R0/68000/0/12900 -I400/100 | gmt greenspline -Gtest.grd -R0/68000/0/12900 -I400/100 -D1 -Cn700 -r 
+  gmt grdfilter test.grd -D0 -Fg8000/1500 -Gtest2.grd -V
+  gmt grdsample test2.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
+
   gmt grdmath test_b.grd FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
   gmt grdmath a.grd res_shift.grd ADD = tmp.grd
   mv tmp.grd a.grd
