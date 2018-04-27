@@ -433,7 +433,7 @@ else
 	CFLAGS="$CFLAGS "'$(CPPFLAGS)'
 	AC_MSG_RESULT(yes)
 fi
-GMTSAR_VERSION=$(AC_PACKAGE_VERSION)
+GMTSAR_VERSION=AC_PACKAGE_VERSION
 dnl
 dnl ------------------------------------------------------------------
 dnl Update Make macros and preprocess scripts that need the orbits dir
