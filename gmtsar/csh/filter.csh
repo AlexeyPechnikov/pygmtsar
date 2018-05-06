@@ -159,7 +159,7 @@ errormessage:
 #  make the Werner/Goldstein filtered phase
 #
   echo "filtering phase..."
-  phasefilt -imag imagfilt.grd -real realfilt.grd -amp1 amp1.grd -amp2 amp2.grd -psize 16 
+  phasefilt -imag imagfilt.grd -real realfilt.grd -amp1 amp1.grd -amp2 amp2.grd -psize 32 
   gmt grdedit filtphase.grd `gmt grdinfo mask.grd -I- --FORMAT_FLOAT_OUT=%.12lg` 
   gmt grdmath filtphase.grd mask.grd MUL FLIPUD = phasefilt.grd
   rm filtphase.grd
