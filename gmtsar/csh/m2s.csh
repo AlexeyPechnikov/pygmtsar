@@ -8,7 +8,7 @@ set llp = $2	# lon lat phase binary float file
 # 1. Get w e s n in array
 set range = (`gmt gmtinfo $2 -bi3f -C`)
 # 2. Get mean latitude
-set mlat = `gmt math -Q ${range[2]} ${range[3]} ADD 2 DIV  = `
+set mlat = `gmt math -Q ${range[3]} ${range[4]} ADD 2 DIV  = `
 # 3. Get nearest integer 1/2 arc second for latitude (at least 1")
 set dy = `gmt math -Q $pix 111195.079734 DIV 3600 MUL 2 MUL RINT 1 MAX 2 DIV  = `
 # 4. Get nearest integer 1/2 arc second for longitude at mean latitude (at least 1")
