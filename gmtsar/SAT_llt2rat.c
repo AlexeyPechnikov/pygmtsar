@@ -81,14 +81,14 @@ int main (int argc, char **argv) {
         FILE  *fprm1 = NULL;
 	int otype;
         double rln,rlt,rht,dr,t1,t11,t2,tm;
-        double ts,rng0, thet, relp, telp;
+        double ts,rng0;
+    //double telp,relp,thet,rad=PI/180.;
 	double xp[3];
 	double xt[3];
 	double rp[3];
 	double dd[5];  /* dummy for output  double precision */
 	float ds[5];   /* dummy for output  single precision */
         double r0,rf,a0,af;
-        double rad=PI/180.;
 	double fll,rdd,daa,drr,dopc;
         double dt,dtt,xs,ys,zs;
         double time[20],rng[20],d[3];  /* arrays used for polynomial refinement of min range */

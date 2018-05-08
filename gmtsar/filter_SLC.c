@@ -28,7 +28,7 @@ short int *indata, *outdata;
 fcomplex *cin, *cout;
 float   rtest, itest;
 int     j, k, nrows, nffti;
-int 	ibufsize, obufsize, nsamp, headsize;
+int 	ibufsize, obufsize, nsamp; // headsize;
 struct 	PRM r;
 void    *API = NULL; /* GMT API control structure */
 
