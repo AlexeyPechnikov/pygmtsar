@@ -66,13 +66,16 @@ endif
 #
 # interpolate, in case there is a big vacant area, do not go too far
 #
-nearest_grid phase_patch.grd tmp.grd 300
-mv tmp.grd phase_patch.grd
 
 gmt grdmath corr_patch.grd $1 GE 0 NAN mask_patch.grd MUL = mask2_patch.grd
 gmt grdmath corr_patch.grd 0. XOR 1. MIN  = corr_patch.grd
 gmt grdmath mask2_patch.grd corr_patch.grd MUL = corr_tmp.grd 
-gmt grd2xyz phase_patch.grd -ZTLf -do0 > phase.in
+gmt grdmath mask2_patch.grd phase_patch.grd MUL = phase_tmp.grd
+
+nearest_grid phase_tmp.grd tmp.grd 300
+mv tmp.grd phase_tmp.grd
+
+gmt grd2xyz phase_tmp.grd -ZTLf -do0 > phase.in
 gmt grd2xyz corr_tmp.grd -ZTLf  -do0 > corr.in
 #
 # run snaphu
@@ -131,7 +134,7 @@ echo "Unwrapped phase map: unwrap.pdf"
 #
 # clean up
 #
-rm -f tmp.grd corr_tmp.grd unwrap.out tmp2.grd unwrap_grad.grd 
+rm -f tmp.grd corr_tmp.grd unwrap.out tmp2.grd unwrap_grad.grd phase_tmp.grd
 rm -f phase.in corr.in 
 mv -f phase_patch.grd phasefilt_interp.grd
 #
