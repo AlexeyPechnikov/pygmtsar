@@ -1,8 +1,10 @@
 include ../../config.mk
 
 DIRS	= ALOS_pre_process ALOS_merge ALOS_fbd2fbs \
-	  ALOS_fbd2fbs_SLC ALOS_fbd2ss \
-	  ALOS_pre_process_SLC ALOS_mosaic_ss
+	  ALOS_fbd2fbs_SLC ALOS_fbd2ss ALOS_baseline \
+	  ALOS_pre_process_SLC ALOS_mosaic_ss ALOS_llt2rat ALOS_look \
+	  ALOS_mosaic_ss ALOS_mosaic_ss_2frames ALOS_pre_process_SS
+ 
 LIB	= lib/libALOS.a
 
 all:	$(LIB)

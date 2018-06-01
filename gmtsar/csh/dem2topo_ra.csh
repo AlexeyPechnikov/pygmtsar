@@ -60,6 +60,8 @@ echo " range decimation is: " $rng
 #
 if($SC == 10) then
      gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 1 -bod  > trans.dat
+  else if ($SC == 5) then
+     gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | ALOS_llt2rat $1 0 -bod > trans.dat
   else
      gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 0 -bod  > trans.dat
 endif

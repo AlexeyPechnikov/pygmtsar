@@ -34,7 +34,7 @@ if (-e xphase.grd) then
   gmt grdmath yphase.grd mask2.grd MUL = yphase_mask.grd
 endif
 if (-e unwrap.grd) then 
-  gmt grdcut mask2.grd `gmt grdinfo unwrap.grd -I-` -Gmask3.grd
+  gmt grdsample mask2.grd `gmt grdinfo unwrap.grd -I-` `gmt grdinfo unwrap.grd -I` -Gmask3.grd
   gmt grdmath unwrap.grd mask3.grd MUL = unwrap_mask.grd
 endif
 if (-e phasefilt.grd) then 

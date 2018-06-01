@@ -291,7 +291,7 @@ int main (int argc, char **argv) {
                xt[1] = xt[1] + daa;
              }
            }
-	   fprintf(stderr," dda, %f \n",daa);
+	   /* fprintf(stderr," dda, %f \n",daa); */
 
            if(precise == 1) xt[1] = xt[1]-.5; /* this correction is needed for the precise to match the standard on average */
 
