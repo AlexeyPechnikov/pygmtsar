@@ -190,7 +190,7 @@ unset noclobber
       cp ../SLC/IMG-HH-"$master"_"$subswath".PRM master.PRM 
       ln -s ../../raw/LED-"$master" . 
       if (-f dem.grd) then 
-        dem2topo_ra.csh master.PRM dem.grd 
+        dem2topo_ra_ALOS.csh master.PRM dem.grd 
       else 
         echo "no DEM file found: " dem.grd 
         exit 1
@@ -269,15 +269,15 @@ unset noclobber
     if($topo_phase == 1) then
       if ($shift_topo == 1) then
         ln -s ../../topo/topo_shift.grd .
-        intf.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM -topo topo_shift.grd  
+        intf_ALOS.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM -topo topo_shift.grd  
         filter_alos_ss.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$repN_"$subswath".PRM $filter $dec 
       else 
         ln -s ../../topo/topo_ra.grd . 
-        intf.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM -topo topo_ra.grd 
+        intf_ALOS.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM -topo topo_ra.grd 
         filter_alos_ss.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM $filter $dec 
       endif
     else
-      intf.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM
+      intf_ALOS.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM
       filter_alos_ss.csh IMG-HH-"$ref"_"$subswath".PRM IMG-HH-"$rep"_"$subswath".PRM $filter $dec 
     endif
     cd ../..
