@@ -87,7 +87,7 @@ int compute_tide(double yr,double day,double glod,double glad,double *du,double 
     imn = floor(((day-floor(day))*86400.0-ihr*3600.0)/60.0);
     sec = (day-floor(day))*86400.0-ihr*3600.0-imn*60.0;
     
-    sec = round(sec);   //for testing
+    //sec = round(sec);   //for testing
     
     geo2xyz(gla0,glo0,eht0,&x0,&y0,&z0);
     xsta[1]=x0;
@@ -101,7 +101,7 @@ int compute_tide(double yr,double day,double glod,double glad,double *du,double 
     
     civmjd(iyr,imo,idy,ihr,imn,sec,&mjd,&fmjd);
     mjd0 = mjd;
-    //printf("%.17lf %.17lf %lf %lf %lf %lf %lf %.17lf\n",mjd,fmjd,iyr,imo,idy,ihr,imn,sec);
+    //fprintf(stderr,"%.17lf %.17lf %lf %lf %lf %lf %lf %.17lf\n",mjd,fmjd,iyr,imo,idy,ihr,imn,sec);
     
     //mjdciv(mjd,fmjd,&iyr,&imo,&idy,&ihr,&imn,&sec);
     //printf("%lf %lf %lf %lf %lf %lf %lf %lf\n",mjd,fmjd,iyr,imo,idy,ihr,imn,sec);
