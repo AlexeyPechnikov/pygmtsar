@@ -1,6 +1,7 @@
 #!/bin/tcsh -f
 # align images using orbits and DEM
 # by Kang Wang in June. 2018
+#
 
 if ($#argv != 2) then
    echo ""
