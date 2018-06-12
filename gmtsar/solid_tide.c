@@ -64,9 +64,10 @@ int main (int argc, char **argv) {
     day = atof(argv[1])-yr*1000.0;
     while(scanf(" %lf %lf ",&lon,&lat) == 2){
         if(lon < 0.0) lon = lon + 360.0;
+        // as quote from Dennis Milbert's website "The output file name is solid.txt. It is plain ASCII text. After the header, solid earth tide components are computed for 24 hours, at 1 minute intervals. Note: the time stamps refer to UTC time. The solid earth tide components are NORTH, EAST, UP in the local geodetic (ellipsoidal) horizon system."
         compute_tide(yr,day,lon,lat,&du,&dv,&dw);
         if(lon > 180.0) lon = lon - 360.0;
-        fprintf(stdout,"%.9f %.9f %.12e %.12e %.12e \n",lon,lat,du,dv,dw);
+        fprintf(stdout,"%.9f %.9f %.12e %.12e %.12e \n",lon,lat,dv,du,dw); // du = north, dv = east, dw = up
     }
     return(1);
 }

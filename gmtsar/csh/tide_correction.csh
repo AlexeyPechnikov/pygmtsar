@@ -39,9 +39,7 @@ gmt grd2xyz tmp_dem.grd > topo.llt
 SAT_look $prm < topo.llt > topo.lltn
 paste topo.llenu topo.lltn | awk '{printf("%.12f\n",($3*$9) + ($4*$10) + ($5*$11))}' > topo.d
 SAT_llt2rat $prm 1 < topo.llt > topo.ratll
-paste topo.ratll topo.d | awk '{printf("%.6f %.6f %.12f\n", $1,$2,$6/'$wave'*2.0*2.0*3.141592653)}' > topo.rad
+paste topo.ratll topo.d | awk '{printf("%.6f %.6f %.12f\n", $1,$2,-$6*2.0*2.0*3.141592653/'$wave')}' > topo.rad
 gmt blockmedian topo.rad -R0/$rng/0/$azi -I$inc2 -V > tmp.rad
 gmt surface tmp.rad -R0/$rng/0/$azi -I$inc2 -T0.5 -Gtide.grd -V
-
-
 
