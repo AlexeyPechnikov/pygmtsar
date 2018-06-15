@@ -37,8 +37,8 @@ char    *USAGE = "\nUsage: "
 "   PRM_filelist     - list of aligned SLCs \n"
 "   fileout.grd      - output file either average amplitude or persistent_scatter \n"
 "   mode             - (0) amplitude; (1) persistent_scatter \n \n"
-"   Computes the average amplitude or persistent scattering function which is mu**2/(4*sig**2) \n"
-"   The factor of 4 is used do the display_amplitude is not significantly changed. \n \n";
+"   Computes the average amplitude or persistent scattering function which is mu/(2*sig) \n"
+"   The factor of 2 is used do the display_amplitude is not significantly changed. \n \n";
 
 void read_input_file(char *, int, char **);
 #define BUFSIZE 1024
@@ -54,7 +54,7 @@ int	debug = 0 ;
 int	xdimm, ydimm;		/* size of master SLC file */
 short   *slc_rows = NULL;	/* pointer to a composite row of all the SLC files*/
 float   *sum, *sum2;           
-float   amp2, ave, sig2;
+float   amp2, ave, sig, sig2;
 FILE    *fin = NULL;
 FILE    *prmfile = NULL;
 FILE    **slcin = NULL;
@@ -152,11 +152,12 @@ struct  GMT_GRID *scatter = NULL;        /* For the scatter grid */
 		}
                 ave = sum[jj]/nfiles;
                 sig2 = sum2[jj]/nfiles - ave*ave;
+                sig  = sqrt(sig2);
 
     /* output either the scatter function or the average amplitude */
                 if(imode == 1) {
-                   scatter->data[ii*xdimm+jj] = .1/4.;
-	           if(sig2 > .1) scatter->data[ii*xdimm+jj] = ave*ave/(4.*sig2);
+                   scatter->data[ii*xdimm+jj] = .1;
+	           if(sig > .1) scatter->data[ii*xdimm+jj] = ave/(2.*sig2);
 		}
 		else {
 	           scatter->data[ii*xdimm+jj]=ave;
