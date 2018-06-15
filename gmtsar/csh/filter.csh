@@ -156,12 +156,22 @@ errormessage:
   gmt psconvert -Tf -P -Z phase.ps
   echo "Phase map: phase.pdf"
 #
+# compute the solid earth tide
+# uncomment lines with ##
+#
+##ln -s ../../topo/dem.grd .
+##tide_correction.csh $1 $2 dem.grd
+##mv tide.grd tmp.grd
+##gmt grdsample tmp.grd -Rimagfilt.grd -Gtide.grd
+#
 #  make the Werner/Goldstein filtered phase
 #
   echo "filtering phase..."
   phasefilt -imag imagfilt.grd -real realfilt.grd -amp1 amp1.grd -amp2 amp2.grd -psize 32 
   gmt grdedit filtphase.grd `gmt grdinfo mask.grd -I- --FORMAT_FLOAT_OUT=%.12lg` 
   gmt grdmath filtphase.grd mask.grd MUL FLIPUD = phasefilt.grd
+##cp phasefilt.grd phasefilt_old.grd
+##gmt grdmath phasefilt.grd tide.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
   rm filtphase.grd
   gmt grdimage phasefilt.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
   gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
