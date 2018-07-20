@@ -241,16 +241,13 @@ char    tmp_c[1024];
             xc->format = 2;
             
             if (i == 0) {
-                //if ((xc->D1 = GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_CONTAINER_AND_DATA, NULL, filename[i], NULL)) == NULL) die("cannot open topofile",filename[i]);
                 if ((xc->D1 = GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, filename[i], NULL)) == NULL) die("cannot open topofile",filename[i]);
                 strcpy(xc->data1_name,filename[i]);
                 xc->m_nx = xc->D1->header->nx;
                 xc->m_ny = xc->D1->header->ny;
-                fprintf(stderr,"  file 1 %d %d \n",xc->m_nx,xc->m_ny);
                 if ((GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, filename[i], xc->D1)) == NULL) die("cannot open topofile",filename[i]);
             }
             if (i == 1) {
-                //if ((xc->D2 = GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_CONTAINER_AND_DATA, NULL, filename[i], NULL)) == NULL) die("cannot open topofile",filename[i]);
                 if ((xc->D2 = GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, filename[i], NULL)) == NULL) die("cannot open topofile",filename[i]);
                 strcpy(xc->data2_name,filename[i]);
                 xc->s_nx = xc->D2->header->nx;
@@ -259,7 +256,6 @@ char    tmp_c[1024];
                 xc->y_offset = 0;
                 if ((GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, filename[i], xc->D2)) == NULL) die("cannot open topofile",filename[i]);
             }
-            //fprintf(stderr,"nx: %d, ny: %d\n",xc->s_nx,xc->s_ny);
         }
 	}
 	fprintf(stderr," %d %d %d %d %d %d %f\n", xc->m_nx, xc->m_ny, xc->s_nx, xc->s_ny, xc->x_offset, xc->y_offset, xc->astretcha);
