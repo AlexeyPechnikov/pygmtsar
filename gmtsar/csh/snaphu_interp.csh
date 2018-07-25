@@ -98,11 +98,11 @@ gmt grdmath tmp.grd mask2_patch.grd MUL = tmp.grd
 #
 # detrend the unwrapped if DEFOMAX = 0 for interseismic
 #
-if ($2 == 0) then
-  gmt grdtrend tmp.grd -N3r -Dunwrap.grd
-else
+#if ($2 == 0) then
+#  gmt grdtrend tmp.grd -N3r -Dunwrap.grd
+#else
   mv tmp.grd unwrap.grd
-endif
+#endif
 #
 # landmask
 if (-e landmask_ra.grd) then
