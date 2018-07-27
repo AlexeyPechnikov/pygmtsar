@@ -16,13 +16,13 @@
  * *****************************************************************************/
 
 #include "gmtsar.h"
-#include "orbit_ALOS.h"
+#include "orbit.h"
 #define FACTOR 1000000
-void calc_height_velocity(struct ALOS_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
-void interpolate_ALOS_orbit_slow(struct ALOS_ORB *orb, double time, double *, double *, double *, int *);
+void calc_height_velocity(struct SAT_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
+void interpolate_ALOS_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
 void polyfit(double *, double *, double *, int *, int *);
 
-void ldr_orbit(struct ALOS_ORB *orb, struct PRM *prm)
+void ldr_orbit(struct SAT_ORB *orb, struct PRM *prm)
 {
 double	t1, t2;
 double  re, height, vg;
@@ -65,7 +65,7 @@ double  height_start, height_end;
 }
 /*---------------------------------------------------------------*/
 /* from David Sandwell's code  */
-void calc_height_velocity(struct ALOS_ORB *orb, struct PRM *prm, double t1, double t2,double *height, double *re2, double *vg, double *vtot, double *rdot)
+void calc_height_velocity(struct SAT_ORB *orb, struct PRM *prm, double t1, double t2,double *height, double *re2, double *vg, double *vtot, double *rdot)
 {
 
 int	k, ir, nt, nc=3;

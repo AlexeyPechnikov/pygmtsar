@@ -47,7 +47,7 @@
 ****************************************************************************/
 
 #include "gmtsar.h"
-#include "orbit_ALOS.h"
+#include "orbit.h"
 #include "llt2xyz.h"
 
 # define R 0.61803399
@@ -68,12 +68,11 @@ char    *USAGE = " \n Usage: "
 
 int npad = 8000;
 
-/* int parse_ALOS_llt2rat(char **, char *);    */
-void read_orb(FILE *, struct PRM *, struct ALOS_ORB *);
+void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
 void set_prm_defaults(struct PRM *);
 void hermite_c(double *, double *, double *, int , int , double , double *, int *);
 void set_prm_defaults(struct PRM *);
-void interpolate_ALOS_orbit_slow(struct ALOS_ORB *orb, double time, double *, double *, double *, int *);
+void interpolate_ALOS_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
 void polyfit(double *, double *, double *, int *, int *);
 
 int main (int argc, char **argv) {
@@ -98,11 +97,11 @@ int main (int argc, char **argv) {
         int stai,endi,midi;
         double **orb_pos = NULL;
 	struct PRM prm;
-	struct ALOS_ORB *orb = NULL;
+	struct SAT_ORB *orb = NULL;
 	char name[128], value[128];
 	double rsr;
 	FILE *ldrfile = NULL;
-        int calorb_alos(struct ALOS_ORB*, double **orb_pos, double ts, double t1, int nrec);
+        int calorb_alos(struct SAT_ORB*, double **orb_pos, double ts, double t1, int nrec);
 
 /* Make sure usage is correct and files can be opened  */
 	if (argc < 3 || argc > 4) {
@@ -137,7 +136,7 @@ int main (int argc, char **argv) {
 /*  get the orbit data */
 	ldrfile = fopen(prm.led_file,"r");
         if (ldrfile == NULL) die("can't open ",prm.led_file);
-	orb = (struct ALOS_ORB*)malloc(sizeof(struct ALOS_ORB));
+	orb = (struct SAT_ORB*)malloc(sizeof(struct SAT_ORB));
 	read_orb(ldrfile, &prm, orb);
 
 /* update the rng_samp_rate in PRM file   */
@@ -359,7 +358,7 @@ return (d);
 }
 
 
-int calorb_alos(struct ALOS_ORB *orb, double  **orb_pos, double ts, double t1, int nrec)
+int calorb_alos(struct SAT_ORB *orb, double  **orb_pos, double ts, double t1, int nrec)
 /* function to calculate every position in the orbit   */ 
 
 {

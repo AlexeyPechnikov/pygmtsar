@@ -1,11 +1,11 @@
 #include <stdlib.h>
 #include "lib_functions.h"
 #include "siocomplex.h"
-#include "orbit_ALOS.h"
+#include "orbit.h"
 
-void write_orb(FILE *, struct ALOS_ORB *);
+void write_orb(FILE *, struct SAT_ORB *);
 
-void write_orb(FILE *ldrfile, struct ALOS_ORB *orb)
+void write_orb(FILE *ldrfile, struct SAT_ORB *orb)
         {
         int     n;
         int     nd,iy,id;

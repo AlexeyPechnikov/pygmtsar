@@ -13,16 +13,16 @@
 #include <math.h>
 #include <stdlib.h>
 #include "lib_functions.h"
-#include "orbit_ALOS.h"
+#include "orbit.h"
 #define FACTOR 1000000
 
-void interpolate_ALOS_orbit_slow(struct ALOS_ORB *, double, double *, double *, double *, int *);
-void interpolate_ALOS_orbit(struct ALOS_ORB *, double *, double *, double *, double , double *, double *, double *, int *);
+void interpolate_ALOS_orbit_slow(struct SAT_ORB *, double, double *, double *, double *, int *);
+void interpolate_ALOS_orbit(struct SAT_ORB *, double *, double *, double *, double , double *, double *, double *, int *);
 void hermite_c(double *, double *, double *, int, int, double, double *, int *);
 
 /*---------------------------------------------------------------*/
 /* from David Sandwell's code */
-void interpolate_ALOS_orbit_slow(struct ALOS_ORB *orb, double time, double *x, double *y, double *z, int *ir)
+void interpolate_ALOS_orbit_slow(struct SAT_ORB *orb, double time, double *x, double *y, double *z, int *ir)
 {
 int	k;
 double	pt0;
@@ -43,7 +43,7 @@ double *p, *pt, *pv;
 	free((double *) pv);
 }
 /*---------------------------------------------------------------*/
-void interpolate_ALOS_orbit(struct ALOS_ORB *orb, double *pt, double *p, double *pv, double time, double *x, double *y, double *z, int *ir)
+void interpolate_ALOS_orbit(struct SAT_ORB *orb, double *pt, double *p, double *pv, double time, double *x, double *y, double *z, int *ir)
 {
 /* ir; 			return code 		*/
 /* time;		seconds since Jan 1 	*/

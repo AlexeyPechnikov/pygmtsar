@@ -13,18 +13,18 @@
 ************************************************************************/
 
 #include "gmtsar.h"
-#include "orbit_ALOS.h"
+#include "orbit.h"
 #include "lib_functions.h"
 
-void read_orb(FILE *, struct PRM *, struct ALOS_ORB *);
-void write_orb(FILE *, struct ALOS_ORB *);
+void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
+void write_orb(FILE *, struct SAT_ORB *);
 void polyfit(double *, double *, double *, int *, int *);
 
 int main (int argc, char **argv)
 {
 	struct PRM *prm;
-	struct ALOS_ORB *orb;
-	struct ALOS_ORB *orb_out;
+	struct SAT_ORB *orb;
+	struct SAT_ORB *orb_out;
 	FILE    *infile, *outfile;
         int nd_in, nd_add, nd_out;
         int n,k;
@@ -51,8 +51,8 @@ int main (int argc, char **argv)
 
 	/*  get the orbit data */
 	if ((infile=fopen(argv[1],"r")) == NULL) die("Can't open ",argv[1]);
-        orb     = (struct ALOS_ORB*)malloc(sizeof(struct ALOS_ORB));
-        orb_out = (struct ALOS_ORB*)malloc(sizeof(struct ALOS_ORB));
+        orb     = (struct SAT_ORB*)malloc(sizeof(struct SAT_ORB));
+        orb_out = (struct SAT_ORB*)malloc(sizeof(struct SAT_ORB));
         read_orb(infile, prm, orb);
 
 	/* make a longer structure for the output LED file */

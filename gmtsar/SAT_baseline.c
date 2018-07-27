@@ -13,7 +13,7 @@
  ********************************************************************************/
 
 #include "gmtsar.h"
-#include "orbit_ALOS.h"
+#include "orbit.h"
 
 char    *USAGE = "Usage: (two modes)\n"
 "mode 1:\n\n"
@@ -40,13 +40,13 @@ void get_sign(struct PRM, double, double, double, double, int *);
 void write_bperp(struct PRM, char *);
 void baseline_parse_command_line(char **, int *, int *);
 void read_input_file(char *, int, char **);
-void baseline(struct PRM *, struct ALOS_ORB *, int, int, char **, double);
-void read_all_ldr(struct PRM *, struct ALOS_ORB *, int);
-void read_orb(FILE *, struct PRM *, struct ALOS_ORB *);
+void baseline(struct PRM *, struct SAT_ORB *, int, int, char **, double);
+void read_all_ldr(struct PRM *, struct SAT_ORB *, int);
+void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
 void llt2rat_sub(char * , double *, double * );
-void interpolate_ALOS_orbit_slow(struct ALOS_ORB *orb, double time, double *, double *, double *, int *);
-void interpolate_ALOS_orbit(struct ALOS_ORB *, double *, double *, double *, double , double *, double *, double *, int *);
-void calc_height_velocity(struct ALOS_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
+void interpolate_ALOS_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
+void interpolate_ALOS_orbit(struct SAT_ORB *, double *, double *, double *, double , double *, double *, double *, int *);
+void calc_height_velocity(struct SAT_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
 void polyfit(double *, double *, double *, int *, int *);
 
 int 
@@ -57,7 +57,7 @@ int	input_flag, nfiles;
 double	fs0=0.;
 
 struct PRM *r;			/* reference orbit is 0; repeats are > 0*/
-struct ALOS_ORB *orb;		/* reference orbit is 0; repeats are > 0*/
+struct SAT_ORB *orb;		/* reference orbit is 0; repeats are > 0*/
 char	**filename;
 FILE	*prmfile;
 
@@ -92,7 +92,7 @@ FILE	*prmfile;
 		}
 
 		printf("SC_identity = %d \n",r[0].SC_identity);
-		orb = malloc(nfiles*sizeof(struct ALOS_ORB));
+		orb = malloc(nfiles*sizeof(struct SAT_ORB));
 		read_all_ldr(r, orb, nfiles);
 		baseline(r, orb, nfiles, input_flag,filename,fs0);
 
@@ -101,7 +101,7 @@ FILE	*prmfile;
 }
 /*---------------------------------------------------------------------------*/
 /* Get time info and find the orbit */
-void read_all_ldr(struct PRM *r, struct ALOS_ORB *orb, int nfiles)
+void read_all_ldr(struct PRM *r, struct SAT_ORB *orb, int nfiles)
         {
         int     i;
         FILE    *ldrfile;
@@ -120,7 +120,7 @@ void read_all_ldr(struct PRM *r, struct ALOS_ORB *orb, int nfiles)
         }
 
 /*---------------------------------------------------------------------------*/
-void baseline(struct PRM *r, struct ALOS_ORB *orb, int nfiles, int input_flag, char **filename,double fs0)
+void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, char **filename,double fs0)
 	{
 
 	int	ii, nd, ir;

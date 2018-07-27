@@ -4,16 +4,16 @@
  *******************************************************************************/
 
 #include "gmtsar.h"
-#include "orbit_ALOS.h"
+#include "orbit.h"
 
-void read_orb(FILE *, struct PRM *, struct ALOS_ORB *);
-void ldr_orbit(struct ALOS_ORB *, struct PRM *);
+void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
+void ldr_orbit(struct SAT_ORB *, struct PRM *);
 void calc_dop(struct PRM *);
 
 int main (int argc, char **argv)
 {
 	struct PRM *prm;               
-	struct ALOS_ORB *orb;
+	struct SAT_ORB *orb;
 	FILE    *prmfile, *ldrfile, *outfile;
 	double re;
 
@@ -43,7 +43,7 @@ int main (int argc, char **argv)
 	/*  get the orbit data */
         ldrfile = fopen(prm->led_file,"r");
         if (ldrfile == NULL) die("can't open ",prm->led_file);
-        orb = (struct ALOS_ORB*)malloc(sizeof(struct ALOS_ORB));
+        orb = (struct SAT_ORB*)malloc(sizeof(struct SAT_ORB));
         read_orb(ldrfile, prm, orb);
 
 	/*  get the orbit parameters */
