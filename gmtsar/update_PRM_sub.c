@@ -1,5 +1,5 @@
 #include "gmtsar.h"
-//#include "orbit_ALOS.h"
+#include "orbit.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -105,7 +105,7 @@ return 0;
 }
 
 
-int update_PRM(char* prmfile, char* entry, char* value)
+int update_PRM_sub(char* prmfile, char* entry, char* value)
 {
 
 FILE * prm_file;

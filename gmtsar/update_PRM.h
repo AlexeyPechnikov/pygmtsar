@@ -3,7 +3,7 @@
 
 void init_lookup_table();
 
-int update_PRM(char* prmfile, char* entry, char* value);
+int update_PRM_sub(char* prmfile, char* entry, char* value);
 
 int setvalue(struct PRM *prm, char* name, char* value);
 

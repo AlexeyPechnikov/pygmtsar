@@ -227,23 +227,23 @@ printf("a_stretch_a = %.9f\n",a_stretch_a);
 
 	/* Update rshift and associated params in PRM*/
 	sprintf(tmpstring,"%d",int_rshift);
-	update_PRM(argv[4],"rshift",tmpstring);
+	update_PRM_sub(argv[4],"rshift",tmpstring);
 	sprintf(tmpstring,"%.4f",sub_int_r);
-        update_PRM(argv[4],"sub_int_r",tmpstring);
+        update_PRM_sub(argv[4],"sub_int_r",tmpstring);
         sprintf(tmpstring,"%.9f",stretch_r);
-        update_PRM(argv[4],"stretch_r",tmpstring);
+        update_PRM_sub(argv[4],"stretch_r",tmpstring);
         sprintf(tmpstring,"%.9f",a_stretch_r);
-        update_PRM(argv[4],"a_stretch_r",tmpstring);
+        update_PRM_sub(argv[4],"a_stretch_r",tmpstring);
 
         /* Update ashift and associated params in PRM*/
         sprintf(tmpstring,"%d",int_ashift);
-        update_PRM(argv[4],"ashift",tmpstring);
+        update_PRM_sub(argv[4],"ashift",tmpstring);
         sprintf(tmpstring,"%.4f",sub_int_a);
-        update_PRM(argv[4],"sub_int_a",tmpstring);
+        update_PRM_sub(argv[4],"sub_int_a",tmpstring);
         sprintf(tmpstring,"%.9f",stretch_a);
-        update_PRM(argv[4],"stretch_a",tmpstring);
+        update_PRM_sub(argv[4],"stretch_a",tmpstring);
         sprintf(tmpstring,"%.9f",a_stretch_a);
-        update_PRM(argv[4],"a_stretch_a",tmpstring);
+        update_PRM_sub(argv[4],"a_stretch_a",tmpstring);
 
 
 

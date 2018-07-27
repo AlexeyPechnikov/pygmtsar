@@ -19,7 +19,7 @@
 #include "orbit.h"
 #define FACTOR 1000000
 void calc_height_velocity(struct SAT_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
-void interpolate_ALOS_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
+void interpolate_SAT_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
 void polyfit(double *, double *, double *, int *, int *);
 
 void ldr_orbit(struct SAT_ORB *orb, struct PRM *prm)
@@ -99,9 +99,9 @@ double 	t0, ro, ra, rc, dt;
 
 	/* interpolate orbit 				*/
 	/* _slow does memory allocation each time 	*/
-	interpolate_ALOS_orbit_slow(orb, t0, &xs, &ys, &zs, &ir);
-	interpolate_ALOS_orbit_slow(orb, t1, &x1, &y1, &z1, &ir);
-	interpolate_ALOS_orbit_slow(orb, t2, &x2, &y2, &z2, &ir);
+	interpolate_SAT_orbit_slow(orb, t0, &xs, &ys, &zs, &ir);
+	interpolate_SAT_orbit_slow(orb, t1, &x1, &y1, &z1, &ir);
+	interpolate_SAT_orbit_slow(orb, t2, &x2, &y2, &z2, &ir);
 
 	rs = sqrt(xs*xs + ys*ys + zs*zs);
 
@@ -164,7 +164,7 @@ double 	t0, ro, ra, rc, dt;
 	for (k=0; k<nt; k++){
 		time[k] = dt*(k - nt/2);
 		t1 = t0+time[k];
-		interpolate_ALOS_orbit_slow(orb, t1, &xs, &ys, &zs, &ir);
+		interpolate_SAT_orbit_slow(orb, t1, &xs, &ys, &zs, &ir);
 		rng[k] = sqrt((xe-xs)*(xe-xs) + (ye-ys)*(ye-ys) + (ze-zs)*(ze-zs)) - ro;
 		}
 

@@ -72,7 +72,7 @@ void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
 void set_prm_defaults(struct PRM *);
 void hermite_c(double *, double *, double *, int , int , double , double *, int *);
 void set_prm_defaults(struct PRM *);
-void interpolate_ALOS_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
+void interpolate_SAT_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
 void polyfit(double *, double *, double *, int *, int *);
 
 int main (int argc, char **argv) {
@@ -81,7 +81,6 @@ int main (int argc, char **argv) {
 	int otype;
         double rln,rlt,rht,dr,t1,t11,t2,tm;
         double ts,rng0;
-    //double telp,relp,thet,rad=PI/180.;
 	double xp[3];
 	double xt[3];
 	double rp[3];
@@ -91,7 +90,7 @@ int main (int argc, char **argv) {
 	double fll,rdd,daa,drr,dopc;
         double dt,dtt,xs,ys,zs;
         double time[20],rng[20],d[3];  /* arrays used for polynomial refinement of min range */
-        int ir, k, ntt=10, nc=3;           /* size of arrays used for polynomial refinement */
+        int ir, k, ntt=10, nc=3;       /* size of arrays used for polynomial refinement */
         int j,nrec,precise = 0;
         int goldop();
         int stai,endi,midi;
@@ -104,13 +103,15 @@ int main (int argc, char **argv) {
         int calorb_alos(struct SAT_ORB*, double **orb_pos, double ts, double t1, int nrec);
 
 /* Make sure usage is correct and files can be opened  */
+
 	if (argc < 3 || argc > 4) {
 	  fprintf (stderr,"%s\n", USAGE);
-	  exit(-1); }
-
+	  exit(-1); 
+	}
         precise = atoi(argv[2]);
 
 /* otype:    1 -- ascii; 2 -- single precision binary; 3 -- double precision binary    */
+
 	otype=1;
 	if (argc == 4) {
 	if (!strcmp(argv[3],"-bos")) otype=2;
@@ -122,10 +123,12 @@ int main (int argc, char **argv) {
 	}
 
 /*  open and read the parameter file */
+
         if ((fprm1 = fopen(argv[1], "r")) == NULL) { 
           fprintf (stderr, "couldn't open master.PRM \n");
 	  fprintf (stderr,"%s\n", USAGE);
           exit (-1); }	
+
 /* initialize the prm file   */
 	
 	set_prm_defaults(&prm);
@@ -134,19 +137,22 @@ int main (int argc, char **argv) {
         fclose(fprm1);
 
 /*  get the orbit data */
+
 	ldrfile = fopen(prm.led_file,"r");
         if (ldrfile == NULL) die("can't open ",prm.led_file);
 	orb = (struct SAT_ORB*)malloc(sizeof(struct SAT_ORB));
 	read_orb(ldrfile, &prm, orb);
 
 /* update the rng_samp_rate in PRM file   */
+
         if ((fprm1 = fopen(argv[1], "r")) == NULL) {
-         fprintf (stderr, "couldn't open master.PRM \n");
-         exit (-1); }
+          fprintf (stderr, "couldn't open master.PRM \n");
+          exit (-1); 
+	}
         while(fscanf(fprm1,"%s = %s \n",name,value) != EOF){
         if (strcmp(name, "rng_samp_rate") == 0) {   
-        get_double(name,"rng_samp_rate", value, &rsr);
-          }
+          get_double(name,"rng_samp_rate", value, &rsr);
+        }
         }
         prm.fs=rsr;
         dr = 0.5*SOL/prm.fs;
@@ -174,19 +180,18 @@ int main (int argc, char **argv) {
         }
         nrec=(int)((t2-t1)/ts);
 
-/* allocate memory for the orbit postion into a 2-dimensional array. It's about 
-   nrec+-npad * 4 * 4bytes = 320 KB   
-   the first "4" means space and time dimension : t, x, y, z         */
-        
-        /* allocate storage for an array of pointers  */
+/* allocate storage for an array of pointers  */
+
         orb_pos = malloc(4*sizeof(double *));
         
-        /* for each pointer, allocate storage for an array of floats  */
+/* for each pointer, allocate storage for an array of floats  */
+
         for(j=0; j<4; j++) {
           orb_pos[j] = malloc((nrec+2*npad) * sizeof(double));
         }
 
 /* read in the postion of the orbit */
+
        (void)calorb_alos(orb, orb_pos, ts, t1, nrec);
         
 /* read the llt points and convert to xyz.  */
@@ -201,17 +206,6 @@ int main (int argc, char **argv) {
 
 /* compute the topography due to the difference between the local radius and center radius */
 
-//            thet = rlt * rad;
-//            if(prm.rc > 6350000. && prm.ra > 6350000. && prm.RE > 6350000.) {
-//		relp=1./sqrt((cos(thet)/prm.ra)*(cos(thet)/prm.ra)+(sin(thet)/prm.rc)*(sin(thet)/prm.rc));
-//		telp=relp-prm.RE;
-//           }
-//            else {
-//		telp=0.;
-// 	    }
-//            rp[2]=rht + telp;
-
-        // compute based on definition from phasediff.
         rp[2] = sqrt(xp[0]*xp[0]+xp[1]*xp[1]+xp[2]*xp[2]) - prm.RE;
 
 /* minimum for each point */
@@ -229,7 +223,7 @@ int main (int argc, char **argv) {
             	for (k=0; k<ntt; k++){
                     time[k] = dt*(k - ntt/2 + .5);
                     t11 = tm+time[k];
-                    interpolate_ALOS_orbit_slow(orb, t11, &xs, &ys, &zs, &ir);
+                    interpolate_SAT_orbit_slow(orb, t11, &xs, &ys, &zs, &ir);
                     rng[k] = sqrt((xp[0]-xs)*(xp[0]-xs) + (xp[1]-ys)*(xp[1]-ys) + (xp[2]-zs)*(xp[2]-zs)) - rng0;
             	}
 
@@ -237,7 +231,7 @@ int main (int argc, char **argv) {
             	polyfit(time,rng,d,&ntt,&nc);
                 dtt = -d[1]/(2.*d[2]);
              	tm=tm+dtt;
-             	interpolate_ALOS_orbit_slow(orb, tm, &xs, &ys, &zs, &ir);
+             	interpolate_SAT_orbit_slow(orb, tm, &xs, &ys, &zs, &ir);
              	rng0 = sqrt((xp[0]-xs)*(xp[0]-xs) + (xp[1]-ys)*(xp[1]-ys) + (xp[2]-zs)*(xp[2]-zs));
 
            }
