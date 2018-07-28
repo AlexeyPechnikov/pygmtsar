@@ -113,6 +113,7 @@ struct PRM prm;
 
 if ((prm_file = fopen(prmfile,"r")) == NULL)
 	{
+	fprintf(stderr,"\n error -  could not open file %s \n\n",prmfile);
 	return 1;
 	}
 else

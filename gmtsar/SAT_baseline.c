@@ -96,7 +96,6 @@ FILE	*prmfile;
 		read_all_ldr(r, orb, nfiles);
 		baseline(r, orb, nfiles, input_flag,filename,fs0);
 
-
 	return(EXIT_SUCCESS);
 }
 /*---------------------------------------------------------------------------*/
@@ -128,11 +127,10 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 	double	dr, dt, ds;
 	double  bv1, bv2, bv3, bh1, bh2, bh3;
 	double  t11, t12, t21, t22, t23;
-    double  x11, y11, z11, x12, y12, z12, x13, y13, z13;
-    double  x21, y21, z21, x22, y22, z22, x23, y23, z23;
-    double  ru1, ru2, ru3, xu1, yu1, zu1, xu2, yu2, zu2, xu3, yu3, zu3;
+	double  x11, y11, z11, x12, y12, z12, x13, y13, z13;
+	double  x21, y21, z21, x22, y22, z22, x23, y23, z23;
+	double  ru1, ru2, ru3, xu1, yu1, zu1, xu2, yu2, zu2, xu3, yu3, zu3;
 	double	ts, xs, ys, zs;
-	/* double  rr1, rr2; */    /* near range from reference and repeat orbits */
 	double	b1, b2, b3, bpara, bperp;
 	double	*pt, *p, *pv, pt0;
 	double height, re_c, vg, vtot, rdot;
@@ -175,13 +173,11 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 
 		get_seconds(r[ii], &t21, &t22);
 		t23 = (t21 + t22)/2.;
-		/* rr2 = r[ii].near_range; */
-
 		pt0 = (24.0*60.0*60.0)*orb[ii].id + orb[ii].sec;
 		for (k=0; k<nd; k++) pt[k] = pt0 + k*orb[ii].dsec; 
-
 		verbose = 0;
-		/* interpolate_SAT_orbit assumes p, pt, and pv ate allocated and pt assigned */
+
+	/* interpolate_SAT_orbit assumes p, pt, and pv ate allocated and pt assigned */
 		interpolate_SAT_orbit(&orb[ii], pt, p, pv, t21, &x21, &y21, &z21, &ir);
 
         /* look at other orbit information and recalculate the height using the ashift */
@@ -192,10 +188,7 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
         calc_height_velocity(&orb[ii], &r[ii], t21, t21, &height, &re_c, &vg, &vtot, &rdot);
         r[ii].ht_start = height+re_c-r[ii].RE;
 
-		/* fd_orbit = -2.0*rdot/r[ii].lambda; */
-
 		interpolate_SAT_orbit(&orb[ii], pt, p, pv, t22, &x22, &y22, &z22, &ir);
-
 		interpolate_SAT_orbit(&orb[ii], pt, p, pv, t23, &x23, &y23, &z23, &ir);
 
 		/* loop over reference orbit 				*/
