@@ -9,18 +9,13 @@
  *										*
  * Date   :  06/07/2007                                                         *
  ********************************************************************************/
-
-//#include "gmtsar.h"
-//#include "orbit.h"
-//#include "update_PRM.h"
+#include "gmtsar.h"
+#include "update_PRM.h"
 
 char    *USAGE = "\nUsage: update_PRM file.PRM parameter value \n";
 
 int main (int argc, char **argv) {
 
 	if (argc < 3) die (USAGE,"");
-
-/*  just do it */
-
 	update_PRM_sub(argv[1],argv[2],argv[3]);
 }

@@ -19,6 +19,10 @@ void set_prm_defaults(struct PRM *prm)
 	prm->offset_video[1] = '\0';
 	strncpy(prm->srm,"n",1);			/* scnd_rng_mig */
 	prm->srm[1] = '\0';
+	strncpy(prm->orbdir,"n",1);
+	prm->orbdir[1] = '\0';
+	strncpy(prm->lookdir,"n",1);
+	prm->lookdir[1] = '\0';
 
 	prm->num_valid_az	= 9216;
 	prm->nrows		= 16384;
