@@ -131,14 +131,17 @@ void null_sio_struct(struct PRM *p)
 
 void get_sio_struct(FILE *fh, struct PRM *s)
 {
-char 	name[128], value[128];
+char 	name[128], value[128], equal[128];
+char	str[1024];
 
 if (debug) {
 	fprintf(stderr,"get_sio_struct:\n");
 	fprintf(stderr,"PRMname   (PRM value)     interpreted value\n");
 	}
 
-while(fscanf(fh,"%s = %s \n",name,value) != EOF){
+	while(fgets(str,1024,fh)!= NULL){
+	value[0] = '\0';
+	sscanf(str,"%s %s %s",name,equal,value);
 
 	/* strings */
 	if (strcmp(name,"input_file") == 0) get_string(name, "input_file", value, s->input_file);
