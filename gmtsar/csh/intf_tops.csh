@@ -65,6 +65,7 @@
   set defomax = `grep defomax $2 | awk '{print $3}'`
   set range_dec = `grep range_dec $2 | awk '{print $3}'`
   set azimuth_dec = `grep azimuth_dec $2 | awk '{print $3}'`
+  set near_interp = `grep near_interp $2 | awk '{print $3}'`
 
 ##################################
 # 1 - start from make topo_ra  #
@@ -190,7 +191,11 @@ if ($stage <= 2) then
       echo ""
       echo "SNAPHU.CSH - START"
       echo "threshold_snaphu: $threshold_snaphu"
-      snaphu.csh $threshold_snaphu $defomax $region_cut
+      if ($near_interp == 1) then
+        snaphu_interp.csh $threshold_snaphu $defomax $region_cut
+      else
+        snaphu.csh $threshold_snaphu $defomax $region_cut
+      endif
       echo "SNAPHU.CSH - END"
     else
       echo ""

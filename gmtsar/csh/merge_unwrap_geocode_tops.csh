@@ -92,6 +92,7 @@
   set region_cut = `grep region_cut $2 | awk '{print $3}'`
   set switch_land = `grep switch_land $2 | awk '{print $3}'`
   set defomax = `grep defomax $2 | awk '{print $3}'`
+  set near_interp = `grep near_interp $2 | awk '{print $3}'`
 
   # Unwrapping
   if ($region_cut == "") then
@@ -107,7 +108,11 @@
     echo ""
     echo "SNAPHU.CSH - START"
     echo "threshold_snaphu: $threshold_snaphu"
-    snaphu.csh $threshold_snaphu $defomax $region_cut
+    if ($near_interp == 1) then
+      snaphu_interp.csh $threshold_snaphu $defomax $region_cut
+    else
+      snaphu.csh $threshold_snaphu $defomax $region_cut
+    endif
     echo "SNAPHU.CSH - END"
   else
     echo ""

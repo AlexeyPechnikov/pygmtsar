@@ -99,6 +99,7 @@ unset noclobber
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
+  set near_interp = `grep near_interp $3 | awk '{print $3}'`
 #
 ##################################
 # 1 - start from make topo_ra  #
@@ -243,7 +244,11 @@ if ($stage <= 2) then
       echo ""
       echo "SNAPHU.CSH - START"
       echo "threshold_snaphu: $threshold_snaphu"
-      snaphu.csh $threshold_snaphu $defomax $region_cut
+      if ($near_interp == 1) then
+        snaphu_interp.csh $threshold_snaphu $defomax $region_cut
+      else
+        snaphu.csh $threshold_snaphu $defomax $region_cut
+      endif
       echo "SNAPHU.CSH - END"
     else 
       echo ""

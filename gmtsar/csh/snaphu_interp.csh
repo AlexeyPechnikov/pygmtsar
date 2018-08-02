@@ -8,9 +8,9 @@ unset noclobber
   if ($#argv < 2) then
 errormessage:
     echo ""
-    echo "snaphu.csh [GMTSAR] - Unwrap the phase"
+    echo "snaphu_interp.csh [GMTSAR] - Unwrap the phase with nearest neighbor interpolating low coherence and blank pixels"
     echo " "
-    echo "Usage: snaphu.csh correlation_threshold maximum_discontinuity [<rng0>/<rngf>/<azi0>/<azif>]"
+    echo "Usage: snaphu_interp.csh correlation_threshold maximum_discontinuity [<rng0>/<rngf>/<azi0>/<azif>]"
     echo ""
     echo "       correlation is reset to zero when < threshold"
     echo "       maximum_discontinuity enables phase jumps for earthquake ruptures, etc."
@@ -20,6 +20,7 @@ errormessage:
     echo ""
     echo "Reference:"
     echo "Chen C. W. and H. A. Zebker, Network approaches to two-dimensional phase unwrapping: intractability and two new algorithms, Journal of the Optical Society of America A, vol. 17, pp. 401-414 (2000)."
+    echo "Agram, P. S., & Zebker, H. A. (2009). Sparse two-dimensional phase unwrapping using regular-grid methods. IEEE Geoscience and Remote Sensing Letters, 6(2), 327-331."
     exit 1
   endif
 #
