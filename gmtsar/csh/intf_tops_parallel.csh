@@ -1,8 +1,14 @@
 #!/bin/csh -f
+#
+# by Xiaohua XU, 03/06/2018
+#
 
 if ($#argv != 3) then
   echo ""
-  echo "Usage: intf_tops_batch.csh intf.in batch.config Ncores"
+  echo "Usage: intf_tops_parallel.csh intf.in batch.config Ncores"
+  echo ""
+  echo "    Run intf jobs parallelly. Need to install GNU parallel first."
+  echo "    e.g. sudo port install parallel"
   echo ""
   exit
 endif
@@ -25,5 +31,5 @@ parallel --jobs $ncores < intf_tops.cmd
 
 set t2 = `date`
 set dir0 = `pwd`
-echo "Job started on $t1 and finishe don $t2 at $dir0 "|mail -s "TOPS intfs job finished" sddyxxh@gmail.com
+#echo "Job started on $t1 and finishe don $t2 at $dir0 "|mail -s "TOPS intfs job finished" balabala@gmail.com
 
