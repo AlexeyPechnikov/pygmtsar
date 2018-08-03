@@ -77,6 +77,7 @@ unset noclobber
   set defomax = `grep defomax $3 | awk '{print $3}'`
   set range_dec = `grep range_dec $3 | awk '{print $3}'`
   set azimuth_dec = `grep azimuth_dec $3 | awk '{print $3}'`
+  set near_interp = `grep near_interp $3 | awk '{print $3}'`
 #
 # read file names of raw data
 #
@@ -316,8 +317,12 @@ unset noclobber
       echo " "
       echo "SNAPHU.CSH - START"
       echo "threshold_snaphu: $threshold_snaphu"
+      if ($near_interp == 1) then
+        snaphu_interp.csh $threshold_snaphu $defomax $region_cut
+      else
+        snaphu.csh $threshold_snaphu $defomax $region_cut
+      endif
       
-      snaphu_interp.csh $threshold_snaphu $defomax $region_cut
 
       echo "SNAPHU.CSH - END"
       cd ../..
