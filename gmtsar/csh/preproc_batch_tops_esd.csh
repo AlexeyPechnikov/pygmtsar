@@ -154,13 +154,13 @@
             echo "Modifying master PRM by $tmp_da lines..."
             set prf = `grep PRF tmp.PRM | awk '{print $3}'`
             set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-            update_PRM.csh tmp.PRM clock_start $ttmp
+            update_PRM tmp.PRM clock_start $ttmp
             set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-            update_PRM.csh tmp.PRM clock_stop $ttmp
+            update_PRM tmp.PRM clock_stop $ttmp
             set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-            update_PRM.csh tmp.PRM SC_clock_start $ttmp
+            update_PRM tmp.PRM SC_clock_start $ttmp
             set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-            update_PRM.csh tmp.PRM SC_clock_stop $ttmp
+            update_PRM tmp.PRM SC_clock_stop $ttmp
 
             cp tmp.PRM junk1
             calc_dop_orb junk1 junk2 $earth_radius 0
@@ -240,9 +240,9 @@
         cp $tmp_stem.LED $stem.LED
         mv $tmp_stem.SLC $stem.SLC
 
-        update_PRM.csh $stem.PRM input_file $stem.raw
-        update_PRM.csh $stem.PRM SLC_file $stem.SLC
-        update_PRM.csh $stem.PRM led_file $stem.LED
+        update_PRM $stem.PRM input_file $stem.raw
+        update_PRM $stem.PRM SLC_file $stem.SLC
+        update_PRM $stem.PRM led_file $stem.LED
       endif 
       ext_orb_s1a $stem.PRM $orbit $stem
 
@@ -251,12 +251,12 @@
         cp $stem.PRM $stem.PRM0
         #if ($bshift != 0) echo "Updated shift caused by burst offset is $bshift"
         if ($tmp_da > -1000 && $tmp_da < 1000) then
-          update_PRM.csh $stem.PRM ashift 0
+          update_PRM $stem.PRM ashift 0
         else
-          update_PRM.csh $stem.PRM ashift $tmp_da
+          update_PRM $stem.PRM ashift $tmp_da
           echo "Restoring $tmp_da lines shift to the image..."
         endif
-        update_PRM.csh $stem.PRM rshift 0
+        update_PRM $stem.PRM rshift 0
         
         resamp $mmaster.PRM $stem.PRM $stem.PRMresamp $stem.SLCresamp 1
         mv $stem.PRMresamp $stem.PRM

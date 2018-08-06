@@ -38,8 +38,8 @@ endif
  
  set earth_radius = `grep earth_radius $master.PRM|tail -1 | awk '{print $3}'`
  set fd1 = `grep fd1 $master.PRM |tail -1 |awk '{print $3}'`
- update_PRM.csh $master.PRM earth_radius $earth_radius
- update_PRM.csh $master.PRM fd1 $fd1
+ update_PRM $master.PRM earth_radius $earth_radius
+ update_PRM $master.PRM fd1 $fd1
 
  SAT_llt2rat $master".PRM" 1 < topo.llt > master.ratll
 
@@ -66,8 +66,8 @@ foreach slave (`cat slave.list`)
     echo "fdd1                    = 0" >> $slave.PRM
     echo "fddd1                   = 0" >> $slave.PRM
     
-    update_PRM.csh $slave.PRM earth_radius $earth_radius
-    update_PRM.csh $slave.PRM fd1 $fd1
+    update_PRM $slave.PRM earth_radius $earth_radius
+    update_PRM $slave.PRM fd1 $fd1
 
     rm -f $slave.log
 

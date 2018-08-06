@@ -39,7 +39,7 @@ unset noclobber
     echo "focussing master"
     sarp.csh $2.PRM 
   else
-    update_PRM.csh $2.PRM SLC_file $2.SLC
+    update_PRM $2.PRM SLC_file $2.SLC
   endif
 #
 # focus the slave image
@@ -68,13 +68,13 @@ unset noclobber
 #   use the PRF of the supermaster in the surrogate master
 #
     set PRF = `grep PRF $4.PRM | awk '{print $3}'`
-    update_PRM.csh $2.PRM PRF $PRF
+    update_PRM $2.PRM PRF $PRF
   else
     set RSHIFT = `$1_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
     set ASHIFT = `$1_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
   endif
-  update_PRM.csh $3.PRM rshift $RSHIFT
-  update_PRM.csh $3.PRM ashift $ASHIFT
+  update_PRM $3.PRM rshift $RSHIFT
+  update_PRM $3.PRM ashift $ASHIFT
   echo "align.csh"
   echo "correlate master and slave to find offset parameters"
   if( $SAT == "ERS") then

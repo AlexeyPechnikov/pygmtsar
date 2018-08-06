@@ -54,8 +54,8 @@
 #
 #  need to add the SLC_file name to the master PRM's
 #
-      update_PRM.csh IMG-HH-$masterstem.PRM SLC_file IMG-HH-$masterstem.SLC
-      update_PRM.csh IMG-HH-$supermasterstem.PRM SLC_file IMG-HH-$supermasterstem.SLC
+      update_PRM IMG-HH-$masterstem.PRM SLC_file IMG-HH-$masterstem.SLC
+      update_PRM IMG-HH-$supermasterstem.PRM SLC_file IMG-HH-$supermasterstem.SLC
       ln -s ../raw/IMG-HH-$masterstem.SLC . 
       ln -s ../raw/IMG-HH-$slavestem.SLC . 
       ln -s ../raw/LED-$masterstem . 

@@ -121,13 +121,13 @@ else
   cp $mpre".PRM" tmp.PRM
   set prf = `grep PRF tmp.PRM | awk '{print $3}'`
   set ttmp = `grep clock_start tmp.PRM | grep -v SC_clock_start | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-  update_PRM.csh tmp.PRM clock_start $ttmp
+  update_PRM tmp.PRM clock_start $ttmp
   set ttmp = `grep clock_stop tmp.PRM | grep -v SC_clock_stop | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-  update_PRM.csh tmp.PRM clock_stop $ttmp
+  update_PRM tmp.PRM clock_stop $ttmp
   set ttmp = `grep SC_clock_start tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-  update_PRM.csh tmp.PRM SC_clock_start $ttmp
+  update_PRM tmp.PRM SC_clock_start $ttmp
   set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
-  update_PRM.csh tmp.PRM SC_clock_stop $ttmp
+  update_PRM tmp.PRM SC_clock_stop $ttmp
 #
 #  restore the modified lines 
 #
@@ -226,9 +226,9 @@ make_s1a_tops $sxml $stiff $spre 1 r.grd a.grd
 #
 cp $spre".PRM" $spre".PRM0"
 if ($tmp_da > -1000 && $tmp_da < 1000) then
-  update_PRM.csh $spre".PRM" ashift 0
+  update_PRM $spre".PRM" ashift 0
 else
-  update_PRM.csh $spre".PRM" ashift $tmp_da
+  update_PRM $spre".PRM" ashift $tmp_da
   echo "Restoring $tmp_da lines with resamp..."
 endif
 resamp $mpre".PRM" $spre".PRM" $spre".PRMresamp" $spre".SLCresamp" 1

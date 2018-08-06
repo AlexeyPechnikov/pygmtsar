@@ -91,14 +91,14 @@ gmt grd2xyz --FORMAT_FLOAT_OUT=%lf flt.grd -s > topo.llt
 # zero the alignment parameters of the slave image
 # don'd change the alignment parameters of the master image in case this is a surrogate master
 #
-update_PRM.csh $spre".PRM" rshift 0
-update_PRM.csh $spre".PRM" sub_int_r 0.0
-update_PRM.csh $spre".PRM" stretch_r 0.0
-update_PRM.csh $spre".PRM" a_stretch_r 0.0
-update_PRM.csh $spre".PRM" ashift 0
-update_PRM.csh $spre".PRM" sub_int_a 0.0
-update_PRM.csh $spre".PRM" stretch_a 0.0
-update_PRM.csh $spre".PRM" a_stretch_a 0.0
+update_PRM $spre".PRM" rshift 0
+update_PRM $spre".PRM" sub_int_r 0.0
+update_PRM $spre".PRM" stretch_r 0.0
+update_PRM $spre".PRM" a_stretch_r 0.0
+update_PRM $spre".PRM" ashift 0
+update_PRM $spre".PRM" sub_int_a 0.0
+update_PRM $spre".PRM" stretch_a 0.0
+update_PRM $spre".PRM" a_stretch_a 0.0
 #
 # map the topography into the range and azimuth of the master and slave using polynomial refinement
 #
@@ -148,8 +148,8 @@ make_s1a_tops_6par $sxml $stiff $spre 1 $sub_int_r $sub_int_a $stretch_a $a_stre
 #
 #   restore the integer rshift and ashift
 #
-update_PRM.csh $spre".PRM" rshift $rshift
-update_PRM.csh $spre".PRM" ashift $ashift
+update_PRM $spre".PRM" rshift $rshift
+update_PRM $spre".PRM" ashift $ashift
 #
 #   re-extract the lED files
 #

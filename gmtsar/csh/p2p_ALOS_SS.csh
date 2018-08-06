@@ -162,8 +162,8 @@ unset noclobber
     ln -s ../../raw/LED-"$master" . 
     ln -s ../../raw/LED-"$slave" .
     set azimuth = `grep num_valid_az IMG-HH-"$master"_"$subswath".PRM | awk '{printf("%d",int($3/8)*8)}'`
-    update_PRM.csh IMG-HH-"$master"_"$subswath".PRM num_valid_az $azimuth
-    update_PRM.csh IMG-HH-"$slave"_"$subswath".PRM num_valid_az $azimuth
+    update_PRM IMG-HH-"$master"_"$subswath".PRM num_valid_az $azimuth
+    update_PRM IMG-HH-"$slave"_"$subswath".PRM num_valid_az $azimuth
     align.csh $SAT IMG-HH-"$master"_"$subswath" IMG-HH-"$slave"_"$subswath" 
     cd ../..
     echo "ALIGN.CSH - END"

@@ -37,5 +37,5 @@ endif
 #   put in dfact into PRM file
 #
 set dfact = `grep I2SCALE tmp_sarp | awk '{print $2}'`
-update_PRM.csh $1 SLC_scale $dfact
+update_PRM $1 SLC_scale $dfact
 rm tmp_sarp

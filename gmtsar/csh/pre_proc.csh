@@ -84,14 +84,14 @@ unset noclobber
       ALOS_fbd2fbs IMG-HH-$slave.PRM IMG-HH-$slave"_"FBS.PRM
       echo "Overwriting the old slave image"
       mv IMG-HH-$slave"_"FBS.PRM IMG-HH-$slave.PRM
-      update_PRM.csh IMG-HH-$slave.PRM input_file IMG-HH-$slave.raw
+      update_PRM IMG-HH-$slave.PRM input_file IMG-HH-$slave.raw
       mv IMG-HH-$slave"_"FBS.raw IMG-HH-$slave.raw
     else if  ($t == 0.5) then
       echo "Use FBS mode image as master"
       ALOS_fbd2fbs IMG-HH-$master.PRM IMG-HH-$master"_"FBS.PRM
       echo "Overwriting the old master image"
       mv IMG-HH-$master"_"FBS.PRM IMG-HH-$master.PRM
-      update_PRM.csh IMG-HH-$master.PRM input_file IMG-HH-$master.raw
+      update_PRM IMG-HH-$master.PRM input_file IMG-HH-$master.raw
       mv IMG-HH-$master"_"FBS.raw IMG-HH-$master.raw
       exit 1
     else
@@ -124,10 +124,10 @@ unset noclobber
     echo "Different number of patches: $pch1 $pch2"
     if ($pch1 != $pch2) then
       if ($pch1 < $pch2) then
-        update_PRM.csh $slave.PRM num_patches $pch1
+        update_PRM $slave.PRM num_patches $pch1
         echo "Number of patches is set to $pch1"
       else
-        update_PRM.csh $master.PRM num_patches $pch2
+        update_PRM $master.PRM num_patches $pch2
         echo "Number of patches is set to $pch2"
       endif
     endif
@@ -138,8 +138,8 @@ unset noclobber
     grep fd1 $slave.PRM | awk '{printf("%f",$3)}' >> temp
     set fda = `cat temp | awk '{print( ($1 + $2)/2.)}'`
     echo " use average Doppler $fda "
-    update_PRM.csh $master.PRM fd1 $fda
-    update_PRM.csh $slave.PRM fd1 $fda
+    update_PRM $master.PRM fd1 $fda
+    update_PRM $slave.PRM fd1 $fda
     rm -r temp
   
     echo ""
@@ -163,10 +163,10 @@ unset noclobber
     echo "Different number of patches: $pch1 $pch2"
     if ($pch1 != $pch2) then
       if ($pch1 < $pch2) then
-        update_PRM.csh $slave.PRM num_patches $pch1
+        update_PRM $slave.PRM num_patches $pch1
         echo "Number of patches is set to $pch1"
       else
-        update_PRM.csh $master.PRM num_patches $pch2
+        update_PRM $master.PRM num_patches $pch2
         echo "Number of patches is set to $pch2"
       endif
     endif
@@ -177,8 +177,8 @@ unset noclobber
     grep fd1 $slave.PRM | awk '{printf("%f",$3)}' >> temp
     set fda = `cat temp | awk '{print( ($1 + $2)/2.)}'`
     echo " use average Doppler $fda "
-    update_PRM.csh $master.PRM fd1 $fda
-    update_PRM.csh $slave.PRM fd1 $fda
+    update_PRM $master.PRM fd1 $fda
+    update_PRM $slave.PRM fd1 $fda
     rm -r temp
     
     echo ""
@@ -231,14 +231,14 @@ unset noclobber
 	  ALOS_fbd2fbs_SLC IMG-$slave.PRM IMG-$slave"_"FBS.PRM
       echo "Overwriting the old slave image"
       mv IMG-$slave"_"FBS.PRM IMG-$slave.PRM
-	  update_PRM.csh IMG-$slave.PRM input_file IMG-$slave.SLC
+	  update_PRM IMG-$slave.PRM input_file IMG-$slave.SLC
       mv IMG-$slave"_"FBS.SLC IMG-$slave.SLC
     else if  ($t == 0.5) then
 	  echo "Convert the master image from FBD to FBS mode"
 	  ALOS_fbd2fbs_SLC IMG-$master.PRM IMG-$master"_"FBS.PRM
       echo "Overwriting the old master image"
       mv IMG-$master"_"FBS.PRM IMG-$master.PRM
-	  update_PRM.csh IMG-$master.PRM input_file IMG-$master.SLC
+	  update_PRM IMG-$master.PRM input_file IMG-$master.SLC
       mv IMG-$master"_"FBS.SLC IMG-$master.SLC
     else
 	  echo "The range sampling rate for master and slave images are not convertable"
@@ -280,10 +280,10 @@ unset noclobber
     echo "Different number of patches: $pch1 $pch2"
     if ($pch1 != $pch2) then
       if ($pch1 < $pch2) then
-        update_PRM.csh $slave.PRM num_patches $pch1
+        update_PRM $slave.PRM num_patches $pch1
         echo "Number of patches is set to $pch1"
       else
-        update_PRM.csh $master.PRM num_patches $pch2
+        update_PRM $master.PRM num_patches $pch2
         echo "Number of patches is set to $pch2"
       endif
     endif
@@ -294,8 +294,8 @@ unset noclobber
     grep fd1 $slave.PRM | awk '{printf("%f",$3)}' >> temp
     set fda = `cat temp | awk '{print( ($1 + $2)/2.)}'`
     echo " use average Doppler $fda "
-    update_PRM.csh $master.PRM fd1 $fda
-    update_PRM.csh $slave.PRM fd1 $fda
+    update_PRM $master.PRM fd1 $fda
+    update_PRM $slave.PRM fd1 $fda
     rm -r temp
     
     echo ""
@@ -332,13 +332,13 @@ unset noclobber
     @ m_lines  = `grep num_lines ../raw/$master.PRM | awk '{printf("%d",int($3))}' `
     @ s_lines  = `grep num_lines ../raw/$slave.PRM | awk '{printf("%d",int($3))}' `
     if($s_lines <  $m_lines) then
-      update_PRM.csh $master.PRM num_lines $s_lines
-      update_PRM.csh $master.PRM num_valid_az $s_lines
-      update_PRM.csh $master.PRM nrows $s_lines
+      update_PRM $master.PRM num_lines $s_lines
+      update_PRM $master.PRM num_valid_az $s_lines
+      update_PRM $master.PRM nrows $s_lines
     else
-      update_PRM.csh $slave.PRM num_lines $m_lines
-      update_PRM.csh $slave.PRM num_valid_az $m_lines
-      update_PRM.csh $slave.PRM nrows $m_lines
+      update_PRM $slave.PRM num_lines $m_lines
+      update_PRM $slave.PRM num_valid_az $m_lines
+      update_PRM $slave.PRM nrows $m_lines
     endif
 #
 #   calculate SC_vel and SC_height

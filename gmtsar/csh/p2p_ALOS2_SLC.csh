@@ -180,14 +180,14 @@ unset noclobber
 	ALOS_fbd2fbs_SLC IMG-$slave.PRM IMG-$slave"_"FBS.PRM
         echo "Overwriting the old slave image"
         mv IMG-$slave"_"FBS.PRM IMG-$slave.PRM
-	update_PRM.csh IMG-$slave.PRM input_file IMG-$slave.SLC
+	update_PRM IMG-$slave.PRM input_file IMG-$slave.SLC
         mv IMG-$slave"_"FBS.SLC IMG-$slave.SLC
     else if  ($t == 0.5) then
 	echo "Convert the master image from FBD to FBS mode"
 	ALOS_fbd2fbs_SLC IMG-$master.PRM IMG-$master"_"FBS.PRM
         echo "Overwriting the old master image"
         mv IMG-$master"_"FBS.PRM IMG-$master.PRM
-	update_PRM.csh IMG-$master.PRM input_file IMG-$master.SLC
+	update_PRM IMG-$master.PRM input_file IMG-$master.SLC
         mv IMG-$master"_"FBS.SLC IMG-$master.SLC
     else
 	echo "The range sampling rate for master and slave images are not convertable"

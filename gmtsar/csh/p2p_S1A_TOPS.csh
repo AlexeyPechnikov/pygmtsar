@@ -128,22 +128,22 @@ unset noclobber
     @ m_lines  = `grep num_lines ../raw/$master.PRM | awk '{printf("%d",int($3))}' `
     @ s_lines  = `grep num_lines ../raw/$slave.PRM | awk '{printf("%d",int($3))}' `
     if($s_lines <  $m_lines) then
-      update_PRM.csh $master.PRM num_lines $s_lines
-      update_PRM.csh $master.PRM num_valid_az $s_lines
-      update_PRM.csh $master.PRM nrows $s_lines
+      update_PRM $master.PRM num_lines $s_lines
+      update_PRM $master.PRM num_valid_az $s_lines
+      update_PRM $master.PRM nrows $s_lines
     else
-      update_PRM.csh $slave.PRM num_lines $m_lines
-      update_PRM.csh $slave.PRM num_valid_az $m_lines
-      update_PRM.csh $slave.PRM nrows $m_lines
+      update_PRM $slave.PRM num_lines $m_lines
+      update_PRM $slave.PRM num_valid_az $m_lines
+      update_PRM $slave.PRM nrows $m_lines
     endif
 #
 #   set the higher Doppler terms to zerp to be zero
 #
-    update_PRM.csh $master.PRM fdd1 0
-    update_PRM.csh $master.PRM fddd1 0
+    update_PRM $master.PRM fdd1 0
+    update_PRM $master.PRM fddd1 0
 #
-    update_PRM.csh $slave.PRM fdd1 0
-    update_PRM.csh $slave.PRM fddd1 0
+    update_PRM $slave.PRM fdd1 0
+    update_PRM $slave.PRM fddd1 0
 #
     rm *.log
     rm *.PRM0

@@ -113,7 +113,7 @@ unset noclobber
       baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave"_"FBS.PRM GMT >> table.gmt
       echo "Overwriting the old slave image"
       mv IMG-HH-$slave"_"FBS.PRM IMG-HH-$slave.PRM
-      update_PRM.csh IMG-HH-$slave.PRM input_file IMG-HH-$slave.SLC
+      update_PRM IMG-HH-$slave.PRM input_file IMG-HH-$slave.SLC
       mv IMG-HH-$slave"_"FBS.SLC IMG-HH-$slave.SLC
 
     else if  ($t == 0.5) then

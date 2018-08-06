@@ -40,8 +40,5 @@ echo 'slc2amp.csh               - make and amplitude image from and SLC'
 echo 'snaphu.csh		- unwrap phase using snaphu'
 echo 'stack_corr.bash           - stack the correlation to compute mean correlation'
 echo 'stack_phase.bash          - stack the phase to compute mean LOS velocity'
-echo 'update_PRM.csh		- replace a value in a PRF-file'
+echo 'update_PRM		- replace a value in a PRF-file'
 echo ' '
-p2p_RS2_SLC.csh
-p2p_SAT_SLC.csh
-p2p_TSX_SLC.csh

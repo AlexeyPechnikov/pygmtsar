@@ -57,11 +57,11 @@
         set f2 = `echo $f_name | awk -F, '{print $2}' | awk -F: '{print $3}'`
         cp $mm ./supermaster.PRM
         set rshift = `grep rshift $pth$f1 | tail -1 | awk '{print $3}'`
-        update_PRM.csh supermaster.PRM rshift $rshift
+        update_PRM supermaster.PRM rshift $rshift
         set fs1 = `grep first_sample supermaster.PRM | awk '{print $3}'`
         set fs2 = `grep first_sample $pth$f1 | awk '{print $3}'`
         if ($fs2 > $fs1) then
-          update_PRM.csh supermaster.PRM first_sample $fs2
+          update_PRM supermaster.PRM first_sample $fs2
         endif
         cp supermaster.PRM $pth
         echo $pth":supermaster.PRM:"$f2 >> tmp.filelist

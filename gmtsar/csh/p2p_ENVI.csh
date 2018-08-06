@@ -123,10 +123,10 @@ if ($#argv < 3) then
     echo "Different number of patches: $pch1 $pch2"
     if ($pch1 != $pch2) then
       if ($pch1 < $pch2) then
-        update_PRM.csh $slave.PRM num_patches $pch1
+        update_PRM $slave.PRM num_patches $pch1
         echo "Number of patches is set to $pch1"
       else
-        update_PRM.csh $master.PRM num_patches $pch2
+        update_PRM $master.PRM num_patches $pch2
         echo "Number of patches is set to $pch2"
       endif
     endif
@@ -137,8 +137,8 @@ if ($#argv < 3) then
     grep fd1 $slave.PRM | awk '{printf("%f",$3)}' >> temp
     set fda = `cat temp | awk '{print( ($1 + $2)/2.)}'`
     echo " use average Doppler $fda "
-    update_PRM.csh $master.PRM fd1 $fda
-    update_PRM.csh $slave.PRM fd1 $fda
+    update_PRM $master.PRM fd1 $fda
+    update_PRM $slave.PRM fd1 $fda
     rm -r temp
     cd ..
     echo " PREPROCESS Envisat DATA  -- END"

@@ -49,24 +49,24 @@ echo "Ground velocity: "$SC_vel
 
 set azi_size = `echo $SC_vel $PRF|awk '{printf "%10.3f",$1/$2}' `
 
-update_PRM.csh $master rshift 0
-update_PRM.csh $master sub_int_r 0
-update_PRM.csh $master stretch_r 0.0
-update_PRM.csh $master a_stretch_r 0.0
-update_PRM.csh $master ashift 0
-update_PRM.csh $master sub_int_a 0.0
-update_PRM.csh $master stretch_a 0.0
-update_PRM.csh $master a_stretch_a 0.0
+update_PRM $master rshift 0
+update_PRM $master sub_int_r 0
+update_PRM $master stretch_r 0.0
+update_PRM $master a_stretch_r 0.0
+update_PRM $master ashift 0
+update_PRM $master sub_int_a 0.0
+update_PRM $master stretch_a 0.0
+update_PRM $master a_stretch_a 0.0
 
 
-update_PRM.csh $slave rshift 0
-update_PRM.csh $slave sub_int_r 0
-update_PRM.csh $slave stretch_r 0.0
-update_PRM.csh $slave a_stretch_r 0.0
-update_PRM.csh $slave ashift 0
-update_PRM.csh $slave sub_int_a 0.0
-update_PRM.csh $slave stretch_a 0.0
-update_PRM.csh $slave a_stretch_a 0.0 
+update_PRM $slave rshift 0
+update_PRM $slave sub_int_r 0
+update_PRM $slave stretch_r 0.0
+update_PRM $slave a_stretch_r 0.0
+update_PRM $slave ashift 0
+update_PRM $slave sub_int_a 0.0
+update_PRM $slave stretch_a 0.0
+update_PRM $slave a_stretch_a 0.0 
 
 #
 # make azimuth offset

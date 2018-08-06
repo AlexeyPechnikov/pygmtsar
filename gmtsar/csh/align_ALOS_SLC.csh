@@ -28,7 +28,7 @@ unset noclobber
   if(! -f $1.SLC) then
     ln -s ../raw/$1.SLC . 
     cp ../raw/$1.PRM .
-    update_PRM.csh $1.PRM SLC_file $1.SLC
+    update_PRM $1.PRM SLC_file $1.SLC
   endif
 #
 # focus the slave image
@@ -46,7 +46,7 @@ unset noclobber
   if(! -f $2.SLC) then
     ln -s ../raw/$2.SLC .
     cp ../raw/$2.PRM .
-    update_PRM.csh $2.PRM SLC_file $2.SLC
+    update_PRM $2.PRM SLC_file $2.SLC
   endif
 #
 # get the starting alignment parameters and run xcorr
@@ -60,13 +60,13 @@ unset noclobber
 #   use the PRF of the supermaster in the surrogate master
 #
     set PRF = `grep PRF $3.PRM | awk '{print $3}'`
-    update_PRM.csh $1.PRM PRM $PRF
+    update_PRM $1.PRM PRM $PRF
   else
     set RSHIFT = `SAT_baseline $1.PRM $2.PRM | grep rshift | awk '{print $3}'`
     set ASHIFT = `SAT_baseline $1.PRM $2.PRM | grep ashift | awk '{print $3}'`
   endif
-  update_PRM.csh $2.PRM rshift $RSHIFT
-  update_PRM.csh $2.PRM ashift $ASHIFT
+  update_PRM $2.PRM rshift $RSHIFT
+  update_PRM $2.PRM ashift $ASHIFT
   echo "align.csh"
   echo "correlate master and slave to find offset parameters"
   xcorr $1.PRM $2.PRM -xsearch 64 -ysearch 64 -nx 32 -ny 64

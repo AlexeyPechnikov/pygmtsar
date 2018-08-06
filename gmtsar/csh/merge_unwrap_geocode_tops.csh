@@ -51,9 +51,9 @@
     set fs2 = `grep first_sample $prm2 | awk '{print $3}'`
     cp $prm tmp.PRM
     if ($fs2 > $fs1) then
-      update_PRM.csh tmp.PRM first_sample $fs2
+      update_PRM tmp.PRM first_sample $fs2
     endif
-    update_PRM.csh tmp.PRM rshift $rshift
+    update_PRM tmp.PRM rshift $rshift
     cd $now_dir
 
     echo $pth"tmp.PRM:"$pth"phasefilt.grd" >> tmp_phaselist
@@ -80,10 +80,10 @@
     echo "Recomputing the projection LUT..."
   # Need to compute the geocoding matrix with supermaster.PRM with rshift set to 0
     set rshift = `grep rshift $stem".PRM" | tail -1 | awk '{print $3}'`
-    update_PRM.csh $stem".PRM" rshift 0
+    update_PRM $stem".PRM" rshift 0
     gmt grd2xyz --FORMAT_FLOAT_OUT=%lf dem.grd -s | SAT_llt2rat $stem".PRM" 1 -bod > trans.dat
   # Set rshift back for other usage
-    update_PRM.csh $stem".PRM" rshift $rshift
+    update_PRM $stem".PRM" rshift $rshift
   endif
 
   # Read in parameters
