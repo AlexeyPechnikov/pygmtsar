@@ -1,24 +1,22 @@
 #!/bin/csh -f
-#       $Id$
 #
-#  Xiaopeng Tong, Jan 14, 2014
+#  David Dandwell, December 29, 2015
 #
-# process generic L1.1 data
+# process Sentinel-1A TOPS data
 # Automatically process a single frame of interferogram.
 # see instruction.txt for details.
 #
 
-
 alias rm 'rm -f'
 unset noclobber
 #
-  if ($#argv != 3) then
+  if ($#argv < 3) then
     echo ""
-    echo "Usage: p2p_SAT_SLC.csh master_image slave_image configuration_file "
+    echo "Usage: p2p_S1_TOPS.csh master_image slave_image configuration_file"
     echo ""
-    echo "Example: p2p_SAT_SLC.csh TSX_20110608 TSX_20110619 config.tsx.slc.txt"
+    echo "Example: p2p_S1_TOPS.csh S1_20150526_F1 S1_20150607_F1 config.tsx.slc.txt "
     echo ""
-    echo "         Place the L1.1 data in a directory called raw and a dem.grd file in "
+    echo "         Place the pre-processed data in a directory called raw and a dem.grd file in "
     echo "         a parallel directory called topo.  Execute this command at the directory"
     echo "         location above raw and topo.  The file dem.grd"
     echo "         is a dem that completely covers the SAR frame - larger is OK."
@@ -26,12 +24,13 @@ unset noclobber
     echo "         but there will not be geocoded output."
     echo "         A custom dem.grd can be made at the web site http://topex.ucsd.edu/gmtsar"
     echo ""
-    echo ""
+    echo "Reference: Xu, X., Sandwell, D.T., Tymofyeyeva, E., González-Ortega, A. and Tong, X., "
+    echo "         2017. Tectonic and Anthropogenic Deformation at the Cerro Prieto Geothermal "
+    echo "         Step-Over Revealed by Sentinel-1A InSAR. IEEE Transactions on Geoscience and "
+    echo "         Remote Sensing."
     exit 1
   endif
-
 # start 
-
 #
 #   make sure the files exist
 #
@@ -59,11 +58,11 @@ unset noclobber
   set shift_topo = `grep shift_topo $3 | awk '{print $3}'`
   set switch_master = `grep switch_master $3 | awk '{print $3}'`
 #
-# if filter wavelength is not set then use a default of 100m
+# if filter wavelength is not set then use a default of 200m
 #
   set filter = `grep filter_wavelength $3 | awk '{print $3}'`
   if ( "x$filter" == "x" ) then
-  set filter = 100
+  set filter = 200
   echo " "
   echo "WARNING filter wavelength was not set in config.txt file"
   echo "        please specify wavelength (e.g., filter_wavelength = 200)"
@@ -76,8 +75,9 @@ unset noclobber
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
+  set range_dec = `grep range_dec $3 | awk '{print $3}'`
+  set azimuth_dec = `grep azimuth_dec $3 | awk '{print $3}'`
   set near_interp = `grep near_interp $3 | awk '{print $3}'`
-
 #
 # read file names of raw data
 #
@@ -137,20 +137,14 @@ unset noclobber
       update_PRM $slave.PRM nrows $m_lines
     endif
 #
-#   calculate SC_vel and SC_height
-#   set the Doppler to be zero
+#   set the higher Doppler terms to zerp to be zero
 #
-    cp $master.PRM $master.PRM0
-    calc_dop_orb $master.PRM0 $master.log $earth_radius 0
-    cat $master.PRM0 $master.log > $master.PRM
-    echo "fdd1                    = 0" >> $master.PRM
-    echo "fddd1                   = 0" >> $master.PRM
+    update_PRM $master.PRM fdd1 0
+    update_PRM $master.PRM fddd1 0
 #
-    cp $slave.PRM $slave.PRM0
-    calc_dop_orb $slave.PRM0 $slave.log $earth_radius 0
-    cat $slave.PRM0 $slave.log > $slave.PRM
-    echo "fdd1                    = 0" >> $slave.PRM
-    echo "fddd1                   = 0" >> $slave.PRM
+    update_PRM $slave.PRM fdd1 0
+    update_PRM $slave.PRM fddd1 0
+#
     rm *.log
     rm *.PRM0
 
@@ -161,7 +155,7 @@ unset noclobber
 #############################################
 # 2 - start from focus and align SLC images #
 #############################################
-  
+
   if ($stage <= 2) then
 # 
 # clean up 
@@ -174,20 +168,16 @@ unset noclobber
     echo "ALIGN - START"
     cd SLC
     cp ../raw/*.PRM .
-    ln -s ../raw/$master.SLC . 
-    ln -s ../raw/$slave.SLC . 
+    ln -s ../raw/$master.SLC .
+    ln -s ../raw/$slave.SLC .
     ln -s ../raw/$master.LED . 
     ln -s ../raw/$slave.LED .
     
-    cp $slave.PRM $slave.PRM0
-    SAT_baseline $master.PRM $slave.PRM0 >> $slave.PRM
-    xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128
-    fitoffset.csh 2 2 freq_xcorr.dat >> $slave.PRM
-    resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-    rm $slave.SLC
-    mv $slave.SLCresamp $slave.SLC
-    cp $slave.PRMresamp $slave.PRM
-        
+#    cp $slave.PRM $slave.PRM0
+#    resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 1
+#    rm $slave.SLC
+#    mv $slave.SLCresamp $slave.SLC
+#    cp $slave.PRMresamp $slave.PRM
     cd ..
     echo "ALIGN - END"
   endif
@@ -195,7 +185,7 @@ unset noclobber
 ##################################
 # 3 - start from make topo_ra    #
 ##################################
-
+#if (6 == 9) then
   if ($stage <= 3) then
 #
 # clean up
@@ -228,7 +218,7 @@ unset noclobber
 #
 #  make sure the range increment of the amplitude image matches the topo_ra.grd
 #
-        set rng = `gmt grdinfo topo/topo_ra.grd | grep x_inc | awk '{print $7}'`
+        set rng = `grdinfo topo/topo_ra.grd | grep x_inc | awk '{print $7}'`
         cd SLC 
         echo " range decimation is:  " $rng
         slc2amp.csh $master.PRM $rng amp-$master.grd
@@ -283,15 +273,15 @@ unset noclobber
       if ($shift_topo == 1) then
         ln -s ../../topo/topo_shift.grd .
         intf.csh $ref.PRM $rep.PRM -topo topo_shift.grd  
-        filter.csh $ref.PRM $rep.PRM $filter $dec 
+        filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec 
       else 
         ln -s ../../topo/topo_ra.grd . 
         intf.csh $ref.PRM $rep.PRM -topo topo_ra.grd 
-        filter.csh $ref.PRM $rep.PRM $filter $dec 
+        filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
       endif
     else
       intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM $filter $dec 
+      filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
     endif
     cd ../..
     echo "INTF.CSH, FILTER.CSH - END"
@@ -306,7 +296,6 @@ unset noclobber
       cd intf
       set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
       set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
-
       cd $ref_id"_"$rep_id
       if ((! $?region_cut) || ($region_cut == "")) then
         set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
@@ -328,12 +317,12 @@ unset noclobber
       echo " "
       echo "SNAPHU.CSH - START"
       echo "threshold_snaphu: $threshold_snaphu"
-      
       if ($near_interp == 1) then
         snaphu_interp.csh $threshold_snaphu $defomax $region_cut
       else
         snaphu.csh $threshold_snaphu $defomax $region_cut
       endif
+      
 
       echo "SNAPHU.CSH - END"
       cd ../..
@@ -348,24 +337,30 @@ unset noclobber
 ###########################
 
   if ($stage <= 6) then
-    cd intf
-    set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
-    set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
-    cd $ref_id"_"$rep_id
-    echo " "
-    echo "GEOCODE.CSH - START"
-    rm raln.grd ralt.grd
-    if ($topo_phase == 1) then
-      rm trans.dat
-      ln -s  ../../topo/trans.dat . 
-      echo "threshold_geocode: $threshold_geocode"
-      geocode.csh $threshold_geocode
-    else 
-      echo "topo_ra is needed to geocode"
-      exit 1
+    if ($threshold_geocode != 0 ) then
+      cd intf
+      set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
+      set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
+      cd $ref_id"_"$rep_id
+      echo " "
+      echo "GEOCODE.CSH - START"
+      rm raln.grd ralt.grd
+      if ($topo_phase == 1) then
+        rm trans.dat
+        ln -s  ../../topo/trans.dat . 
+        echo "threshold_geocode: $threshold_geocode"
+        geocode.csh $threshold_geocode
+      else 
+        echo "topo_ra is needed to geocode"
+        exit 1
+      endif
+      echo "GEOCODE.CSH - END"
+      cd ../..
+    else
+      echo ""
+      echo "SKIP GEOCODE"
+      echo ""
     endif
-    echo "GEOCODE.CSH - END"
-    cd ../..
   endif
 
 # end

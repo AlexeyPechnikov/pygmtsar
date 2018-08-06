@@ -74,7 +74,7 @@ else
   endif
 endif
 #
-# use an aximuth spacing of 2 for low PRF data such as S1A TOPS
+# use an aximuth spacing of 2 for low PRF data such as S1 TOPS
 #
 if ($PRF < 1000) then
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I2/32 -bi3d -bo3d -r $V > temp.rat 

@@ -2,7 +2,7 @@
 #
 # prepare input data.in for preproc_batch_tops.csh
 #
-# alias wgetasf to 'wget --http-user=**** --http-password=****'
+# alias wgetasf to 'wget --http-user=**** --http-password=****' in .cshrc or .tcshrc file
 # requires having an account on with ASF
 #
 # set a local directory that stores S1A and S1B orbits. e.g. orb_dir/S1A and orb_dir/S1B

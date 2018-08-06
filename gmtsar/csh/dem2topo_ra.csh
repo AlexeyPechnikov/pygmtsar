@@ -64,7 +64,7 @@ if($SC == 10) then
      gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 0 -bod  > trans.dat
 endif
 #
-# use an azimuth spacing of 2 for low PRF data such as S1A TOPS
+# use an azimuth spacing of 2 for low PRF data such as S1 TOPS
 #
 if ($PRF < 1000) then
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -bo3d -r $V > temp.rat 

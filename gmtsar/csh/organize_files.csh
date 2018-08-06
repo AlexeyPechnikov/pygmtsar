@@ -10,6 +10,9 @@
 # For linux users, modify the date command accordingly in order to let the script run.
 # Some linux system has issues with the if statement comapring tt, t1, t2. This is not fixed yet
 #
+# alias wgetasf to 'wget --http-user=**** --http-password=****' in .cshrc or .tcshrc file
+# requires having an account on with ASF
+#
 
 
   if ($#argv != 3) then
@@ -23,8 +26,8 @@
     echo "    ......"
     echo ""
     echo "pins.ll:"
-    echo "    lon1 lat1"
-    echo "    lon2 lat2"
+    echo "    lon11 lat11 [lon12 lat12] [lon13 lat13]"
+    echo "    lon21 lat21 [lon22 lat22] [lon23 lat23]"
     echo "    ......"
     echo ""
     echo "Note: "

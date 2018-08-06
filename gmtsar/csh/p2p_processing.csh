@@ -291,8 +291,8 @@
       mv $slave.SLCresamp $slave.SLC
       cp $slave.PRMresamp $slave.PRM
     else if ($SAT == "S1_TOPS") then
-      set master = `echo $master | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-      set slave = `echo $slave | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+      set master = `echo $master | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+      set slave = `echo $slave | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
       cp ../raw/*.PRM .
       ln -s ../raw/$master.SLC . 
       ln -s ../raw/$slave.SLC . 

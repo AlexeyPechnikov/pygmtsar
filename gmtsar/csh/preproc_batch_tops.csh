@@ -48,8 +48,8 @@
   endif
 
   # first line is the super-master, all images aligned to it
-  set master = `awk -F: 'NR==1 {print $1}' $1 | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'` 
-  set mmaster = `awk -F: 'NR==1 {print $1}' $1 | awk '{ print "S1A"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
+  set master = `awk -F: 'NR==1 {print $1}' $1 | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'` 
+  set mmaster = `awk -F: 'NR==1 {print $1}' $1 | awk '{ print "S1_"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
   # clean up a little bit
   rm *.PRM* *.SLC *.LED tmp*
   if($mode == 1) then
@@ -59,8 +59,8 @@
   # loop over all the acquisitions
   foreach line (`awk '{print $0}' $1`)
     # record the first one as the stem_master
-    set stem_master = `echo $line | awk -F: '{print $1}' | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set m_stem_master = `echo $line | awk -F: '{print $1}' | awk '{ print "S1A"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
+    set stem_master = `echo $line | awk -F: '{print $1}' | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set m_stem_master = `echo $line | awk -F: '{print $1}' | awk '{ print "S1_"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
     if($mode == 1) then
 
       # for mode 1, generate baseline_plots
@@ -97,7 +97,7 @@
       rm *par*
       foreach file (`awk '{print $0}' tmp.filelist`)
         # generate prms and leds
-        set stem = `echo $file | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+        set stem = `echo $file | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
         
         # get images aligned
         if($sl == 1) then
@@ -219,7 +219,7 @@
       
       set nf = `wc -l tmp.stitchlist | awk '{print $1}'`
       # get the name for stitched file
-      set stem = `echo $line | awk -F: '{print $1}' | awk '{ print "S1A"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
+      set stem = `echo $line | awk -F: '{print $1}' | awk '{ print "S1_"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
  
       # stitch images together and get the precise orbit
       if ($nf > 1) then

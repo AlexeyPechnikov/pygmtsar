@@ -12,9 +12,9 @@ unset noclobber
 #
   if ($#argv !=  7) then
     echo ""
-    echo "Usage: p2p_S1A_TOPS_Frame.csh Master.SAFE Master.EOF Slave.SAFE Slave.EOF config.s1a.txt polarization parallel"
+    echo "Usage: p2p_S1_TOPS_Frame.csh Master.SAFE Master.EOF Slave.SAFE Slave.EOF config.s1a.txt polarization parallel"
     echo ""
-    echo "Example: p2p_S1A_TOPS_Frame.csh S1A_IW_SLC__1SDV_20150607T014936_20150607T015003_006261_00832E_3626.SAFE S1A_OPER_AUX_POEORB_OPOD_20150615T155109_V20150525T225944_20150527T005944.EOF S1A_IW_SLC__1SSV_20150526T014935_20150526T015002_006086_007E23_679A.SAFE S1A_OPER_AUX_POEORB_OPOD_20150627T155155_V20150606T225944_20150608T005944.EOF config.s1a.txt vv 1"
+    echo "Example: p2p_S1_TOPS_Frame.csh S1A_IW_SLC__1SDV_20150607T014936_20150607T015003_006261_00832E_3626.SAFE S1A_OPER_AUX_POEORB_OPOD_20150615T155109_V20150525T225944_20150527T005944.EOF S1A_IW_SLC__1SSV_20150526T014935_20150526T015002_006086_007E23_679A.SAFE S1A_OPER_AUX_POEORB_OPOD_20150627T155155_V20150606T225944_20150608T005944.EOF config.s1a.txt vv 1"
     echo ""
     echo "	Place the .SAFE file in the raw folder, DEM in the topo folder"
     echo "	During processing, F1, F2, F3 and merge folder will be generated"
@@ -106,43 +106,43 @@ unset noclobber
   if ($seq == 0) then
     cd F1/raw
     align_tops.csh $f1m $2 $f1s $4 dem.grd
-    set mpre1 = `echo $f1m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre1 = `echo $f1s | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set mpre1 = `echo $f1m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set spre1 = `echo $f1s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
     cd ../../F2/raw
     align_tops.csh $f2m $2 $f2s $4 dem.grd
-    set mpre2 = `echo $f2m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre2 = `echo $f2s | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set mpre2 = `echo $f2m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set spre2 = `echo $f2s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
     cd ../../F3/raw
     align_tops.csh $f3m $2 $f3s $4 dem.grd
-    set mpre3 = `echo $f3m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre3 = `echo $f3s | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set mpre3 = `echo $f3m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set spre3 = `echo $f3s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
     cd ../../F1
-    p2p_S1A_TOPS.csh $mpre1 $spre1 $5
+    p2p_S1_TOPS.csh $mpre1 $spre1 $5
     cd ../F2
-    p2p_S1A_TOPS.csh $mpre2 $spre2 $5
+    p2p_S1_TOPS.csh $mpre2 $spre2 $5
     cd ../F3
-    p2p_S1A_TOPS.csh $mpre3 $spre3 $5
+    p2p_S1_TOPS.csh $mpre3 $spre3 $5
     cd ..
   else if ($seq == 1) then
     cd F1/raw
     align_tops.csh $f1m $2 $f1s $4 dem.grd >& log &
-    set mpre1 = `echo $f1m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre1 = `echo $f1s | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set mpre1 = `echo $f1m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set spre1 = `echo $f1s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
     cd ../../F2/raw
     align_tops.csh $f2m $2 $f2s $4 dem.grd >& log &
-    set mpre2 = `echo $f2m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre2 = `echo $f2s | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set mpre2 = `echo $f2m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set spre2 = `echo $f2s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
     cd ../../F3/raw
     align_tops.csh $f3m $2 $f3s $4 dem.grd >& log &
-    set mpre3 = `echo $f3m | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre3 = `echo $f3s | awk '{ print "S1A"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set mpre3 = `echo $f3m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set spre3 = `echo $f3s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
     wait
     cd ../../F1
-    p2p_S1A_TOPS.csh $mpre1 $spre1 $5 >&log&
+    p2p_S1_TOPS.csh $mpre1 $spre1 $5 >&log&
     cd ../F2
-    p2p_S1A_TOPS.csh $mpre2 $spre2 $5 >&log&
+    p2p_S1_TOPS.csh $mpre2 $spre2 $5 >&log&
     cd ../F3
-    p2p_S1A_TOPS.csh $mpre3 $spre3 $5 >&log&
+    p2p_S1_TOPS.csh $mpre3 $spre3 $5 >&log&
     cd ..
     wait
   else
