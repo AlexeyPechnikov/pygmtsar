@@ -39,6 +39,7 @@
 #include "xmlC.h"
 #include "lib_defs.h"
 #include "gmtsar.h"
+#include "ctype.h"
 
 # define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
 
@@ -59,6 +60,7 @@ double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int,
 int shift_burst(fcomplex *, fcomplex *, int , int , int , struct GMT_GRID *, struct GMT_GRID *,int);
 int compute_eap(fcomplex *, struct tree *, int);
 void fbisinc (double *, fcomplex *, int, int, fcomplex *);
+int get_words(char *);
 
 
 char *USAGE =  "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd\n"
@@ -366,8 +368,7 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
         search_tree(xml_tree,"/product/swathTiming/burstList/burst/azimuthAnxTime/",tmp_c,1,4,i);
         t[i] = str2double(tmp_c);
         search_tree(xml_tree,"/product/swathTiming/burstList/burst/firstValidSample/",tmp_cc,1,4,i);
-//        printf("%d\n",get_words(&tmp_cc));
-        lines_this_burst=get_words(&tmp_cc);
+        lines_this_burst=get_words(tmp_cc);
         strcpy(cflag,tmp_cc);
         for (j=0;j<lines_this_burst;j++){
             flag = (int)strtol(cflag,&cflag,10);
