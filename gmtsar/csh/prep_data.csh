@@ -1,5 +1,7 @@
 #!/bin/csh -f
 #
+# By Xiaohua XU, Jun, 2015
+#
 # prepare input data.in for preproc_batch_tops.csh
 #
 # alias wgetasf to 'wget --http-user=**** --http-password=****' in .cshrc or .tcshrc file
@@ -41,7 +43,7 @@ foreach line ( ` awk '{ print $0 }' < text.dat ` )
     if (-f $orb_dir/$SAT/$orb) then 
       cp $orb_dir/$SAT/$orb .
     else
-      wgetasf $url_root/$orb
+      wget $url_root/$orb
     endif
     #if (! -f $orb) wget $url_root"/"$orb
     #set orb = `ls *$n1*$n2*`
@@ -61,14 +63,15 @@ foreach line ( ` awk '{ print $0 }' < text.dat ` )
     endif
   endif
 end
-set n1 = `echo $mstem | awk '{print $1-1}'`
-set n2 = `echo $mstem | awk '{print $1+1}'`
+
+set n1 = `date -v-1d -jf "%Y%m%d" $mstem +%Y%m%d`
+set n2 = `date -v+1d -jf "%Y%m%d" $mstem +%Y%m%d`
 set SAT = `echo $mname | awk '{print toupper(substr($1,1,3))}'`
 echo "Writing record $mstem"
 #set orb = `ls *$n1*$n2*`
 set orb = `grep $SAT orbits.list | grep $n1 | grep $n2`
-if (-f /geosat2/InSAR_Processing/Sentinel_Orbits/$SAT/$orb) then
-  cp /geosat2/InSAR_Processing/Sentinel_Orbits/$SAT/$orb .
+if (-f $orb_dir/$SAT/$orb) then
+  cp $orb_dir/$SAT/$orb .
 else
   wgetasf $url_root/$orb
 endif
