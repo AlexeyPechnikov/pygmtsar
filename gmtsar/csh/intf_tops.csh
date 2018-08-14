@@ -155,6 +155,16 @@ if ($stage <= 2) then
     ln -s ../../raw/$rep.SLC .
     cp ../../raw/$ref.PRM .
     cp ../../raw/$rep.PRM .
+
+    if ($region_cut != "") then
+      echo "Cutting SLC image to $region_cut"
+      cut_slc $ref.PRM junk1 $region_cut
+      cut_slc $rep.PRM junk2 $region_cut
+      mv junk1.PRM $ref.PRM 
+      mv junk2.PRM $rep.PRM
+      mv junk1.SLC $ref.SLC
+      mv junk2.SLC $rep.SLC
+    endif
     
     if($topo_phase == 1) then
       if($shift_topo == 1) then
