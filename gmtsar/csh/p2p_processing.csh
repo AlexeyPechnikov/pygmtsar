@@ -299,6 +299,16 @@
       ln -s ../raw/$master.LED . 
       ln -s ../raw/$slave.LED .
     endif
+
+    if ($region_cut != "") then
+        echo "Cutting SLC image to $region_cut"
+        cut_slc $master.PRM junk1 $region_cut
+        cut_slc $slave.PRM junk2 $region_cut
+        mv junk1.PRM $master.PRM 
+        mv junk2.PRM $slave.PRM
+        mv junk1.SLC $master.SLC
+        mv junk2.SLC $slave.SLC
+    endif
     
     cd ..
     echo ""
