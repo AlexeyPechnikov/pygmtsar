@@ -58,7 +58,15 @@ gmt gmtconvert raplnlt -bi5f -bo3f -o3,4,2 > llp
 #
 # use higher resolution for data with higher range resolution and PRF
 #
-set pix_m = `ls gauss_* | awk -F_ '{print $2/4}'` # Use 1/4 the filter width
+set filt = `ls gauss_*`
+if ( $filt != "" ) then
+    set pix_m = `ls gauss_* | awk -F_ '{print $2/4}'` # Use 1/4 the filter width
+    echo "Sampling in geocoordinates with $pix_m meter pixels ..."
+else
+    set pix_m = 60
+    echo "Sampling in geocoordinates with deault ($pix_m meter) pixel size ..."
+endif
+
 set incs = `m2s.csh $pix_m llp`			  # Get fine and crude grid interval for lookup grids
 #
 set R =  `gmt gmtinfo llp -I$incs[2] -bi3f `
