@@ -40,10 +40,12 @@ foreach line ( ` awk '{ print $0 }' < text.dat ` )
 
     #cp ../../../../orbit/*$n1*$n2* .
     set orb = `grep $SAT orbits.list | grep $n1 | grep $n2`
-    if (-f $orb_dir/$SAT/$orb) then 
-      cp $orb_dir/$SAT/$orb .
-    else
-      wget $url_root/$orb
+    if (! -f $orb) then
+      if (-f $orb_dir/$SAT/$orb) then 
+        cp $orb_dir/$SAT/$orb .
+      else
+        wgetasf $url_root/$orb
+      endif
     endif
     #if (! -f $orb) wget $url_root"/"$orb
     #set orb = `ls *$n1*$n2*`
@@ -70,10 +72,12 @@ set SAT = `echo $mname | awk '{print toupper(substr($1,1,3))}'`
 echo "Writing record $mstem"
 #set orb = `ls *$n1*$n2*`
 set orb = `grep $SAT orbits.list | grep $n1 | grep $n2`
-if (-f $orb_dir/$SAT/$orb) then
-  cp $orb_dir/$SAT/$orb .
-else
-  wgetasf $url_root/$orb
+if (! -f $orb) then
+  if (-f $orb_dir/$SAT/$orb) then
+    cp $orb_dir/$SAT/$orb .
+  else
+    wgetasf $url_root/$orb
+  endif
 endif
 #if (! -f $orb)  wget $url_root"/"$orb
 #set orb = `ls *$mstem*EOF`
