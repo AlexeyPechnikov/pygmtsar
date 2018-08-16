@@ -440,13 +440,13 @@
       set ref_id  = `grep SC_clock_start ../raw/$ref.PRM | awk '{printf("%d",int($3))}' `
       set rep_id  = `grep SC_clock_start ../raw/$rep.PRM | awk '{printf("%d",int($3))}' `
       cd $ref_id"_"$rep_id
-      if ((! $?region_cut) || ($region_cut == "")) then
-        set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
-      endif
 #
 # landmask
 #
       if ($mask_water == 1 || $switch_land == 1) then
+        if ((! $?region_cut) || ($region_cut == "")) then
+          set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+        endif
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask.csh $region_cut

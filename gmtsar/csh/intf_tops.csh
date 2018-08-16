@@ -183,12 +183,12 @@ if ($stage <= 2) then
 #
 # unwrapping
 #
-    if ($region_cut == "") then
-      set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
-    endif
     
     if ($threshold_snaphu != 0 ) then
       if ($switch_land == 1) then
+        if ($region_cut == "") then
+          set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+        endif
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask.csh $region_cut
