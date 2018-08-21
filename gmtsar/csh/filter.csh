@@ -79,6 +79,20 @@ errormessage:
     exit 1
   endif
 #
+# set az_lks and dec_rng to 1 for odd decimation
+#
+  if($#argv == 6) then
+    set jud = `echo $6 | awk '{if($1%2 == 0) print 1;else print 0}'`
+    if ($jud == 0) then 
+      set az_lks = 1
+    endif
+    set jud = `echo $5 | awk '{if($1%2 == 0) print 1;else print 0}'`
+    if ($jud == 0) then 
+      set dec_rng = 1 
+    endif
+  endif
+
+#
 #  make the custom filter2 and set the decimation
 #
   make_gaussian_filter $1 $dec_rng $az_lks $3 > ijdec
