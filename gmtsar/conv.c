@@ -225,8 +225,10 @@ int main(int argc, char **argv)
 	for (ic = 0; ic<ydim; ic = ic+idec) iout = iout + 1;
 	for (jc = 0; jc<xdim; jc = jc+jdec) jout = jout + 1;
 	if (verbose) fprintf(stderr," original: ydim %d xdim %d new: %d %d decimation: %d %d\n",ydim,xdim,iout,jout,idec,jdec); 
-	inc[GMT_X] = xmax/(double)jout;
-	inc[GMT_Y] = ymax/(double)iout;
+	inc[GMT_X] = round(xmax/(double)jout);
+	inc[GMT_Y] = round(ymax/(double)iout);
+    jout = floor(xmax/inc[GMT_X]);
+    iout = floor(ymax/inc[GMT_Y]);
 	if (verbose) fprintf(stderr," creating GMT grid %s \n",output_name);
 	wesn[GMT_XLO] = 0.0;	wesn[GMT_XHI] = inc[GMT_X] * jout;
 	wesn[GMT_YLO] = 0.0;	wesn[GMT_YHI] = inc[GMT_Y] * iout;
@@ -270,7 +272,7 @@ int main(int argc, char **argv)
 	if (format_flag == 2) read_SLC_int(cindat, xdim, f_input, 0, buffer, DFACT, ibuff); 
 	if (format_flag == 3) read_SLC_float(cfdat, xdim, f_input, 0, buffer, DFACT, ibuff);
 
-	for (ic=0, row = 0; ic<ydim; ic=ic+idec){
+	for (ic=0, row = 0; ic<iout*idec; ic=ic+idec){
 
 	    if (ic/2000.0 == ic/1000) if (verbose) fprintf(stderr," line %d\n",ic);
 
@@ -295,7 +297,7 @@ int main(int argc, char **argv)
 	        ic1 = ic - ic0;
 
 			/* now do the 2d convolution */
-	        for (jc=0;jc<xdim;jc=jc+jdec) {
+	        for (jc=0;jc<floor(xmax/inc[GMT_X])*jdec;jc=jc+jdec) {
 	            	conv2d (buffer, &ylen, &xdim, filter, &yarr, &xarr, &filtdat, &ic1, &jc, &rnorm);
 					/* use a zero or null value if there is not enough data in the filter */
 	            	Out->data[left_node+jout] = 0.0f;
