@@ -40,6 +40,7 @@ if ((prm_file = fopen(prmfile,"r")) == NULL)
         }
 else
         {
+        null_sio_struct(&prm);
         get_sio_struct(prm_file, &prm);
 	fclose(prm_file);
 	value = malloc(4096*sizeof(char));
@@ -64,6 +65,7 @@ if ((prm_file = fopen(prmfile,"r")) == NULL)
         }
 else
         {
+        null_sio_struct(&prm);
         get_sio_struct(prm_file, &prm);
         fclose(prm_file);
 	value = malloc(4096*sizeof(char));
@@ -91,6 +93,7 @@ if ((prm_file = fopen(prmfile,"r")) == NULL)
         }
 else
         {
+        null_sio_struct(&prm);
         get_sio_struct(prm_file, &prm);
         fclose(prm_file);
 	value = malloc(4096*sizeof(char));
@@ -119,6 +122,7 @@ if ((prm_file = fopen(prmfile,"r")) == NULL)
 else
 	{
 	init_lookup_table();
+        null_sio_struct(&prm);
 	get_sio_struct(prm_file, &prm);
 	}
 	
