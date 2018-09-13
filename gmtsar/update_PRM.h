@@ -1,3 +1,6 @@
+#ifndef UPDATE_PRM_H
+#define UPDATE_PRM_H
+
 #include <stdio.h>
 #include "gmtsar.h"
 
@@ -13,3 +16,7 @@ char* get_PRM_string(char * prmfile, char * valuename);
 int get_PRM_int(char * prmfile, char * valuename);
 
 double get_PRM_double(char * prmfile, char * valuename);
+
+char* get_PRM(char * prmfile, char * valuename);
+
+#endif /* UPDATE_PRM_H */ 
