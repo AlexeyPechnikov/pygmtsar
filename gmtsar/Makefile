@@ -30,9 +30,9 @@ $(LIB):		$(LIB_O)
 lib:		$(LIB)
 
 PROGS_C		= bperp.c calc_dop_orb.c conv.c esarp.c offset_topo.c phase2topo.c \
-		  phasediff.c phasefilt.c resamp.c xcorr.c extend_orbit.c update_PRM.c \
+		  phasediff.c phasefilt.c resamp.c xcorr.c extend_orbit.c update_PRM.c get_PRM.c \
 		  SAT_llt2rat.c SAT_look.c SAT_baseline.c make_gaussian_filter.c sbas.c \
-                  nearest_grid.c fitoffset.c solid_tide.c p_scatter.c split_spectrum.c cut_slc.c\
+                  nearest_grid.c fitoffset.c solid_tide.c p_scatter.c split_spectrum.c cut_slc.c
 
 PROGS_O         = $(PROGS_C:.c=.o)
 PROGS           = $(PROGS_C:.c=)

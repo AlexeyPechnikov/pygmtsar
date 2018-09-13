@@ -6,9 +6,17 @@
 #include <limits.h>
 #include <assert.h>
 #include <stddef.h>
-
+#include <string.h>
+#include <ctype.h>
 #include "update_PRM.h"
 
+struct list {
+    char *string;
+    char *value;
+    struct list *next;
+};
+
+typedef struct list LIST;
 typedef enum type {CHAR,INT,DOUBLE} type;
 
 typedef struct PRMPRIMITIVE {
@@ -20,91 +28,55 @@ int size;
 } prmdata;
 
 /* Lookup table for types of PRM values */
-/* Make sure then number in the define below matches the number of variables that get initialized in init_lookup_table() */
-static struct PRMPRIMITIVE lookuptable[83];
+/* Make sure the number in the define below matches the number of variables that get initialized in init_lookup_table() */
 
-int getvalue(struct PRM *prm, char* name, char* value);
+#define LOOKUPTABLE_SIZE 83 
+static struct PRMPRIMITIVE lookuptable[LOOKUPTABLE_SIZE];
+
+
+char* get_PRM_sub(char* szFile, char* szValueName);
+char *trimwhitespace(char *str);
+int findlongest(char* szFile, int func);
+
+int m_strcmp(char* szStringA, char* szStringB);
+
+/* Hack to allow use of strcmp on NULL strings without segfault */
+int m_strcmp(char* szStringA, char* szStringB)
+{
+
+      if(szStringA != NULL && szStringB !=NULL)
+              return strcmp(szStringA,szStringB);
+      else
+              return -9999;
+
+}
 
 char* get_PRM_string(char * prmfile, char * valuename)
 {
-FILE * prm_file;
-struct PRM prm;
-char *value;
-init_lookup_table();
-
-
-
-if ((prm_file = fopen(prmfile,"r")) == NULL)
-        {
-        return 0;
-        }
-else
-        {
-        null_sio_struct(&prm);
-        get_sio_struct(prm_file, &prm);
-	fclose(prm_file);
-	value = malloc(4096*sizeof(char));
-	sprintf(value,"empty");
-	getvalue(&prm, valuename, value);	
-        }
-
-return strdup(value);
+	return get_PRM(prmfile, valuename);
 }
 
 int get_PRM_int(char * prmfile, char * valuename)
 {
-FILE * prm_file;
-struct PRM prm;
-char *value;
-int retval = 0;
-init_lookup_table();
 
-if ((prm_file = fopen(prmfile,"r")) == NULL)
-        {
-        return 1;
-        }
-else
-        {
-        null_sio_struct(&prm);
-        get_sio_struct(prm_file, &prm);
-        fclose(prm_file);
-	value = malloc(4096*sizeof(char));
-	sprintf(value,"empty");
-	getvalue(&prm, valuename, value);
+int retval = 0;
+char* value;
+
+	value = get_PRM(prmfile, valuename);
 	retval = atoi(value);
 	free(value);
 	return retval;
-        }
-
-return 0;
-
 }
+
 double get_PRM_double(char * prmfile, char * valuename)
 {
-FILE * prm_file;
-struct PRM prm;
-char *value;
-init_lookup_table();
 double retval = 0.0;
+char* value;
 
-if ((prm_file = fopen(prmfile,"r")) == NULL)
-        {
-        return 1;
-        }
-else
-        {
-        null_sio_struct(&prm);
-        get_sio_struct(prm_file, &prm);
-        fclose(prm_file);
-	value = malloc(4096*sizeof(char));
-	getvalue(&prm, valuename, value);
+	value = get_PRM(prmfile, valuename);
         retval = atof(value);
 	free(value);
 	return retval;
-        }
-
-
-return 0;
 }
 
 
@@ -575,12 +547,12 @@ lookuptable[80].etype = DOUBLE;
 lookuptable[80].offset = offsetof(struct PRM, alpha_end);
 
 lookuptable[81].name = "bpara";
-lookuptable[81].alias = "bpara";
+lookuptable[81].alias = "B_parallel";
 lookuptable[81].etype = DOUBLE;   
 lookuptable[81].offset = offsetof(struct PRM, bpara);
 
 lookuptable[82].name = "bperp";
-lookuptable[82].alias = "bperp";
+lookuptable[82].alias = "B_perpendicular";
 lookuptable[82].etype = DOUBLE;
 lookuptable[82].offset = offsetof(struct PRM, bperp);
 
@@ -597,9 +569,9 @@ double doublevalue = 0.0;
 char *base;
 char *newbase;
 
-for (n=0; n<sizeof(lookuptable)/16;n++)
+for (n=0; n<=LOOKUPTABLE_SIZE;n++)
 	{ 
-		if(strcmp(lookuptable[n].name,name) == 0 || strcmp(lookuptable[n].alias,name) == 0)
+		if(m_strcmp(lookuptable[n].name,name) == 0 || m_strcmp(lookuptable[n].alias,name) == 0)
 			{
 			valuetype.name = malloc(sizeof(char) * strlen(lookuptable[n].name));
 			strcpy(valuetype.name,lookuptable[n].name);
@@ -610,7 +582,7 @@ for (n=0; n<sizeof(lookuptable)/16;n++)
 			}
 	}
 /* Exit with a fatal error if variable isn't found */
-if(n == sizeof(lookuptable)/16)
+if(n == LOOKUPTABLE_SIZE)
 	{
 	printf("Fatal Error:\n");
 	die("Variable name not found ",name);
@@ -642,60 +614,216 @@ switch(valuetype.etype)
 return 0;
 }
 
-int getvalue(struct PRM *prm, char* name, char* value)
+char* get_PRM(char * prmfile, char * valuename)
 {
-struct PRMPRIMITIVE valuetype;
-int n=0;
-int intvalue=0;
-double doublevalue = 0.0;
-char *base;
-char *newbase;
+        struct PRMPRIMITIVE valuetype;
+        int n=0;
+	char* szReturn = NULL;
+        init_lookup_table();
+
+        for (n=0; n<LOOKUPTABLE_SIZE;n++)
+                {
+                        if(m_strcmp(lookuptable[n].name,valuename) == 0 || m_strcmp(lookuptable[n].alias,valuename) == 0)
+                                {
+                                valuetype.name = strdup(lookuptable[n].name);
+                                valuetype.etype = lookuptable[n].etype;
+                                valuetype.offset = lookuptable[n].offset;
+                                valuetype.size = lookuptable[n].size;
+				valuetype.alias = strdup(lookuptable[n].alias);
+                                break;
+                                }
 
 
-for (n=0; n<sizeof(lookuptable)/16;n++)
-	{ 
-		if(strcmp(lookuptable[n].name,name) == 0)
-			{
-			valuetype.name = malloc(sizeof(char) * strlen(lookuptable[n].name));
-			strcpy(valuetype.name,lookuptable[n].name);
-			valuetype.etype = lookuptable[n].etype;
-			valuetype.offset = lookuptable[n].offset;
-			valuetype.size = lookuptable[n].size;
-			break;
-			}
+
+                }
+
+        /* Exit with a fatal error if variable isn't found */
+        if(n == LOOKUPTABLE_SIZE)
+                {
+                printf("Fatal Error:\n");
+                die("Variable name not found ",valuename);
+                }
+
+        /* We are all good and have a valid valuesname */
+
+	szReturn = get_PRM_sub(prmfile, valuetype.name);
+
+	if(szReturn == NULL)
+		szReturn = get_PRM_sub(prmfile, valuetype.alias);
+
+        
+	free(valuetype.name);	
+	free(valuetype.alias);	
+
+	return szReturn;
+
+        }
+
+char* get_PRM_sub(char* szFile, char* szValueName) {
+    FILE *fp;
+    char *line;
+    int maxline=0;
+    LIST *current, *head;
+
+    char *valuename;
+    char *value;
+    char* szRetVal = NULL;
+
+    maxline=(findlongest(szFile,1)+1)*sizeof(char);
+    line = (char*)malloc(maxline);
+    valuename = (char*)malloc(maxline); 
+    value= (char*)malloc(maxline);
+
+
+    head = current = NULL;
+    fp = fopen(szFile, "r");
+
+    while(fgets(line, maxline, fp)){
+	if(strchr(line,'=')!=0 && strchr(line,'#')==0)
+        {
+	
+        LIST *node = malloc(sizeof(LIST));
+
+	char *token = strtok(line, "=");
+        node->string = strdup(trimwhitespace(token));
+	token = strtok(NULL, "=");
+	node->value = strdup(trimwhitespace(token));
+        node->next =NULL;
+
+        if(head == NULL){
+            current = head = node;
+        } else {
+            current = current->next = node;
+        }
 	}
+    }
+    fclose(fp);
+    for(current = head; current ; current=current->next){
 
-/* Exit with a fatal error if variable isn't found */
-if(n == sizeof(lookuptable)/16)
-	{
-	printf("Fatal Error:\n");
-	die("Variable name not found ",name);
-	}
+	if(strcmp(trimwhitespace(szValueName),current->string) == 0)
+		{
+		free(line);
+                free(valuename);
+                free(value);
+		if( strlen(trimwhitespace(current->value)) )
+			szRetVal =  strdup(trimwhitespace(current->value));
+		else
+			szRetVal = NULL;
+		}
+    }
+    //need free for each node
+    for(current = head; current ; current=current->next)
+	free(current);	
 
-/* We are all good and have valid values in valuetype struct */
-
-base = (char *)prm;
-newbase = (base + valuetype.offset);
-switch(valuetype.etype)
-	{
-	case CHAR:
-		sprintf(value,"%s",newbase);
-	break;
-
-	case INT:
-		intvalue = *newbase;
-		sprintf(value,"%d",intvalue);
-	break;
-
-	case DOUBLE:
-		doublevalue = atof (value);
-		/* A double cannot be copied with an assignment to the struct member here */
-		memcpy(&doublevalue,newbase,sizeof(double));
-		sprintf(value,"%.9f",doublevalue);
-	break;
-	}
-
-return 0;
+    return szRetVal;
 }
 
 
+// Note: This function returns a pointer to a substring of the original string.
+// If the given string was allocated dynamically, the caller must not overwrite
+// that pointer with the returned value, since the original pointer must be
+// deallocated using the same allocator with which it was allocated.  The return
+// value must NOT be deallocated using free() etc.
+char *trimwhitespace(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace((unsigned char)*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace((unsigned char)*end)) end--;
+
+  // Write new null terminator character
+  end[1] = '\0';
+
+  return str;
+}
+
+
+int findlongest(char* szFile, int func) {
+
+    FILE *file = fopen(szFile, "rb");
+    if (file == NULL) {
+        fprintf(stderr, "File open failed!\n");
+        return EXIT_FAILURE;
+    }
+
+    size_t buffer_size = 8;
+    char *line = (char*)malloc(buffer_size);
+    char *longest = (char*)malloc(buffer_size);
+    size_t longest_on = 0;
+    size_t longest_length = 0;
+    size_t num_lines = 0;
+
+    if (line == NULL || longest == NULL) {
+        fprintf(stderr, "Memory allocation failed!\n");
+        return EXIT_FAILURE;
+    }
+
+    long pos_before = ftell(file);
+    for (num_lines = 1 ; fgets(line, buffer_size, file) ; ++num_lines) {
+        long pos_after = ftell(file);
+        size_t line_length = pos_after - pos_before - 1;
+        pos_before = pos_after-1;
+        while (line_length == buffer_size-1 && line[line_length-1] != '\n') {
+            line = (char*)realloc(line, buffer_size*2);
+            longest = (char*)realloc(longest, buffer_size*2);
+            if (line == NULL || longest == NULL) {
+                fprintf(stderr, "Memory allocation failed!\n");
+                return EXIT_FAILURE;
+            }
+            if (fgets(&line[buffer_size-1], buffer_size+1, file) == NULL) {
+                fprintf(stderr, "File read failed!\n");
+                fclose(file);
+                free(line);
+                free(longest);
+                return EXIT_FAILURE;
+            }
+            pos_after = ftell(file);
+            line_length += pos_after - pos_before - 1;
+            pos_before = pos_after-1;
+            buffer_size *= 2;
+        }
+        if (line_length > longest_length) {
+            char *tmp = longest;
+            longest = line;
+            line = tmp;
+            longest_on = num_lines;
+            longest_length = line_length;
+        }
+    }
+
+    if (longest_on) {
+	switch(func){
+	case 	1:
+		return longest_length;
+		break;
+	
+	case	2:
+		return longest_on;
+		break;
+
+		default:
+		return longest_length;		
+	}
+
+        //printf("File had total of %lu lines.\n", num_lines);
+        //printf("Longest line found on line %lu with %lu characters.\n", longest_on, longest_length);
+        //printf("The line was: ");
+        //fwrite(longest, 1, longest_length, stdout);
+    }
+    else {
+	return EXIT_FAILURE;
+        //fprintf(stderr, "The file had no readable lines!\n");
+    }
+    
+    fclose(file);
+    free(line);
+    free(longest);
+    return EXIT_SUCCESS;
+}
