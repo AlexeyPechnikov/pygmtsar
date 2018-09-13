@@ -19,4 +19,4 @@ uninstall:
 	rm -f $(bindir)/$(PROG)
 
 clean:
-	rm -f $(OBJS) tags core
+	rm -f $(PROG) $(OBJS) tags core
