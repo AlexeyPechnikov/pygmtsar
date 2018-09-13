@@ -19,4 +19,5 @@ double get_PRM_double(char * prmfile, char * valuename);
 
 char* get_PRM(char * prmfile, char * valuename);
 
+
 #endif /* UPDATE_PRM_H */ 

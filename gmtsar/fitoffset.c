@@ -31,7 +31,6 @@ int NPTS0;
 
 int load_freq_xcorr(char* freq_xcorr_file);
 char** str_split(char* a_str, const char a_delim);
-char *trimwhitespace(char *str);
 void replace_multi_space_with_single_space(char *str);
 int run_gmt_trend(char* file, int n_model_params, double* coefficient1, double* coefficient2, double* coefficient3);
 int run_gmt_gmtinfo(char* file,double* coefficient1, double* coefficient2, double* coefficient3, double* coefficient4);
@@ -378,26 +377,6 @@ char** str_split(char* a_str, const char a_delim)
     return result;
 }
 
-
-char *trimwhitespace(char *str)
-{
-  char *end;
-
-  // Trim leading space
-  while(isspace((unsigned char)*str)) str++;
-
-  if(*str == 0)  // All spaces?
-    return str;
-
-  // Trim trailing space
-  end = str + strlen(str) - 1;
-  while(end > str && isspace((unsigned char)*end)) end--;
-
-  // Write new null terminator
-  *(end+1) = 0;
-
-  return str;
-}
 
 void replace_multi_space_with_single_space(char *str)
 {
