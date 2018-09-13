@@ -13,13 +13,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	if(argc == 4)
-		nDecimals = atoi(argv[3]);
-	else
-		nDecimals = 2;
 
-
-	szString = get_PRM(argv[1], argv[2], nDecimals);
+	szString = get_PRM(argv[1], argv[2]);
 	printf("%s\n",szString);
 
 	if(szString)
