@@ -110,7 +110,7 @@ doy = p.clock_start;
 m = p.nrows - p.num_valid_az;
 
 /* also correct the time for the azimuth shift */
-if(p.sub_int_a < 0.) p.sub_int_a = 0.;
+//if(p.sub_int_a < 0.) p.sub_int_a = 0.;
 *start = n_secs_day*doy + (p.ashift+p.sub_int_a)/(p.prf) + (1.0*m)/(2.0*p.prf);
 *end = *start + p.num_patches * p.num_valid_az/p.prf;
 

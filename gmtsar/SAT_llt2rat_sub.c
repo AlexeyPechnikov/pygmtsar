@@ -60,12 +60,13 @@ void hermite_c(double *, double *, double *, int, int, double, double *, int *);
 void llt2rat_sub(char * filename, double *target_llt, double *target_rat ) {
 
         double rln,rlt,rht,dr,t1,t2,tm;
-        double ts,rng, thet, relp, telp;
+        //double ts,rng, thet, relp, telp;
+        double ts,rng;
 	double xp[3];
 	double xt[3];
 	double rp[3];
         /* double r0,rf,a0,af; */
-        double rad=PI/180.;
+        //double rad=PI/180.;
 	double fll,rdd,daa,drr;
         int j,nrec,npad=8000;
         int goldop();
@@ -149,15 +150,16 @@ void llt2rat_sub(char * filename, double *target_llt, double *target_rat ) {
         xt[0]=-1.0;  
 
 /* compute the topography due to the difference between the local radius and center radius */
-        thet = rlt * rad;
-        if(prm.rc > 6350000. && prm.ra > 6350000. && prm.RE > 6350000.) {
-		relp=1./sqrt((cos(thet)/prm.ra)*(cos(thet)/prm.ra)+(sin(thet)/prm.rc)*(sin(thet)/prm.rc));
-		telp=relp-prm.RE;
-        }
-        else {
-		telp=0.;
- 	}
-        rp[2]=rht + telp;
+        //thet = rlt * rad;
+        //if(prm.rc > 6350000. && prm.ra > 6350000. && prm.RE > 6350000.) {
+		//relp=1./sqrt((cos(thet)/prm.ra)*(cos(thet)/prm.ra)+(sin(thet)/prm.rc)*(sin(thet)/prm.rc));
+		//telp=relp-prm.RE;
+        //}
+        //else {
+		//telp=0.;
+ 	    //}
+        //rp[2]=rht + telp;
+        rp[2] = sqrt(xp[0]*xp[0]+xp[1]*xp[1]+xp[2]*xp[2]) - prm.RE;
 
 /* minimum for each point */
         stai=0;
@@ -169,7 +171,7 @@ void llt2rat_sub(char * filename, double *target_llt, double *target_rat ) {
 
 /* compute the range and azimuth in pixel space and correct for an azimuth bias*/
         xt[0] = (xt[0] - prm.near_range)/dr-(prm.rshift+prm.sub_int_r)+prm.chirp_ext;
-	xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a);
+	xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a)-1;
 
 /* compute the azimuth and range correction if the Doppler is not zero */
 

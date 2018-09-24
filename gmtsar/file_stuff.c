@@ -28,10 +28,10 @@ double delr;
 	delr = SOL/p->fs/2.0;
 
 	/* these are from prm2gips */
-	p->near_range = p->near_range + (p->st_rng_bin - p->chirp_ext + p->rshift-1)*delr;
-	p->SC_clock_start = p->SC_clock_start + p->ashift/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
+	p->near_range = p->near_range + (p->st_rng_bin - p->chirp_ext + p->rshift + p->sub_int_r -1)*delr;
+	p->SC_clock_start = p->SC_clock_start + (p->ashift+p->sub_int_a)/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
 	p->SC_clock_stop  = p->SC_clock_start + (p->num_valid_az*p->num_patches)/(p->prf*86400.0);
-	p->clock_start = p->clock_start + p->ashift/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
+	p->clock_start = p->clock_start + (p->ashift+p->sub_int_a)/(p->prf*86400.0) + (p->nrows-p->num_valid_az)/(2.0*p->prf*86400);
 	p->clock_stop  = p->clock_start + (p->num_valid_az*p->num_patches)/(p->prf*86400.0);
 
 }

@@ -15,6 +15,7 @@ long     k;
 
 	if (fread(sdata, 2*sizeof(short), psize*xdim, SLCfile) != (size_t)(psize*xdim)) die("error reading SLC file", name);
 	for (k=0; k<psize*xdim; k++) { 
+        if (sdata[2*k] == 0 && sdata[2*k +1] == 0) sdata[2*k] = 1;
 		cdata[k].r = (float) dfact * sdata[2*k];
 		cdata[k].i = (float) dfact * sdata[2*k +1];
 	}
@@ -35,6 +36,7 @@ long     k;
 
 	if (fread(sdata, 2*sizeof(short), psize*xdim, SLCfile) != (size_t)(psize*xdim)) die("error reading SLC file", name);
 	for (k=0; k<psize*xdim; k++) {
+        if (sdata[2*k] == 0 && sdata[2*k +1] == 0) sdata[2*k] = 1;
 		cdata[k].r = (double) dfact * sdata[2*k];
 		cdata[k].i = (double) dfact * sdata[2*k +1];
 	}

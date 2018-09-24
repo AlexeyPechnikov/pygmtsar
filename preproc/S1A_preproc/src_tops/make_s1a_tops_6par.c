@@ -256,7 +256,8 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
     dt = str2double(tmp_c);
     prm->prf = 1/dt;
     search_tree(xml_tree,"/product/imageAnnotation/imageInformation/slantRangeTime/",tmp_c,1,0,1);
-    prm->near_range = str2double(tmp_c)*SOL/2;
+/* subtract a correction of 1 * drange to the near range based on Pinon corner reflector analysis DTS 09/24/18 */
+    prm->near_range = (str2double(tmp_c) - 1./prm->fs)*SOL/2;
     prm->ra = 6378137.00; //equatorial_radius
     prm->rc = 6356752.31; //polar_radius
     search_tree(xml_tree,"/product/generalAnnotation/productInformation/pass/",tmp_c,1,0,1);
