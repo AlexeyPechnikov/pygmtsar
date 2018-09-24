@@ -171,7 +171,7 @@ void llt2rat_sub(char * filename, double *target_llt, double *target_rat ) {
 
 /* compute the range and azimuth in pixel space and correct for an azimuth bias*/
         xt[0] = (xt[0] - prm.near_range)/dr-(prm.rshift+prm.sub_int_r)+prm.chirp_ext;
-	xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a)-1;
+	    xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a);
 
 /* compute the azimuth and range correction if the Doppler is not zero */
 

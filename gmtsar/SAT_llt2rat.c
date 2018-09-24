@@ -239,7 +239,7 @@ int main (int argc, char **argv) {
            xt[0]=rng0;
            xt[1]=tm;
            xt[0] = (xt[0] - prm.near_range)/dr-(prm.rshift+prm.sub_int_r)+prm.chirp_ext;
-           xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a)-1;
+           xt[1] = prm.prf*(xt[1]-t1)-(prm.ashift+prm.sub_int_a);
 
 /* For Envisat correct for biases based on Pinon reflector analysis */
 	   if(prm.SC_identity == 4){
