@@ -30,12 +30,12 @@ errormessage:
   if ($SC == 1 || $SC == 2 || $SC == 4 || $SC == 6 || $SC == 5) then
     cp $2 $2"0"
     cp $1 $1"0"
-    SAT_baseline $1 $2 | tail -n6 >> $2
+    SAT_baseline $1 $2 | tail -n9 >> $2
     SAT_baseline $1 $1 | grep height >> $1
   else if ($SC > 6) then
     cp $2 $2"0"
     cp $1 $1"0"
-    SAT_baseline $1 $2 | tail -n6 >> $2
+    SAT_baseline $1 $2 | tail -n9 >> $2
     SAT_baseline $1 $1 | grep height >> $1
   else
     echo "Incorrect satellite id in prm file"

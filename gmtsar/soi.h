@@ -127,6 +127,10 @@ double baseline_end;
 double alpha_start;
 double alpha_center;
 double alpha_end;
+/* New parameters 9/25/18 -EXU */
+double B_offset_start;
+double B_offset_center;
+double B_offset_end;
 /* End new parameters 8/28/97 -DTS */
 double bparaa;               /* parallel baseline - added by RJM */
 double bperpp;               /* perpendicular baseline - added by RJM */

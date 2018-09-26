@@ -120,6 +120,10 @@ void null_sio_struct(struct PRM *p)
 	p->bpara = NULL_DOUBLE;			
 	p->bperp = NULL_DOUBLE;		
 	p->SLC_scale = NULL_DOUBLE;
+    /* New parameters 9/25/18 -EXU */
+    p->B_offset_start = NULL_DOUBLE;
+    p->B_offset_center = NULL_DOUBLE;
+    p->B_offset_end = NULL_DOUBLE;
 };
 /*--------------------------------------------------------------------*/
 /*
@@ -222,6 +226,10 @@ if (debug) {
 	if (strcmp(name, "alpha_center") == 0) get_double(name,"alpha_center", value, &s->alpha_center);
 	if (strcmp(name, "alpha_end") == 0) get_double(name,"alpha_end", value, &s->alpha_end);
 	if (strcmp(name, "SLC_scale") == 0) get_double(name,"SLC_scale", value, &s->SLC_scale);
+    /* New parameters 9/25/18 -EXU */
+	if (strcmp(name, "B_offset_start") == 0) get_double(name,"B_offset_start", value, &s->B_offset_start);
+	if (strcmp(name, "B_offset_center") == 0) get_double(name,"B_offset_center", value, &s->B_offset_center);
+	if (strcmp(name, "B_offset_end") == 0) get_double(name,"B_offset_end", value, &s->B_offset_end);
 
 	}
 }
@@ -324,6 +332,9 @@ void put_sio_struct(struct PRM prm, FILE *OUTFILE)
 	if (prm.alpha_start != NULL_DOUBLE) fprintf(OUTFILE, "alpha_start             = %lf \n",prm.alpha_start);
 	if (prm.alpha_center != NULL_DOUBLE) fprintf(OUTFILE, "alpha_center             = %lf \n",prm.alpha_center);
 	if (prm.alpha_end != NULL_DOUBLE) fprintf(OUTFILE, "alpha_end               = %lf \n",prm.alpha_end);
+	if (prm.B_offset_start != NULL_DOUBLE) fprintf(OUTFILE, "B_offset_start          = %lf \n",prm.B_offset_start);
+	if (prm.B_offset_center != NULL_DOUBLE) fprintf(OUTFILE, "B_offset_center         = %lf \n",prm.B_offset_center);
+	if (prm.B_offset_end != NULL_DOUBLE) fprintf(OUTFILE, "B_offset_end            = %lf \n",prm.B_offset_end);
 
 	/* from sarp */
 	if (strncmp(prm.SLC_file,NULL_CHAR,8) !=0)  fprintf(OUTFILE, "SLC_file               = %s \n",prm.SLC_file);

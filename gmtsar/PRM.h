@@ -87,5 +87,9 @@ struct PRM {
 	double alpha_end;
 	double bpara;			/* parallel baseline - added by RJM */
 	double bperp;			/* perpendicular baseline - added by RJM */
+/* New parameters 9/25/18 -EXU */
+    double B_offset_start;
+    double B_offset_center;
+    double B_offset_end;
 };
 #endif /* PRM_H */

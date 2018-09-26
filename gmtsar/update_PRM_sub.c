@@ -30,7 +30,7 @@ int size;
 /* Lookup table for types of PRM values */
 /* Make sure the number in the define below matches the number of variables that get initialized in init_lookup_table() */
 
-#define LOOKUPTABLE_SIZE 83 
+#define LOOKUPTABLE_SIZE 86 
 static struct PRMPRIMITIVE lookuptable[LOOKUPTABLE_SIZE];
 
 
@@ -554,6 +554,21 @@ lookuptable[82].name = "bperp";
 lookuptable[82].alias = "B_perpendicular";
 lookuptable[82].etype = DOUBLE;
 lookuptable[82].offset = offsetof(struct PRM, bperp);
+
+lookuptable[83].name = "B_offset_start";
+lookuptable[83].alias = "B_offset_start";
+lookuptable[83].etype = DOUBLE;
+lookuptable[83].offset = offsetof(struct PRM, B_offset_start);
+
+lookuptable[84].name = "B_offset_center";
+lookuptable[84].alias = "B_offset_center";
+lookuptable[84].etype = DOUBLE;
+lookuptable[84].offset = offsetof(struct PRM, B_offset_center);
+
+lookuptable[85].name = "B_offset_end";
+lookuptable[85].alias = "B_offset_end";
+lookuptable[85].etype = DOUBLE;
+lookuptable[85].offset = offsetof(struct PRM, B_offset_end);
 
 }
 
