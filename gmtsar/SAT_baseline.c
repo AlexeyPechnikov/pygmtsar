@@ -130,6 +130,32 @@ void read_all_ldr(struct PRM *r, struct SAT_ORB *orb, int nfiles)
                 }
         }
 
+/* interpolation with polynomial refinement */
+void poly_interp(struct SAT_ORB *orb, double *t, double *b, double t_ref, double x0, double y0, double z0, double shift) {
+
+    int ntt = 100,k,ir;
+    double *time, *bs;
+    double ddt,xs,ys,zs;
+    double d3[3];
+    int nc=3;
+
+    ddt = 0.01/ntt;
+    time = malloc(ntt*sizeof(double));
+    bs = malloc(ntt*sizeof(double));
+    for (k=0;k<ntt;k++) {
+        time[k] = (k-ntt/2+0.5)*ddt;
+        interpolate_SAT_orbit_slow(orb, t_ref+time[k]+shift, &xs, &ys, &zs, &ir);
+        bs[k] = find_dist(xs,ys,zs,x0,y0,z0);
+        bs[k] = bs[k]*bs[k];
+    }   
+    polyfit(time,bs,d3,&ntt,&nc);
+    *t = t_ref+shift-d3[1]/(2.0*d3[2]);
+    *b = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
+
+    free(time); free(bs);
+
+}
+
 /*---------------------------------------------------------------------------*/
 void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, char **filename,double fs0) {
 
@@ -137,12 +163,12 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 	int     k, ns, ns2, m1, m2, m3, sign1, sign2, sign3;
 	double	dr, dt, ds;
 	double  bv1, bv2, bv3, bh1, bh2, bh3;
-	double  t11, t12, t21, t22, t23;
+	double  t11, t12, t13, t21, t22, t23;
 	double  x11, y11, z11, x12, y12, z12, x13, y13, z13;
 	double  x21, y21, z21, x22, y22, z22, x23, y23, z23;
 	double  ru1, ru2, ru3, xu1, yu1, zu1, xu2, yu2, zu2, xu3, yu3, zu3;
 	double	ts, xs, ys, zs;
-	double	b1, b2, b3, bpara, bperp;
+	double	b1, b2, b3, bpara, bperp;//, b_tmp;
 	double	*pt, *p, *pv, pt0;
 	double height, re_c, vg, vtot, rdot;
 	double radar_look[3]={0,0,0};
@@ -153,8 +179,7 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 	double target_rat_rep[3]={0,0,0};
 	double far_range;
     double dstart;
-    double *time,ddt,*bs,*d3,t13;
-    int nc=3,ntt=10;
+	//double d1=0.0,d2=0.0,d3=0.0;
 
 	/* work on the reference orbit */
 	get_seconds(r[0], &t11, &t12);
@@ -181,9 +206,6 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 	pt = malloc(nd*sizeof(double));
 	p = malloc(nd*sizeof(double));
 	pv = malloc(nd*sizeof(double));
-    time = malloc(ntt*sizeof(double));
-    bs = malloc(ntt*sizeof(double));
-    d3 = malloc(3*sizeof(double));
 
     /* work on the repeat orbit */
     ii = 1;
@@ -237,52 +259,39 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
     dstart = fabs(t11-t21);
     // check whether it's the computation of same orbit.
     if(dstart > 10.) {
-        ddt = 0.01/ntt;
-        for (k=0;k<ntt;k++) {
-            time[k] = (k-ntt/2+0.5)*ddt;
-            interpolate_SAT_orbit_slow(&orb[ii], t21+time[k]+m1*dt, &xs, &ys, &zs, &ir);
-            bs[k] = find_dist(xs,ys,zs,x11,y11,z11);
-            bs[k] = bs[k]*bs[k];
-        }
-
-        polyfit(time,bs,d3,&ntt,&nc);
-        ts = t21+m1*dt-d3[1]/(2.0*d3[2]);
-        r[ii].B_offset_start = (ts-t21)*r[ii].vel;
-        //printf("B_offset_start  = %.12f \n",(ts-t11)*r[0].vel);
+        poly_interp(&orb[ii],&ts,&b1,t21,x11,y11,z11,m1*dt);
         interpolate_SAT_orbit_slow(&orb[ii], ts, &xs, &ys, &zs, &ir);
         x21 = xs; y21 = ys; z21 = zs;
-        b1 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
+        r[ii].B_offset_start = (ts-t21)*r[ii].vel;
+        // seems this does not make much difference
+        //if (r[0].SC_identity == 10) {
+            /* approximate a secondary shift along orbit for alpha and baseline change */
+            //poly_interp(&orb[0],&ts,&b_tmp,t11,x21,y21,z21,m1*dt);
+            //d1 = + (t11-ts)*r[0].vel;
+            //r[ii].B_offset_start = r[ii].B_offset_start + d1;
+        //}
         /* compute more orbital information at the min baseline based on m1 */
         //calc_height_velocity(&orb[ii], &r[ii], ts, ts, &height, &re_c, &vg, &vtot, &rdot);
-        
-        for (k=0;k<ntt;k++) {
-            time[k] = (k-ntt/2+0.5)*ddt;
-            interpolate_SAT_orbit_slow(&orb[ii], t21+time[k]+m2*dt, &xs, &ys, &zs, &ir);
-            bs[k] = find_dist(xs,ys,zs,x12,y12,z12);
-            bs[k] = bs[k]*bs[k];
-        }
-        polyfit(time,bs,d3,&ntt,&nc);
-        ts = t21+m2*dt-d3[1]/(2.0*d3[2]);
-        r[ii].B_offset_end = (ts-t22)*r[ii].vel;
-        //printf("B_offset_end  = %.12f \n",(ts-t12)*r[0].vel);
+
+        poly_interp(&orb[ii],&ts,&b2,t21,x12,y12,z12,m2*dt);
         interpolate_SAT_orbit_slow(&orb[ii], ts, &xs, &ys, &zs, &ir);
         x22 = xs; y22 = ys; z22 = zs;
-        b2 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
+        r[ii].B_offset_end = (ts-t22)*r[ii].vel;
+        //if (r[0].SC_identity == 10) {
+            //poly_interp(&orb[0],&ts,&b_tmp,t11,x22,y22,z22,m2*dt);
+            //d2 = (t12-ts)*r[0].vel;
+            //r[ii].B_offset_end = r[ii].B_offset_end + d2;
+        //}
 
-        for (k=0;k<ntt;k++) {
-            time[k] = (k-ntt/2+0.5)*ddt;
-            interpolate_SAT_orbit_slow(&orb[ii], t21+time[k]+m3*dt, &xs, &ys, &zs, &ir);
-            bs[k] = find_dist(xs,ys,zs,x13,y13,z13);
-            bs[k] = bs[k]*bs[k];
-        }
-        polyfit(time,bs,d3,&ntt,&nc);
-        ts = t21+m3*dt-d3[1]/(2.0*d3[2]);
-        r[ii].B_offset_center = (ts-t23)*r[ii].vel;
-        //printf("B_offset_center  = %.12f \n",(ts-t13)*r[0].vel);
+        poly_interp(&orb[ii],&ts,&b3,t21,x13,y13,z13,m3*dt);
         interpolate_SAT_orbit_slow(&orb[ii], ts, &xs, &ys, &zs, &ir);
         x23 = xs; y23 = ys; z23 = zs;
-        b3 = sqrt(d3[0]-d3[1]*d3[1]/4.0/d3[2]);
-
+        r[ii].B_offset_center = (ts-t23)*r[ii].vel;
+        //if (r[0].SC_identity == 10) {
+            //poly_interp(&orb[0],&ts,&b_tmp,t11,x23,y23,z23,m3*dt);
+            //d3 = (t13-ts)*r[0].vel;
+            //r[ii].B_offset_center = r[ii].B_offset_center + d3;
+        //}
     }
 
     /* Not sure what these codes are used for
@@ -320,13 +329,13 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 
     /* compute baseline components (horizontal and vertical) */
     bv1 = (x21 - x11)*xu1 + (y21 - y11)*yu1 + (z21 - z11)*zu1;
-    bh1 = sign1*sqrt(b1*b1 - bv1*bv1);
+    bh1 = sign1*sqrt(b1*b1 - bv1*bv1);//+ d1*d1);
 
     bv2 = (x22 - x12)*xu2 + (y22 - y12)*yu2 + (z22 - z12)*zu2;
-    bh2 = sign2*sqrt(b2*b2 - bv2*bv2);
+    bh2 = sign2*sqrt(b2*b2 - bv2*bv2);// + d2*d2);
 
     bv3 = (x23 - x13)*xu3 + (y23 - y13)*yu3 + (z23 - z13)*zu3;
-    bh3 = sign3*sqrt(b3*b3 - bv3*bv3);
+    bh3 = sign3*sqrt(b3*b3 - bv3*bv3);// + d3*d3);
 
     /* angle from horizontal 				*/
     r[ii].alpha_start = find_alpha_degrees(bv1, bh1);
