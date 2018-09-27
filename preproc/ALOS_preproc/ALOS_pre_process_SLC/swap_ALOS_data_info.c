@@ -1,19 +1,15 @@
 #include "image_sio.h"
 #include "lib_functions.h"
 /* this swaps bytes */
-#define SWAP_2(x) ( (((x) & 0xff) << 8) | ((unsigned short)(x) >> 8) )
-#define SWAP_4(x) ( ((x) << 24) | \
-                (((x) << 8) & 0x00ff0000) | \
-                (((x) >> 8) & 0x0000ff00) | \
-                ((x) >> 24) )
+#define SWAP_2(x) ((((x)&0xff) << 8) | ((unsigned short)(x) >> 8))
+#define SWAP_4(x) (((x) << 24) | (((x) << 8) & 0x00ff0000) | (((x) >> 8) & 0x0000ff00) | ((x) >> 24))
 #define FIX_SHORT(x) (*(unsigned short *)&(x) = SWAP_2(*(unsigned short *)&(x)))
-#define FIX_INT(x)   (*(unsigned int *)&(x)   = SWAP_4(*(unsigned int *)&(x)))
+#define FIX_INT(x) (*(unsigned int *)&(x) = SWAP_4(*(unsigned int *)&(x)))
 #define FIX_FLOAT(x) FIX_INT(x)
 /*------------------------------------------------------------------*/
 /* need to swap bytes for all      */
 /* must be a better way to do this */
-void swap_ALOS_data_info(struct sardata_info *sdr)
-{
+void swap_ALOS_data_info(struct sardata_info *sdr) {
 	FIX_SHORT(sdr->channel_indicator);
 	FIX_SHORT(sdr->channel_code);
 	FIX_SHORT(sdr->transmit_polarization);
@@ -60,6 +56,7 @@ void swap_ALOS_data_info(struct sardata_info *sdr)
 	FIX_INT(sdr->platform_pitch_angle);
 	FIX_INT(sdr->platform_roll_angle);
 	FIX_INT(sdr->platform_yaw_angle);
-	if (ALOS_format == 0) FIX_INT(sdr->frame_counter);
+	if (ALOS_format == 0)
+		FIX_INT(sdr->frame_counter);
 }
 /*------------------------------------------------------------------*/

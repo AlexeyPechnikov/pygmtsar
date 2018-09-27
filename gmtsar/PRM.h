@@ -11,10 +11,12 @@ struct PRM {
 	char srm[8];
 	char ref_file[128];
 	char led_file[128];
-	char orbdir[8];	/* orbit direction A or D (ASCEND or DESCEND) - added by RJM*/
-        char lookdir[8];/* look direction R or L (RIGHT or LEFT) */
-	char dtype[8];  /* SLC data type a-SCOMPLEX integer complex, c-FCOMPLEX float complex */
-	char date[16];  /* yymmdd format - skip first two digits of year - added by RJM*/
+	char orbdir[8];  /* orbit direction A or D (ASCEND or DESCEND) - added by RJM*/
+	char lookdir[8]; /* look direction R or L (RIGHT or LEFT) */
+	char dtype[8];   /* SLC data type a-SCOMPLEX integer complex, c-FCOMPLEX float
+	                    complex */
+	char date[16];   /* yymmdd format - skip first two digits of year - added by
+	                    RJM*/
 
 	int debug_flag;
 	int bytes_per_line;
@@ -33,25 +35,28 @@ struct PRM {
 	int fdc_strt;
 	int rec_start;
 	int rec_stop;
-	int SC_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
-	int ref_identity;	/* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
+	int SC_identity;  /* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS
+	                     (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
+	int ref_identity; /* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-
+	                     (7)-TSX (8)-CSK (9)-RS2 (10)-S1A */
 	int nrows;
 	int num_lines;
-	int SLC_format;		/* 1 => complex ints (2 bytes)	2 => complex floats (4 bytes) */
+	int SLC_format; /* 1 => complex ints (2 bytes)	2 => complex floats (4
+	                   bytes) */
 
-	double SC_clock_start;	/* YYDDD.DDDD */
-	double SC_clock_stop;	/* YYDDD.DDDD */
-	double icu_start;	/* onboard clock counter */
-	double clock_start; /* DDD.DDDDDDDD clock without year has more precision */
-	double clock_stop;  /* DDD.DDDDDDDD clock without year has more precision */
+	double SC_clock_start; /* YYDDD.DDDD */
+	double SC_clock_stop;  /* YYDDD.DDDD */
+	double icu_start;      /* onboard clock counter */
+	double clock_start;    /* DDD.DDDDDDDD clock without year has more precision */
+	double clock_stop;     /* DDD.DDDDDDDD clock without year has more precision */
 	double caltone;
-	double RE;			/*local earth eadius */
-	double rc;			/* polar radius */
-	double ra;			/* equatorial radius */
-	double vel;			/* Equivalent SC velocity */
-	double ht;			/* (SC_radius - RE) center */
-	double ht_start;		/* (SC_radius - RE) start */
-	double ht_end;			/* (SC_radius - RE) end */
+	double RE;       /*local earth eadius */
+	double rc;       /* polar radius */
+	double ra;       /* equatorial radius */
+	double vel;      /* Equivalent SC velocity */
+	double ht;       /* (SC_radius - RE) center */
+	double ht_start; /* (SC_radius - RE) start */
+	double ht_end;   /* (SC_radius - RE) end */
 	double near_range;
 	double far_range;
 	double prf;
@@ -68,8 +73,8 @@ struct PRM {
 	double fd1;
 	double fdd1;
 	double fddd1;
-	double delr;			/* added RJM */
-	double yaw;			/* added RJM 12/07*/
+	double delr; /* added RJM */
+	double yaw;  /* added RJM 12/07*/
 	double SLC_scale;
 
 	double sub_int_r;
@@ -85,11 +90,11 @@ struct PRM {
 	double alpha_start;
 	double alpha_center;
 	double alpha_end;
-	double bpara;			/* parallel baseline - added by RJM */
-	double bperp;			/* perpendicular baseline - added by RJM */
-/* New parameters 9/25/18 -EXU */
-    double B_offset_start;
-    double B_offset_center;
-    double B_offset_end;
+	double bpara; /* parallel baseline - added by RJM */
+	double bperp; /* perpendicular baseline - added by RJM */
+	              /* New parameters 9/25/18 -EXU */
+	double B_offset_start;
+	double B_offset_center;
+	double B_offset_end;
 };
 #endif /* PRM_H */

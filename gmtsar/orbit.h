@@ -1,10 +1,10 @@
 /* orbit.h */
 /* structure to hold orbit and attitude */
 
-#define NA 64		/* number of altitude data points	*/
-#define HDR	1	/* orbit information from header */
-#define ODR	2	/* orbit information from Delft */
-#define DOR	3	/* orbit information from Doris */
+#define NA 64 /* number of altitude data points	*/
+#define HDR 1 /* orbit information from header */
+#define ODR 2 /* orbit information from Delft */
+#define DOR 3 /* orbit information from Doris */
 
 struct ORB_XYZ {
 	double pt;
@@ -14,27 +14,27 @@ struct ORB_XYZ {
 	double vx;
 	double vy;
 	double vz;
-	};
+};
 
 struct SAT_ORB {
-	int	itype;
-	int 	nd;
-	int 	iy;
-	int 	id;
+	int itype;
+	int nd;
+	int iy;
+	int id;
 	double sec;
 	double dsec;
 	double pt0;
 	struct ORB_XYZ *points;
-}; 
+};
 
 struct SAT_ATT {
-	int  na;
-	int  id[NA];
-	int  msec[NA];
+	int na;
+	int id[NA];
+	int msec[NA];
 	double ap[NA];
 	double ar[NA];
 	double ay[NA];
 	double dp[NA];
 	double dr[NA];
 	double dy[NA];
-}; 
+};

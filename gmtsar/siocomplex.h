@@ -1,5 +1,6 @@
 #ifndef _COMPLEX_H
 #define _COMPLEX_H
+#include"sfd_complex.h"
 
 fcomplex Cmul(fcomplex x, fcomplex y);
 fcomplex Cexp(float theta);

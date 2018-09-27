@@ -1,10 +1,12 @@
 /* definitions for xml code */
+#include"xmlC.h"
+#include<stdio.h>
 
 int space_count(char *);
 int strasign(char *, char *, int, int);
 int strlocate(char *, int, int);
 int create_child(tree *, char *, int, int, int);
-int show_tree(tree *, int ,int);
+int show_tree(tree *, int, int);
 int get_tree(FILE *, tree *, int);
 int search_tree(tree *, char *, char *, int, int, int);
 int cat_nums(char *, char *);

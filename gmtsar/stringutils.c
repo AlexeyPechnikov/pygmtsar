@@ -7,42 +7,41 @@
  * '_cups_strlcat()' - Safely concatenate two strings.
  */
 
-size_t                  /* O - Length of string */
-strlcat(char       *dst,        /* O - Destination string */
-              const char *src,      /* I - Source string */
-          size_t     size)      /* I - Size of destination string buffer */
+size_t                   /* O - Length of string */
+strlcat(char *dst,       /* O - Destination string */
+        const char *src, /* I - Source string */
+        size_t size)     /* I - Size of destination string buffer */
 {
-  size_t    srclen;         /* Length of source string */
-  size_t    dstlen;         /* Length of destination string */
+	size_t srclen; /* Length of source string */
+	size_t dstlen; /* Length of destination string */
 
+	/*
+	 * Figure out how much room is left...
+	 */
 
- /*
-  * Figure out how much room is left...
-  */
+	dstlen = strlen(dst);
+	size -= dstlen + 1;
 
-  dstlen = strlen(dst);
-  size   -= dstlen + 1;
+	if (!size)
+		return (dstlen); /* No room, return immediately... */
 
-  if (!size)
-    return (dstlen);        /* No room, return immediately... */
+	/*
+	 * Figure out how much room is needed...
+	 */
 
- /*
-  * Figure out how much room is needed...
-  */
+	srclen = strlen(src);
 
-  srclen = strlen(src);
+	/*
+	 * Copy the appropriate amount...
+	 */
 
- /*
-  * Copy the appropriate amount...
-  */
+	if (srclen > size)
+		srclen = size;
 
-  if (srclen > size)
-    srclen = size;
+	memcpy(dst + dstlen, src, srclen);
+	dst[dstlen + srclen] = '\0';
 
-  memcpy(dst + dstlen, src, srclen);
-  dst[dstlen + srclen] = '\0';
-
-  return (dstlen + srclen);
+	return (dstlen + srclen);
 }
 #endif /* !HAVE_STRLCAT */
 
@@ -51,33 +50,32 @@ strlcat(char       *dst,        /* O - Destination string */
  * '_cups_strlcpy()' - Safely copy two strings.
  */
 
-size_t                  /* O - Length of string */
-strlcpy(char       *dst,        /* O - Destination string */
-              const char *src,      /* I - Source string */
-          size_t      size)     /* I - Size of destination string buffer */
+size_t                   /* O - Length of string */
+strlcpy(char *dst,       /* O - Destination string */
+        const char *src, /* I - Source string */
+        size_t size)     /* I - Size of destination string buffer */
 {
-  size_t    srclen;         /* Length of source string */
+	size_t srclen; /* Length of source string */
 
+	/*
+	 * Figure out how much room is needed...
+	 */
 
- /*
-  * Figure out how much room is needed...
-  */
+	size--;
 
-  size --;
+	srclen = strlen(src);
 
-  srclen = strlen(src);
+	/*
+	 * Copy the appropriate amount...
+	 */
 
- /*
-  * Copy the appropriate amount...
-  */
+	if (srclen > size)
+		srclen = size;
 
-  if (srclen > size)
-    srclen = size;
+	memcpy(dst, src, srclen);
+	dst[srclen] = '\0';
 
-  memcpy(dst, src, srclen);
-  dst[srclen] = '\0';
-
-  return (srclen);
+	return (srclen);
 }
 #endif /* !HAVE_STRLCPY */
 #endif

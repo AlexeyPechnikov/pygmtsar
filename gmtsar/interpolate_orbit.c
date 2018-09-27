@@ -1,83 +1,83 @@
 /********************************************************************************
- * Creator:  Rob Mellors and David T. Sandwell                                  *
- *           (San Diego State University, Scripps Institution of Oceanography)  *
- * Date   :  10/03/2007                                                         *
+ * Creator:  Rob Mellors and David T. Sandwell * (San Diego State University,
+ *Scripps Institution of Oceanography)  * Date   :  10/03/2007 *
  ********************************************************************************/
 /********************************************************************************
- * Modification history:                                                        *
- * Date:                                                                        *
+ * Modification history: * Date: *
  * *****************************************************************************/
 
 #include "gmtsar.h"
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
 #include "lib_functions.h"
 #include "orbit.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #define FACTOR 1000000
 
 void interpolate_SAT_orbit_slow(struct SAT_ORB *, double, double *, double *, double *, int *);
-void interpolate_SAT_orbit(struct SAT_ORB *, double *, double *, double *, double , double *, double *, double *, int *);
+void interpolate_SAT_orbit(struct SAT_ORB *, double *, double *, double *, double, double *, double *, double *, int *);
 void hermite_c(double *, double *, double *, int, int, double, double *, int *);
 
 /*---------------------------------------------------------------*/
 /* from David Sandwell's code */
-void interpolate_SAT_orbit_slow(struct SAT_ORB *orb, double time, double *x, double *y, double *z, int *ir)
-{
-int	k;
-double	pt0;
-double *p, *pt, *pv;
+void interpolate_SAT_orbit_slow(struct SAT_ORB *orb, double time, double *x, double *y, double *z, int *ir) {
+	int k;
+	double pt0;
+	double *p, *pt, *pv;
 
-	p = (double *) malloc(orb->nd*sizeof(double));
-	pv = (double *) malloc(orb->nd*sizeof(double));
-	pt = (double *) malloc(orb->nd*sizeof(double));
+	p = (double *)malloc(orb->nd * sizeof(double));
+	pv = (double *)malloc(orb->nd * sizeof(double));
+	pt = (double *)malloc(orb->nd * sizeof(double));
 
 	/* seconds from Jan 1 */
-	pt0 = (24.0*60.0*60.0)*orb->id + orb->sec;
-	for (k=0; k<orb->nd; k++) pt[k] = pt0 + k*orb->dsec;
+	pt0 = (24.0 * 60.0 * 60.0) * orb->id + orb->sec;
+	for (k = 0; k < orb->nd; k++)
+		pt[k] = pt0 + k * orb->dsec;
 
 	interpolate_SAT_orbit(orb, pt, p, pv, time, x, y, z, ir);
 
-	free((double *) p);
-	free((double *) pt);
-	free((double *) pv);
+	free((double *)p);
+	free((double *)pt);
+	free((double *)pv);
 }
 /*---------------------------------------------------------------*/
-void interpolate_SAT_orbit(struct SAT_ORB *orb, double *pt, double *p, double *pv, double time, double *x, double *y, double *z, int *ir)
-{
-/* ir; 			return code 		*/
-/* time;		seconds since Jan 1 	*/
-/* x, y, z;		position		*/
-int	k, nval, nd;
+void interpolate_SAT_orbit(struct SAT_ORB *orb, double *pt, double *p, double *pv, double time, double *x, double *y, double *z,
+                           int *ir) {
+	/* ir; 			return code 		*/
+	/* time;		seconds since Jan 1 	*/
+	/* x, y, z;		position		*/
+	int k, nval, nd;
 
 	nval = 6; /* number of points to use in interpolation */
 	nd = orb->nd;
 
-	if (debug) fprintf(stderr," time %lf nd %d\n",time,nd);
+	if (debug)
+		fprintf(stderr, " time %lf nd %d\n", time, nd);
 
 	/* interpolate for each coordinate direction 	*/
 
 	/* hermite_c c version 				*/
-	for (k=0; k<nd; k++) {
+	for (k = 0; k < nd; k++) {
 		p[k] = orb->points[k].px;
 		pv[k] = orb->points[k].vx;
-		}
+	}
 
 	hermite_c(pt, p, pv, nd, nval, time, x, ir);
 
-	for (k=0; k<nd; k++) {
+	for (k = 0; k < nd; k++) {
 		p[k] = orb->points[k].py;
 		pv[k] = orb->points[k].vy;
-		}
+	}
 	hermite_c(pt, p, pv, nd, nval, time, y, ir);
-	if (debug) fprintf(stderr, "C pt %lf py %lf pvy %lf time %lf y %lf ir %d \n",*pt,p[0],pv[0],time,*y,*ir);
+	if (debug)
+		fprintf(stderr, "C pt %lf py %lf pvy %lf time %lf y %lf ir %d \n", *pt, p[0], pv[0], time, *y, *ir);
 
-	for (k=0; k<nd; k++) {
+	for (k = 0; k < nd; k++) {
 		p[k] = orb->points[k].pz;
 		pv[k] = orb->points[k].vz;
-		}
+	}
 	hermite_c(pt, p, pv, nd, nval, time, z, ir);
-	if (debug) fprintf(stderr, "C pt %lf pz %lf pvz %lf time %lf z %lf ir %d \n",*pt,p[0],pv[0],time,*z,*ir);
-
+	if (debug)
+		fprintf(stderr, "C pt %lf pz %lf pvz %lf time %lf z %lf ir %d \n", *pt, p[0], pv[0], time, *z, *ir);
 }
 /*---------------------------------------------------------------*/

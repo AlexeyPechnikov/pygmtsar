@@ -5,7 +5,7 @@
 #include "sarleader_ALOS.h"
 #include "sarleader_fdr.h"
 #ifndef M_PI
-#define M_PI          3.14159265358979323846
+#define M_PI 3.14159265358979323846
 #endif
 
 /* function prototypes 				*/
@@ -13,7 +13,7 @@ void ALOS_ldr_orbit(struct ALOS_ORB *, struct PRM *);
 int write_ALOS_LED(struct ALOS_ORB *, struct PRM *, char *);
 void write_orb(FILE *, struct ALOS_ORB *);
 void calc_height_velocity(struct ALOS_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
-void calc_dop(struct  PRM *);
+void calc_dop(struct PRM *);
 void cfft1d_(int *, fcomplex *, int *);
 void read_data(fcomplex *, unsigned char *, int, struct PRM *);
 void null_sio_struct(struct PRM *);
@@ -33,13 +33,12 @@ void set_ALOS_defaults(struct PRM *);
 void ALOS_ldr_prm(struct SAR_info, struct PRM *);
 int is_big_endian_(void);
 int is_big_endian__(void);
-void die (char *, char *);
+void die(char *, char *);
 void cross3_(double *, double *, double *);
 void get_seconds(struct PRM, double *, double *);
 void plh2xyz(double *, double *, double, double);
 void xyz2plh(double *, double *, double, double);
 void polyfit(double *, double *, double *, int *, int *);
 void gauss_jordan(double **, double *, double *, int *);
-int  find_fft_length(int);
-void rng_expand(fcomplex *, int,  fcomplex *, int );
-
+int find_fft_length(int);
+void rng_expand(fcomplex *, int, fcomplex *, int);

@@ -1,5 +1,14 @@
 #ifndef _COMPLEX_H
 #define _COMPLEX_H
+typedef struct SCOMPLEX {
+    short r, i;
+} scomplex;
+typedef struct FCOMPLEX {
+    float r, i;
+} fcomplex;
+typedef struct DCOMPLEX {
+    double r, i;
+} dcomplex;
 
 fcomplex Cmul(fcomplex x, fcomplex y);
 fcomplex Cexp(float theta);
