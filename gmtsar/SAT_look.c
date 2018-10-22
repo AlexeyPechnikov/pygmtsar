@@ -422,7 +422,7 @@ int goldop(double ts, double t1, double **orb_pos, int ax, int bx, int cx, doubl
 	f1 = dist(xpx, xpy, xpz, x1, orb_pos);
 	f2 = dist(xpx, xpy, xpz, x2, orb_pos);
 
-	while ((x3 - x0) > TOL) {
+	while ((x3 - x0) > TOL && fabs(f1-f2) > 1e-6) {
 		if (f2 < f1) {
 			SHFT3(x0, x1, x2, (int)(R * x3 + C * x1));
 			SHFT2(f1, f2, dist(xpx, xpy, xpz, x2, orb_pos));
