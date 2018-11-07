@@ -104,8 +104,8 @@ int main(int argc, char **argv) {
 	pp.num_valid_az = pp.num_lines;
 	pp.nrows = pp.num_lines;
 
-	pp.SC_clock_start = pp.SC_clock_start + (double)yl / pp.prf / 86400.0;
-	pp.clock_start = pp.clock_start + (double)yl / pp.prf / 86400.0;
+	pp.SC_clock_start = pp.SC_clock_start + ((double)xl*pp.stretch_a + (double)yl*(1+pp.a_stretch_a)) / pp.prf / 86400.0;
+	pp.clock_start = pp.clock_start + ((double)xl*pp.stretch_a + (double)yl*(1+pp.a_stretch_a)) / pp.prf / 86400.0;
 	pp.SC_clock_stop = pp.SC_clock_start + pp.num_lines / pp.prf / 86400.0;
 	pp.clock_stop = pp.clock_start + pp.num_lines / pp.prf / 86400.0;
 

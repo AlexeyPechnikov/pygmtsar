@@ -216,8 +216,9 @@ if ($stage <= 2) then
 #
     echo ""
     echo "GEOCODE.CSH - START"
-    rm raln.grd ralt.grd
     if ($topo_phase == 1 && $threshold_geocode != 0) then
+      if (-f raln.grd) rm raln.grd 
+      if (-f ralt.grd) rm ralt.grd
       rm trans.dat
       ln -s  ../../topo/trans.dat .
       echo "threshold_geocode: $threshold_geocode"

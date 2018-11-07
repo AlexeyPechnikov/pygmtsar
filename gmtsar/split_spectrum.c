@@ -94,7 +94,16 @@ int split1(int argc1, char **argv1) {
 	cos_window(bc, bw, rng_samp_rate, nffti, filterh);
 	cos_window(-bc, bw, rng_samp_rate, nffti, filterl);
 
-	fprintf(stderr, "%.12f %.12f %.12f %.12f %.12f\n", bc / 1e6, bw / 1e6, fh / 1e6, fl / 1e6, cf / 1e6);
+	//fprintf(stderr, "%.12f %.12f %.12f %.12f %.12f\n", bc / 1e6, bw / 1e6, fh / 1e6, fl / 1e6, cf / 1e6);
+    printf("low_wavelength = %.12f\n",SOL/fl);
+    printf("center_wavelength = %.12f\n",SOL/cf);
+    printf("high_wavelength = %.12f\n",SOL/fh);
+    printf("low_freq = %.12f\n",fl);
+    printf("center_freq = %.12f\n",cf);
+    printf("high_freq = %.12f\n",fh);
+    printf("low_bandwidth = %.12f\n",bc);
+    printf("center_bandwidth = %.12f\n",rng_bandwidth);
+    printf("high_bandwidth = %.12f\n",bw);
 	// test on how the window look like
 	// for (ii=0;ii<p1.num_rng_bins;ii++){
 	//    fprintf(stdout,"%.12f\n",filterl[ii]);

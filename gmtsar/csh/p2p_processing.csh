@@ -20,6 +20,7 @@
     echo ""
     echo "    If the configuration file is left blank, the program will generate one "
     echo "    with default parameters "
+    echo ""
     exit 1
   endif
     
@@ -36,7 +37,6 @@
 #
 #  Read parameters from the configure file
 #
-
   set SAT = `echo $1`
   if ($#argv == 4) then
     set conf = `echo $4`
@@ -54,7 +54,10 @@
   set shift_topo = `grep shift_topo $conf | awk '{print $3}'`
   set switch_master = `grep switch_master $conf | awk '{print $3}'`
   set filter = `grep filter_wavelength $conf | awk '{print $3}'` 
-  #if ( "x$filter" == "x" ) then 
+  set iono = `grep correct_iono $conf | awk '{print $3}'`
+  if ( "x$filter" == "x" ) then 
+    set iono = 0
+  endif
   #  set filter = 200
   #  echo " "
   #  echo "WARNING filter wavelength was not set in config.txt file"
@@ -81,7 +84,6 @@
 #
 #  combine preprocess parameters
 #  
-
   set commandline = ""
   if (!($earth_radius == "")) then 
     set commandline = "$commandline -radius $earth_radius"
@@ -221,15 +223,12 @@
 #
 #  Start preprocessing
 #
-  
-  
     rm raw/*.PRM*
     rm raw/*.SLC
     rm raw/*.LED
     cd raw
     
     #echo "pre_proc.csh $SAT $master $slave $commandline"
-    
     pre_proc.csh $SAT $master $slave $commandline   
         
     cd ..
@@ -244,9 +243,17 @@
 # 
 
   mkdir -p intf SLC
+  if ($iono == 1) then
+    mkdir -p SLC_L 
+    mkdir -p SLC_H
+  endif
 
   if ($stage <= 2) then 
     cleanup.csh SLC
+    if ($iono == 1) then
+      rm -rf SLC_L/* SLC_H/*
+    endif
+
 #
 # focus and align SLC images 
 # 
@@ -254,23 +261,72 @@
     echo "ALIGN.CSH - START"
     echo ""
     cd SLC
-    if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
-      cp ../raw/*.PRM .
-      ln -s ../raw/$master.raw . 
-      ln -s ../raw/$slave.raw . 
-      ln -s ../raw/$master.LED . 
-      ln -s ../raw/$slave.LED . 
-      if ($SAT == "ERS" || $SAT == "ENVI") then
-        align.csh $SAT $master $slave 
+    if ($SAT != "S1_TOPS") then
+      if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
+        cp ../raw/*.PRM .
+        ln -s ../raw/$master.raw . 
+        ln -s ../raw/$slave.raw . 
+        ln -s ../raw/$master.LED . 
+        ln -s ../raw/$slave.LED . 
+#        if ($iono == 1) then
+          # set chirp extention to zero for ionospheric phase estimation
+          sed "s/.*fd1.*/fd1 = 0.0000/g" $master.PRM > tmp
+          sed "s/.*chirp_ext.*/chirp_ext = 0/g" tmp > tmp2
+          mv tmp2 $master.PRM
+          sed "s/.*fd1.*/fd1 = 0.0000/g" $slave.PRM > tmp
+          sed "s/.*chirp_ext.*/chirp_ext = 0/g" tmp > tmp2
+          mv tmp2 $slave.PRM
+          rm tmp
+#        endif
       else
-        align.csh SAT $master $slave
+        cp ../raw/*.PRM .
+        ln -s ../raw/$master.SLC .
+        ln -s ../raw/$slave.SLC .
+        ln -s ../raw/$master.LED .
+        ln -s ../raw/$slave.LED .
       endif
-    else if ($SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_SCAN" || $SAT == "S1_STRIP" || $SAT == "CSK_SLC" || $SAT == "RS2" || $SAT == "ENVI_SLC" || $SAT == "TSX") then
-      cp ../raw/*.PRM .
-      ln -s ../raw/$master.SLC . 
-      ln -s ../raw/$slave.SLC . 
-      ln -s ../raw/$master.LED . 
-      ln -s ../raw/$slave.LED .
+
+      if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
+        sarp.csh $master.PRM
+        sarp.csh $slave.PRM
+      endif
+
+      if ($iono == 1) then
+        split_spectrum $master.PRM > params1
+        mv SLCH ../SLC_H/$master.SLC
+        mv SLCL ../SLC_L/$master.SLC
+        split_spectrum $slave.PRM > params2
+        mv SLCH ../SLC_H/$slave.SLC
+        mv SLCL ../SLC_L/$slave.SLC
+        
+        cd ../SLC_L
+        set wl1 = `grep low_wavelength ../SLC/params1 | awk '{print $3}'`
+        set wl2 = `grep low_wavelength ../SLC/params2 | awk '{print $3}'`
+        cp ../SLC/$master.PRM .
+        ln -s ../raw/$master.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wl1/g" $master.PRM > tmp
+        mv tmp $master.PRM
+        cp ../SLC/$slave.PRM .
+        ln -s ../raw/$slave.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wl2/g" $slave.PRM > tmp
+        mv tmp $slave.PRM
+
+        cd ../SLC_H
+        set wh1 = `grep high_wavelength ../SLC/params1 | awk '{print $3}'`
+        set wh2 = `grep high_wavelength ../SLC/params2 | awk '{print $3}'`
+        cp ../SLC/$master.PRM .
+        ln -s ../raw/$master.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wh1/g" $master.PRM > tmp
+        mv tmp $master.PRM
+        cp ../SLC/$slave.PRM .
+        ln -s ../raw/$slave.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wh2/g" $slave.PRM > tmp
+        mv tmp $slave.PRM
+
+        cd ../SLC
+
+      endif
+
       cp $slave.PRM $slave.PRM0
       SAT_baseline $master.PRM $slave.PRM0 >> $slave.PRM
       if ($SAT == "ALOS2_SCAN") then
@@ -279,17 +335,57 @@
         set amedian = `sort -n tmp.dat | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }'`
         set amax = `echo $amedian | awk '{print $1+3}'`
         set amin = `echo $amedian | awk '{print $1-3}'`
-        awk '{if($4 > '$amin' && $4 < '$amax') print $0}' < freq_xcorr.dat > tmp2.dat
-        fitoffset.csh 2 3 tmp2.dat >> $slave.PRM 10
-        rm tmp2.dat
+        awk '{if($4 > '$amin' && $4 < '$amax') print $0}' < freq_xcorr.dat > freq_alos2.dat
+        fitoffset.csh 2 3 freq_alos2.dat 10 >> $slave.PRM
+      else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
+        xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
+        fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
       else
-        xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128
+        xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
         fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
       endif
       resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
       rm $slave.SLC
       mv $slave.SLCresamp $slave.SLC
       cp $slave.PRMresamp $slave.PRM
+
+      if ($iono == 1) then
+        cd ../SLC_L
+        cp $slave.PRM $slave.PRM0
+        if ($SAT == "ALOS2_SCAN") then
+          ln -s ../SLC/freq_alos2.dat
+          fitoffset.csh  2 3 freq_alos2.dat 10 >> $slave.PRM
+        else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
+          ln -s ../SLC/freq_xcorr.dat .
+          fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
+        else
+          ln -s ../SLC/freq_xcorr.dat .
+          fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
+        endif
+        resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
+        rm $slave.SLC
+        mv $slave.SLCresamp $slave.SLC
+        cp $slave.PRMresamp $slave.PRM
+       
+        cd ../SLC_H
+        cp $slave.PRM $slave.PRM0
+        if ($SAT == "ALOS2_SCAN") then
+          ln -s ../SLC/freq_alos2.dat
+          fitoffset.csh  2 3 freq_alos2.dat 10 >> $slave.PRM
+        else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
+          ln -s ../SLC/freq_xcorr.dat .
+          fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
+        else
+          ln -s ../SLC/freq_xcorr.dat .
+          fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
+        endif
+        resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
+        rm $slave.SLC
+        mv $slave.SLCresamp $slave.SLC
+        cp $slave.PRMresamp $slave.PRM
+        cd ../SLC
+      endif
+
     else if ($SAT == "S1_TOPS") then
       set master = `echo $master | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
       set slave = `echo $slave | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
@@ -298,18 +394,79 @@
       ln -s ../raw/$slave.SLC . 
       ln -s ../raw/$master.LED . 
       ln -s ../raw/$slave.LED .
+
+      if ($iono == 1) then
+        cd ..
+        mkdir -p SLC_L
+        mkdir -p SLC_H
+        cd SLC
+        split_spectrum $master.PRM > params1
+        mv SLCH ../SLC_H/$master.SLC
+        mv SLCL ../SLC_L/$master.SLC
+        split_spectrum $slave.PRM > params2
+        mv SLCH ../SLC_H/$slave.SLC
+        mv SLCL ../SLC_L/$slave.SLC
+
+        cd ../SLC_L
+        set wl1 = `grep low_wavelength ../SLC/params1 | awk '{print $3}'`
+        set wl2 = `grep low_wavelength ../SLC/params2 | awk '{print $3}'`
+        cp ../raw/$master.PRM .
+        ln -s ../raw/$master.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wl1/g" $master.PRM > tmp
+        mv tmp $master.PRM
+        cp ../raw/$slave.PRM .
+        ln -s ../raw/$slave.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wl2/g" $slave.PRM > tmp
+        mv tmp $slave.PRM
+
+        cd ../SLC_H
+        set wh1 = `grep high_wavelength ../SLC/params1 | awk '{print $3}'`
+        set wh2 = `grep high_wavelength ../SLC/params2 | awk '{print $3}'`
+        cp ../raw/$master.PRM .
+        ln -s ../raw/$master.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wh1/g" $master.PRM > tmp
+        mv tmp $master.PRM
+        cp ../raw/$slave.PRM .
+        ln -s ../raw/$slave.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wh2/g" $slave.PRM > tmp
+        mv tmp $slave.PRM
+
+        cd ../SLC
+
+      endif
+
     endif
 
     if ($region_cut != "") then
-        echo "Cutting SLC image to $region_cut"
+      echo "Cutting SLC image to $region_cut"
+      cut_slc $master.PRM junk1 $region_cut
+      cut_slc $slave.PRM junk2 $region_cut
+      mv junk1.PRM $master.PRM 
+      mv junk2.PRM $slave.PRM
+      mv junk1.SLC $master.SLC
+      mv junk2.SLC $slave.SLC
+
+      if ($iono == 1) then
+        cd ../SLC_L
         cut_slc $master.PRM junk1 $region_cut
         cut_slc $slave.PRM junk2 $region_cut
-        mv junk1.PRM $master.PRM 
+        mv junk1.PRM $master.PRM
         mv junk2.PRM $slave.PRM
         mv junk1.SLC $master.SLC
         mv junk2.SLC $slave.SLC
+
+        cd ../SLC_H
+        cut_slc $master.PRM junk1 $region_cut
+        cut_slc $slave.PRM junk2 $region_cut
+        mv junk1.PRM $master.PRM
+        mv junk2.PRM $slave.PRM
+        mv junk1.SLC $master.SLC
+        mv junk2.SLC $slave.SLC
+
+      endif
+      
     endif
-    
+
     cd ..
     echo ""
     echo "ALIGN.CSH - END"
@@ -427,6 +584,62 @@
       filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
     endif
     cd ../..
+
+    if ($iono == 1) then
+      if (-e iono_phase ) rm -r iono_phase
+      mkdir -p iono_phase
+      cd iono_phase 
+      mkdir -p intf_o intf_h intf_l iono_correction
+
+      cd intf_h
+      rm *
+      ln -s ../../SLC_H/*.SLC .
+      ln -s ../../SLC_H/*.LED .
+      cp ../../SLC_H/*.PRM .
+      cp ../../SLC/params* .
+      intf.csh $ref.PRM $rep.PRM
+      filter.csh $ref.PRM $rep.PRM 1000 2 8 32
+      snaphu_interp.csh 0.1 0
+      cd ..
+
+      cd intf_l
+      rm *
+      ln -s ../../SLC_L/*.SLC .
+      ln -s ../../SLC_L/*.LED .
+      cp ../../SLC_L/*.PRM .
+      cp ../../SLC/params* .
+      intf.csh $ref.PRM $rep.PRM
+      filter.csh $ref.PRM $rep.PRM 1000 2 8 32
+      snaphu_interp.csh 0.1 0
+      cd ..
+
+      cd intf_o
+      rm *
+      ln -s ../../SLC/*.SLC .
+      ln -s ../../SLC/*.LED .
+      cp ../../SLC/*.PRM .
+      intf.csh $ref.PRM $rep.PRM
+      filter.csh $ref.PRM $rep.PRM 1000 2 8 32
+      snaphu_interp.csh 0.1 0
+      cd ../iono_correction
+
+      if ($SAT == "ALOS") then
+        estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o 1.0 6.7
+      else
+        estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o
+      endif
+      
+      cd ../../intf/$ref_id"_"$rep_id
+      mv phasefilt.grd phasefilt_non_corrected.grd
+      gmt grdsample ../../iono_phase/iono_correction/ph_iono.grd -Rphasefilt_non_corrected.grd -Gph_iono.grd
+      gmt grdmath phasefilt_non_corrected.grd ph_iono.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
+      gmt grdimage phasefilt.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
+      gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
+      gmt psconvert -Tf -P -Z phasefilt.ps
+      rm phasefilt.ps
+      cd ../../
+    endif
+
     echo "INTF.CSH, FILTER.CSH - END"
   endif
 
@@ -486,10 +699,10 @@
       cd $ref_id"_"$rep_id
       echo " "
       echo "GEOCODE.CSH - START"
-      #if (-f raln.grd) rm raln.grd 
-      #if (-f ralt.grd) rm ralt.grd
+      if (-f raln.grd) rm raln.grd 
+      if (-f ralt.grd) rm ralt.grd
+      if (-f trans.dat)  rm trans.dat
       if ($topo_phase == 1) then
-        rm trans.dat
         ln -s  ../../topo/trans.dat . 
         echo "threshold_geocode: $threshold_geocode"
         geocode.csh $threshold_geocode

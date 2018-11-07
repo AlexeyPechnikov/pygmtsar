@@ -134,6 +134,8 @@ if ($SAT == "S1_TOPS") then
   echo "azimuth_dec = 2"
 endif
 echo "#"
+echo "# make ionospheric phase corrections using split spectrum method"
+echo "correct_iono = 0"
 echo "# "
 echo "#####################################"
 echo "#   parameters for unwrap phase     #"

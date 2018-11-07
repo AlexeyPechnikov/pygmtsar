@@ -51,7 +51,6 @@
  *              the topographic phase correction to use all the nonlinear  *
  *              terms.
  ***************************************************************************/
-
 #include "gmtsar.h"
 
 char *USAGE = "phasediff [GMTSAR] - Compute phase difference of two images\n\n"

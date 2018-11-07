@@ -141,6 +141,7 @@ mv -f phase_patch.grd phasefilt_interp.grd
 #
 #   cleanup more
 #
-rm -f wrap.grd mask_patch.grd mask3.grd mask3.out
+rm -f mask_patch.grd mask3.grd mask3.out
 rm -f corr_patch.grd corr_cut.grd
+#rm -f wrap.grd
 #

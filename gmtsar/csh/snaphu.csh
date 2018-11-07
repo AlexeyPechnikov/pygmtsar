@@ -128,6 +128,7 @@ rm -f phase.in corr.in
 #
 #   cleanup more
 #
-rm -f wrap.grd mask_patch.grd mask3.grd mask3.out
+rm -f mask_patch.grd mask3.grd mask3.out
+#rm -f wrap.grd
 rm -f corr_cut.grd corr_patch.grd
 #

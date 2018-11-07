@@ -207,4 +207,5 @@ errormessage:
   gmt grdmath tmp.grd FLIPUD = mask.grd
 #
 # delete files
- rm tmp.grd tmp2.grd ximag.grd yimag.grd xreal.grd yreal.grd 
+ rm tmp.grd tmp2.grd 
+ #rm ximag.grd yimag.grd xreal.grd yreal.grd 
