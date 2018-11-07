@@ -100,14 +100,15 @@ int main(int argc, char **argv) {
 		pp.num_lines = pp.num_lines - pp.num_lines % 4;
 	}
 
+
+	pp.SC_clock_start = pp.SC_clock_start + ((double)xl*pp.stretch_a + (double)yl*(1+pp.a_stretch_a) + (double)(pp.nrows-pp.num_valid_az)/2.0) / pp.prf / 86400.0;
+	pp.clock_start = pp.clock_start + ((double)xl*pp.stretch_a + (double)yl*(1+pp.a_stretch_a) + (double)(pp.nrows-pp.num_valid_az)/2.0) / pp.prf / 86400.0;
+	pp.SC_clock_stop = pp.SC_clock_start + pp.num_lines / pp.prf / 86400.0;
+	pp.clock_stop = pp.clock_start + pp.num_lines / pp.prf / 86400.0;
+
 	pp.num_patches = 1;
 	pp.num_valid_az = pp.num_lines;
 	pp.nrows = pp.num_lines;
-
-	pp.SC_clock_start = pp.SC_clock_start + ((double)xl*pp.stretch_a + (double)yl*(1+pp.a_stretch_a)) / pp.prf / 86400.0;
-	pp.clock_start = pp.clock_start + ((double)xl*pp.stretch_a + (double)yl*(1+pp.a_stretch_a)) / pp.prf / 86400.0;
-	pp.SC_clock_stop = pp.SC_clock_start + pp.num_lines / pp.prf / 86400.0;
-	pp.clock_stop = pp.clock_start + pp.num_lines / pp.prf / 86400.0;
 
 	dr = SOL / (2.0 * pp.fs);
 	pp.near_range = pp.near_range + dr * xl * (1 + pp.stretch_r) + dr * yl * pp.a_stretch_r;
