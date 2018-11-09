@@ -57,37 +57,40 @@ unset noclobber
   mkdir F1/raw F1/topo
   cd F1
   sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  echo "Linking files for Subswath 1 ..."
   cd topo
   ln -s ../../topo/dem.grd .
   cd ../raw
   ln -s ../topo/dem.grd .
   ln -s ../../raw/$1/*/$f1m.xml .
   ln -s ../../raw/$1/*/$f1m.tiff .
-  ln -s ../../raw/$2 .
+  ln -s ../../raw/$2 ./$f1m.EOF
   ln -s ../../raw/$3/*/$f1s.xml .
   ln -s ../../raw/$3/*/$f1s.tiff .
-  ln -s ../../raw/$4 .
+  ln -s ../../raw/$4 ./$f1s.EOF
   cd ../..
 
   mkdir F2
   mkdir F2/raw F2/topo
   cd F2
   sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  echo "Linking files for Subswath 2 ..."
   cd topo
   ln -s ../../topo/dem.grd .
   cd ../raw
   ln -s ../topo/dem.grd .
   ln -s ../../raw/$1/*/$f2m.xml .
   ln -s ../../raw/$1/*/$f2m.tiff .
-  ln -s ../../raw/$2 .
+  ln -s ../../raw/$2 ./$f2m.EOF
   ln -s ../../raw/$3/*/$f2s.xml .
   ln -s ../../raw/$3/*/$f2s.tiff .
-  ln -s ../../raw/$4 .
+  ln -s ../../raw/$4 ./$f2s.EOF
   cd ../..
 
   mkdir F3
   mkdir F3/raw F3/topo
   cd F3
+  echo "Linking files for Subswath 3 ..."
   sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
   cd topo
   ln -s ../../topo/dem.grd .
@@ -95,54 +98,29 @@ unset noclobber
   ln -s ../topo/dem.grd .
   ln -s ../../raw/$1/*/$f3m.xml .
   ln -s ../../raw/$1/*/$f3m.tiff .
-  ln -s ../../raw/$2 .
+  ln -s ../../raw/$2 ./$f3m.EOF
   ln -s ../../raw/$3/*/$f3s.xml .
   ln -s ../../raw/$3/*/$f3s.tiff .
-  ln -s ../../raw/$4 .
+  ln -s ../../raw/$4 ./$f3s.EOF
   cd ../..
 # 
 # process data
 # 
   if ($seq == 0) then
-    cd F1/raw
-    align_tops.csh $f1m $2 $f1s $4 dem.grd
-    set mpre1 = `echo $f1m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre1 = `echo $f1s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    cd ../../F2/raw
-    align_tops.csh $f2m $2 $f2s $4 dem.grd
-    set mpre2 = `echo $f2m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre2 = `echo $f2s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    cd ../../F3/raw
-    align_tops.csh $f3m $2 $f3s $4 dem.grd
-    set mpre3 = `echo $f3m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre3 = `echo $f3s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    cd ../../F1
-    p2p_S1_TOPS.csh $mpre1 $spre1 $5
+    cd F1
+    p2p_processing.csh S1_TOPS $f1m $f1s $5
     cd ../F2
-    p2p_S1_TOPS.csh $mpre2 $spre2 $5
+    p2p_processing.csh S1_TOPS $f2m $f2s $5
     cd ../F3
-    p2p_S1_TOPS.csh $mpre3 $spre3 $5
+    p2p_processing.csh S1_TOPS $f3m $f3s $5
     cd ..
   else if ($seq == 1) then
-    cd F1/raw
-    align_tops.csh $f1m $2 $f1s $4 dem.grd >& log &
-    set mpre1 = `echo $f1m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre1 = `echo $f1s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    cd ../../F2/raw
-    align_tops.csh $f2m $2 $f2s $4 dem.grd >& log &
-    set mpre2 = `echo $f2m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre2 = `echo $f2s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    cd ../../F3/raw
-    align_tops.csh $f3m $2 $f3s $4 dem.grd >& log &
-    set mpre3 = `echo $f3m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set spre3 = `echo $f3s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    wait
-    cd ../../F1
-    p2p_S1_TOPS.csh $mpre1 $spre1 $5 >&log&
+    cd F1
+    p2p_processing.csh S1_TOPS $f1m $f1s $5 >&log&
     cd ../F2
-    p2p_S1_TOPS.csh $mpre2 $spre2 $5 >&log&
+    p2p_processing.csh S1_TOPS $f2m $f2s $5 >&log&
     cd ../F3
-    p2p_S1_TOPS.csh $mpre3 $spre3 $5 >&log&
+    p2p_processing.csh S1_TOPS $f3m $f3s $5 >&log&
     cd ..
     wait
   else

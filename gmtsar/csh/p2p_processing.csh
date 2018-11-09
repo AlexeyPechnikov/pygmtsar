@@ -60,6 +60,7 @@
   endif
   set iono_filt_rng = `grep iono_filt_rng $conf | awk '{print $3}'`
   set iono_filt_azi = `grep iono_filt_azi $conf | awk '{print $3}'`
+  set iono_dsamp = `grep iono_dsamp $conf | awk '{print $3}'`
   #  set filter = 200
   #  echo " "
   #  echo "WARNING filter wavelength was not set in config.txt file"
@@ -250,11 +251,17 @@
     mkdir -p SLC_H
   endif
 
+  if ($SAT == "S1_TOPS") then
+    set master = `echo $master | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set slave = `echo $slave | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+  endif
+
   if ($stage <= 2) then 
     cleanup.csh SLC
     if ($iono == 1) then
       rm -rf SLC_L/* SLC_H/*
     endif
+
 
 #
 # focus and align SLC images 
@@ -389,8 +396,6 @@
       endif
 
     else if ($SAT == "S1_TOPS") then
-      set master = `echo $master | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-      set slave = `echo $slave | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
       cp ../raw/*.PRM .
       ln -s ../raw/$master.SLC . 
       ln -s ../raw/$slave.SLC . 
@@ -593,8 +598,8 @@
       cd iono_phase 
       mkdir -p intf_o intf_h intf_l iono_correction
 
-      set new_incx = `echo $range_dec | awk '{print $1*4}'`
-      set new_incy = `echo $azimuth_dec | awk '{print $1*4}'`
+      set new_incx = `echo $range_dec $iono_dsamp | awk '{print $1*$2}'`
+      set new_incy = `echo $azimuth_dec $iono_dsamp | awk '{print $1*$2}'`
 
       echo ""
       cd intf_h
@@ -605,7 +610,14 @@
       intf.csh $ref.PRM $rep.PRM
       filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
       cp phase.grd phasefilt.grd
-      snaphu_interp.csh 0.1 0
+      if ($mask_water == 1 || $switch_land == 1) then
+        set rcut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+        cd ../../topo
+        landmask.csh $rcut
+        cd ../iono_phase/intf_h
+        ln -s ../../topo/landmask_ra.grd .
+      endif
+      snaphu_interp.csh 0.05 0
       cd ..
 
       echo ""
@@ -617,7 +629,8 @@
       intf.csh $ref.PRM $rep.PRM
       filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
       cp phase.grd phasefilt.grd
-      snaphu_interp.csh 0.1 0
+      if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
+      snaphu_interp.csh 0.05 0
       cd ..
 
       echo ""
@@ -628,7 +641,8 @@
       intf.csh $ref.PRM $rep.PRM
       filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
       cp phase.grd phasefilt.grd
-      snaphu_interp.csh 0.1 0
+      if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
+      snaphu_interp.csh 0.05 0
       cd ../iono_correction
       echo ""
 
@@ -641,7 +655,7 @@
       gmt grdimage phasefilt.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
       gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
       gmt psconvert -Tf -P -Z phasefilt.ps
-      rm phasefilt.ps
+      #rm phasefilt.ps
       cd ../../
     endif
 
