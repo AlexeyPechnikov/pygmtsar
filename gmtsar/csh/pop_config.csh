@@ -136,6 +136,8 @@ endif
 echo "#"
 echo "# make ionospheric phase corrections using split spectrum method"
 echo "correct_iono = 0"
+echo "iono_filt_rng = 1.0"
+echo "iono_filt_azi = 1.0"
 echo "# "
 echo "#####################################"
 echo "#   parameters for unwrap phase     #"

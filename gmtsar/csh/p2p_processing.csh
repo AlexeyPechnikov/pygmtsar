@@ -58,6 +58,8 @@
   if ( "x$filter" == "x" ) then 
     set iono = 0
   endif
+  set iono_filt_rng = `grep iono_filt_rng $conf | awk '{print $3}'`
+  set iono_filt_azi = `grep iono_filt_azi $conf | awk '{print $3}'`
   #  set filter = 200
   #  echo " "
   #  echo "WARNING filter wavelength was not set in config.txt file"
@@ -591,47 +593,50 @@
       cd iono_phase 
       mkdir -p intf_o intf_h intf_l iono_correction
 
+      set new_incx = `echo $range_dec | awk '{print $1*4}'`
+      set new_incy = `echo $azimuth_dec | awk '{print $1*4}'`
+
+      echo ""
       cd intf_h
-      rm *
       ln -s ../../SLC_H/*.SLC .
       ln -s ../../SLC_H/*.LED .
       cp ../../SLC_H/*.PRM .
       cp ../../SLC/params* .
       intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM 1000 2 8 32
+      filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      cp phase.grd phasefilt.grd
       snaphu_interp.csh 0.1 0
       cd ..
 
+      echo ""
       cd intf_l
-      rm *
       ln -s ../../SLC_L/*.SLC .
       ln -s ../../SLC_L/*.LED .
       cp ../../SLC_L/*.PRM .
       cp ../../SLC/params* .
       intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM 1000 2 8 32
+      filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      cp phase.grd phasefilt.grd
       snaphu_interp.csh 0.1 0
       cd ..
 
+      echo ""
       cd intf_o
-      rm *
       ln -s ../../SLC/*.SLC .
       ln -s ../../SLC/*.LED .
       cp ../../SLC/*.PRM .
       intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM 1000 2 8 32
+      filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      cp phase.grd phasefilt.grd
       snaphu_interp.csh 0.1 0
       cd ../iono_correction
+      echo ""
 
-      if ($SAT == "ALOS") then
-        estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o 1.0 6.7
-      else
-        estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o
-      endif
+      estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o ../../intf/$ref_id"_"$rep_id $iono_filt_rng $iono_filt_azi
       
       cd ../../intf/$ref_id"_"$rep_id
       mv phasefilt.grd phasefilt_non_corrected.grd
-      gmt grdsample ../../iono_phase/iono_correction/ph_iono.grd -Rphasefilt_non_corrected.grd -Gph_iono.grd
+      gmt grdsample ../../iono_phase/iono_correction/ph_iono_orig.grd -Rphasefilt_non_corrected.grd -Gph_iono.grd
       gmt grdmath phasefilt_non_corrected.grd ph_iono.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
       gmt grdimage phasefilt.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
       gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps

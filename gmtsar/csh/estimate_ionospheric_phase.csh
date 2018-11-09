@@ -1,8 +1,8 @@
 #!/bin/csh -f
 
-if ($#argv != 3 && $#argv != 5) then
+if ($#argv != 4 && $#argv != 6) then
   echo ""
-  echo "Usage: estimate_ionospheric_phase.csh intf_high intf_low intf_orig xratio yratio"
+  echo "Usage: estimate_ionospheric_phase.csh intf_high intf_low intf_orig intf_to_be_corrected [xratio yratio]"
   echo ""
   echo " estimate ionosphere based on split spectrum method in Gomba et. al. 2016"
   echo " with filtering method in Fattahi et. al. 2017"
@@ -15,12 +15,13 @@ endif
 set intfH = $1
 set intfL = $2
 set intfO = $3
+set intf = $4
 if ($#argv == 3) then
   set rx = 1
   set ry = 1
 else
-  set rx = $4
-  set ry = $5
+  set rx = $5
+  set ry = $6
 endif
 set prm1 = `ls $intfH/*PRM | head -1`
 set prm2 = `ls $intfH/*PRM | tail -1`
@@ -28,7 +29,7 @@ set prm2 = `ls $intfH/*PRM | tail -1`
 set fc = `grep center_freq $intfH/params1 | awk '{print $3}'`
 set fh = `grep high_freq $intfH/params1 | awk '{print $3}'`
 set fl = `grep low_freq $intfH/params1 | awk '{print $3}'`
-set thresh = 0.2
+set thresh = 0.1
 
 echo "Applying split spectrum result to estimate ionospheric phase ($fh $fl)..."
 
@@ -45,8 +46,8 @@ set y_inc = `gmt grdinfo $intfH/phasefilt.grd -C | awk '{print $9}'`
 #echo $wavelengh $azi_pxl $y_inc $ry
 set filtx = `echo $wavelengh $rng_pxl $x_inc $rx | awk '{print int($1*$4/$2/$3/2)*2+1}'`
 set filty = `echo $wavelengh $azi_pxl $y_inc $ry | awk '{print int($1*$4/$2/$3/2)*2+1}'`
-set filt_incx = `echo $filtx | awk '{print int($1/8)}'`
-set filt_incy = `echo $filty | awk '{print int($1/8)}'`
+set filt_incx = `echo $filtx | awk '{print int($1/4)}'`
+set filt_incy = `echo $filty | awk '{print int($1/4)}'`
 echo "Filtering size is set to $filtx along range and $filty along azimuth ..."
 
 set limit = `echo $fh $fl | awk '{printf("%.3f",$1*$2/($1*$1-$2*$2)*3.1415926)}'`
@@ -57,6 +58,17 @@ cp $intfL/unwrap.grd ./up_l.grd
 cp $intfO/unwrap.grd ./up_o.grd
 
 # correct for unwrapping errors
+gmt grdmath up_h.grd up_o.grd SUB = tmp.grd
+set ch = `gmt grdinfo tmp.grd -L1 -C |  awk '{if ($12 >=0) printf("%d\n",int($12/6.2831853072+0.5)); else printf("%d\n",int($12/6.2831853072-0.5))}'`
+echo "Correcting high passed phase by $ch * 2PI ..."
+gmt grdmath up_h.grd $ch 2 PI MUL MUL SUB = tmp.grd
+mv tmp.grd up_h.grd
+gmt grdmath up_l.grd up_o.grd SUB = tmp.grd
+set cl = `gmt grdinfo tmp.grd -L1 -C |  awk '{if ($12 >=0) printf("%d\n",int($12/6.2831853072+0.5)); else printf("%d\n",int($12/6.2831853072-0.5))}'`
+echo "Correcting high passed phase by $cl * 2PI ..."
+gmt grdmath up_l.grd $cl 2 PI MUL MUL SUB = tmp.grd
+mv tmp.grd up_l.grd
+
 gmt grdmath up_h.grd up_l.grd ADD up_o.grd 2 MUL SUB = tmp.grd
 gmt grdmath tmp.grd 2 PI MUL DIV ABS 0.2 GE 1 SUB -1 MUL 0 NAN = mask_up.grd
 
@@ -86,13 +98,15 @@ gmt grdmath tmp_ph0.grd mask.grd MUL = tmp_ph.grd
 gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 nearest_grid tmp_ph.grd tmp_ph_interp.grd
+
+
 foreach iteration (1 2 3 4 5 ) 
   set odd = `echo $iteration | awk '{if ($1%2==0) print 0;else print 1}'`
-#  if ($odd == 1) then
+  if ($odd == 1) then
+    gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
+  else
     gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
-#  else
-#    gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filt -Gtmp_filt.grd -V -Ni -I$inc
-#  endif
+  endif
   gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -T0.5 -Gtmp.grd
   mv tmp.grd tmp_filt.grd
   #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
@@ -105,7 +119,7 @@ foreach iteration (1 2 3 4 5 )
 #exit 1
 end
 
-gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
+gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
 gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -Gtmp.grd
 mv tmp.grd tmp_filt.grd
 #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
@@ -114,5 +128,19 @@ mv tmp.grd tmp_filt.grd
 
 gmt grdmath tmp_filt.grd PI ADD 2 PI MUL MOD PI SUB = tmp_ph.grd
 cp tmp_ph.grd ph_iono.grd
+
+cp $intf/phasefilt.grd ./ph0.grd
+
+gmt grdsample tmp_filt.grd -Rph0.grd -Gtmp.grd
+gmt grdmath ph0.grd tmp.grd SUB PI ADD 2 PI MUL MOD PI SUB = ph_corrected.grd
+
+set cc = `gmt grdinfo ph_corrected.grd -L1 -C |  awk '{if ($12 >=0) printf("%d\n",int($12/3.141592653+0.5)); else printf("%d\n",int($12/3.141592653-0.5))}'`
+echo "Correcting iono phase by $cc PI ..."
+gmt grdmath tmp_filt.grd $cc PI MUL ADD = tmp_ph.grd
+gmt grdmath tmp_ph.grd PI ADD 2 PI MUL MOD PI SUB = ph_iono.grd
+
+gmt grdsample tmp_ph.grd -Rph0.grd -Gtmp.grd
+gmt grdmath ph0.grd tmp.grd SUB PI ADD 2 PI MUL MOD PI SUB = ph_corrected.grd
+mv tmp_ph.grd ph_iono_orig.grd
 
 #rm tmp*.grd
