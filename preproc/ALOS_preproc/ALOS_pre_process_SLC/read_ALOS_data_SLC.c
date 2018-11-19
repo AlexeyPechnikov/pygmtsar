@@ -197,6 +197,9 @@ long read_ALOS_data_SLC(FILE *imagefile, FILE *outfile, struct PRM *prm, long *b
 		}
 	}
 
+//printf("chirp_length = %.12d\n",sdr.chirp_length);
+//printf("chirp_linear_coeff = %.12d\n",sdr.chirp_linear_coeff);
+
 	/* calculate end time and fix prf */
 	prm->prf = 0.001 * prm->prf;
 
@@ -316,6 +319,7 @@ int assign_sardata_params(struct PRM *prm, int line_prefix_size, int *line_suffi
 
 	prm->prf = sdr.PRF;
 	prm->pulsedur = (1e-9) * sdr.chirp_length;
+    prm->chirp_slope = sdr.chirp_linear_coeff/(1e-6);
 
 	prm->clock_start = get_clock(sdr, tbias);
 	prm->SC_clock_start = ((double)sdr.sensor_acquisition_year) * 1000 + prm->clock_start;

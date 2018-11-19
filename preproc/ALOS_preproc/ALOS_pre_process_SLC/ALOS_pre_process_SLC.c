@@ -134,11 +134,11 @@ int main(int argc, char **argv) {
 		/* set the chirp extension to 500 if FBD fs = 16000000 */
 		if (prm.fs < 17000000.) {
 			prm.chirp_ext = 500;
-			prm.chirp_slope = -5.18519e+11;
+			//prm.chirp_slope = -5.18519e+11;
 			prm.SLC_scale = I2SCALE; /* set dfact */
 		}
 		else {
-			prm.chirp_slope = -1.03704e+12;
+			//prm.chirp_slope = -1.03704e+12;
 			prm.SLC_scale = I2SCALE * 2;
 		}
 
