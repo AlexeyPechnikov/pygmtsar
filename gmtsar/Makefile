@@ -4,7 +4,7 @@
 
 include ../config.mk
 
-INCLUDES	= $(GMT_INC) -I./
+INCLUDES	= $(GMT_INC) -I./ -I$(TIFF_INC)
 
 LIB_C		= aastretch.c acpatch.c calc_dop.c conv2d.c do_freq_xcorr.c \
 		  do_time_int_xcorr.c fft_bins.c fft_interpolate_routines.c \
@@ -67,4 +67,4 @@ clean:
 #-------------------------------------------------------------------------------
 
 $(PROGS):	$(PROGS_O) $(LIB)
-		$(CC) $(LDFLAGS) $@.o $(GMTSAR) $(GMT_LIB) $(LALIBS) $(LIBS) -o $@
+		$(CC) $(LDFLAGS) $@.o $(GMTSAR) $(GMT_LIB) $(LALIBS) $(LIBS)  -L$(TIFF_LIB) -ltiff -lm -o $@

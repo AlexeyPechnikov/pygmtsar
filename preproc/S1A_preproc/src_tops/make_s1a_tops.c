@@ -53,7 +53,7 @@ typedef struct burst_bounds {
 
 int pop_led(struct tree *, struct state_vector *);
 int write_orb(struct state_vector *sv, FILE *fp, int);
-int pop_burst(struct PRM *, struct tree *, struct burst_bounds *, char *);
+int pop_burst(struct PRM *, struct tree *, struct burst_bounds *, char *, char *);
 double dramp_dmod(struct tree *, int, fcomplex *, int, int, int, struct GMT_GRID *, struct GMT_GRID *, int, int);
 double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, char *, char *);
 int shift_burst(fcomplex *, fcomplex *, int, int, int, struct GMT_GRID *, struct GMT_GRID *, int);
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
 	null_sio_struct(&prm);
 
 	// analyze the burst and generate the PRM
-	pop_burst(&prm, xml_tree, bb, argv[3]);
+	pop_burst(&prm, xml_tree, bb, argv[3], argv[2]);
 
 	// open the TIFF file and the three SLC files SLCL-low  SLCC-center and
 	// SLCH-high
@@ -277,7 +277,7 @@ int write_orb(state_vector *sv, FILE *fp, int n) {
 	return (1);
 }
 
-int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *file_name) {
+int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *file_name, char *tiff_name) {
 
 	char tmp_c[200], tmp_cc[60000];
 	double tmp_d, dt, t[100];
@@ -347,8 +347,8 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
 	search_tree(xml_tree, "/product/generalAnnotation/productInformation/pass/", tmp_c, 1, 0, 1);
 	strasign(prm->orbdir, tmp_c, 0, 0);
 	strasign(prm->lookdir, "R", 0, 0);
-	strcpy(tmp_c, file_name);
-	strcat(tmp_c, ".raw");
+	strcpy(tmp_c, tiff_name);
+	//strcat(tmp_c, ".raw");
 	strcpy(prm->input_file, tmp_c);
 	strcpy(tmp_c, file_name);
 	strcat(tmp_c, ".LED");
@@ -825,6 +825,7 @@ double shift_write_slc(void *API, struct PRM *prm, struct tree *xml_tree, struct
 					cbrst[k] = Cmul(cbrst[k], cramp[k]);
 				}
 			}
+            // split_spectrum here
 
 			// shift the burst with the given table, cramp is just some available
 			// memory to use

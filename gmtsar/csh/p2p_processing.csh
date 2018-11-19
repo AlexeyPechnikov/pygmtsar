@@ -407,34 +407,56 @@
         mkdir -p SLC_L
         mkdir -p SLC_H
         cd SLC
+        ln -s ../raw/$2.tiff .
+        ln -s ../raw/$3.tiff .
         split_spectrum $master.PRM > params1
-        mv SLCH ../SLC_H/$master.SLC
-        mv SLCL ../SLC_L/$master.SLC
+        mv high.tiff ../SLC_H/$2.tiff
+        mv low.tiff ../SLC_L/$2.tiff
         split_spectrum $slave.PRM > params2
-        mv SLCH ../SLC_H/$slave.SLC
-        mv SLCL ../SLC_L/$slave.SLC
+        mv high.tiff ../SLC_H/$3.tiff
+        mv low.tiff ../SLC_L/$3.tiff
 
         cd ../SLC_L
+        ln -s ../raw/$2.xml .
+        ln -s ../raw/$2.EOF .
+        ln -s ../raw/$3.xml .
+        ln -s ../raw/$3.EOF .
+        ln -s ../topo/dem.grd .
+        ln -s ../raw/a.grd .
+        ln -s ../raw/r.grd .
+        ln -s ../raw/offset*.dat .
+        align_tops.csh $2 $2.EOF $3 $3.EOF dem.grd 1
+
         set wl1 = `grep low_wavelength ../SLC/params1 | awk '{print $3}'`
         set wl2 = `grep low_wavelength ../SLC/params2 | awk '{print $3}'`
-        cp ../raw/$master.PRM .
-        ln -s ../raw/$master.LED .
+        #cp ../raw/$master.PRM .
+        #ln -s ../raw/$master.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wl1/g" $master.PRM > tmp
         mv tmp $master.PRM
-        cp ../raw/$slave.PRM .
-        ln -s ../raw/$slave.LED .
+        #cp ../raw/$slave.PRM .
+        #ln -s ../raw/$slave.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wl2/g" $slave.PRM > tmp
         mv tmp $slave.PRM
 
         cd ../SLC_H
+        ln -s ../raw/$2.xml .
+        ln -s ../raw/$2.EOF .
+        ln -s ../raw/$3.xml .
+        ln -s ../raw/$3.EOF .
+        ln -s ../topo/dem.grd .
+        ln -s ../raw/a.grd .
+        ln -s ../raw/r.grd .
+        ln -s ../raw/offset*.dat .
+        align_tops.csh $2 $2.EOF $3 $3.EOF dem.grd 1
+
         set wh1 = `grep high_wavelength ../SLC/params1 | awk '{print $3}'`
         set wh2 = `grep high_wavelength ../SLC/params2 | awk '{print $3}'`
-        cp ../raw/$master.PRM .
-        ln -s ../raw/$master.LED .
+        #cp ../raw/$master.PRM .
+        #ln -s ../raw/$master.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wh1/g" $master.PRM > tmp
         mv tmp $master.PRM
-        cp ../raw/$slave.PRM .
-        ln -s ../raw/$slave.LED .
+        #cp ../raw/$slave.PRM .
+        #ln -s ../raw/$slave.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wh2/g" $slave.PRM > tmp
         mv tmp $slave.PRM
 

@@ -1,7 +1,6 @@
 //
 //  split_spectrum.c
 //
-//
 //  Created by Xiaohua Xu on 7/18/18.
 //
 //  Used to estimate ionospheric delay in interferograms.
@@ -18,6 +17,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "tiffio.h"
 //#include <complex.h>
 
 // void right_shift(fcomplex *, int);
@@ -40,7 +40,7 @@ char *USAGE2 = "\nUSAGE: split_spectrum prm1 prm2\n\n"
                "   program used to split range spectrum for coregistered SLC using a "
                "modified cosine filter\n\n"
                "   SLCs are bandpassed and then shifted to the center of the spectrum\n\n"
-               "   output is SLCH1 SLCH2 SLCL1 SLCL2\n\n";
+               "   output is SLCH1 SLCH2 SLCL1 SLCL2\n";
 
 int main(int argc, char **argv) {
 	if (argc != 3 && argc != 2)
@@ -52,7 +52,9 @@ int main(int argc, char **argv) {
 int split1(int argc1, char **argv1) {
 
 	FILE *SLC_file1, *SLCH, *SLCL;
-	// FILE *p_out;
+    TIFF *tif, *tifh, *tifl;
+    uint32 width, height, nii;
+    uint16 s = 0;
 	struct PRM p1;
 	int ii, jj, nffti, nc;
 	double bc, bw, cf, fh, fl;
@@ -111,20 +113,48 @@ int split1(int argc1, char **argv1) {
 	// exit(0);
 
 	// read in SLC and run split spectrum
-	if ((SLC_file1 = fopen(p1.SLC_file, "rb")) == NULL)
-		die("Can't open ", p1.input_file);
-	// if ((SLC_file2 = fopen(p2.SLC_file,"rb")) == NULL) die("Can't open
-	// ",p2.input_file); if ((p_out = fopen("phase_output","wb")) == NULL)
-	// die("Can't open ","phase_output");
+    if (p1.SC_identity != 10) {
+	    if ((SLC_file1 = fopen(p1.SLC_file, "rb")) == NULL)
+		    die("Can't open ", p1.input_file);
+	    // if ((SLC_file2 = fopen(p2.SLC_file,"rb")) == NULL) die("Can't open
+	    // ",p2.input_file); if ((p_out = fopen("phase_output","wb")) == NULL)
+	    // die("Can't open ","phase_output");
 
-	if ((SLCH = fopen("SLCH", "wb")) == NULL)
-		die("Can't open ", "SLCH");
-	// if ((SLCH2 = fopen("SLCH2","wb")) == NULL) die("Can't open ","SLCH2");
-	if ((SLCL = fopen("SLCL", "wb")) == NULL)
-		die("Can't open ", "SLCL");
-	// if ((SLCL2 = fopen("SLCL2","wb")) == NULL) die("Can't open ","SLCL2");
-
-	buf1 = (short *)malloc(nffti * 2 * sizeof(short));
+	    if ((SLCH = fopen("SLCH", "wb")) == NULL)
+		    die("Can't open ", "SLCH");
+	    // if ((SLCH2 = fopen("SLCH2","wb")) == NULL) die("Can't open ","SLCH2");
+	    if ((SLCL = fopen("SLCL", "wb")) == NULL)
+		    die("Can't open ", "SLCL");
+	    // if ((SLCL2 = fopen("SLCL2","wb")) == NULL) die("Can't open ","SLCL2");
+    }
+    else {
+        TIFFSetWarningHandler(NULL);
+        if ((tif = TIFFOpen(p1.input_file,"rb")) == NULL)
+            die("Couldn't open tiff file: \n", p1.input_file);
+        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
+        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+        if ((tifh = TIFFOpen("high.tiff","wb")) == NULL)
+            die("Couldn't open tiff file: \n", "high.tiff");
+        TIFFSetField(tifh, TIFFTAG_IMAGEWIDTH, width);
+        TIFFSetField(tifh, TIFFTAG_IMAGELENGTH, height);
+        TIFFSetField(tifh, TIFFTAG_BITSPERSAMPLE, sizeof(short) * 8 * 2);
+        TIFFSetField(tifh, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_COMPLEXINT);
+        TIFFSetField(tifh, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+        if ((tifl = TIFFOpen("low.tiff","wb")) == NULL)
+            die("Couldn't open tiff file: \n", "low.tiff");
+        TIFFSetField(tifl, TIFFTAG_IMAGEWIDTH, width);
+        TIFFSetField(tifl, TIFFTAG_IMAGELENGTH, height);
+        TIFFSetField(tifl, TIFFTAG_BITSPERSAMPLE, sizeof(short) * 8 * 2);
+        TIFFSetField(tifl, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_COMPLEXINT);
+        TIFFSetField(tifl, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    }
+        
+    if (p1.SC_identity != 10) {
+	    buf1 = (short *)malloc(nffti * 2 * sizeof(short));
+    }
+    else {
+        buf1 = (short *)_TIFFmalloc(TIFFScanlineSize(tif) * 2);
+    }
 	// buf2 = (short *) malloc (nffti*2*sizeof(short));
 	c1 = (fcomplex *)malloc(nffti * sizeof(fcomplex));
 	// c2 = (fcomplex *) malloc (nffti*sizeof(fcomplex));
@@ -157,8 +187,15 @@ int split1(int argc1, char **argv1) {
 	fprintf(stderr, "Number of NFFT is %d\n", nffti);
 
 	fprintf(stderr, "Writing lines ");
-	for (ii = 0; ii < p1.num_valid_az * p1.num_patches; ii++) {
-		fread(buf1, sizeof(short), p1.num_rng_bins * 2, SLC_file1);
+    if (p1.SC_identity != 10) height = p1.num_valid_az * p1.num_patches;
+	for (ii = 0; ii < height; ii++) {
+        if (p1.SC_identity != 10) {
+		    fread(buf1, sizeof(short), p1.num_rng_bins * 2, SLC_file1);
+        }
+        else {
+            nii = ii;
+            TIFFReadScanline(tif, buf1, nii, s);
+        }
 		// fread(buf2,sizeof(short),p1.num_rng_bins*2,SLC_file2);
 		for (jj = 0; jj < nffti; jj++) {
 			if (jj < p1.num_rng_bins) {
@@ -238,7 +275,14 @@ int split1(int argc1, char **argv1) {
 			// buf2[2*jj] = (short)round(c2h[jj].r);
 			// buf2[2*jj+1] = (short)round(c2h[jj].i);
 		}
-		fwrite((void *)buf1, sizeof(short), p1.num_rng_bins * 2, SLCH);
+        
+        if (p1.SC_identity != 10) {
+		    fwrite((void *)buf1, sizeof(short), p1.num_rng_bins * 2, SLCH);
+        }
+        else {
+            TIFFWriteScanline(tifh, buf1, nii, s);
+        }
+        
 		// fwrite((void *)buf2,sizeof(short),p1.num_rng_bins*2,SLCH2);
 		for (jj = 0; jj < p1.num_rng_bins; jj++) {
 			buf1[2 * jj] = (int)round(c1l[jj].r);
@@ -246,7 +290,13 @@ int split1(int argc1, char **argv1) {
 			// buf2[2*jj] = (int)round(c2l[jj].r);
 			// buf2[2*jj+1] = (int)round(c2l[jj].i);
 		}
-		fwrite((void *)buf1, sizeof(short), p1.num_rng_bins * 2, SLCL);
+        if (p1.SC_identity != 10) {
+		    fwrite((void *)buf1, sizeof(short), p1.num_rng_bins * 2, SLCL);
+        }
+        else {
+            TIFFWriteScanline(tifl, buf1, nii, s);
+        }
+    
 		// fwrite((void *)buf2,sizeof(short),p1.num_rng_bins*2,SLCL2);
 
 		// fwrite((void *)ph,sizeof(double),p1.num_rng_bins,p_out);
@@ -258,7 +308,7 @@ int split1(int argc1, char **argv1) {
 
 	free(filterh);
 	free(filterl);
-	free(buf1);
+	
 	// free(buf2);
 	free(c1);
 	// free(c2);
@@ -267,11 +317,20 @@ int split1(int argc1, char **argv1) {
 	// free(c2h);
 	// free(c2l);
 	// free(ph);
-	fclose(SLC_file1);
-	// fclose(SLC_file2);
-	// fclose(p_out);
-	fclose(SLCH);
-	fclose(SLCL);
+    if (p1.SC_identity != 10) {
+	    fclose(SLC_file1);
+	    // fclose(SLC_file2);
+	    // fclose(p_out);
+	    fclose(SLCH);
+        fclose(SLCL);
+        free(buf1);
+    }
+    else {
+        TIFFClose(tif);
+        TIFFClose(tifh);
+        TIFFClose(tifl);
+        free(buf1);
+    }
 	// fclose(SLCH2);
 	// fclose(SLCL2);
 	free(tmp);
