@@ -82,7 +82,12 @@ int split1(int argc1, char **argv1) {
 	wavelength = p1.lambda;
 	cf = SPEED_OF_LIGHT / wavelength;
 
-	bc = rng_bandwidth / 3.0;
+    if (p1.SC_identity == 10) {
+        bc = 42000000.0 / 3.0;
+    }
+    else {
+	    bc = rng_bandwidth / 3.0;
+    }
 	bw = bc;
 
 	fh = cf + bc;

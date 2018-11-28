@@ -370,7 +370,8 @@ unset noclobber
       exit 1
     endif
     ln -s ../topo/dem.grd .
-    align_tops.csh $master $master.EOF $slave $slave.EOF dem.grd
+    #align_tops.csh $master $master.EOF $slave $slave.EOF dem.grd
+    align_tops_esd.csh $master $master.EOF $slave $slave.EOF dem.grd 2
     echo ""
     echo " Pre-Process S1_TOPS data - END"
     echo ""

@@ -72,6 +72,22 @@
   merge_swath tmp_masklist mask.grd
   echo "Merging END"
   echo ""
+
+  set iono = `grep correct_iono $2 | awk '{print $3}'`
+  set skip_iono = `grep iono_skip_est $2 | awk '{print $3}'`
+  if ($iono != 0 & $skip_iono == 0) then
+    if (! -f ph_iono_orig.grd) then
+      echo "Need ph_iono_orig.grd to correct ionosphere ..."
+    else
+      echo "Correcting ionosphere ..."
+      gmt grdsample ph_iono_orig.grd -Rphasefilt.grd -Gtmp.grd
+      gmt grdmath phasefilt.grd tmp.grd SUB PI ADD 2 PI MUL MOD PI SUB = tmp2.grd
+      mv phasefilt.grd phasefilt_orig.grd
+      mv tmp2.grd phasefilt.grd
+      rm tmp.grd
+    endif
+  endif
+
   
   # This step is essential, cut the DEM so it can run faster.
   if (! -f trans.dat) then

@@ -73,9 +73,9 @@ gmt grdmath up_h.grd up_l.grd ADD up_o.grd 2 MUL SUB = tmp.grd
 gmt grdmath tmp.grd 2 PI MUL DIV ABS 0.2 GE 1 SUB -1 MUL 0 NAN = mask_up.grd
 
 gmt grdmath up_h.grd mask_up.grd MUL = tmp.grd
-gmt grdfilter tmp.grd -Dp -Fm21/81 -Gup_h.grd -V -Nr 
+gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_h.grd -V -Nr 
 gmt grdmath up_l.grd mask_up.grd MUL = tmp.grd
-gmt grdfilter tmp.grd -Dp -Fm21/81 -Gup_l.grd -V -Nr
+gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_l.grd -V -Nr
 
 gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN 0 MUL 1 ADD mask_up.grd MUL = mask.grd
 gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN ISNAN 1 SUB -1 MUL mask_up.grd 0 DENAN MUL = mask1.grd

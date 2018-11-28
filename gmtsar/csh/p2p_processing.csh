@@ -61,6 +61,7 @@
   set iono_filt_rng = `grep iono_filt_rng $conf | awk '{print $3}'`
   set iono_filt_azi = `grep iono_filt_azi $conf | awk '{print $3}'`
   set iono_dsamp = `grep iono_dsamp $conf | awk '{print $3}'`
+  set iono_skip_est = `grep iono_skip_est $conf | awk '{print $3}'`
   #  set filter = 200
   #  echo " "
   #  echo "WARNING filter wavelength was not set in config.txt file"
@@ -632,14 +633,16 @@
       intf.csh $ref.PRM $rep.PRM
       filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
       cp phase.grd phasefilt.grd
-      if ($mask_water == 1 || $switch_land == 1) then
-        set rcut = `gmt grdinfo phase.grd -I- | cut -c3-20`
-        cd ../../topo
-        landmask.csh $rcut
-        cd ../iono_phase/intf_h
-        ln -s ../../topo/landmask_ra.grd .
+      if ($iono_skip_est == 0) then
+        if ($mask_water == 1 || $switch_land == 1) then
+          set rcut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+          cd ../../topo
+          landmask.csh $rcut
+          cd ../iono_phase/intf_h
+          ln -s ../../topo/landmask_ra.grd .
+        endif
+        snaphu_interp.csh 0.05 0
       endif
-      snaphu_interp.csh 0.05 0
       cd ..
 
       echo ""
@@ -651,8 +654,10 @@
       intf.csh $ref.PRM $rep.PRM
       filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
       cp phase.grd phasefilt.grd
-      if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
-      snaphu_interp.csh 0.05 0
+      if ($iono_skip_est == 0) then
+        if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
+        snaphu_interp.csh 0.05 0
+      endif
       cd ..
 
       echo ""
@@ -663,21 +668,25 @@
       intf.csh $ref.PRM $rep.PRM
       filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
       cp phase.grd phasefilt.grd
-      if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
-      snaphu_interp.csh 0.05 0
+      if ($iono_skip_est == 0) then
+        if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
+        snaphu_interp.csh 0.05 0
+      endif
       cd ../iono_correction
       echo ""
 
-      estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o ../../intf/$ref_id"_"$rep_id $iono_filt_rng $iono_filt_azi
+      if ($iono_skip_est == 0) then
+        estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o ../../intf/$ref_id"_"$rep_id $iono_filt_rng $iono_filt_azi
       
-      cd ../../intf/$ref_id"_"$rep_id
-      mv phasefilt.grd phasefilt_non_corrected.grd
-      gmt grdsample ../../iono_phase/iono_correction/ph_iono_orig.grd -Rphasefilt_non_corrected.grd -Gph_iono.grd
-      gmt grdmath phasefilt_non_corrected.grd ph_iono.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
-      gmt grdimage phasefilt.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
-      gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
-      gmt psconvert -Tf -P -Z phasefilt.ps
-      #rm phasefilt.ps
+        cd ../../intf/$ref_id"_"$rep_id
+        mv phasefilt.grd phasefilt_non_corrected.grd
+        gmt grdsample ../../iono_phase/iono_correction/ph_iono_orig.grd -Rphasefilt_non_corrected.grd -Gph_iono.grd
+        gmt grdmath phasefilt_non_corrected.grd ph_iono.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
+        gmt grdimage phasefilt.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
+        gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
+        gmt psconvert -Tf -P -Z phasefilt.ps
+        #rm phasefilt.ps
+      endif
       cd ../../
     endif
 

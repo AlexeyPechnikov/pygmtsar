@@ -36,6 +36,7 @@ unset noclobber
 #
   set seq = $7
   echo $seq
+#if (6 == 9) then
 #:<<supercalifragilisticexpialidocious
 #
 # determine file names
@@ -56,7 +57,7 @@ unset noclobber
   mkdir F1
   mkdir F1/raw F1/topo
   cd F1
-  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g"> $5
   echo "Linking files for Subswath 1 ..."
   cd topo
   ln -s ../../topo/dem.grd .
@@ -73,7 +74,7 @@ unset noclobber
   mkdir F2
   mkdir F2/raw F2/topo
   cd F2
-  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g"> $5
   echo "Linking files for Subswath 2 ..."
   cd topo
   ln -s ../../topo/dem.grd .
@@ -91,7 +92,7 @@ unset noclobber
   mkdir F3/raw F3/topo
   cd F3
   echo "Linking files for Subswath 3 ..."
-  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" > $5
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g"> $5
   cd topo
   ln -s ../../topo/dem.grd .
   cd ../raw
@@ -131,10 +132,10 @@ unset noclobber
 #
 # merge_unwrap_geocode
 #
+#endif
 
   mkdir merge
   cd merge
-  ln -s ../$5 .
   ln -s ../topo/dem.grd .
   ln -s ../F1/intf/*/gauss* .
   if (-f tmp.filelist) then
@@ -155,5 +156,60 @@ unset noclobber
   set prm3s = `ls ../F3/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'`
   echo $pth3":"$prm3m":"$prm3s >> tmp.filelist
 
-  merge_unwrap_geocode_tops.csh tmp.filelist $5
+
+  set iono = `grep correct_iono ../$5 | awk '{print $3}'`
+  if ($iono != 0) then
+    sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
+    merge_unwrap_geocode_tops.csh tmp.filelist $5
+
+    cd ..
+    mkdir iono
+    cd iono
+    mkdir intf_h intf_l intf_o iono_correction
+    cd intf_h
+    echo "../../F1/iono_phase/intf_h/:"$prm1m":"$prm1s > tmp.filelist
+    echo "../../F2/iono_phase/intf_h/:"$prm2m":"$prm2s >> tmp.filelist
+    echo "../../F3/iono_phase/intf_h/:"$prm3m":"$prm3s >> tmp.filelist
+    sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
+    ln -s ../../topo/dem.grd .
+    ln -s ../../merge/trans.dat .
+    merge_unwrap_geocode_tops.csh tmp.filelist $5
+    cp ../../F1/SLC/params* .
+    cd ../intf_l
+
+    echo "../../F1/iono_phase/intf_l/:"$prm1m":"$prm1s > tmp.filelist
+    echo "../../F2/iono_phase/intf_l/:"$prm2m":"$prm2s >> tmp.filelist
+    echo "../../F3/iono_phase/intf_l/:"$prm3m":"$prm3s >> tmp.filelist
+    sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
+    ln -s ../../topo/dem.grd .
+    ln -s ../../merge/trans.dat .
+    merge_unwrap_geocode_tops.csh tmp.filelist $5
+    cp ../../F1/SLC/params* .
+    cd ../intf_o
+
+    echo "../../F1/iono_phase/intf_o/:"$prm1m":"$prm1s > tmp.filelist
+    echo "../../F2/iono_phase/intf_o/:"$prm2m":"$prm2s >> tmp.filelist
+    echo "../../F3/iono_phase/intf_o/:"$prm3m":"$prm3s >> tmp.filelist
+    sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
+    ln -s ../../topo/dem.grd .
+    ln -s ../../merge/trans.dat .
+    merge_unwrap_geocode_tops.csh tmp.filelist $5
+    cp ../../F1/SLC/params* .
+    cd ../iono_correction
+
+    estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o ../../merge 0.8 0.8 
+    cd ../../merge
+    ln -s ../iono/iono_correction/ph_iono_orig.grd .
+    cp ../$5 .
+
+    merge_unwrap_geocode_tops.csh tmp.filelist $5
+   
+  else
+
+    merge_unwrap_geocode_tops.csh tmp.filelist $5
+
+  endif
+
+
+
 
