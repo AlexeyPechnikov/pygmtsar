@@ -32,6 +32,7 @@ set fl = `grep low_freq $intfH/params1 | awk '{print $3}'`
 set thresh = 0.1
 
 echo "Applying split spectrum result to estimate ionospheric phase ($fh $fl)..."
+cp $intf/phasefilt.grd ./ph0.grd
 
 # determine how much filtering is needed
 set wavelengh = 20000
@@ -46,8 +47,8 @@ set y_inc = `gmt grdinfo $intfH/phasefilt.grd -C | awk '{print $9}'`
 #echo $wavelengh $azi_pxl $y_inc $ry
 set filtx = `echo $wavelengh $rng_pxl $x_inc $rx | awk '{print int($1*$4/$2/$3/2)*2+1}'`
 set filty = `echo $wavelengh $azi_pxl $y_inc $ry | awk '{print int($1*$4/$2/$3/2)*2+1}'`
-set filt_incx = `echo $filtx | awk '{print int($1/4)}'`
-set filt_incy = `echo $filty | awk '{print int($1/4)}'`
+set filt_incx = `echo $filtx | awk '{print int($1/8)}'`
+set filt_incy = `echo $filty | awk '{print int($1/8)}'`
 echo "Filtering size is set to $filtx along range and $filty along azimuth ..."
 
 set limit = `echo $fh $fl | awk '{printf("%.3f",$1*$2/($1*$1-$2*$2)*3.1415926)}'`
@@ -100,7 +101,8 @@ gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 nearest_grid tmp_ph.grd tmp_ph_interp.grd
 
 
-foreach iteration (1 2 3 4 5 ) 
+#foreach iteration (1 2 3 4 5 ) 
+foreach iteration (1 2 3) 
   set odd = `echo $iteration | awk '{if ($1%2==0) print 0;else print 1}'`
   if ($odd == 1) then
     gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
@@ -119,8 +121,11 @@ foreach iteration (1 2 3 4 5 )
 #exit 1
 end
 
+# needs to be improved
+set RR = `gmt grdinfo -I- ph0.grd`
+set II = `gmt grdinfo -I tmp_ph0.grd`
 gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
-gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -Gtmp.grd
+gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
 mv tmp.grd tmp_filt.grd
 #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
 #gmt grdsample tmp_filt.grd -Rmask.grd -Gtmp.grd
@@ -129,7 +134,6 @@ mv tmp.grd tmp_filt.grd
 gmt grdmath tmp_filt.grd PI ADD 2 PI MUL MOD PI SUB = tmp_ph.grd
 cp tmp_ph.grd ph_iono.grd
 
-cp $intf/phasefilt.grd ./ph0.grd
 
 gmt grdsample tmp_filt.grd -Rph0.grd -Gtmp.grd
 gmt grdmath ph0.grd tmp.grd SUB PI ADD 2 PI MUL MOD PI SUB = ph_corrected.grd
