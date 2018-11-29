@@ -370,8 +370,17 @@ unset noclobber
       exit 1
     endif
     ln -s ../topo/dem.grd .
-    #align_tops.csh $master $master.EOF $slave $slave.EOF dem.grd
-    align_tops_esd.csh $master $master.EOF $slave $slave.EOF dem.grd 2
+
+    set iono = ""
+    if ($iono == "") set iono = `grep correct_iono config* | head -1 | awk '{print $3}'`
+    if ($iono == "") set iono = `grep correct_iono ../config* | head -1 | awk '{print $3}'`
+    
+    if ($iono == "" || $iono == 0) then
+      align_tops.csh $master $master.EOF $slave $slave.EOF dem.grd
+    else
+      echo "Running align TOPS script with BESD for ionospheric correction"
+      align_tops_esd.csh $master $master.EOF $slave $slave.EOF dem.grd 2
+    endif
     echo ""
     echo " Pre-Process S1_TOPS data - END"
     echo ""

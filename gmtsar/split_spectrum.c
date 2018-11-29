@@ -30,6 +30,7 @@ int fliplr(double *, int);
 int cos_window(double, double, double, int, double *);
 int split1(int, char **);
 int split2(int, char **);
+fcomplex fmean(short *, int);
 
 char *USAGE1 = "\nUSAGE: split_spectrum prm1 \n\n"
                "   program used to split range spectrum for SLC using a modified cosine "
@@ -62,7 +63,7 @@ int split1(int argc1, char **argv1) {
 	double SPEED_OF_LIGHT = 299792458.0;
 	double *filterh, *filterl;
 	short *buf1;
-	fcomplex *c1, *c1h, *c1l, *tmp;
+	fcomplex *c1, *c1h, *c1l, *tmp, fm;
 	void *API = NULL; /* GMT API control structure */
 	// double complex zl,zh,zp,z1h,z2h,z1l,z2l;
 	// double *ph;
@@ -201,11 +202,12 @@ int split1(int argc1, char **argv1) {
             nii = ii;
             TIFFReadScanline(tif, buf1, nii, s);
         }
+        fm = fmean(buf1,p1.num_rng_bins);
 		// fread(buf2,sizeof(short),p1.num_rng_bins*2,SLC_file2);
 		for (jj = 0; jj < nffti; jj++) {
 			if (jj < p1.num_rng_bins) {
-				c1[jj].r = (float)(buf1[2 * jj]);
-				c1[jj].i = (float)(buf1[2 * jj + 1]);
+				c1[jj].r = (float)(buf1[2 * jj]) - fm.r;
+				c1[jj].i = (float)(buf1[2 * jj + 1]) - fm.i;
 				// c2[jj].r = (float)(buf2[2*jj]);
 				// c2[jj].i = (float)(buf2[2*jj+1]);
 			}
@@ -566,6 +568,23 @@ int split2(int argc2, char **argv2) {
 	fclose(SLCL2);
 	free(tmp);
 	return (1);
+}
+
+fcomplex fmean(short *c, int N) {
+
+    fcomplex m;
+    int i;
+    
+    m.r = 0.0;
+    m.i = 0.0;
+    for (i=0;i<N;i++) {
+        m.r += (float)c[2*i];
+        m.i += (float)c[2*i+1];
+    }
+    m.r = m.r/(float)N;
+    m.i = m.i/(float)N;
+  
+   return(m);
 }
 
 int cos_window(double fc, double fb, double fs, int N, double *filter) {
