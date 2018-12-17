@@ -46,6 +46,26 @@
   endif
   # conf may need to be changed later on
   set stage = `grep proc_stage $conf | awk '{print $3}'`
+  set s_stages = `grep skip_stage $conf | awk '{print $3}' | awk -F, '{print $1,$2,$3,$4,$5,$6}'`
+  set skip_1 = 0
+  set skip_2 = 0 
+  set skip_3 = 0 
+  set skip_4 = 0 
+  set skip_5 = 0 
+  set skip_6 = 0 
+  foreach line (`echo $s_stages`)
+    if ($line == 1) set skip_1 = 1
+    if ($line == 2) set skip_2 = 1
+    if ($line == 3) set skip_3 = 1
+    if ($line == 4) set skip_4 = 1
+    if ($line == 5) set skip_5 = 1
+    if ($line == 6) set skip_6 = 1
+  end
+  if ("x$s_stages" != "x") then
+    echo ""
+    echo "Skipping stage $s_stages ..."
+  endif
+
   set num_patches = `grep num_patches $conf | awk '{print $3}'`
   set near_range = `grep near_range $conf | awk '{print $3}'`
   set earth_radius = `grep earth_radius $conf | awk '{print $3}'`
@@ -82,7 +102,6 @@
   set master = ` echo $2 `
   set slave =  ` echo $3 `
   echo ""
-  echo "Working on images $master $slave ..."
   
 
 #
@@ -106,10 +125,11 @@
 #
 #   make sure the files exist
 #
-  if ($stage == 1) then
+  if ($stage == 1 && $skip_1 == 0) then
     echo ""
     echo "PREPROCESS - START"
     echo ""
+    echo "Working on images $master $slave ..."
     if ($SAT == "ALOS" || $SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_SCAN") then
       if(! -f raw/$master ) then
         echo " no file  raw/"$master
@@ -257,7 +277,7 @@
     set slave = `echo $slave | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
   endif
 
-  if ($stage <= 2) then 
+  if ($stage <= 2 && $skip_2 == 0) then 
     cleanup.csh SLC
     if ($iono == 1) then
       rm -rf SLC_L/* SLC_H/*
@@ -507,7 +527,7 @@
 # 3 - start from make topo_ra  #
 ##################################
 #
-  if ($stage <= 3) then
+  if ($stage <= 3 && $skip_3 == 0) then
 #
 # clean up
 #
@@ -565,7 +585,7 @@
 # 4 - start from make and filter interferograms  #
 ##################################################
 #
-  if ($stage <= 4) then
+  if ($stage <= 4 && $skip_4 == 0) then
 #
 # clean up
 #
@@ -697,7 +717,7 @@
 # 5 - start from unwrap phase  #
 ################################
 #
-  if ($stage <= 5 ) then
+  if ($stage <= 5 && $skip_5 == 0) then
     if ($threshold_snaphu != 0 ) then
       cd intf
       set ref_id  = `grep SC_clock_start ../raw/$ref.PRM | awk '{printf("%d",int($3))}' `
@@ -741,7 +761,7 @@
 # 6 - start from geocode  #
 ###########################
 #
-  if ($stage <= 6) then
+  if ($stage <= 6 && $skip_6 == 0) then
     if ($threshold_geocode != 0 ) then
       cd intf
       set ref_id  = `grep SC_clock_start ../raw/$ref.PRM | awk '{printf("%d",int($3))}' `
