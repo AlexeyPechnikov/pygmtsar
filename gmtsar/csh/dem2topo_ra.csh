@@ -68,10 +68,26 @@ endif
 #
 if ($PRF < 1000) then
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
+  set RR = `grep Hint tmp | head -1 | awk '{print $4}'`
+  if ("x$RR" == "x") then
+    gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+  else
+    gmt surface temp.rat $RR -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt grdcut pixel.grd -R0/$XMAX/0/$YMAX -Gtmp.grd
+    mv tmp.grd pixel.grd
+  endif
 else
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
+  set RR = `grep Hint tmp | head -1 | awk '{print $4}'`
+  if ("x$RR" == "x") then
+    gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+  else
+    gmt surface temp.rat $RR -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt grdcut pixel.grd -R0/$XMAX/0/$YMAX -Gtmp.grd
+    mv tmp.grd pixel.grd
+  endif
 endif
 # 
 # flip top to bottom for both ascending and descending passes
@@ -88,5 +104,5 @@ endif
 #
 #  clean up
 #
-rm pixel.grd temp.rat dem.xyz 
+rm pixel.grd temp.rat dem.xyz tmp
 rm topo_ra.cpt
