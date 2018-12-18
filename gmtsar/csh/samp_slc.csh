@@ -65,7 +65,7 @@ if ($nprf != 0) then
   update_PRM tmp_master.PRM num_lines $new_nl
   update_PRM tmp_master.PRM num_valid_az $new_nl
   update_PRM tmp_master.PRM num_patches 1
-  update_PRM tmp_master.PRM num_rows $new_nl
+  update_PRM tmp_master.PRM nrows $new_nl
 endif
 
 resamp tmp_master.PRM tmp_slave.PRM tmp_slave.PRMresamp tmp_slave.SLCresamp 4
