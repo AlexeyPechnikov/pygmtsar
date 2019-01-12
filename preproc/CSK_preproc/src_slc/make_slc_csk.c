@@ -215,6 +215,7 @@ int pop_prm_hdf5(struct PRM *prm, hid_t input, char *file_name) {
 	prm->a_stretch_r = 0.0;
 	prm->a_stretch_a = 0.0;
 	prm->first_sample = 1;
+    prm->st_rng_bin = 1;
 	strasign(prm->dtype, "a", 0, 0);
 	prm->SC_identity = 8; /* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS
 	                         (6)-  (7)-TSX (8)-CSK (9)-RS2 (10) Sentinel-1a*/

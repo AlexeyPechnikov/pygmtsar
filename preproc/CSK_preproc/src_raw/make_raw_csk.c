@@ -217,6 +217,7 @@ int pop_prm_hdf5(struct PRM *prm, hid_t input, char *file_name) {
 
 	set_prm_defaults(prm); /* use many default values */
 	prm->first_sample = 0;
+	prm->st_rng_bin = 1;
 	prm->SLC_scale = 1.0;
 	prm->az_res = 3.0;
 	prm->xmi = 127.0; /* this is the mean value of one pair.  need to do more */
