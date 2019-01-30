@@ -216,9 +216,13 @@ unset noclobber
       exit 1
     endif
 
-    
-    ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline 
-    ALOS_pre_process_SLC IMG-$slave LED-$slave_led $commandline 
+    if ($SAT == "ALOS_SLC") then 
+      ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline -ALOS1
+      ALOS_pre_process_SLC IMG-$slave LED-$slave_led $commandline -ALOS1
+    else
+      ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline 
+      ALOS_pre_process_SLC IMG-$slave LED-$slave_led $commandline 
+    endif
     
     # make FBD FBS conversion
     set rng_samp_rate_m = `grep rng_samp_rate IMG-$master.PRM | awk 'NR == 1 {printf("%d", $3)}'`
