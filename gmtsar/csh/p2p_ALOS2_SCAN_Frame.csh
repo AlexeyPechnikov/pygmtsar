@@ -11,9 +11,9 @@ unset noclobber
 #
   if ($#argv !=  4) then
     echo ""
-    echo "Usage: p2p_ALOS2_SCAN_Frame.csh Master_stem Slave_stem config.alos2.txt parallel"
+    echo "Usage: p2p_ALOS2_Scan_Frame.csh Master_stem Slave_stem config.alos2.txt parallel"
     echo ""
-    echo "Example: p2p_ALOS2_SCAN_Frame.csh IMG-HH-ALOS2234653650-180927-WBDR1.1__D IMG-HH-ALOS2236723650-181011-WBDR1.1__D config.alos2.txt 1" 
+    echo "Example: p2p_ALOS2_Scan_Frame.csh IMG-HH-ALOS2234653650-180927-WBDR1.1__D IMG-HH-ALOS2236723650-181011-WBDR1.1__D config.alos2.txt 1" 
     echo ""
     echo "	Place the IMG-files and LED-files in the raw folder, DEM in the topo folder."
     echo "	During processing, F1 - F5 and merge folder will be generated."
@@ -34,6 +34,8 @@ unset noclobber
 
   set master = `echo $1 | awk '{print substr($1,8,length($1)-7)}'`
   set slave = `echo $2 | awk '{print substr($1,8,length($1)-7)}'`
+
+#if ( 6 == 9 ) then
 
 #
 # determine file names
@@ -62,20 +64,50 @@ unset noclobber
   if ($seq == 0) then
     foreach swath (1 2 3 4 5)
       cd F$swath
-      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath $3
+      sed "s/.*skip_stage.*/skip_stage = 2,3,4,5,6/g" $3 > tmp_config
+      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config
+      cd raw 
+      samp_slc.csh $1"-F"$swath 3350 0
+      samp_slc.csh $2"-F"$swath 3350 0
+      cd ..
+      sed "s/.*skip_stage.*/skip_stage = 1/g" $3 > tmp_config
+      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config
+      rm tmp_config
       cd ..
     end
   else if ($seq == 1) then
     foreach swath (1 2 3 4 5)
       cd F$swath
-      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath $3 >&log&
+      sed "s/.*skip_stage.*/skip_stage = 2,3,4,5,6/g" $3 > tmp_config
+      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config >&log&
       cd ..
     end
     wait 
+
+    foreach swath (1 2 3 4 5)
+      cd F$swath/raw
+      samp_slc.csh $1"-F"$swath 3350 0 
+      samp_slc.csh $2"-F"$swath 3350 0
+      cd ../..
+    end 
+    wait 
+
+    foreach swath (1 2 3 4 5)
+      cd F$swath
+      sed "s/.*skip_stage.*/skip_stage = 1/g" $3 > tmp_config
+      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config >&log&
+      cd ..
+    end 
+    wait 
+
   else
     echo "Invalid parallel mode"
     exit 1
   endif
+
+
+#endif
+
 
 #
 # merge_unwrap_geocode
