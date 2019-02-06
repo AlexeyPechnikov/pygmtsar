@@ -44,9 +44,13 @@
   set defomax = `grep defomax $conf | awk '{print $3}'`
   set near_interp = `grep near_interp $conf | awk '{print $3}'`
 
-  sed "s/.*skip_stage.*/skip_stage = 3,4,5,6/g" $conf > tmp_config
+  rm -r SLC_F SLC_B MAI_intf
+
+  sed "s/.*skip_stage.*/skip_stage = 4,5,6/g" $conf > tmp_config
   p2p_processing.csh $SAT $master $slave tmp_config
 
+  echo ""
+  echo "Splitting aperture ..."
   cd raw
   split_aperture $master.PRM > MAI_m.rec
   split_aperture $slave.PRM > MAI_s.rec
@@ -134,8 +138,8 @@
   set pix_size = `echo $prf $height $radius $SC_vel | awk '{printf("%.6f",$4/($2+$3)*$3/$1)}'`
   mkdir MAI_intf
   cd MAI_intf
-  gmt grdmath ../SLC_F/real.grd=bf ../SLC_B/real.grd=bf MUL ../SLC_F/imag.grd=bf ../SLC_B/imag.grd=bf MUL ADD 1e7 MUL = real.grd=bf
-  gmt grdmath ../SLC_F/imag.grd=bf ../SLC_B/real.grd=bf MUL ../SLC_F/real.grd=bf ../SLC_B/imag.grd=bf MUL -1 MUL ADD 1e7 MUL = imag.grd=bf
+  gmt grdmath ../SLC_F/real.grd=bf ../SLC_B/real.grd=bf MUL ../SLC_F/imag.grd=bf ../SLC_B/imag.grd=bf MUL ADD 3e5 MUL = real.grd=bf
+  gmt grdmath ../SLC_F/imag.grd=bf ../SLC_B/real.grd=bf MUL ../SLC_F/real.grd=bf ../SLC_B/imag.grd=bf MUL -1 MUL ADD 3e5 MUL = imag.grd=bf
   cp ../SLC/$master.PRM .
   cp ../SLC/$slave.PRM .
   ln -s ../SLC/$master.LED .
@@ -154,6 +158,7 @@
       set region = `gmt grdinfo MAI_intf.grd -I- | awk -F'R' '{print $2}'`
       cd ../topo
       landmask.csh $region
+      gmt grdedit landmask_ra.grd -R$region
       cd ../MAI_intf
       ln -s ../topo/landmask_ra.grd .
       gmt grdsample landmask_ra.grd -RMAI_intf.grd -Glandmask_ra_patch.grd
