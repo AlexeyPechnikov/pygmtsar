@@ -9,7 +9,7 @@
     echo ""
     echo "Usage: MAI_processing.csh SAT master_image slave_image [configuration_file] "
     echo ""
-    echo "Example: MAI_processing.csh ALOS IMG-HH-ALPSRP055750660-H1.0__A IMG-HH-ALPSRP049040660-H1.0__A [config.alos.txt]"
+    echo "Example: MAI_processing.csh ALOS_SLC IMG-HH-ALPSRP055750660-H1.0__A IMG-HH-ALPSRP049040660-H1.0__A [config.alos.txt]"
     echo ""
     exit 1
   endif
@@ -52,6 +52,10 @@
   echo ""
   echo "Splitting aperture ..."
   cd raw
+  if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
+    sarp.csh $master.PRM
+    sarp.csh $slave.PRM
+  endif
   split_aperture $master.PRM > MAI_m.rec
   split_aperture $slave.PRM > MAI_s.rec
   cd ..
