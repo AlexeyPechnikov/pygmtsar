@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     
     // read in PRM file
     get_prm(&p1,argv[1]);
-    nl = p1.num_lines;
+    nl = p1.num_valid_az * p1.num_patches;
     num_rng_bins = p1.num_rng_bins;
     prf = p1.prf;
     nffti = find_fft_length(nl);
