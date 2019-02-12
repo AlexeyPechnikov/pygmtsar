@@ -298,7 +298,7 @@
         ln -s ../raw/$slave.raw . 
         ln -s ../raw/$master.LED . 
         ln -s ../raw/$slave.LED . 
-#        if ($iono == 1) then
+        if ($iono == 1) then
           # set chirp extention to zero for ionospheric phase estimation
           sed "s/.*fd1.*/fd1 = 0.0000/g" $master.PRM > tmp
           sed "s/.*chirp_ext.*/chirp_ext = 0/g" tmp > tmp2
@@ -307,7 +307,7 @@
           sed "s/.*chirp_ext.*/chirp_ext = 0/g" tmp > tmp2
           mv tmp2 $slave.PRM
           rm tmp
-#        endif
+        endif
       else
         cp ../raw/*.PRM .
         ln -s ../raw/$master.SLC .
