@@ -341,7 +341,8 @@ int pop_prm(struct PRM *prm, tree *xml_tree, char *file_name) {
 
 	search_tree(xml_tree, "/product/imageAttributes/rasterAttributes/numberOfSamplesPerLine/", tmp_c, 1, 0, 1);
 	// tmp_i = (int)str2double(tmp_c) - (int)str2double(tmp_c)%4;
-	prm->bytes_per_line = (int)str2double(tmp_c) * 4; // tmp_i*4;
+	prm->num_rng_bins =  (int)str2double(tmp_c) - (int)str2double(tmp_c) % 4;
+	prm->bytes_per_line = prm->num_rng_bins * 4; // tmp_i*4;
 	prm->good_bytes = prm->bytes_per_line;
 	prm->caltone = 0.0;
 	prm->pctbwaz = 0.0;            // rm_az_band
@@ -364,7 +365,6 @@ int pop_prm(struct PRM *prm, tree *xml_tree, char *file_name) {
 	prm->nrows = prm->num_lines;
 	prm->num_valid_az = prm->num_lines;
 	prm->num_patches = 1;
-	prm->num_rng_bins = prm->bytes_per_line / 4;
 	prm->chirp_ext = 0;
 
 	printf("PRM set for Image File...\n");
