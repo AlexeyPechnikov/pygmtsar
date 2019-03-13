@@ -144,7 +144,7 @@ errormessage:
   gmt grdimage display_amp.grd -Cdisplay_amp.cpt $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > display_amp.ps
   gmt psscale -Rdisplay_amp.grd -J -DJTC+w5i/0.2i+h+ef -Cdisplay_amp.cpt -Bx0+l"Amplitude (histogram equalized)" -O >> display_amp.ps
   gmt psconvert -Tf -P -Z display_amp.ps
-  echo "Amplitude map: display_amp.pdf"
+  #echo "Amplitude map: display_amp.pdf"
 #
 # form the correlation
 #
@@ -158,7 +158,7 @@ errormessage:
   gmt grdimage corr.grd $scale -Ccorr.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > corr.ps
   gmt psscale -Rcorr.grd -J -DJTC+w5i/0.2i+h+ef -Ccorr.cpt -Baf+lCorrelation -O >> corr.ps
   gmt psconvert -Tf -P -Z corr.ps
-  echo "Correlation map: corr.pdf"
+  #echo "Correlation map: corr.pdf"
 #
 # form the phase 
 #
@@ -168,7 +168,7 @@ errormessage:
   gmt grdimage phase.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phase.ps
   gmt psscale -Rphase.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -B1.57+l"Phase" -By+lrad -O >> phase.ps
   gmt psconvert -Tf -P -Z phase.ps
-  echo "Phase map: phase.pdf"
+  #echo "Phase map: phase.pdf"
 #
 # compute the solid earth tide
 # uncomment lines with ##
@@ -190,7 +190,7 @@ errormessage:
   gmt grdimage phasefilt.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
   gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
   gmt psconvert -Tf -P -Z phasefilt.ps
-  echo "Filtered phase map: phasefilt.pdf"
+  #echo "Filtered phase map: phasefilt.pdf"
 # 
 #  form the phase gradients
 #

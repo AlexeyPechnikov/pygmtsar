@@ -1,215 +1,211 @@
 #!/bin/csh -f
 #       $Id$
 #
-unset noclobber
+#  Xiaopeng Tong and David Sandwell 
+#  FEB 4 2010
+#  Matt Wei May 4 2010, ENVISAT
+#  DTS - May 26, 2010, added phase gadient
+#  EF, DTS, XT - Jan 10 2014, TSX
 #
-# Rewritten by Xiaohua XU for GMTSAR, Feb 2016
+# Convolve the real.grd and imag.grd with gaussian filters. 
+# Form amplitude, phase, phase gradient, and correlation images. 
 #
-# Matt WEI Jan 28 2010
-# Modified by Xiaopeng Feb 8 2010 
-# Modified by Matt Feb 12 2010 - zero.hgt and add 0 to names as N01W072.hgt
-# Note this script requires a local copy of the SRTM or other global dem data.
-# We have setup a web site http://gmtsar.ucsd.edu to prepare and deliver the file dem.grd
-#=======================================================================
-#  script to make topography for interferograms 
-#  The USGS elevations are height above WGS84 so this is OK.
-if ($#argv < 2) then
-error_message:
- echo " "
- echo " Usage: make_dem.csh lonW lonE latS latN DEM_type" 
- echo " "
- echo "        DEM_type: 1--SRTM1 2--SRTM3 3--ASTER"
- echo " "
- echo "        notes: 1  has not been tested if the tiles cross equator or E180" 
- echo "               2  custom dem.grd also available from http://topex.ucsd.edu/gmtsar "
- echo " "
- exit 1
-endif 
 #
-# for plotting
-# 
-  set scale = -JX8i
+  alias rm 'rm -f'
+  gmt set IO_NC4_CHUNK_SIZE classic
 #
-# set local variables
-if ( -f ~/.quiet ) then
-    set V = ""
-else
-	set V = "-V"
-endif
+#
+# set grdimage options
+#
+  set scale = "-JX6.5i"
+  set thresh = "5.e-21"
+  gmt set COLOR_MODEL = hsv
+  gmt set PROJ_LENGTH_UNIT = inch
 
-#
-  if ($5 == 1) then
-    set demdir = "/palsar/DEM/SRTM1/"
-    set pixel = 0.000277777778
-    set INC = 1s
-  else if ($5 == 2) then 
-    set demdir = "/palsar/DEM/SRTM3/World/"
-    set pixel = 0.000833333333333
-    set INC = 3s
-  else if ($5 == 3) then 
-    set demdir = "/palsar/DEM/ASTER/World/"
-    set pixel = 0.000277777778
-    set INC = 1s
-  else 
-    goto error_message
+  if ($#argv != 4 && $#argv != 6) then
+errormessage:
+    echo ""
+    echo "Usage: filter.csh master.PRM slave.PRM filter decimation [rng_dec azi_dec]"
+    echo ""
+    echo " Apply gaussian filter to amplitude and phase images."
+    echo " "
+    echo " filter -  wavelength of the filter in meters (0.5 gain)"
+    echo " decimation - (1) better resolution, (2) smaller files"
+    echo " "
+    echo "Example: filter.csh IMG-HH-ALPSRP055750660-H1.0__A.PRM IMG-HH-ALPSRP049040660-H1.0__A.PRM 300  2"
+    echo ""
+    exit 1
   endif
-  set system = `uname -p` 
+  echo "filter.csh"
 #
-#========================Mosaic topo data===============================
+# define filter and decimation variables
 #
-# Get the center of the frame from SAT_baseline
-#-----------------------------------------------------------------------
-
-#-----------------------------------------------------------------------
-# Estimate bound of required topography 
-
-set lon1 = $1
-set lon2 = $2
-set lat1 = $3
-set lat2 = $4
-set bound = $1/$2/$3/$4
-
-echo $bound $lon1 $lon2 $lat1 $lat2
-
-#-----------------------------------------------------------------------
-# Mosaic topography data
-# first, convert "lon1 lon2 lat1 lat2" into "lat_s lat_e lon_s lon_e" 
-# that can be used in hgt format 
-
-@ lon10 = `echo "$lon1" | awk '{printf("%d",$1) }'`
-@ lon20 = `echo "$lon2" | awk '{printf("%d",$1) }'`
-@ lat10 = `echo "$lat1" | awk '{printf("%d",$1) }'`
-@ lat20 = `echo "$lat2" | awk '{printf("%d",$1) }'`
-echo $lon10 $lon20 $lat10 $lat20
-
-# correct the lon and lat if in the west or south
-if ($lon10 < 0 ) @ lon10 = $lon10 - 1
-if ($lon20 < 0 ) @ lon20 = $lon20 - 1
-if ($lat10 < 0 ) @ lat10 = $lat10 - 1
-if ($lat20 < 0 ) @ lat20 = $lat20 - 1
-
-set lon_control = 0
-set lat_control = 0
-set lon_tmp = $lon10
-set lat_tmp = $lat10
-
-rm *tmp*
-
-while ( $lat_tmp <= $lat20 ) 
-  echo $lat_tmp
-  while ( $lon_tmp <= $lon20 ) 
-    # get the hgt file name right
-      if ($lat_tmp >= 0) then
-        set NS = "N"
-        @ lat_s = $lat_tmp
-      else if ($lat_tmp < 0 ) then
-        set NS = "S"
-        @ lat_s = - $lat_tmp
+  set sharedir = `gmtsar_sharedir.csh`
+  set filter3 = $sharedir/filters/fill.3x3
+  set filter4 = $sharedir/filters/xdir
+  set filter5 = $sharedir/filters/ydir
+  set dec  = $4
+  set az_lks = 4 
+  set PRF = `grep PRF *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+  if( $PRF < 1000 ) then
+     set az_lks = 1
+  endif
+#
+# look for range sampling rate
+#
+  set rng_samp_rate = `grep rng_samp_rate $1 | awk 'NR == 1 {printf("%d", $3)}'`
+#
+# set the range spacing in units of image range pixel size
+#
+  if ($?rng_samp_rate) then
+    if ($rng_samp_rate > 110000000) then 
+      set dec_rng = 4
+      set filter1 = $sharedir/filters/gauss15x5
+    else if ($rng_samp_rate < 110000000 && $rng_samp_rate > 20000000) then
+      set dec_rng = 2
+      set filter1 = $sharedir/filters/gauss15x5
+#
+# special for TOPS mode
+#
+      if($az_lks == 1) then
+        set filter1 = $sharedir/filters/gauss5x5
       endif
+    else  
+      set dec_rng = 1
+      set filter1 = $sharedir/filters/gauss15x3
+    endif
+  else
+    echo "Undefined rng_samp_rate in the master PRM file"
+    exit 1
+  endif
 #
-      if ($lon_tmp < 0) then
-        set WE = "W"
-        @ lon_s = - $lon_tmp
-      else if ($lon_tmp >= 0) then
-        set WE = "E"
-        @ lon_s = $lon_tmp
-      endif
+# set az_lks and dec_rng to 1 for odd decimation
 #
-      if ($lat_s < 10 && $lon_s >= 100) then
-         set demtmp = $NS"0"$lat_s$WE$lon_s".hgt"
-         set demtmpgrd = $NS"0"$lat_s$WE$lon_s".grd"
-      else if ($lat_s < 10 && $lon_s >= 10) then
-         set demtmp = $NS"0"$lat_s$WE"0"$lon_s".hgt"
-         set demtmpgrd = $NS"0"$lat_s$WE"0"$lon_s".grd"
-      else if ($lat_s < 10) then
-         set demtmp = $NS"0"$lat_s$WE"00"$lon_s".hgt"
-         set demtmpgrd = $NS"0"$lat_s$WE"00"$lon_s".grd"
-      else if ($lon_s >= 100) then
-         set demtmp = $NS$lat_s$WE$lon_s".hgt"
-         set demtmpgrd = $NS$lat_s$WE$lon_s".grd"
-      else if ($lon_s >= 10) then
-         set demtmp = $NS$lat_s$WE"0"$lon_s".hgt"
-         set demtmpgrd = $NS$lat_s$WE"0"$lon_s".grd"
-      else
-         set demtmp = $NS$lat_s$WE"00"$lon_s".hgt"
-         set demtmpgrd = $NS$lat_s$WE"00"$lon_s".grd"
-      endif
-      set range = `echo "$lon_tmp $lat_tmp" | awk '{print $1"/"$1+1"/"$2"/"$2+1}'` 
-      set demlat = $NS$lat_tmp.grd
-      echo $demtmp $demlat $range
-      
-      if (! -e $demdir$demtmp) then   # file does not exist
-         set demtmp = "zero.hgt"
-      endif
-      
-      ln -s $demdir$demtmp .
-
-# bytes swap
-      if ($system =~ "sparc" || $system =~ "powerpc") then 
-        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLh $V 
-      else if ($system =~ "i686" || $system =~ "i386") then
-        gmt xyz2grd $demtmp -G$demtmpgrd -I$pixel -R$range  -N-32768 -ZTLhw $V
-      endif
-# paste grd files together along longitude
-      if (-e tmplon.grd) then
-         gmt grdpaste $demtmpgrd tmplon.grd -Gtmplon.grd
-      else
-         cp $demtmpgrd tmplon.grd
-      endif
-      
-      rm -f $demtmp
-      
-      @ lon_tmp = $lon_tmp + 1
-      if ($lon_tmp >= 180) @ lon_tmp = $lon_tmp - 360
-   end
-
-# paste grd files together along latitude
-   if (-e tmplat.grd) then
-      gmt grdpaste tmplon.grd tmplat.grd -Gtmplat.grd
-      rm -f tmplon.grd
-   else
-      mv -f tmplon.grd tmplat.grd
-   endif
-
-   set lon_control = 0
-   set lon_tmp = $lon10
-   @ lat_tmp = $lat_tmp + 1 
-   rm -f $demlat
-end
-
-#mv tmplat.grd dem_ortho.grd
-gmt grdcut -R$bound tmplat.grd -Gdem_ortho.grd
+  if($#argv == 6) then
+    set jud = `echo $6 | awk '{if($1%2 == 0) print 1;else print 0}'`
+    if ($jud == 0) then 
+      set az_lks = 1
+    endif
+    set jud = `echo $5 | awk '{if($1%2 == 0) print 1;else print 0}'`
+    if ($jud == 0) then 
+      set dec_rng = 1 
+    endif
+  endif
 
 #
-#  add the egm96 geoid model if available
+#  make the custom filter2 and set the decimation
 #
-if (-e $demdir/geoid.egm96.grd) then   # file does not exist
-   echo "adding the egm96 geoid to the dem"
-   gmt grdsample $demdir/geoid.egm96.grd `gmt grdinfo -I- dem_ortho.grd` `gmt grdinfo -I dem_ortho.grd` -fg -Gegm96.grd -T
-   gmt grdedit egm96.grd `gmt grdinfo -I- dem_ortho.grd` $V
-   gmt grdmath dem_ortho.grd egm96.grd ADD = dem.grd
-   rm -f egm96.grd
-else
-   mv -f dem_ortho.grd dem.grd
-endif
-
+  make_gaussian_filter $1 $dec_rng $az_lks $3 > ijdec
+  set filter2 = gauss_$3
+  set idec = `cat ijdec | awk -v dc="$dec" '{ print dc*$1 }'`
+  set jdec = `cat ijdec | awk -v dc="$dec" '{ print dc*$2 }'`
+  if($#argv == 6) then
+    set idec = `echo $6 $az_lks | awk '{printf("%d",$1/$2)}'`
+    set jdec = `echo $5 $dec_rng | awk '{printf("%d",$1/$2)}'`
+    echo "setting range_dec = $5, azimuth_dec = $6"
+  endif
+  echo "$filter2 $idec $jdec ($az_lks $dec_rng)" 
 #
-# plot the dem.grd 
+# filter the two amplitude images
+#
+  echo "making amplitudes..."
+  conv $az_lks $dec_rng $filter1 $1 amp1_tmp.grd=bf
+  conv $idec $jdec $filter2 amp1_tmp.grd=bf amp1.grd
+  rm amp1_tmp.grd
+  conv $az_lks $dec_rng $filter1 $2 amp2_tmp.grd=bf
+  conv $idec $jdec $filter2 amp2_tmp.grd=bf amp2.grd
+  rm amp2_tmp.grd
+#
+# filter the real and imaginary parts of the interferogram
+# also compute gradients
+#
+  echo "filtering interferogram..."
+  conv $az_lks $dec_rng $filter1 real.grd=bf real_tmp.grd=bf
+  conv $idec $jdec $filter2 real_tmp.grd=bf realfilt.grd
+#  conv $dec $dec $filter4 real_tmp.grd xreal.grd
+#  conv $dec $dec $filter5 real_tmp.grd yreal.grd
+  rm real_tmp.grd 
+  rm real.grd
+  conv $az_lks $dec_rng $filter1 imag.grd=bf imag_tmp.grd=bf
+  conv $idec $jdec $filter2 imag_tmp.grd=bf imagfilt.grd
+#  conv $dec $dec $filter4 imag_tmp.grd ximag.grd
+#  conv $dec $dec $filter5 imag_tmp.grd yimag.grd
+  rm imag_tmp.grd 
+  rm imag.grd
+#
+# form amplitude image
+#
+  echo "making amplitude..."
+  gmt grdmath realfilt.grd imagfilt.grd HYPOT  = amp.grd 
+  gmt grdmath amp.grd 0.5 POW FLIPUD = display_amp.grd 
+  set AMAX = `gmt grdinfo -L2 display_amp.grd | grep stdev | awk '{ print 3*$5 }'`
+  gmt grd2cpt display_amp.grd -Z -D -L0/$AMAX -Cgray > display_amp.cpt
+  echo "N  255   255   254" >> display_amp.cpt
+  gmt grdimage display_amp.grd -Cdisplay_amp.cpt $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > display_amp.ps
+  gmt psscale -Rdisplay_amp.grd -J -DJTC+w5i/0.2i+h+ef -Cdisplay_amp.cpt -Bx0+l"Amplitude (histogram equalized)" -O >> display_amp.ps
+  gmt psconvert -Tf -P -Z display_amp.ps
+  #echo "Amplitude map: display_amp.pdf"
+#
+# form the correlation
+#
+  echo "making correlation..."
+  gmt grdmath amp1.grd amp2.grd MUL = tmp.grd
+  gmt grdmath tmp.grd $thresh GE 0 NAN = mask.grd
+  gmt grdmath amp.grd tmp.grd SQRT DIV mask.grd MUL FLIPUD = tmp2.grd=bf
+  conv 1 1 $filter3 tmp2.grd=bf corr.grd
+  gmt makecpt -T0./.8/0.1 -Cgray -Z -N > corr.cpt
+  echo "N  255   255   254" >> corr.cpt
+  gmt grdimage corr.grd $scale -Ccorr.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > corr.ps
+  gmt psscale -Rcorr.grd -J -DJTC+w5i/0.2i+h+ef -Ccorr.cpt -Baf+lCorrelation -O >> corr.ps
+  gmt psconvert -Tf -P -Z corr.ps
+  #echo "Correlation map: corr.pdf"
+#
+# form the phase 
+#
+  echo "making phase..."
+  gmt grdmath imagfilt.grd realfilt.grd ATAN2 mask.grd MUL FLIPUD = phase.grd
+  gmt makecpt -Crainbow -T-3.15/3.15/0.1 -Z -N > phase.cpt
+  gmt grdimage phase.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phase.ps
+  gmt psscale -Rphase.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -B1.57+l"Phase" -By+lrad -O >> phase.ps
+  gmt psconvert -Tf -P -Z phase.ps
+  #echo "Phase map: phase.pdf"
+#
+# compute the solid earth tide
+# uncomment lines with ##
+#
+##ln -s ../../topo/dem.grd .
+##tide_correction.csh $1 $2 dem.grd
+##mv tide.grd tmp.grd
+##gmt grdsample tmp.grd -Rimagfilt.grd -Gtide.grd
+#
+#  make the Werner/Goldstein filtered phase
+#
+  echo "filtering phase..."
+  phasefilt -imag imagfilt.grd -real realfilt.grd -amp1 amp1.grd -amp2 amp2.grd -psize 32 
+  gmt grdedit filtphase.grd `gmt grdinfo mask.grd -I- --FORMAT_FLOAT_OUT=%.12lg` 
+  gmt grdmath filtphase.grd mask.grd MUL FLIPUD = phasefilt.grd
+##cp phasefilt.grd phasefilt_old.grd
+##gmt grdmath phasefilt.grd tide.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
+  rm filtphase.grd
+  gmt grdimage phasefilt.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
+  gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
+  gmt psconvert -Tf -P -Z phasefilt.ps
+  #echo "Filtered phase map: phasefilt.pdf"
 # 
-  gmt grd2cpt dem.grd -Cgray -Z $V > dem.cpt 
-  gmt grdimage dem.grd $scale -Baf -BWSne -P $V -X0.2i -Cdem.cpt -K > dem.ps 
-  gmt psscale -Rdem.grd -J -DJTC+w5i/0.2i+h -Cdem.cpt -Baf -O >> dem.ps
-  gmt psconvert -Tf -P -Z dem.ps
-  echo "DEM map: dem.pdf"
+#  form the phase gradients
 #
-#   make a kml file of shaded relief
+#  echo "making phase gradient..."
+#  gmt grdmath amp.grd 2. POW = amp_pow.grd
+#  gmt grdmath realfilt.grd ximag.grd MUL imagfilt.grd xreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = xphase.grd
+#  gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
+#  gmt makecpt -Cgray -T-0.7/0.7/0.1 -Z -N > phase_grad.cpt
+#  echo "N  255   255   254" >> phase_grad.cpt
+#  gmt grdimage xphase.grd $scale -Cphase_grad.cpt -X.2i -Y.5i -P > xphase.ps
+#  gmt grdimage yphase.grd $scale -Cphase_grad.cpt -X.2i -Y.5i -P > yphase.ps
 #
-  gmt grdgradient dem.grd -N.7 -A325 -Gdem_grad.grd $V
-  gmt grd2cpt dem_grad.grd -Cgray -Z $V > dem_grad.cpt
-  grd2kml.csh dem_grad dem_grad.cpt
+  mv mask.grd tmp.grd 
+  gmt grdmath tmp.grd FLIPUD = mask.grd
 #
-# clean up
-# 
-  rm -f tmp.log all.grd tmplat.grd
-  rm -f dem.cpt *.bb *.eps
-  rm -f N*.grd S*.grd dem_grad.grd
+# delete files
+ rm tmp.grd tmp2.grd 
+ #rm ximag.grd yimag.grd xreal.grd yreal.grd 
