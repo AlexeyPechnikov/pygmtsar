@@ -36,8 +36,8 @@ cp $image.PRM tmp_slave.PRM
 set ta = `echo $tprf | awk '{if($1>1) print 1;else if($1<1) print 2;else print 0;}'`
 set tr = `echo $trsr | awk '{if($1>1) print 1;else if($1<1) print 2;else print 0;}'`
 
-if ($ta == 2) echo "Downsampling along azimuth is not recommended, may cause aliasing ..."
-if ($tr == 2) echo "Downsampling along range   is not recommended, may cause aliasing ..."
+if ($ta == 2 && $nprf != 0) echo "Downsampling along azimuth is not recommended, may cause aliasing ..."
+if ($tr == 2 && $nrsr != 0) echo "Downsampling along range   is not recommended, may cause aliasing ..."
 
 if ($nrsr == 0 && $nprf == 0) then
   echo "specify at least one of new_prf/new_rng_samp_rate to be non-zero to run the script" 
