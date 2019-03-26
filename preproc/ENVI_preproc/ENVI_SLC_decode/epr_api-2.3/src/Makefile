@@ -3,6 +3,8 @@
 #%// MA 24-Dec-2008    -m32 switch for 64-bit machines
 #%// MA 05-Jan-2010    64-bit native with new epr_api_2.2
 
+include ../../../../../config.mk
+
 SRC = 		epr_api.c \
 		epr_band.c \
 		epr_bitmask.c \
@@ -22,7 +24,7 @@ SRC = 		epr_api.c \
 		epr_typconv.c
 
 OBJ = 		$(SRC:.c=.o)
-CC =		gcc
+#CC =		gcc
 #CFLAGS = 	-O3
 #CFLAGS = 	-m32         # for 64-bit systems, if epr_api version < 2.2
 CFLAGS = 	-w
