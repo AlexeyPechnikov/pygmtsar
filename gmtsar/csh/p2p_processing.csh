@@ -322,10 +322,18 @@
       endif
 
       if ($iono == 1) then
-        split_spectrum $master.PRM > params1
+        if (-f ALOS_fbd2fbs_log || -f ALOS2_fbd2fbs_log) then
+          split_spectrum $master.PRM 1 > params1
+        else 
+          split_spectrum $master.PRM > params1
+        endif
         mv SLCH ../SLC_H/$master.SLC
         mv SLCL ../SLC_L/$master.SLC
-        split_spectrum $slave.PRM > params2
+        if (-f ALOS_fbd2fbs_log || -f ALOS2_fbd2fbs_log) then
+          split_spectrum $slave.PRM 1 > params2
+        else
+          split_spectrum $slave.PRM > params2
+        endif
         mv SLCH ../SLC_H/$slave.SLC
         mv SLCL ../SLC_L/$slave.SLC
         

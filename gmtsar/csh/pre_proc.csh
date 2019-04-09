@@ -86,6 +86,7 @@ unset noclobber
       mv IMG-HH-$slave"_"FBS.PRM IMG-HH-$slave.PRM
       update_PRM IMG-HH-$slave.PRM input_file IMG-HH-$slave.raw
       mv IMG-HH-$slave"_"FBS.raw IMG-HH-$slave.raw
+      echo "IMG-HH-$slave is converted to FBS mode" > ALOS_fbd2fbs_log
     else if  ($t == 0.5) then
       echo "Use FBS mode image as master"
       ALOS_fbd2fbs IMG-HH-$master.PRM IMG-HH-$master"_"FBS.PRM
@@ -93,6 +94,7 @@ unset noclobber
       mv IMG-HH-$master"_"FBS.PRM IMG-HH-$master.PRM
       update_PRM IMG-HH-$master.PRM input_file IMG-HH-$master.raw
       mv IMG-HH-$master"_"FBS.raw IMG-HH-$master.raw
+      echo "IMG-HH-$master is converted to FBS mode" > ALOS_fbd2fbs_log
       exit 1
     else
       echo "The range sampling rate for master and slave images are not convertable"
@@ -237,6 +239,7 @@ unset noclobber
       mv IMG-$slave"_"FBS.PRM IMG-$slave.PRM
 	  update_PRM IMG-$slave.PRM input_file IMG-$slave.SLC
       mv IMG-$slave"_"FBS.SLC IMG-$slave.SLC
+      echo "IMG-HH-$slave is converted to FBS mode" > ALOS2_fbd2fbs_log
     else if  ($t == 0.5) then
 	  echo "Convert the master image from FBD to FBS mode"
 	  ALOS_fbd2fbs_SLC IMG-$master.PRM IMG-$master"_"FBS.PRM
@@ -244,6 +247,7 @@ unset noclobber
       mv IMG-$master"_"FBS.PRM IMG-$master.PRM
 	  update_PRM IMG-$master.PRM input_file IMG-$master.SLC
       mv IMG-$master"_"FBS.SLC IMG-$master.SLC
+      echo "IMG-HH-$master is converted to FBS mode" > ALOS2_fbd2fbs_log
     else
 	  echo "The range sampling rate for master and slave images are not convertable"
       exit 1

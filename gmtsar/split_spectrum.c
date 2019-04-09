@@ -32,10 +32,11 @@ int split1(int, char **);
 int split2(int, char **);
 fcomplex fmean(short *, int);
 
-char *USAGE1 = "\nUSAGE: split_spectrum prm1 \n\n"
+char *USAGE1 = "\nUSAGE: split_spectrum prm1 [split_half] \n\n"
                "   program used to split range spectrum for SLC using a modified cosine "
                "filter\n\n"
                "   SLCs are bandpassed and then shifted to the center of the spectrum\n\n"
+               "   split_half is build for ALOS FBD FBS cases, put 1 for using half the spectrum\n\n"
                "   output is SLCH SLCL\n\n";
 char *USAGE2 = "\nUSAGE: split_spectrum prm1 prm2\n\n"
                "   program used to split range spectrum for coregistered SLC using a "
@@ -67,11 +68,13 @@ int split1(int argc1, char **argv1) {
 	void *API = NULL; /* GMT API control structure */
 	// double complex zl,zh,zp,z1h,z2h,z1l,z2l;
 	// double *ph;
+    int half_band = 0;
 
-	if (argc1 != 2)
+	if (argc1 != 2 || argc1 != 3)
 		die("", USAGE1);
 	if ((API = GMT_Create_Session(argv1[0], 0U, 0U, NULL)) == NULL)
 		return EXIT_FAILURE;
+    if (argc1 != 3) half_band = atoi(argv1[2]);
 
 	/* read in prm files */
 	get_prm(&p1, argv1[1]);
@@ -85,6 +88,9 @@ int split1(int argc1, char **argv1) {
 
     if (p1.SC_identity == 10) {
         bc = 42000000.0 / 3.0;
+    }
+    else if (half_band == 1) {
+        bc = rng_bandwidth / 3.0/2;
     }
     else {
 	    bc = rng_bandwidth / 3.0;
@@ -109,7 +115,7 @@ int split1(int argc1, char **argv1) {
     printf("low_freq = %.12f\n",fl);
     printf("center_freq = %.12f\n",cf);
     printf("high_freq = %.12f\n",fh);
-    printf("low_bandwidth = %.12f\n",bc);
+    printf("low_bandwidth = %.12f\n",bw);
     printf("center_bandwidth = %.12f\n",rng_bandwidth);
     printf("high_bandwidth = %.12f\n",bw);
 	// test on how the window look like
