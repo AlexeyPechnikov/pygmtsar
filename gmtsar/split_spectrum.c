@@ -70,7 +70,7 @@ int split1(int argc1, char **argv1) {
 	// double *ph;
     int half_band = 0;
 
-	if (argc1 != 2 || argc1 != 3)
+	if (argc1 != 2 && argc1 != 3)
 		die("", USAGE1);
 	if ((API = GMT_Create_Session(argv1[0], 0U, 0U, NULL)) == NULL)
 		return EXIT_FAILURE;
