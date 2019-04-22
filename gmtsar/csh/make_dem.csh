@@ -162,7 +162,7 @@ while ( $lat_tmp <= $lat20 )
       rm -f $demtmp
       
       @ lon_tmp = $lon_tmp + 1
-      if ($lon_tmp >= 180) @ lon_tmp = $lon_tmp - 360
+      if ($lon_tmp > 181) @ lon_tmp = $lon_tmp - 360
    end
 
 # paste grd files together along latitude
