@@ -211,6 +211,32 @@
 
           set spec_sep = `grep spectral_spectrationXdta tmp | awk '{print $3}'`
           awk '{print $3}' < ddphase > tmp2
+
+          if ($mode == 2) then
+            set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
+            echo "Updating azimuth shift with mapping the residual da ...(mapping $res_shift)"
+            awk '{print $1,$2,$3}' < ddphase > test
+    
+            gmt blockmedian test -R0/$rmax/0/$amax -I400/100 | gmt greenspline -Gtest.grd -R0/$rmax/0/$amax -I400/100 -D1 -Cn900 -r -V
+            gmt grdfilter test.grd -D0 -Fg8000/1500 -Gtest2.grd -V
+            gmt grdsample test2.grd -Gtest_b.grd -Ra.grd -nc 
+
+            gmt grdmath test_b.grd FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
+            gmt grdmath a.grd res_shift.grd ADD = tmp.grd
+            mv tmp.grd a.grd
+            mv tmp spec_div_output
+            rm test*
+          else
+            if ($mode == 1) then
+              set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
+            else
+              set res_shift = `grep residual_shift tmp | awk '{print $3}'`
+            endif
+            echo "Updating azimuth shift with a constant...(medain $res_shift)"
+            gmt grdmath a.grd $res_shift ADD = tmp.grd
+            mv tmp.grd a.grd
+          endif
+
           set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
 
           echo "Updating ashift table with spectral diversity estimate ($res_shift)..."
@@ -218,7 +244,10 @@
           mv tmp.grd a.grd
 
           make_s1a_tops $file.xml $file.tiff $stem 1 r.grd a.grd
-         
+
+          mv r.grd $stem"_r.grd"
+          mv a.grd $stem"_a.grd"
+
           # need to update shift parameter so stitch_tops will know how to stitch
           fitoffset.csh 3 3 offset.dat >> $stem.PRM
           #fitoffset.csh 1 1 offset.dat >> $stem.PRM
