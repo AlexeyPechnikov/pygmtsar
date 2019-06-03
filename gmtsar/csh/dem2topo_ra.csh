@@ -69,7 +69,7 @@ endif
 if ($PRF < 1000) then
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -bo3d -r $V > temp.rat 
   gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
-  set RR = `grep Hint tmp | head -1 | awk '{print $4}'`
+  set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
   if ("x$RR" == "x") then
     gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
   else
@@ -80,7 +80,7 @@ if ($PRF < 1000) then
 else
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -bo3d -r $V > temp.rat 
   gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
-  set RR = `grep Hint tmp | head -1 | awk '{print $4}'`
+  set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
   if ("x$RR" == "x") then
     gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
   else
