@@ -205,7 +205,7 @@ unset noclobber
     merge_unwrap_geocode_tops.csh tmp.filelist $5
    
   else
-
+    cp ../$5 .
     merge_unwrap_geocode_tops.csh tmp.filelist $5
 
   endif
