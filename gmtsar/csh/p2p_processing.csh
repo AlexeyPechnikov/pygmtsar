@@ -599,11 +599,7 @@
 # 4 - start from make and filter interferograms  #
 ##################################################
 #
-  if ($stage <= 4 && $skip_4 == 0) then
-#
-# clean up
-#
-    cleanup.csh intf
+
 #
 # select the master
 #    
@@ -616,6 +612,13 @@
     else
       echo "Wrong paramter: switch_master "$switch_master
     endif
+
+
+  if ($stage <= 4 && $skip_4 == 0) then
+#
+# clean up
+#
+    cleanup.csh intf
 # 
 # make and filter interferograms
 # 
