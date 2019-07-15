@@ -237,11 +237,11 @@
             mv tmp.grd a.grd
           endif
 
-          set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
+          #set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
 
-          echo "Updating ashift table with spectral diversity estimate ($res_shift)..."
-          gmt grdmath a.grd $res_shift ADD = tmp.grd
-          mv tmp.grd a.grd
+          #echo "Updating ashift table with spectral diversity estimate ($res_shift)..."
+          #gmt grdmath a.grd $res_shift ADD = tmp.grd
+          #mv tmp.grd a.grd
 
           make_s1a_tops $file.xml $file.tiff $stem 1 r.grd a.grd
 

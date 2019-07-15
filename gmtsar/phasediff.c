@@ -463,10 +463,11 @@ int main(int argc, char **argv) {
 		read_SLC_short2float(SLCfile1, p1.SLC_file, d1, &iptr1[0], xdim, 1, DFACT);
 		read_SLC_short2float(SLCfile2, p2.SLC_file, d2, &iptr2[0], xdim, 1, DFACT);
 
+if (topoflag > 0) {
 		yt = j / ydect; /* for topo_ra */
 		ym = j / ydecm; /* for modelphase */
 
-		/* calculate the change in baseline and height along the frame */
+		/* calculate the change in baseline and height along the frame if topoflag is on */
 		time = j * dt;
 		time2 = time * time;
 		Bh = Bh0 + dBh * time + ddBh * time2;
@@ -486,7 +487,7 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		/* calculate the combined earth curvature and topography correction */
+		/* calculate the combined earth curvature and topography correction if topoflag is on */
 		calc_drho(xdim, range2, topo2, avet, p1.RE, height, B, alpha, Bx, drho);
 
 		// if (j == 50) printf("drho = %.12f\n",drho[50]);
@@ -509,6 +510,12 @@ int main(int argc, char **argv) {
 			pshif = Cexp(pha);
 			intfp[k] = Cmul(intfp[k], pshif);
 		}
+}
+else {
+        for (k = 0; k < xdim; k++) {
+            intfp[k] = iptr1[k];
+        }
+}
 
 		/* shift the range of the repeat image to improve image matching for very
 		 * long baselines > 1000 m */
