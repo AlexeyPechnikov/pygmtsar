@@ -322,24 +322,25 @@
       endif
 
       if ($iono == 1) then
+        set cfile = ""
         if (-f ../raw/ALOS_fbd2fbs_log || -f ../raw/ALOS2_fbd2fbs_log) then
           set cfile = `grep IMG-HH ../raw/ALOS*fbd2fbs_log | awk '{print $1}'`
+        endif
           if ($cfile == $slave) then
             split_spectrum $master.PRM 1 > params1
           else 
             split_spectrum $master.PRM > params1
           endif
-        endif
         mv SLCH ../SLC_H/$master.SLC
         mv SLCL ../SLC_L/$master.SLC
         if (-f ../raw/ALOS_fbd2fbs_log || -f ../raw/ALOS2_fbd2fbs_log) then
           set cfile = `grep IMG-HH ../raw/ALOS*fbd2fbs_log | awk '{print $1}'`
+        endif
           if ($cfile == $master) then
             split_spectrum $slave.PRM 1 > params2
           else
             split_spectrum $slave.PRM > params2
           endif
-        endif
         mv SLCH ../SLC_H/$slave.SLC
         mv SLCL ../SLC_L/$slave.SLC
         
