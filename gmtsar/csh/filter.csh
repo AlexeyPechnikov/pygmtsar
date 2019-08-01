@@ -117,21 +117,30 @@ errormessage:
   rm amp2_tmp.grd
 #
 # filter the real and imaginary parts of the interferogram
-# also compute gradients
 #
   echo "filtering interferogram..."
   conv $az_lks $dec_rng $filter1 real.grd=bf real_tmp.grd=bf
   conv $idec $jdec $filter2 real_tmp.grd=bf realfilt.grd
-#  conv $dec $dec $filter4 real_tmp.grd xreal.grd
-#  conv $dec $dec $filter5 real_tmp.grd yreal.grd
-  rm real_tmp.grd 
-  rm real.grd
   conv $az_lks $dec_rng $filter1 imag.grd=bf imag_tmp.grd=bf
   conv $idec $jdec $filter2 imag_tmp.grd=bf imagfilt.grd
-#  conv $dec $dec $filter4 imag_tmp.grd ximag.grd
-#  conv $dec $dec $filter5 imag_tmp.grd yimag.grd
-  rm imag_tmp.grd 
-  rm imag.grd
+#
+# also compute gradients and filter them the same way
+#
+# echo "filtering for phase gradient . . "
+# conv 1 1 $filter4 real_tmp.grd xt.grd=bf
+# conv 1 1 $filter5 real_tmp.grd yt.grd=bf
+# conv $idec $jdec $filter2 xt.grd=bf xreal.grd
+# conv $idec $jdec $filter2 yt.grd=bf yreal.grd
+# rm real_tmp.grd 
+# rm real.grd
+# rm xt.grd yt.grd
+# conv 1 1 $filter4 imag_tmp.grd xt.grd=bf
+# conv 1 1 $filter5 imag_tmp.grd yt.grd=bf
+# conv $idec $jdec $filter2 xt.grd=bf ximag.grd
+# conv $idec $jdec $filter2 yt.grd=bf yimag.grd
+# rm imag_tmp.grd 
+# rm imag.grd
+# rm xt.grd yt.grd
 #
 # form amplitude image
 #
@@ -184,8 +193,6 @@ errormessage:
   phasefilt -imag imagfilt.grd -real realfilt.grd -amp1 amp1.grd -amp2 amp2.grd -psize 32 
   gmt grdedit filtphase.grd `gmt grdinfo mask.grd -I- --FORMAT_FLOAT_OUT=%.12lg` 
   gmt grdmath filtphase.grd mask.grd MUL FLIPUD = phasefilt.grd
-##cp phasefilt.grd phasefilt_old.grd
-##gmt grdmath phasefilt.grd tide.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
   rm filtphase.grd
   gmt grdimage phasefilt.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
   gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
@@ -194,18 +201,14 @@ errormessage:
 # 
 #  form the phase gradients
 #
-#  echo "making phase gradient..."
-#  gmt grdmath amp.grd 2. POW = amp_pow.grd
-#  gmt grdmath realfilt.grd ximag.grd MUL imagfilt.grd xreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = xphase.grd
-#  gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
-#  gmt makecpt -Cgray -T-0.7/0.7/0.1 -Z -N > phase_grad.cpt
-#  echo "N  255   255   254" >> phase_grad.cpt
-#  gmt grdimage xphase.grd $scale -Cphase_grad.cpt -X.2i -Y.5i -P > xphase.ps
-#  gmt grdimage yphase.grd $scale -Cphase_grad.cpt -X.2i -Y.5i -P > yphase.ps
+# echo "making phase gradient..."
+# gmt grdmath amp.grd 2. POW = amp_pow.grd
+# gmt grdmath realfilt.grd ximag.grd MUL imagfilt.grd xreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = xphase.grd
+# gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
 #
   mv mask.grd tmp.grd 
   gmt grdmath tmp.grd FLIPUD = mask.grd
 #
 # delete files
  rm tmp.grd tmp2.grd 
- #rm ximag.grd yimag.grd xreal.grd yreal.grd 
+ rm ximag.grd yimag.grd xreal.grd yreal.grd 

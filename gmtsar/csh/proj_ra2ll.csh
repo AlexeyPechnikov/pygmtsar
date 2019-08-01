@@ -49,14 +49,11 @@ gmt surface raln `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Graln.grd 
 gmt surface ralt `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Gralt.grd $V
 endif
 #
-gmt grdtrack rap -nl -Graln.grd -bi3f -bo4f > rapln
-gmt grdtrack rapln -nl -Gralt.grd -bi4f -bo5f > raplnlt
+#  add lon and lat columns and then just keep lon, lat, phase
 #
-# get the lon, lat, phase columns and grid
+gmt grdtrack rap -nl -bi3f -bo5f -Graln.grd -Gralt.grd | gmt gmtconvert -bi5f -bo3f -o3,4,2 > llp
 #
-gmt gmtconvert raplnlt -bi5f -bo3f -o3,4,2 > llp
-#
-# use higher resolution for data with higher range resolution and PRF
+# set the output grid spaccing to be 1/4 the filter wavelength
 #
 set filt = `ls gauss_*`
 if ( $filt != "" ) then
