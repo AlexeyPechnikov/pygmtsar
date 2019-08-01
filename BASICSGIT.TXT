@@ -1,0 +1,34 @@
+#
+#  update your repository from the master before making any changes
+#
+git pull https://github.com/dsandwell/gmtsar
+#
+#   make changes to an existing repository 
+#
+cd /usr/local/gmtsar
+vi README.md
+git add README.md
+git commit -m"changed README.md file"
+git push 
+#
+#  delete a file from an existing repository
+#
+git rm BASICSVN.txt
+git commit -m"removed the SVN instructions"
+git push 
+#
+#  clone a repository from GMT6
+#
+cd /usr/local
+sudo mkdir gmt
+sudo chown -r sandwell gmt
+git clone https://github.com/GenericMappingTools/gmt
+#
+# clone a specific branch
+#
+git clone --branch 5.7 https://github.com/dsandwell/gmtsar GMTSAR
+#
+# switch to a specific branch
+#
+git branch 5.7
+
