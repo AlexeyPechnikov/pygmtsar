@@ -10,9 +10,9 @@
 alias rm 'rm -f'
 unset noclobber
 #
-if ($#argv < 2) then
+if ($#argv < 3 ) then
  echo " "
- echo "Usage: dem2topo_ra.csh master.PRM dem.grd" 
+ echo "Usage: dem2topo_ra.csh master.PRM dem.grd [xmin/xmax/ymin/ymax]" 
  echo " "
  echo "        Note: Works for TSX,ALOS,ERS,ENVISAT"
  echo " "
@@ -39,6 +39,11 @@ set num_patch = `grep num_patches $1 | awk '{print $3}'`
 set YMAX = `echo "$yvalid $num_patch" | awk '{print $1*$2}'`
 set SC = `grep SC_identity $1 | awk '{print $3}'`
 set PRF = `grep PRF *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+if ($#argv == 3) then
+  set region = $3
+else
+  set region = 0/$XMAX/0/$YMAX
+endif
 #
 # look for range sampling rate
 #
@@ -67,25 +72,25 @@ endif
 # use an azimuth spacing of 2 for low PRF data such as S1 TOPS
 #
 if ($PRF < 1000) then
-  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
+  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R$region -I$rng/2 -bi3d -bo3d -r $V > temp.rat 
+  gmt surface temp.rat -R$region -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
   set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
   if ("x$RR" == "x") then
-    gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt surface temp.rat -R$region -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
   else
     gmt surface temp.rat $RR -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
-    gmt grdcut pixel.grd -R0/$XMAX/0/$YMAX -Gtmp.grd
+    gmt grdcut pixel.grd -R$region -Gtmp.grd
     mv tmp.grd pixel.grd
   endif
 else
-  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
+  gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R$region -I$rng/4 -bi3d -bo3d -r $V > temp.rat 
+  gmt surface temp.rat -R$region -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
   set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
   if ("x$RR" == "x") then
-    gmt surface temp.rat -R0/$XMAX/0/$YMAX -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt surface temp.rat -R$region -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
   else
     gmt surface temp.rat $RR -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
-    gmt grdcut pixel.grd -R0/$XMAX/0/$YMAX -Gtmp.grd
+    gmt grdcut pixel.grd -R$region -Gtmp.grd
     mv tmp.grd pixel.grd
   endif
 endif
