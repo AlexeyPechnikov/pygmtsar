@@ -98,6 +98,15 @@ endif
 # flip top to bottom for both ascending and descending passes
 #  
   gmt grdmath pixel.grd FLIPUD = topo_ra.grd
+
+if ($#argv == 3) then
+  set x0 = echo $region | awk -F'/' '{print $1}'
+  set y0 = echo $region | awk -F'/' '{print $3}'
+  set x1 = echo $region | awk -F'/' '{printf("%d",$1 - '$x0')}'
+  set y1 = echo $region | awk -F'/' '{printf("%d",$3 - '$y0')}'
+  gmt grdedit topo_ra.grd -R0/$x1/0/$y1 
+endif
+
 # 
 # plotting
 # 
