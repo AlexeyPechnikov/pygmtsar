@@ -87,7 +87,13 @@ if ($stage <= 1) then
     cp ../raw/$master.PRM ./master.PRM
     ln -s ../raw/$master.LED .
     if (-f dem.grd) then
-      dem2topo_ra.csh master.PRM dem.grd $region_cut
+      if ("x$region_cut" == "x") then
+        dem2topo_ra.csh master.PRM dem.grd
+      else
+        cut_slc master.PRM junk $region_cut 1
+        mv junk.PRM master.PRM
+        dem2topo_ra.csh master.PRM dem.grd
+      endif
     else
       echo "no DEM file found: " dem.grd
       exit 1

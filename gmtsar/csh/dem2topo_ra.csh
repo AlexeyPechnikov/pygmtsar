@@ -10,7 +10,7 @@
 alias rm 'rm -f'
 unset noclobber
 #
-if ($#argv < 3 ) then
+if ($#argv != 3 && $#argv != 2 ) then
  echo " "
  echo "Usage: dem2topo_ra.csh master.PRM dem.grd [xmin/xmax/ymin/ymax]" 
  echo " "

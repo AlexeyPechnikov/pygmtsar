@@ -19,7 +19,7 @@
 #include <stdlib.h>
 
 char *USAGE = "\nUsage: "
-              "cut_slc stem.PRM new_stem range\n"
+              "cut_slc stem.PRM new_stem range [prm_only]\n"
               "    stem.PRM      - PRM file for coregistered image to be cut\n"
               "    new_stem      - stem for newly generated SLC and PRM file\n"
               "    range         - range to cut the SLC e.g. 500/1500/900/3600\n"
@@ -65,9 +65,12 @@ int main(int argc, char **argv) {
 	FILE *SLC_in, *SLC_out, *PRM_out;
 	char str[1024];
 	double dr;
+    int do_slc = 1;
 
-	if (argc < 3)
+	if (argc < 4 || argc > 5)
 		die(USAGE, "");
+    if (argc == 5)
+        do_slc = 0;
 
 	get_prm(&pp, argv[1]);
 	// xl = 0; xh = pp.num_rng_bins-1;
@@ -82,17 +85,20 @@ int main(int argc, char **argv) {
 	if (xl < 0 || xl > xh || xh > nr - 1 || yl < 0 || yl > yh || yh > nl - 1)
 		die("wrong range ", "");
 
-	if ((SLC_in = fopen(pp.SLC_file, "rb")) == NULL)
-		die("Can't open SLCfile", pp.SLC_file);
+    if (do_slc == 1)
+	    if ((SLC_in = fopen(pp.SLC_file, "rb")) == NULL)
+		    die("Can't open SLCfile", pp.SLC_file);
 
 	strcpy(str, argv[2]);
 	// str[strlen(str)-3] = '\0';
 	strcat(str, ".SLC");
 
-	if ((SLC_out = fopen(str, "wb")) == NULL)
-		die("Can't open SLCfile", str);
+    if (do_slc == 1)
+	    if ((SLC_out = fopen(str, "wb")) == NULL)
+		    die("Can't open SLCfile", str);
 
-	buf_in = (short *)malloc(pp.num_rng_bins * 2 * sizeof(short));
+    if (do_slc == 1)
+	    buf_in = (short *)malloc(pp.num_rng_bins * 2 * sizeof(short));
 
 	pp.num_lines = (yh - yl) + 1;
 	if (pp.num_lines % 4 != 0) {
@@ -129,26 +135,29 @@ int main(int argc, char **argv) {
 	fclose(PRM_out);
 	printf("New PRM file written ...\n");
 
-	buf_out = (short *)malloc(pp.num_rng_bins * 2 * sizeof(short));
 
-	printf("Writing image (%d x %d) ...\n", pp.num_rng_bins, pp.num_lines);
-	// printf("Hahahaha %d %d %d %d\n",nr,nl,pp.num_rng_bins,pp.num_lines);
-	for (ii = 0; ii < nl; ii++) {
-		// printf("%d ",ii);
-		fread(buf_in, sizeof(short), nr * 2, SLC_in);
-		if (ii >= yl && ii <= yl + pp.num_lines - 1) {
-			for (jj = xl; jj <= xh; jj++) {
-				buf_out[jj * 2 - xl * 2] = buf_in[jj * 2];
-				buf_out[jj * 2 - xl * 2 + 1] = buf_in[jj * 2 + 1];
-			}
-			fwrite(buf_out, sizeof(short), pp.num_rng_bins * 2, SLC_out);
-		}
-	}
-	// printf("\n");
-	// printf("Hahahaha\n");
+    if (do_slc == 1) {
+	    buf_out = (short *)malloc(pp.num_rng_bins * 2 * sizeof(short));
+
+	    printf("Writing image (%d x %d) ...\n", pp.num_rng_bins, pp.num_lines);
+	    // printf("Hahahaha %d %d %d %d\n",nr,nl,pp.num_rng_bins,pp.num_lines);
+	    for (ii = 0; ii < nl; ii++) {
+		    // printf("%d ",ii);
+		    fread(buf_in, sizeof(short), nr * 2, SLC_in);
+		    if (ii >= yl && ii <= yl + pp.num_lines - 1) {
+			    for (jj = xl; jj <= xh; jj++) {
+				    buf_out[jj * 2 - xl * 2] = buf_in[jj * 2];
+				    buf_out[jj * 2 - xl * 2 + 1] = buf_in[jj * 2 + 1];
+			    }
+			    fwrite(buf_out, sizeof(short), pp.num_rng_bins * 2, SLC_out);
+		    }
+	    }
+    
 	fclose(SLC_out);
 	fclose(SLC_in);
-	// fclose(SLC_out);
+    free(buf_out);
+    free(buf_in);
+    }
 
 	return (1);
 }
