@@ -31,4 +31,7 @@ git clone --branch 5.7 https://github.com/dsandwell/gmtsar GMTSAR
 # switch to a specific branch
 #
 git branch 5.7
-
+# undo the committed
+git revert
+# create a new branch
+git checkout -b fix_bugs
