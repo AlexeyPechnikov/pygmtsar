@@ -66,6 +66,7 @@ void polyfit(double *T, double *Y, double *C, int *Mp, int *Np)
 
 	gauss_jordan(A, B, C, &N); /* solve the equations */
 
+	for (i = 0; i < N; i++) free(A[i]);
 	free(A);
 	free(B);
 }
