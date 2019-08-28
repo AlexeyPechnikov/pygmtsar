@@ -39,9 +39,6 @@ target_link_libraries (ALOS_fbd2ss ${LINK_LIBS})
 add_executable (ALOS_fbs2fbd ALOS_fbs2fbd/ALOS_fbs2fbd.c include/image_sio.h include/siocomplex.h)
 target_link_libraries (ALOS_fbs2fbd ${LINK_LIBS})
 
-add_executable (ALOS_filter_SLC ALOS_filter_SLC/ALOS_filter_SLC.c include/image_sio.h include/siocomplex.h)
-target_link_libraries (ALOS_filter_SLC ${LINK_LIBS})
-
 add_executable (ALOS_llt2rat ALOS_llt2rat/ALOS_llt2rat.c include/image_sio.h include/lib_functions.h include/llt2xyz.h)
 target_link_libraries (ALOS_llt2rat ${LINK_LIBS})
 
@@ -61,7 +58,7 @@ add_executable (ALOS_pre_process_SS ALOS_pre_process_SS/ALOS_pre_process_SS.c AL
 target_link_libraries (ALOS_pre_process_SS ${LINK_LIBS})
 
 # add the install targets
-install (TARGETS ALOS ALOS_baseline ALOS_fbd2fbs ALOS_fbd2fbs_SLC ALOS_fbd2ss ALOS_fbs2fbd ALOS_filter_SLC ALOS_llt2rat ALOS_look ALOS_merge ALOS_pre_process ALOS_pre_process_SLC ALOS_pre_process_SS
+install (TARGETS ALOS ALOS_baseline ALOS_fbd2fbs ALOS_fbd2fbs_SLC ALOS_fbd2ss ALOS_fbs2fbd ALOS_llt2rat ALOS_look ALOS_merge ALOS_pre_process ALOS_pre_process_SLC ALOS_pre_process_SS
 	ARCHIVE DESTINATION lib
 	COMPONENT Runtime
 	LIBRARY DESTINATION lib
