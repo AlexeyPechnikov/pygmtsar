@@ -55,6 +55,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <assert.h>
@@ -632,7 +633,7 @@ register node *i;         /* node for relabelling */
 {
 register arc    *a,       /* current arc from  i  */
                 *a_stop,  /* first arc from the next node */
-                *a_max = NULL;   /* arc  which provides maximum price */
+                *a_max;   /* arc  which provides maximum price */
 register double p_max,    /* current maximal price */
                 i_price,  /* price of node  i */
                 dp;       /* current arc partial residual cost */

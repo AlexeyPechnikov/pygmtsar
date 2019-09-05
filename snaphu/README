@@ -1,7 +1,7 @@
 SNAPHU
 Statistical-Cost, Netowrk-Flow Algorithm for Phase Unwrapping
 Author: Curtis W. Chen
-Version 1.4.2, January 2003
+Version 2.0.0, March 2019
 
 
 Contents
@@ -19,7 +19,7 @@ Bugs And Bug Reporting
 Not all parts of snaphu have been well tested, so your bug reports and
 feedback are appreciated.  Please email them to
 
-  curtis@nova.stanford.edu
+  snaphu@gmail.com
 
 The man page included with the distribution lists known issues as
 well.  Thanks, and good luck with the unwrapping.
@@ -45,6 +45,8 @@ The code was developed mainly with gcc, but has been tested with a
 number of vendor C compilers.  The latter tend to produce faster
 executables.
 
+I have not tried running snaphu under Cygwin.
+
 I have not experimented with parallelizing compilers.  The code is
 written to use multiple processors in tile mode by forking copies of
 itself to unwrap each tile.  The structure of the solver does not lend
@@ -69,7 +71,7 @@ accept.
 Copyright
 ---------
 
-Copyright 2002 Board of Trustees, Leland Stanford Jr. University
+Copyright 2002-2019 Board of Trustees, Leland Stanford Jr. University
 
 Except as noted below, permission to use, copy, modify, and
 distribute, this software and its documentation for any purpose is
