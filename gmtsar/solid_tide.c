@@ -1083,7 +1083,8 @@ double gpsleap(double tsec) {
 	//***** parameter(mjdhard=57934)            !*** cut-off date 2017jun30
 	//***** parameter(mjdhard=58118)            !*** cut-off date 2017dec31
 	// parameter(mjdhard=58299)            !*** cut-off date 2018jun30
-	double mjdhard = 58664.0;
+	// parameter(mjdhard=58664)            !*** cut-off date 2019jun30
+	double mjdhard = 59030.0;                  // temporary new cut-off date until 2020jun30
 	double ttsec, mjd0t, tai_utc, gpsleap_return;
 
 	// save  /mjdoff/
