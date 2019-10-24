@@ -36,7 +36,6 @@ unset noclobber
 #
   set seq = $7
   echo $seq
-#if (6 == 9) then
 #:<<supercalifragilisticexpialidocious
 #
 # determine file names
@@ -51,6 +50,7 @@ unset noclobber
   set f2s = `ls */*iw2*$pol*xml | awk '{print substr($1,12,length($1)-15)}'`
   set f3s = `ls */*iw3*$pol*xml | awk '{print substr($1,12,length($1)-15)}'`
   cd $pth
+#if (6 == 9) then
 #
 # organize files
 #
@@ -142,18 +142,27 @@ unset noclobber
     rm tmp.filelist
   endif
   set pth1 = `ls ../F1/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
-  set prm1m = `ls ../F1/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
-  set prm1s = `ls ../F1/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'`
+  set prm1m = `echo $f1m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)".PRM"}'`
+  set prm1s = `echo $f1s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)".PRM"}'`
+
+  #set prm1m = `ls ../F1/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
+  #set prm1s = `ls ../F1/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'`
   echo $pth1":"$prm1m":"$prm1s > tmp.filelist
   
   set pth2 = `ls ../F2/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
-  set prm2m = `ls ../F2/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
-  set prm2s = `ls ../F2/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'`
+  set prm2m = `echo $f2m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)".PRM"}'`
+  set prm2s = `echo $f2s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)".PRM"}'`
+
+  #set prm2m = `ls ../F2/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
+  #set prm2s = `ls ../F2/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'`
   echo $pth2":"$prm2m":"$prm2s >> tmp.filelist
 
   set pth3 = `ls ../F3/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
-  set prm3m = `ls ../F3/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
-  set prm3s = `ls ../F3/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'`
+  set prm3m = `echo $f3m | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)".PRM"}'`
+  set prm3s = `echo $f3s | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)".PRM"}'`
+  
+  #set prm3m = `ls ../F3/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
+  #set prm3s = `ls ../F3/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'`
   echo $pth3":"$prm3m":"$prm3s >> tmp.filelist
 
 
