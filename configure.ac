@@ -139,10 +139,10 @@ dnl ------------------------------------------------------------------
 dnl
 AC_MSG_CHECKING(for ORBITS directory)
 if test "X$with_orbits_dir" = "Xyes"; then
-	ORBITS_DIR=$rootdir
+	ORBITS_DIR="/usr/local/orbits"
 	AC_MSG_RESULT([Not specified, default to $ORBITS_DIR])
 elif test "X$with_orbits_dir" = "Xno"; then
-	ORBITS_DIR=$rootdir
+	ORBITS_DIR="/usr/local/orbits"
 	AC_MSG_RESULT([Not specified, default to $ORBITS_DIR])
 else
 	ORBITS_DIR=$with_orbits_dir
