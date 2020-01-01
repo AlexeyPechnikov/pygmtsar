@@ -48,14 +48,13 @@ __INSTALL__
    
        ./configure --with-orbits-dir=<orbitsdir> --prefix=<installdir>
 	
-   where <orbitsdir> was defined in step (3) and <installdir> is where you want to place all the executables.
    For example, you might run
 	
        ./configure --with-orbits-dir=/usr/local/orbits
 
 5) To build all executables, type
+
        make
-   Assuming that went well, you can install executables, scripts, and shared data by running
        make install
 
 6) test the commands: gmt, esarp, xcorr, conv, gmtsar.csh, etc.
