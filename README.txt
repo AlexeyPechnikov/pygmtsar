@@ -3,8 +3,9 @@
 #
 INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR 
 
-Copyright (c) 2009-2017
+Copyright (c) 2009-2020
 David T. Sandwell  -  dsandwell@ucsd.edu
+Eric Xu            -  xix016@ucsd.edu
 Rob Mellors        -  rmellors@geology.sdsu.edu
 Xiaopeng Tong      -  xitong@ucsd.edu
 Meng Wei           -  mwei@ucsd.edu
@@ -45,12 +46,9 @@ April 4, 2013	Converted to use GMT API and redone the entire install procedure. 
 
    http://topex.ucsd.edu/gmtsar/downloads
 
-4) Obtain GMTSAR subversion. Go to the GMTSAR WIKI and follow the instructions.
-   http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
+4) Go to the gmtsar directory and enter.
      
 	autoconf
-
-   (When we install you can specify a system directory such as /usr/local, assuming you have permission).
 
 4) Configure GMTSAR:	
    Run the configure script.  To see all options, run
