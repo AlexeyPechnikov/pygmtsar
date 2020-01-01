@@ -1,7 +1,9 @@
 #
 #  update your repository from the master before making any changes
 #
-git pull https://github.com/dsandwell/gmtsar
+git pull https://github.com/gmtsar/gmtsar
+or 
+git pull
 #
 #   make changes to an existing repository 
 #
