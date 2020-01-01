@@ -33,7 +33,6 @@ __INSTALL__
        http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
 
 2) Download orbit files for just ERS and ENVISAT. The other satellites have orbits distributed with the data.
-   Put it anywhere you like; let's refer to this dir as <orbitsdir>
        https://topex.ucsd.edu/gmtsar/downloads/
 
 3) Go to the gmtsar directory and enter:
