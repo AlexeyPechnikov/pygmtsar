@@ -1,14 +1,14 @@
-__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__ 
+__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
 ----------------------------------------------
 
 Copyright (c) 2009-2020
 
-* David T. Sandwell  -  dsandwell@ucsd.edu
-* Eric Xu            -  xix016@ucsd.edu
-* Rob Mellors        -  rmellors@geology.sdsu.edu
-* Xiaopeng Tong      -  xitong@ucsd.edu
-* Meng Wei           -  mwei@ucsd.edu
-* Paul Wessel        -  pwessel@hawaii.edu
+ David T. Sandwell  -  dsandwell@ucsd.edu
+ Eric Xu            -  xix016@ucsd.edu
+ Rob Mellors        -  rmellors@geology.sdsu.edu
+ Xiaopeng Tong      -  xitong@ucsd.edu
+ Meng Wei           -  mwei@ucsd.edu
+ Paul Wessel        -  pwessel@hawaii.edu
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,8 +24,7 @@ February 13, 2010 Code available as simple tar file
 April     4, 2013 Converted to use GMT5 API, available with SVN
 July     28, 2019 Available with github
 
-
-INSTALL
+__INSTALL__
 
 1) Go to the GMTSAR WIKI and follow the instructions.
        http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
@@ -57,8 +56,7 @@ INSTALL
    If using C-shell you may have to type rehash first. 
    If this does not work then make sure the <installdir> is in your system $PATH or $path.
 
-
-RUN
+__RUN__
 
 1) GET DATA. There is an example data set at our website:
        https://topex.ucsd.edu/gmtsar/downloads/
