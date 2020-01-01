@@ -1,8 +1,13 @@
 #
-#  update your repository from the master before making any changes
+#  clone the master or a branch
 #
-git pull https://github.com/gmtsar/gmtsar
-or 
+cd /usr/local
+git clone https://github.com/gmtsar/gmtsar GMTSAR_master
+#
+git clone --branch 5.7 https://github.com/gmtsar/gmtsar GMTSAR_5.7
+#
+#  update your repository before making any changes
+#
 git pull
 #
 #   make changes to an existing repository 
@@ -25,10 +30,6 @@ cd /usr/local
 sudo mkdir gmt
 sudo chown -r sandwell gmt
 git clone https://github.com/GenericMappingTools/gmt
-#
-# clone a specific branch
-#
-git clone --branch 5.7 https://github.com/dsandwell/gmtsar GMTSAR
 #
 # switch to a specific branch
 #
