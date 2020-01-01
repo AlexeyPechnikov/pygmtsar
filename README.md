@@ -1,14 +1,14 @@
-INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR 
+__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__ 
 ----------------------------------------------
 
 Copyright (c) 2009-2020
 
-David T. Sandwell  -  dsandwell@ucsd.edu
-Eric Xu            -  xix016@ucsd.edu
-Rob Mellors        -  rmellors@geology.sdsu.edu
-Xiaopeng Tong      -  xitong@ucsd.edu
-Meng Wei           -  mwei@ucsd.edu
-Paul Wessel        -  pwessel@hawaii.edu
+* David T. Sandwell  -  dsandwell@ucsd.edu
+* Eric Xu            -  xix016@ucsd.edu
+* Rob Mellors        -  rmellors@geology.sdsu.edu
+* Xiaopeng Tong      -  xitong@ucsd.edu
+* Meng Wei           -  mwei@ucsd.edu
+* Paul Wessel        -  pwessel@hawaii.edu
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ Uncompress the file and then unpack with tar.
 
 2) ORGANIZE the DISK. The standard GMTSAR run has the following directories. 
 
-  raw 	SLC 	topo   intf
+  raw    SLC    topo   intf
 
 raw - contains the original data.  
 SLC - contains the single look complex images derived from the raw data.
