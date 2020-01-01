@@ -1,4 +1,4 @@
-<h2>__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
+__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
 ----------------------------------------------
 
  David T. Sandwell  -  dsandwell@ucsd.edu
