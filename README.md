@@ -1,13 +1,16 @@
-__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
+<h2>__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
 ----------------------------------------------
 
-Copyright (c) 2009-2020
-
  David T. Sandwell  -  dsandwell@ucsd.edu
+ 
  Eric Xu            -  xix016@ucsd.edu
+ 
  Rob Mellors        -  rmellors@geology.sdsu.edu
+ 
  Xiaopeng Tong      -  xitong@ucsd.edu
+ 
  Meng Wei           -  mwei@ucsd.edu
+ 
  Paul Wessel        -  pwessel@hawaii.edu
 
   This program is free software; you can redistribute it and/or modify
@@ -20,8 +23,8 @@ Copyright (c) 2009-2020
   GNU General Public License for more details.
 
 Significant Modifications:
-February 13, 2010 Code available as simple tar file
-April     4, 2013 Converted to use GMT5 API, available with SVN
+February 13, 2010 Code available as simple tar file;
+April     4, 2013 Converted to use GMT5 API, available with SVN;
 July     28, 2019 Available with github
 
 __INSTALL__
@@ -34,17 +37,21 @@ __INSTALL__
        https://topex.ucsd.edu/gmtsar/downloads/
 
 3) Go to the gmtsar directory and enter:
+
        autoconf
 
 4) Configure GMTSAR:	
    Run the configure script.  To see all options, run
+   
        ./configure --help
 	
    Most users will simply run
+   
        ./configure --with-orbits-dir=<orbitsdir> --prefix=<installdir>
 	
    where <orbitsdir> was defined in step (3) and <installdir> is where you want to place all the executables.
    For example, you might run
+	
        ./configure --with-orbits-dir=/usr/local/orbits
 
 5) To build all executables, type
@@ -67,9 +74,12 @@ Uncompress the file and then unpack with tar.
 
   raw    SLC    topo   intf
 
-raw - contains the original data.  
+raw - contains the original data.
+
 SLC - contains the single look complex images derived from the raw data.
+
 topo - contains a digital elevation model for the area in geographic and ultimately radar coordinates.
+
 intf - contains subdirectories with the possible interferograms (only 1 for this example).
 
 3) MAKE DEM 
