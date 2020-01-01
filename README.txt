@@ -1,7 +1,9 @@
-*****************************************************************************************************
-#	$Id: README.TXT 211 2015-08-07 15:49:42Z pwessel $
-#
+////
+$Id$
+////
+
 INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR 
+----------------------------------------------
 
 Copyright (c) 2009-2020
 David T. Sandwell  -  dsandwell@ucsd.edu
@@ -24,8 +26,9 @@ Significant Modifications:
 February 13, 2010 Code available as simple tar file
 April     4, 2013 Converted to use GMT5 API, available with SVN
 July     28, 2019 Available with github
-*****************************************************************************************************
+
 INSTALL
+~~~~~~~
 
 1) Go to the GMTSAR WIKI and follow the instructions.
        http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
@@ -57,8 +60,8 @@ INSTALL
    If using C-shell you may have to type rehash first. 
    If this does not work then make sure the <installdir> is in your system $PATH or $path.
 
-*****************************************************************************************************
 RUN
+~~~~
 
 1) GET DATA. There is an example data set at our website:
        https://topex.ucsd.edu/gmtsar/downloads/
@@ -85,4 +88,3 @@ Place the file dem.grd in the /topo directory.
 
 There are complete examples for each data type at the following web site:
       https://topex.ucsd.edu/gmtsar/downloads/
-*****************************************************************************************************
