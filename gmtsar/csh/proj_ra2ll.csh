@@ -42,11 +42,9 @@ gmt grd2xyz $2 -s -bo3f > rap
 #   make grids of longitude and latitude versus range and azimuth unless they already exist
 #
 if (! -f raln.grd || ! -f ralt.grd ) then
-  gmt gmtconvert $1 -o0,1,3 -bi5d -bo3f > raln
-  gmt gmtconvert $1 -o0,1,4 -bi5d -bo3f > ralt
-#
-gmt surface raln `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Graln.grd $V
-gmt surface ralt `gmt gmtinfo rap -I16/32 -bi3f` -bi3f -I16/32 -T.50 -Gralt.grd $V
+  set region = `gmt gmtinfo rap -I16/32 -bi3f`
+  gmt surface $1 -i0,1,3 -bi5d $region -I16/32 -T.50 -Graln.grd $V
+  gmt surface $1 -i0,1,4 -bi5d $region -I16/32 -T.50 -Gralt.grd $V
 endif
 #
 #  add lon and lat columns and then just keep lon, lat, phase
