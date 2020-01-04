@@ -1,32 +1,6 @@
 __INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
 ----------------------------------------------
 
- David T. Sandwell  -  dsandwell@ucsd.edu
- 
- Eric Xu            -  xix016@ucsd.edu
- 
- Rob Mellors        -  rmellors@geology.sdsu.edu
- 
- Xiaopeng Tong      -  xitong@ucsd.edu
- 
- Meng Wei           -  mwei@ucsd.edu
- 
- Paul Wessel        -  pwessel@hawaii.edu
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 3 of the LICENSE.TXT
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-Significant Modifications:
-February 13, 2010 Code available as simple tar file;
-April     4, 2013 Converted to use GMT5 API, available with SVN;
-July     28, 2019 Available with github
-
 __INSTALL__
 
 1) Go to the GMTSAR WIKI and follow the instructions.
