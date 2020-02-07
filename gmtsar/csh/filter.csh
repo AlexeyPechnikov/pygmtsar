@@ -132,14 +132,12 @@ errormessage:
 # conv $idec $jdec $filter2 xt.grd=bf xreal.grd
 # conv $idec $jdec $filter2 yt.grd=bf yreal.grd
 # rm real_tmp.grd 
-# rm real.grd
 # rm xt.grd yt.grd
 # conv 1 1 $filter4 imag_tmp.grd xt.grd=bf
 # conv 1 1 $filter5 imag_tmp.grd yt.grd=bf
 # conv $idec $jdec $filter2 xt.grd=bf ximag.grd
 # conv $idec $jdec $filter2 yt.grd=bf yimag.grd
 # rm imag_tmp.grd 
-# rm imag.grd
 # rm xt.grd yt.grd
 #
 # form amplitude image
@@ -211,4 +209,5 @@ errormessage:
 #
 # delete files
  rm tmp.grd tmp2.grd 
+ rm real.grd imag.grd
  rm ximag.grd yimag.grd xreal.grd yreal.grd 
