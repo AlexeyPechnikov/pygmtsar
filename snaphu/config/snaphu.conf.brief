@@ -26,17 +26,26 @@
 # Output file name
 # OUTFILE	snaphu.out
 
-# Amplitude file name(s)
+# Amplitude file name
 # AMPFILE	snaphu.amp.in	# Single file containing amplitude images
 
 # Correlation file name
 # CORRFILE	snaphu.corr.in
+
+# Input file of signed binary byte (signed char) values.  
+# BYTEMASKFILE  snaphu.bytemask
+
+# Text file to which runtime parameters will be logged.  
+# LOGFILE       snaph.logfile
 
 # Statistical-cost mode (TOPO, DEFO, SMOOTH, or NOSTATCOSTS)
 # STATCOSTMODE	TOPO
 
 # Initialize-only mode (TRUE or FALSE)
 # INITONLY	FALSE
+
+# Unwrapped-input mode (TRUE or FALSE)
+# UNWRAPPED_IN	FALSE
 
 # Algorithm used for initialization of wrapped phase values.  Possible
 # values are MST and MCF.  
@@ -66,9 +75,9 @@
 # and complex*8 in Fortran) in the native byte order (big vs. little
 # endian) of the system.
 
-
 # Input file format
 # Allowable formats:
+# If the data are not complex, the phase should be in radians from 0 to 2pi.
 #   COMPLEX_DATA        (default)
 #   ALT_LINE_DATA       (magnitude in channel 1, phase in radians in channel 2)
 #   ALT_SAMPLE_DATA     (magnitude in channel 1, phase in radians in channel 2)
@@ -78,9 +87,9 @@
 
 # Output file format
 # Allowable formats:
-#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#   ALT_LINE_DATA       (masked interferogram magnitude in channel 1, 
 #                        unwrapped phase in radians in channel 2; default)
-#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#   ALT_SAMPLE_DATA     (masked interferogram magnitude in channel 1, 
 #                        unwrapped phase in radians in channel 2)
 #   FLOAT_DATA          (unwrapped phase in radians)
 #
@@ -105,6 +114,16 @@
 #   FLOAT_DATA          (correlation values between 0 and 1)
 #
 #CORRFILEFORMAT		ALT_LINE_DATA
+
+# Unwrapped input file format
+# Allowable formats:
+#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2; default)
+#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#                        unwrapped phase in radians in channel 2)
+#   FLOAT_DATA          (unwrapped phase in radians)
+#
+#UNWRAPPEDINFILEFORMAT	ALT_LINE_DATA
 
 
 ###############################
@@ -287,6 +306,156 @@ MAXFLOW		4
 # Scaling constant factor applied to double precision costs to get 
 # integer costs (double).
 COSTSCALE	100.0
+
+# Integer spacing that represents one unit of flow or one cycle of phase
+# when storing costs as short integer types (long).
+NSHORTCYCLE	200
+
+# Gives the minimum number of connected nodes to consider for
+# unwrapping.  If masking separates the input data into disconnected
+# sets of pixels, a source is selected for each connected set,
+# provided that the number of nodes in the set is greater than
+# NCONNNODEMIN.  If NCONNNODEMIN is zero, all possible unmasked pixels
+# will be uwnrapped.  NCONNNODEMIN should be nonnegative.
+NCONNNODEMIN    0
+
+
+###########################
+# Edge masking parameters #
+###########################
+
+# These parameters (long, dimensionless) are used to mask out pixels
+# near the edges of the input array.  EDGEMASKTOP, EDGEMASKBOT,
+# EDGEMASKLEFT, and EDGEMASKRIGHT specify the numbers of pixels from the
+# top, bottom, left, and right edges respectively that should be
+# masked out.  Masking is only applied during the nonlinear solver
+# stage (not the initialization).  
+# EDGEMASKTOP           0
+# EDGEMASKBOT           0
+# EDGEMASKLEFT          0
+# EDGEMASKRIGHT         0
+
+
+###############################
+# Piece extraction parameters #
+###############################
+
+# These parameters (long, dimensionless) allow only a subset of the
+# input data files to be read and unwrapped.  The upper left corner of
+# the subset is at row PIECEFIRSTROW and column PIECEFIRSTCOL, with
+# both indexed from 1 (that is, the upper left corner is pixel 1,1).
+# The output will be PIECENROW rows x PIECENCOL columns in size.
+# These parameters cannot be used in tile mode.  If PIECENROW or
+# PIECENCOL is zero, the full depth or width of the input is
+# unwrapped.
+# PIECEFIRSTROW		1
+# PIECEFIRSTCOL		1
+# PIECENROW		0
+# PIECENCOL		0
+
+
+################
+# Tile control #
+################
+
+# Parameters in this section describe how the input files will be 
+# tiled.  This is mainly used for tiling, in which different
+# patches of the interferogram are unwrapped separately.
+
+# Number of rows and columns of tiles into which the data files are
+# to be broken up.
+# NTILEROW		1
+# NTILECOL		1
+
+# Overlap, in pixels, between neighboring tiles.
+# ROWOVRLP		0
+# COLOVRLP		0
+
+# Maximum number of child processes to start for parallel tile
+# unwrapping.
+# NPROC			1
+
+# Cost threshold to use for determining boundaries of reliable regions
+# (long, dimensionless; scaled according to other cost constants).
+# Larger cost threshold implies smaller regions---safer, but
+# more expensive computationally.  
+# TILECOSTTHRESH 	500
+
+# Minimum size (long, pixels) of a reliable region in tile mode.  
+# MINREGIONSIZE		100
+
+# Extra weight applied to secondary arcs on tile edges.
+# TILEEDGEWEIGHT	2.5
+
+# Maximum flow magnitude (long) whose cost will be stored in the secondary 
+# cost lookup table.  Secondary costs larger than this will be approximated
+# by a quadratic function.
+# SCNDRYARCFLOWMAX	8
+
+# The program will remove temporary tile files if this is set.
+# RMTMPTILE 		FALSE
+
+# This is the name (string) of a file of signed character data types
+# which serve as a mask for which tiles will be unwrapped.  The file
+# should be a raster array with NTILEROW rows and NTILECOL columns.
+# Where the array element is nonzero, the corresponding tile will be
+# unwrapped; where the array element is zero, the tile will not be
+# unwrapped and no output for that tile will be written.  This option
+# is used for reprocessing only certain tiles of a run.
+# DOTILEMASKFILE        snaphu.dotilemaskfile.in
+
+# This is the name of the tile directory.  Tiles will be stored
+# temporarily in the tile directory.  If in assemble only mode,
+# unwrapped tiles  are assumed to reside in this directory.  The
+# directory is create if it does not exist.
+# TILEDIR		snaphu_tiledir
+
+# If this is set to TRUE, the program will skip the unwrapping step
+# and only assemble temporary tile files from a previous invocation
+# saved in the directory whose name is given by the TILEDIR keyword.
+# The tile size parameters and file names must be the same.
+# ASSEMBLEONLY		FALSE
+
+# Repotimize as single tile after using tile mode for intialization if
+# this is set to TRUE.  This is equivalent to unwrapping with multiple
+# tiles, then using the unwrapped output as the input to a new, single-tile run
+# of snaphu with the -u option.  The purpose is for speed.
+#SINGLETILEREOPTIMIZE   FALSE
+
+
+###############################
+# Connected component control #
+###############################
+
+# Grow connected components mask and write to the output file whose
+# name is specified here as a string.  The mask is a file of unsigned
+# integer values with the same number of rows and columns as the
+# unwrapped interferogram.  The type of integer (1 byte vs. 4 byte) is
+# specified by the CONNCOMPOUTTYPE keyword, with 1-byte integers being
+# the default.
+# CONNCOMPFILE            snaphu.conncomp
+
+# Type of integer that the connected-component output, if requested,
+# will be written as (see the CONNCOMPFILE keyword).  The value here
+# may be either UCHAR or UINT, which specify unsigned character
+# (1-byte integer) or unsigned integer (4-byte integer) values,
+# respectively.
+# CONNCOMPOUTTYPE         UCHAR
+
+# Grow connected components mask from unwrapped input then exit if TRUE.
+# Output is written to the file specified by CONNCOMPFILE.
+# REGROWCONNCOMPS	FALSE
+
+# Minimum size of a single connected component, as a fraction (double)
+# of the total number of pixels in tile.
+# MINCONNCOMPFRAC 	0.01
+
+# Cost threshold for connected components (long).  Higher threshold will
+# give smaller connected components.
+# CONNCOMPTHRESH	300
+
+# Maximum number of connected components per tile (long).
+# MAXNCOMPS 		32
 
 # End of snaphu configuration file
 

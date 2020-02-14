@@ -326,7 +326,9 @@ int pop_prm_hdf5(struct PRM *prm, hid_t input, char *file_name) {
 	prm->clock_stop = prm->clock_start + prm->num_lines / prm->prf / 86400;
 	prm->nrows = 8192;
 	prm->num_valid_az = 6400;
-	prm->num_patches = (int)((float)prm->num_lines / prm->num_valid_az + 0.5);
+        // rounding up by 0.5 leaves too many blank lines for xcorr.  try 0.1
+	//prm->num_patches = (int)((float)prm->num_lines / prm->num_valid_az + 0.5);
+	prm->num_patches = (int)((float)prm->num_lines / prm->num_valid_az + 0.1);
 
 	printf("PRM set for Image File...\n");
 

@@ -21,10 +21,22 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
 #include "snaphu.h"
+
+
+
+/* static (local) function prototypes */
+static
+int IsTrue(char *str);
+static
+int IsFalse(char *str);
+static
+double ModDiff(double f1, double f2);
+
 
 
 /* function: IsTrue()
@@ -32,6 +44,7 @@
  * Returns TRUE if the string input is any of TRUE, True, true, 1, 
  * y, Y, yes, YES
  */
+static
 int IsTrue(char *str){
 
   if(!strcmp(str,"TRUE") || !strcmp(str,"true") || !strcmp(str,"True")
@@ -49,6 +62,7 @@ int IsTrue(char *str){
  * Returns FALSE if the string input is any of FALSE, False, false, 
  * 0, n, N, no, NO
  */
+static
 int IsFalse(char *str){
 
   if(!strcmp(str,"FALSE") || !strcmp(str,"false") || !strcmp(str,"False")
@@ -86,6 +100,7 @@ signed char SetBooleanSignedChar(signed char *boolptr, char *str){
  * modulo difference between (-pi,pi].  Assumes that
  * PI and TWOPI have been defined.  
  */  
+static
 double ModDiff(double f1, double f2){
 
   double f3;
@@ -105,7 +120,7 @@ double ModDiff(double f1, double f2){
  * Makes sure the passed float array is properly wrapped into the [0,2pi)
  * interval.
  */
-void WrapPhase(float **wrappedphase, long nrow, long ncol){
+int WrapPhase(float **wrappedphase, long nrow, long ncol){
 
   long row, col;
 
@@ -114,6 +129,7 @@ void WrapPhase(float **wrappedphase, long nrow, long ncol){
       wrappedphase[row][col]-=TWOPI*floor(wrappedphase[row][col]/TWOPI);
     }
   }
+  return(0);
 }
 
 
@@ -122,9 +138,9 @@ void WrapPhase(float **wrappedphase, long nrow, long ncol){
  * Computes an array of wrapped phase differences in range (across rows).
  * Input wrapped phase array should be in radians.  Output is in cycles.
  */
-void CalcWrappedRangeDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
-			   long kperpdpsi, long kpardpsi,
-			   long nrow, long ncol){
+int CalcWrappedRangeDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
+                          long kperpdpsi, long kpardpsi,
+                          long nrow, long ncol){
   long row, col;
   float **paddpsi;
 
@@ -140,12 +156,14 @@ void CalcWrappedRangeDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
   }
   paddpsi=MirrorPad(dpsi,nrow,ncol-1,(kperpdpsi-1)/2,(kpardpsi-1)/2);
   if(paddpsi==dpsi){
+    fflush(NULL);
     fprintf(sp0,"Wrapped-gradient averaging box too large "
 	    "for input array size\nAbort\n");
     exit(ABNORMAL_EXIT);
   }
   BoxCarAvg(avgdpsi,paddpsi,nrow,ncol-1,kperpdpsi,kpardpsi);
   Free2DArray((void **)paddpsi,nrow+kperpdpsi-1);
+  return(0);
 
 }
 
@@ -155,8 +173,8 @@ void CalcWrappedRangeDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
  * Computes an array of wrapped phase differences in range (across rows).
  * Input wrapped phase array should be in radians.  Output is in cycles.
  */
-void CalcWrappedAzDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
-			long kperpdpsi, long kpardpsi, long nrow, long ncol){
+int CalcWrappedAzDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
+                       long kperpdpsi, long kpardpsi, long nrow, long ncol){
   long row, col;
   float **paddpsi;
 
@@ -172,12 +190,14 @@ void CalcWrappedAzDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
   }
   paddpsi=MirrorPad(dpsi,nrow-1,ncol,(kpardpsi-1)/2,(kperpdpsi-1)/2);
   if(paddpsi==dpsi){
+    fflush(NULL);
     fprintf(sp0,"Wrapped-gradient averaging box too large "
 	    "for input array size\nAbort\n");
     exit(ABNORMAL_EXIT);
   }
   BoxCarAvg(avgdpsi,paddpsi,nrow-1,ncol,kpardpsi,kperpdpsi);
   Free2DArray((void **)paddpsi,nrow-1+kpardpsi-1);
+  return(0);
 
 }
 
@@ -190,8 +210,8 @@ void CalcWrappedAzDiffs(float **dpsi, float **avgdpsi, float **wrappedphase,
  * Residue array will then have size nrow-1 x ncol-1.  Residues will
  * always be -1, 0, or 1 if wrapped phase is passed in.
  */
-void CycleResidue(float **phase, signed char **residue, 
-		  int nrow, int ncol){
+int CycleResidue(float **phase, signed char **residue, 
+                 int nrow, int ncol){
 
   int row, col;
   float **rowdiff, **coldiff;
@@ -221,7 +241,31 @@ void CycleResidue(float **phase, signed char **residue,
 
   Free2DArray((void **)rowdiff,nrow-1);
   Free2DArray((void **)coldiff,nrow);
+  return(0);
+  
+}
 
+
+/* function: NodeResidue()
+ * -----------------------
+ * Compute residue of node from wrapped phase.  Assumes that memory
+ * exists and that row and col are in bounds of the 2-D array of
+ * wrapped phase values passed.
+ */
+int NodeResidue(float **wphase, long row, long col){
+
+  int residue;
+
+
+  /* compute residue */
+  residue=(int )LRound((ModDiff(wphase[row][col+1],wphase[row][col])
+                        +ModDiff(wphase[row+1][col+1],wphase[row][col+1])
+                        +ModDiff(wphase[row+1][col],wphase[row+1][col+1])
+                        +ModDiff(wphase[row][col],wphase[row+1][col]))/TWOPI);
+
+  /* return */
+  return(residue);
+  
 }
 
 
@@ -230,7 +274,7 @@ void CycleResidue(float **phase, signed char **residue,
  * Calculates flow based on unwrapped phase data in a 2D array.  
  * Allocates memory for row and column flow arrays.
  */
-void CalcFlow(float **phase, short ***flowsptr, long nrow, long ncol){
+int CalcFlow(float **phase, short ***flowsptr, long nrow, long ncol){
 
   long row, col;
 
@@ -256,6 +300,10 @@ void CalcFlow(float **phase, short ***flowsptr, long nrow, long ncol){
 						 /TWOPI);
     }
   }
+
+  /* done */
+  return(0);
+  
 }
 
 
@@ -267,8 +315,8 @@ void CalcFlow(float **phase, short ***flowsptr, long nrow, long ncol){
  * rowflow should have size N-1xM and colflow size NxM-1 where the 
  * phase fields are NxM.  Output is saved to a file.
  */
-void IntegratePhase(float **psi, float **phi, short **flows,
-		    long nrow, long ncol){
+int IntegratePhase(float **psi, float **phi, short **flows,
+                   long nrow, long ncol){
 
   long row, col;
   short **rowflow, **colflow;
@@ -292,6 +340,9 @@ void IntegratePhase(float **psi, float **phi, short **flows,
     }
   }
 
+  /* done */
+  return(0);
+  
 }/* end IntegratePhase() */
 
 
@@ -335,7 +386,7 @@ float **ExtractFlow(float **unwrappedphase, short ***flowsptr,
  * Flips the sign of all values in a passed array if the flip flag is set.
  * Otherwise, does nothing.
  */
-void FlipPhaseArraySign(float **arr, paramT *params, long nrow, long ncol){
+int FlipPhaseArraySign(float **arr, paramT *params, long nrow, long ncol){
 
   long row, col;
 
@@ -346,6 +397,7 @@ void FlipPhaseArraySign(float **arr, paramT *params, long nrow, long ncol){
       }
     }
   }
+  return(0);
 }
 
 
@@ -354,7 +406,7 @@ void FlipPhaseArraySign(float **arr, paramT *params, long nrow, long ncol){
  * Flips the sign of all values in a row-by-column array if the flip
  * flip flag is set.  Otherwise, does nothing.
  */
-void FlipFlowArraySign(short **arr, paramT *params, long nrow, long ncol){
+int FlipFlowArraySign(short **arr, paramT *params, long nrow, long ncol){
 
   long row, col, maxcol;
 
@@ -370,6 +422,7 @@ void FlipFlowArraySign(short **arr, paramT *params, long nrow, long ncol){
       }
     }
   }
+  return(0);
 }
 
 
@@ -384,20 +437,27 @@ void FlipFlowArraySign(short **arr, paramT *params, long nrow, long ncol){
  */
 void **Get2DMem(int nrow, int ncol, int psize, size_t size){
 
-  int row;
-  void **array;
+  long row;
+  void *baseptr;
+  void **arr;
 
-  if((array=malloc(nrow*psize))==NULL){
-    fprintf(sp0,"Out of memory\n"); 
-    exit(ABNORMAL_EXIT);
+  /* return NULL if sizes are 0 */
+  if(nrow < 1 || ncol < 1){
+    return(NULL);
   }
-  for(row=0; row<nrow; row++){
-    if((array[row]=malloc(ncol*size))==NULL){
-      fprintf(sp0,"Out of memory\n");
-      exit(ABNORMAL_EXIT);
-    }
+
+  /* allocate memory */
+  baseptr=CAlloc(nrow*ncol,size);
+
+  /* set array of pointers to rows */
+  arr=(void **)MAlloc(nrow*sizeof(void *));
+  for(row=0;row<nrow;row++){
+    arr[row]=&(((char *)baseptr)[row*ncol*size]);
   }
-  return(array);
+
+  /* return base pointer */
+  return(arr);
+
 }
 
 
@@ -409,26 +469,13 @@ void **Get2DMem(int nrow, int ncol, int psize, size_t size){
  */
 void **Get2DRowColMem(long nrow, long ncol, int psize, size_t size){
 
-  long row;
   void **array;
 
-  if((array=malloc((2*nrow-1)*psize))==NULL){
-    fprintf(sp0,"Out of memory\n"); 
-    exit(ABNORMAL_EXIT);
-  }
-  for(row=0; row<nrow-1; row++){
-    if((array[row]=malloc(ncol*size))==NULL){
-      fprintf(sp0,"Out of memory\n");
-      exit(ABNORMAL_EXIT);
-    }
-  }
-  for(row=nrow-1; row<2*nrow-1; row++){
-    if((array[row]=malloc((ncol-1)*size))==NULL){
-      fprintf(sp0,"Out of memory\n");
-      exit(ABNORMAL_EXIT);
-    }
-  }
+  /* always just function that initializes to zero */
+  /* this function exists only for historical interface reasons */
+  array = Get2DRowColZeroMem(nrow,ncol,psize,size);
   return(array);
+
 }
 
 
@@ -441,25 +488,29 @@ void **Get2DRowColMem(long nrow, long ncol, int psize, size_t size){
 void **Get2DRowColZeroMem(long nrow, long ncol, int psize, size_t size){
 
   long row;
-  void **array;
+  void *baseptr;
+  void **arr;
 
-  if((array=malloc((2*nrow-1)*psize))==NULL){
-    fprintf(sp0,"Out of memory\n"); 
-    exit(ABNORMAL_EXIT);
+  /* return NULL if sizes are 0 */
+  if(nrow < 1 || ncol < 1){
+    return(NULL);
   }
-  for(row=0; row<nrow-1; row++){
-    if((array[row]=calloc(ncol,size))==NULL){
-      fprintf(sp0,"Out of memory\n");
-      exit(ABNORMAL_EXIT);
-    }
+
+  /* allocate memory */
+  baseptr=CAlloc((nrow-1)*ncol+nrow*(ncol-1),size);
+
+  /* set array of pointers to rows */
+  arr=(void **)MAlloc((2*nrow-1)*sizeof(void *));
+  for(row=0;row<nrow-1;row++){
+    arr[row]=&(((char *)baseptr)[row*ncol*size]);
   }
-  for(row=nrow-1; row<2*nrow-1; row++){
-    if((array[row]=calloc((ncol-1),size))==NULL){
-      fprintf(sp0,"Out of memory\n");
-      exit(ABNORMAL_EXIT);
-    }
+  for(row=nrow-1;row<2*nrow-1;row++){
+    arr[row]=&(((char *)baseptr)[((nrow-1)*ncol+(row-(nrow-1))*(ncol-1))*size]);
   }
-  return(array);
+
+  /* return base pointer */
+  return(arr);
+
 }
 
 
@@ -472,6 +523,7 @@ void *MAlloc(size_t size){
   void *ptr;
 
   if((ptr=malloc(size))==NULL){
+    fflush(NULL);
     fprintf(sp0,"Out of memory\n");
     exit(ABNORMAL_EXIT);
   }
@@ -488,6 +540,7 @@ void *CAlloc(size_t nitems, size_t size){
   void *ptr;
   
   if((ptr=calloc(nitems,size))==NULL){
+    fflush(NULL);
     fprintf(sp0,"Out of memory\n");
     exit(ABNORMAL_EXIT);
   }
@@ -504,6 +557,7 @@ void *ReAlloc(void *ptr, size_t size){
   void *ptr2;
   
   if((ptr2=realloc(ptr,size))==NULL){
+    fflush(NULL);
     fprintf(sp0,"Out of memory\n");
     exit(ABNORMAL_EXIT);
   }
@@ -518,14 +572,17 @@ void *ReAlloc(void *ptr, size_t size){
  * The function assumes the array is of the form arr[rows][cols]
  * so that nrow is the number of elements in the pointer array.
  */
-void Free2DArray(void **array, unsigned int nrow){
+int Free2DArray(void **array, unsigned int nrow){
 
-  int row;
-
-  for(row=0; row<nrow; row++){
-    free(array[row]);
+  if(array != NULL){
+    if(array[0] != NULL){
+      free(array[0]);
+      array[0] = NULL;
+    }
+    free(array);
   }
-  free(array);
+  return(0);
+  
 }
 
 
@@ -534,7 +591,7 @@ void Free2DArray(void **array, unsigned int nrow){
  * Sets all entries of a 2D array of shorts to the given value.  Assumes
  * that memory is already allocated.
  */
-void Set2DShortArray(short **arr, long nrow, long ncol, long value){
+int Set2DShortArray(short **arr, long nrow, long ncol, long value){
 
   long row, col;
 
@@ -543,13 +600,14 @@ void Set2DShortArray(short **arr, long nrow, long ncol, long value){
       arr[row][col]=value;
     }
   }
+  return(0);
 }
 
 
 /* function: ValidDataArray()
  * --------------------------
  * Given a 2D floating point array, returns FALSE if any elements are NaN
- * or infinite, and TRUE otherwise (uses math library finite() function).
+ * or infinite, and TRUE otherwise.
  */
 signed char ValidDataArray(float **arr, long nrow, long ncol){
 
@@ -558,6 +616,26 @@ signed char ValidDataArray(float **arr, long nrow, long ncol){
   for(row=0;row<nrow;row++){
     for(col=0;col<ncol;col++){
       if(!IsFinite(arr[row][col])){
+	return(FALSE);
+      }
+    }
+  }
+  return(TRUE);
+}
+
+
+/* function: NonNegDataArray()
+ * ---------------------------
+ * Given a 2D floating point array, returns FALSE if any elements are
+ * NaN or infinite or negative, and TRUE otherwise.
+ */
+signed char NonNegDataArray(float **arr, long nrow, long ncol){
+
+  long row, col;
+
+  for(row=0;row<nrow;row++){
+    for(col=0;col<ncol;col++){
+      if(arr[row][col] < 0){
 	return(FALSE);
       }
     }
@@ -575,12 +653,11 @@ signed char ValidDataArray(float **arr, long nrow, long ncol){
  */
 signed char IsFinite(double d){
 
-#if __STDC_VERSION__ >= 199901L
-  return(isfinite(d));
-#else
+#ifdef SNAPHU_USE_FINITE
   return(finite(d));
+#else
+  return(isfinite(d));
 #endif
-  /* return(isfinite(d)); */
   /* return(!(isnan(d) || isinf(d))); */
   /* return(TRUE) */
 }
@@ -597,11 +674,42 @@ long LRound(double a){
 }
 
 
+/* function: LMin()
+ * ----------------
+ * Return the lesser of two long integers as a long.
+ */
+long LMin(long a, long b){
+
+  if(a<b){
+    return(a);
+  }else{
+    return(b);
+  }
+}
+
+
+/* function: LClip()
+ * -----------------
+ * Clips the input long integer so that it is no less than minval and
+ * no greater than maxval, and returns a long integer.
+ */
+long LClip(long a, long minval, long maxval){
+
+  if(a<minval){
+    return(minval);
+  }else if(a>maxval){
+    return(maxval);
+  }else{
+    return(a);
+  }
+}
+
+
 /* function: Short2DRowColAbsMax()
  * -------------------------------
  * Returns the maximum of the absolute values of element in a 
  * two-dimensional short array.  The number of rows and columns 
- * should be passed in.
+ * should be passed in. 
  */
 long Short2DRowColAbsMax(short **arr, long nrow, long ncol){
 
@@ -677,7 +785,7 @@ float LinInterp2D(float **arr, double rowind, double colind ,
  * Filters magnitude/power data with adaptive geometric filter to get rid of 
  * speckle.  Allocates 2D memory for ei.  Does not square before averaging.
  */
-void Despeckle(float **mag, float ***ei, long nrow, long ncol){
+int Despeckle(float **mag, float ***ei, long nrow, long ncol){
 
   float **intensity;
   double ratio, ratiomax, wfull, wstick, w[NARMS+1];
@@ -694,6 +802,7 @@ void Despeckle(float **mag, float ***ei, long nrow, long ncol){
   /* pad magnitude and place into new array (don't touch original data) */
   intensity=MirrorPad(mag,nrow,ncol,ARMLEN,ARMLEN);
   if(intensity==mag){
+    fflush(NULL);
     fprintf(sp0,"Despeckling box size too large for input array size\n"
 	    "Abort\n");
     exit(ABNORMAL_EXIT);
@@ -763,6 +872,8 @@ void Despeckle(float **mag, float ***ei, long nrow, long ncol){
 
   /* free memory */
   Free2DArray((void **)intensity,nrow+2*ARMLEN);
+  return(0);
+  
 }
 
 
@@ -837,8 +948,8 @@ float **MirrorPad(float **array1, long nrow, long ncol, long krow, long kcol){
  * itself recursively) to compute the result, so there may be roundoff 
  * errors.
  */
-void BoxCarAvg(float **avgarr, float **padarr, long nrow, long ncol, 
-	       long krow, long kcol){
+int BoxCarAvg(float **avgarr, float **padarr, long nrow, long ncol, 
+              long krow, long kcol){
 
   long i, row, col, n;
   double window;
@@ -872,6 +983,10 @@ void BoxCarAvg(float **avgarr, float **padarr, long nrow, long ncol,
       avgarr[row][col]/=n;
     }
   }
+  
+  /* done */
+  return(0);
+  
 }
 
 
@@ -896,8 +1011,8 @@ char *StrNCopy(char *dest, const char *src, size_t n){
  * the unwrapped data elementwise from the wrapped data and stores
  * the result, rewrapped to [0,2pi), in the wrapped array.
  */
-void FlattenWrappedPhase(float **wrappedphase, float **unwrappedest, 
-			 long nrow, long ncol){
+int FlattenWrappedPhase(float **wrappedphase, float **unwrappedest, 
+                        long nrow, long ncol){
  
   long row, col;
 
@@ -911,6 +1026,10 @@ void FlattenWrappedPhase(float **wrappedphase, float **unwrappedest,
       }
     }
   }
+  
+  /* done */
+  return(0);
+
 }
 
 
@@ -918,7 +1037,7 @@ void FlattenWrappedPhase(float **wrappedphase, float **unwrappedest,
  * ----------------------------
  * Addes the values of two 2-D arrays elementwise.
  */
-void Add2DFloatArrays(float **arr1, float **arr2, long nrow, long ncol){
+int Add2DFloatArrays(float **arr1, float **arr2, long nrow, long ncol){
 
   long row, col;
  
@@ -928,6 +1047,9 @@ void Add2DFloatArrays(float **arr1, float **arr2, long nrow, long ncol){
       arr1[row][col]+=arr2[row][col];
     }
   }
+  
+  /* done */
+  return(0);
 
 }
 
@@ -982,7 +1104,7 @@ int StringToLong(char *str, long *l){
  * Sets (pointer to function) Handler as the signal handler for all.
  * Note that SIGKILL usually cannot be caught.  No return value.
  */
-void CatchSignals(void (*SigHandler)(int)){
+int CatchSignals(void (*SigHandler)(int)){
 
   signal(SIGHUP,SigHandler);
   signal(SIGINT,SigHandler);
@@ -995,6 +1117,8 @@ void CatchSignals(void (*SigHandler)(int)){
   signal(SIGALRM,SigHandler);
   signal(SIGTERM,SigHandler);
   signal(SIGBUS,SigHandler);
+  return(0);
+
 }
 
 
@@ -1013,6 +1137,7 @@ void SetDump(int signum){
     signal(SIGINT,exit);
 
     /* print nice message and set global variables so program knows to exit */
+    fflush(NULL);
     fprintf(sp0,"\n\nSIGINT signal caught.  Please wait for graceful exit\n");
     fprintf(sp0,"(One more interrupt signal halts job)\n");
     dumpresults_global=TRUE;
@@ -1024,13 +1149,19 @@ void SetDump(int signum){
     signal(SIGHUP,SetDump);
 
     /* print a nice message, and set the dump variable */
+    fflush(NULL);
     fprintf(sp0,"\n\nSIGHUP signal caught.  Dumping results\n");
     dumpresults_global=TRUE;
 
   }else{
+    fflush(NULL);
     fprintf(sp0,"WARNING: Invalid signal (%d) passed to signal handler\n",
 	    signum);
   }
+
+  /* done */
+  return;
+
 }
 
 
@@ -1041,12 +1172,16 @@ void SetDump(int signum){
  */
 void KillChildrenExit(int signum){
 
+  fflush(NULL);
   fprintf(sp0,"Parent received signal %d\nKilling children and exiting\n",
 	  signum);
   fflush(NULL);
   signal(SIGTERM,SIG_IGN);
   kill(0,SIGTERM);
   exit(ABNORMAL_EXIT);
+
+  /* done */
+  return;
 
 }
 
@@ -1058,9 +1193,13 @@ void KillChildrenExit(int signum){
 void SignalExit(int signum){
   
   signal(SIGTERM,SIG_IGN);
+  fflush(NULL);
   fprintf(sp0,"Exiting with status %d on signal %d\n",ABNORMAL_EXIT,signum);
   fflush(NULL);
   exit(ABNORMAL_EXIT);
+
+  /* done */
+  return;
 
 }
 
@@ -1070,7 +1209,7 @@ void SignalExit(int signum){
  * Starts the wall clock and CPU timers for use in conjunction with
  * DisplayElapsedTime().
  */
-void StartTimers(time_t *tstart, double *cputimestart){
+int StartTimers(time_t *tstart, double *cputimestart){
   
   struct rusage usagebuf;
 
@@ -1088,6 +1227,10 @@ void StartTimers(time_t *tstart, double *cputimestart){
 			       +(usagebuf.ru_stime.tv_usec/(double )1000000));
     }
   }
+
+  /* done */
+  return(0);
+
 }
 
 
@@ -1100,7 +1243,7 @@ void StartTimers(time_t *tstart, double *cputimestart){
  * this is actually done depends on the implementation of the system time 
  * functions.
  */
-void DisplayElapsedTime(time_t tstart, double cputimestart){
+int DisplayElapsedTime(time_t tstart, double cputimestart){
 
   double cputime, walltime, seconds;
   long hours, minutes;
@@ -1137,6 +1280,10 @@ void DisplayElapsedTime(time_t tstart, double cputimestart){
     fprintf(sp1,"Elapsed wall clock time:  %ld:%02ld:%02ld\n",
 	    hours,minutes,(long )seconds);
   }
+
+  /* done */
+  return(0);
+
 }
 
 

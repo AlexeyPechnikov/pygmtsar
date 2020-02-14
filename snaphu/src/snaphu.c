@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -31,24 +32,34 @@
 /* global (external) variable definitions */
 
 /* flags used for signal handling */
-char dumpresults_global;
-char requestedstop_global;
+char dumpresults_global = FALSE;
+char requestedstop_global = FALSE;
 
 /* ouput stream pointers */
 /* sp0=error messages, sp1=status output, sp2=verbose, sp3=verbose counter */
-FILE *sp0, *sp1, *sp2, *sp3;
+FILE *sp0 = NULL;
+FILE *sp1 = NULL;
+FILE *sp2 = NULL;
+FILE *sp3 = NULL;
 
 /* node pointer for marking arc not on tree in apex array */
 /* this should be treated as a constant */
 nodeT NONTREEARC[1];
 
 /* pointers to functions which calculate arc costs */
-void (*CalcCost)();
-long (*EvalCost)();
+void (*CalcCost)(void **, long, long, long, long, long,
+                 paramT *, long *, long *) = NULL;
+long (*EvalCost)(void **, short **, long, long, long, paramT *) = NULL;
 
-/* pointers to functions for tailoring network solver to specific topologies */
-nodeT *(*NeighborNode)();
-void (*GetArc)();
+
+/* static (local) function prototypes */
+static
+int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params, 
+           long linelen, long nlines);
+static
+int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params, 
+		tileparamT *tileparams, long nlines, long linelen);
+
 
 
 /***************************/
@@ -89,7 +100,7 @@ int main(int argc, char **argv){
   SetDumpAll(outfiles,params);
 
   /* get number of lines in file */
-  nlines=GetNLines(infiles,linelen);
+  nlines=GetNLines(infiles,linelen,params);
 
   /* check validity of parameters */
   CheckParams(infiles,outfiles,linelen,nlines,params);
@@ -113,177 +124,282 @@ int main(int argc, char **argv){
  * Sets parameters for each tile and calls UnwrapTile() to do the
  * unwrapping.
  */
-void Unwrap(infileT *infiles, outfileT *outfiles, paramT *params, 
-	    long linelen, long nlines){
+static
+int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params, 
+           long linelen, long nlines){
 
+  long optiter, noptiter;
   long nexttilerow, nexttilecol, ntilerow, ntilecol, nthreads, nchildren;
   long sleepinterval;
   tileparamT tileparams[1];
+  infileT iterinfiles[1];
+  outfileT iteroutfiles[1];
   outfileT tileoutfiles[1];
+  paramT iterparams[1];
+  char tileinitfile[MAXSTRLEN];
   pid_t pid;
   int childstatus;
   double tilecputimestart;
   time_t tiletstart;
+  signed char **dotilemask;
 
 
-  /* set up */
-  ntilerow=params->ntilerow;
-  ntilecol=params->ntilecol;
-  nthreads=params->nthreads;
-  dumpresults_global=FALSE;
-  requestedstop_global=FALSE;
+  /* initialize structure stack memory to zero for extra robustness */
+  memset(tileparams,0,sizeof(tileparamT));
+  memset(iterinfiles,0,sizeof(infileT));
+  memset(iteroutfiles,0,sizeof(outfileT));
+  memset(tileoutfiles,0,sizeof(outfileT));
+  memset(iterparams,0,sizeof(paramT));
+  memset(tileinitfile,0,MAXSTRLEN);
 
+  /* see if we need to do single-tile reoptimization and set up if so */
+  if(params->onetilereopt){
+    noptiter=2;
+  }else{
+    noptiter=1;
+  }
+  
+  /* iterate if necessary for single-tile reoptimization */
+  for(optiter=0;optiter<noptiter;optiter++){
 
-  /* do the unwrapping */
-  if(ntilerow==1 && ntilecol==1){
+    /* initialize input and output file structures for this iteration */
+    memcpy(iterinfiles,infiles,sizeof(infileT));
+    memcpy(iteroutfiles,outfiles,sizeof(outfileT));
+    memcpy(iterparams,params,sizeof(paramT));
 
-    /* only single tile */
+    /* set up for iteration if doing tile init and one-tile reoptimization*/
+    if(optiter==0){
+
+      /* first iteration: see if there will be another iteration */
+      if(noptiter>1){
+
+        /* set up to write tile-mode unwrapped result to temporary file */
+        SetTileInitOutfile(iteroutfiles->outfile,iterparams->parentpid);
+        StrNCopy(tileinitfile,iteroutfiles->outfile,MAXSTRLEN);
+        iteroutfiles->outfileformat=TILEINITFILEFORMAT;
+        fprintf(sp1,"Starting first-round tile-mode unwrapping\n");
+        
+      }
+      
+    }else if(optiter==1){
+
+      /* second iteration */
+      /* set up to read unwrapped tile-mode result as single tile */
+      StrNCopy(iterinfiles->infile,tileinitfile,MAXSTRLEN);
+      iterinfiles->unwrappedinfileformat=TILEINITFILEFORMAT;
+      iterparams->unwrapped=TRUE;
+      iterparams->ntilerow=1;
+      iterparams->ntilecol=1;
+      iterparams->rowovrlp=0;
+      iterparams->colovrlp=0;
+      fprintf(sp1,"Starting second-round single-tile unwrapping\n");
+      
+    }else{
+      fprintf(sp0,"ERROR: illegal optiter value in Unwrap()\n");
+      exit(ABNORMAL_EXIT);
+    }
+    
+    /* set up for unwrapping */
+    ntilerow=iterparams->ntilerow;
+    ntilecol=iterparams->ntilecol;
+    nthreads=iterparams->nthreads;
+    dumpresults_global=FALSE;
+    requestedstop_global=FALSE;
 
     /* do the unwrapping */
-    tileparams->firstrow=params->piecefirstrow;
-    tileparams->firstcol=params->piecefirstcol;
-    tileparams->nrow=params->piecenrow;
-    tileparams->ncol=params->piecencol;
-    UnwrapTile(infiles,outfiles,params,tileparams,nlines,linelen);
+    if(ntilerow==1 && ntilecol==1){
 
-  }else{
+      /* only single tile */
 
-    /* don't unwrap if in assemble-only mode */
-    if(!params->assembleonly){
+      /* do the unwrapping */
+      tileparams->firstrow=iterparams->piecefirstrow;
+      tileparams->firstcol=iterparams->piecefirstcol;
+      tileparams->nrow=iterparams->piecenrow;
+      tileparams->ncol=iterparams->piecencol;
+      UnwrapTile(iterinfiles,iteroutfiles,iterparams,tileparams,nlines,linelen);
 
-      /* make a temporary directory into which tile files will be written */
-      MakeTileDir(params,outfiles);
+    }else{
 
-      /* different code for parallel or nonparallel operation */
-      if(nthreads>1){
+      /* don't unwrap if in assemble-only mode */
+      if(!iterparams->assembleonly){
 
-	/* parallel code */
+        /* set up mask for which tiles should be unwrapped */
+        dotilemask=SetUpDoTileMask(iterinfiles,ntilerow,ntilecol);
 
-	/* initialize */
-	nexttilerow=0;
-	nexttilecol=0;
-	nchildren=0;
-	sleepinterval=LRound(nlines*linelen/ntilerow/ntilecol*SECONDSPERPIXEL);
+        /* make a temporary directory into which tile files will be written */
+        MakeTileDir(iterparams,iteroutfiles);
 
-	/* trap signals so children get killed if parent dies */
-	CatchSignals(KillChildrenExit);
+        /* different code for parallel or nonparallel operation */
+        if(nthreads>1){
 
-	/* loop until we're done unwrapping */
-	while(TRUE){
+          /* parallel code */
 
-	  /* unwrap next tile if there are free processors and tiles left */
-	  if(nchildren<nthreads && nexttilerow<ntilerow){
+          /* initialize */
+          nexttilerow=0;
+          nexttilecol=0;
+          nchildren=0;
+          sleepinterval=(long )ceil(nlines*linelen
+                                    /((double )(ntilerow*ntilecol))
+                                    *SECONDSPERPIXEL);
+
+          /* trap signals so children get killed if parent dies */
+          CatchSignals(KillChildrenExit);
+
+          /* loop until we're done unwrapping */
+          while(TRUE){
+
+            /* unwrap next tile if there are free processors and tiles left */
+            if(nchildren<nthreads && nexttilerow<ntilerow){
 	    
-	    /* fork to create new process */
-	    fflush(NULL);
-	    pid=fork();
+              /* see if next tile needs to be unwrapped */
+              if(dotilemask[nexttilerow][nexttilecol]){
 
-	    /* see if parent or child (or error) */
-	    if(pid<0){
+                /* wait to make sure file i/o, threads, and OS are synched */
+                sleep(sleepinterval);
+                
+                /* fork to create new process */
+                fflush(NULL);
+                pid=fork();
 
-	      /* parent kills children and exits if there was a fork error */
-	      fprintf(sp0,"Error while forking\nAbort\n");
-	      kill(0,SIGKILL);
-	      exit(ABNORMAL_EXIT);
+              }else{
 
-	    }else if(pid==0){
+                /* tile did not need unwrapping, so set pid to parent pid */
+                pid=iterparams->parentpid;
 
-	      /* child executes this code after fork */
+              }
 
-	      /* reset signal handlers so that children exit nicely */
-	      CatchSignals(SignalExit);
+              /* see if parent or child (or error) */
+              if(pid<0){
 
-	      /* start timers for this tile */
-	      StartTimers(&tiletstart,&tilecputimestart);
+                /* parent kills children and exits if there was a fork error */
+                fflush(NULL);
+                fprintf(sp0,"Error while forking\nAbort\n");
+                kill(0,SIGKILL);
+                exit(ABNORMAL_EXIT);
 
-	      /* set up tile parameters */
-	      pid=getpid();
-	      fprintf(sp1,"Unwrapping tile at row %ld, column %ld (pid %ld)\n",
-		      nexttilerow,nexttilecol,(long )pid);
-	      SetupTile(nlines,linelen,params,tileparams,outfiles,tileoutfiles,
-			nexttilerow,nexttilecol);
+              }else if(pid==0){
+
+                /* child executes this code after fork */
+
+                /* reset signal handlers so that children exit nicely */
+                CatchSignals(SignalExit);
+
+                /* start timers for this tile */
+                StartTimers(&tiletstart,&tilecputimestart);
+
+                /* set up tile parameters */
+                pid=getpid();
+                fprintf(sp1,
+                        "Unwrapping tile at row %ld, column %ld (pid %ld)\n",
+                        nexttilerow,nexttilecol,(long )pid);
+                SetupTile(nlines,linelen,iterparams,tileparams,
+                          iteroutfiles,tileoutfiles,
+                          nexttilerow,nexttilecol);
 	      
-	      /* reset stream pointers for logging */
-	      ChildResetStreamPointers(pid,nexttilerow,nexttilecol,params);
+                /* reset stream pointers for logging */
+                ChildResetStreamPointers(pid,nexttilerow,nexttilecol,
+                                         iterparams);
 
-	      /* unwrap the tile */
-	      UnwrapTile(infiles,tileoutfiles,params,tileparams,
-			 nlines,linelen);
+                /* unwrap the tile */
+                UnwrapTile(iterinfiles,tileoutfiles,iterparams,tileparams,
+                           nlines,linelen);
 
-	      /* log elapsed time */
-	      DisplayElapsedTime(tiletstart,tilecputimestart);
+                /* log elapsed time */
+                DisplayElapsedTime(tiletstart,tilecputimestart);
 
-	      /* child exits when done unwrapping */
-	      exit(NORMAL_EXIT);
+                /* child exits when done unwrapping */
+                exit(NORMAL_EXIT);
 
-	    }
+              }
 	      
-	    /* parent executes this code after fork */
+              /* parent executes this code after fork */
 
-	    /* increment tile counters */
-	    nchildren++;
-	    if(++nexttilecol==ntilecol){
-	      nexttilecol=0;
-	      nexttilerow++;
-	    }
+              /* increment tile counters */
+              if(++nexttilecol==ntilecol){
+                nexttilecol=0;
+                nexttilerow++;
+              }
 
-	    /* wait a little while for file i/o before beginning next tile */
-	    sleep(sleepinterval);
+              /* increment counter of running child processes */
+              if(pid!=iterparams->parentpid){
+                nchildren++;
+              }
 
-	  }else{
+            }else{
 
-	    /* wait for a child to finish (only parent gets here) */
-	    pid=wait(&childstatus);
+              /* wait for a child to finish (only parent gets here) */
+              pid=wait(&childstatus);
 
-	    /* make sure child exited cleanly */
-	    if(!(WIFEXITED(childstatus)) || (WEXITSTATUS(childstatus))!=0){
-	      fprintf(sp0,"Unexpected or abnormal exit of child process %ld\n"
-		      "Abort\n",(long )pid);
-	      signal(SIGTERM,SIG_IGN);
-	      kill(0,SIGTERM);
-	      exit(ABNORMAL_EXIT);
-	    }
+              /* make sure child exited cleanly */
+              if(!(WIFEXITED(childstatus)) || (WEXITSTATUS(childstatus))!=0){
+                fflush(NULL);
+                fprintf(sp0,"Unexpected or abnormal exit of child process %ld\n"
+                        "Abort\n",(long )pid);
+                signal(SIGTERM,SIG_IGN);
+                kill(0,SIGTERM);
+                exit(ABNORMAL_EXIT);
+              }
 
-	    /* we're done if there are no more active children */
-	    if(--nchildren==0){
-	      break;
-	    }
+              /* we're done if there are no more active children */
+              /* shouldn't really need this sleep(), but be extra sure child */
+              /*   outputs are really flushed and written to disk by OS */
+              if(--nchildren==0){
+                sleep(sleepinterval);
+                break;
+              }
 
-	  } /* end if free processor and tiles remaining */
-	} /* end while loop */
+            } /* end if free processor and tiles remaining */
+          } /* end while loop */
 
-	/* return signal handlers to default behavior */
-	CatchSignals(SIG_DFL);
+          /* return signal handlers to default behavior */
+          CatchSignals(SIG_DFL);
 
-      }else{
+        }else{
 
-	/* nonparallel code */
+          /* nonparallel code */
 
-	/* loop over all tiles */
-	for(nexttilerow=0;nexttilerow<ntilerow;nexttilerow++){
-	  for(nexttilecol=0;nexttilecol<ntilecol;nexttilecol++){
+          /* loop over all tiles */
+          for(nexttilerow=0;nexttilerow<ntilerow;nexttilerow++){
+            for(nexttilecol=0;nexttilecol<ntilecol;nexttilecol++){
+              if(dotilemask[nexttilerow][nexttilecol]){
+
+                /* set up tile parameters */
+                fprintf(sp1,"Unwrapping tile at row %ld, column %ld\n",
+                        nexttilerow,nexttilecol);
+                SetupTile(nlines,linelen,iterparams,tileparams,
+                          iteroutfiles,tileoutfiles,
+                          nexttilerow,nexttilecol);
 	    
-	    /* set up tile parameters */
-	    fprintf(sp1,"Unwrapping tile at row %ld, column %ld\n",
-		    nexttilerow,nexttilecol);
-	    SetupTile(nlines,linelen,params,tileparams,outfiles,tileoutfiles,
-		      nexttilerow,nexttilecol);
-	    
-	    /* unwrap the tile */
-	    UnwrapTile(infiles,tileoutfiles,params,tileparams,nlines,linelen);
+                /* unwrap the tile */
+                UnwrapTile(iterinfiles,tileoutfiles,iterparams,tileparams,
+                           nlines,linelen);
 
-	  }
-	}
+              }
+            }
+          }
 
-      } /* end if nthreads>1 */
+        } /* end if nthreads>1 */
 
-    } /* end if !params->assembleonly */
+        /* free tile mask memory */
+        Free2DArray((void **)dotilemask,ntilerow);
 
-    /* reassemble tiles */
-    AssembleTiles(outfiles,params,nlines,linelen);
+      } /* end if !iterparams->assembleonly */
 
-  } /* end if multiple tiles */
+      /* reassemble tiles */
+      AssembleTiles(iteroutfiles,iterparams,nlines,linelen);
+    
+    } /* end if multiple tiles */
 
+    /* remove temporary tile file if desired at end of second iteration */
+    if(iterparams->rmtileinit && optiter>0){
+      unlink(tileinitfile);
+    }
+    
+  } /* end of optiter loop */
+  
+  /* done */
+  return(0);
+  
 } /* end of Unwrap() */
 
 
@@ -291,24 +407,29 @@ void Unwrap(infileT *infiles, outfileT *outfiles, paramT *params,
  * ----------------------
  * This is the main phase unwrapping function for a single tile.
  */
-void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params, 
-		tileparamT *tileparams,	long nlines, long linelen){
+static
+int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params, 
+               tileparamT *tileparams,	long nlines, long linelen){
 
   /* variable declarations */
   long nrow, ncol, nnoderow, narcrow, n, ngroundarcs, iincrcostfile;
   long nflow, ncycle, mostflow, nflowdone;
   long candidatelistsize, candidatebagsize;
-  short *nnodesperrow, *narcsperrow;
+  long isource, nsource;
+  long nincreasedcostiter;
+  long *nconnectedarr;
+  int *nnodesperrow, *narcsperrow;
   short **flows, **mstcosts;
   float **wrappedphase, **unwrappedphase, **mag, **unwrappedest;
   incrcostT **incrcosts;
   void **costs;
-  totalcostT totalcost, oldtotalcost;
+  totalcostT totalcost, oldtotalcost, mintotalcost;
+  nodeT **sourcelist;
   nodeT *source, ***apexes;
   nodeT **nodes, ground[1];
   candidateT *candidatebag, *candidatelist;
   signed char **iscandidate;
-  signed char notfirstloop;
+  signed char notfirstloop, allmasked;
   bucketT *bkts;
 
 
@@ -322,6 +443,12 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 
   /* read interferogram magnitude if specified separately */
   ReadMagnitude(mag,infiles,linelen,nlines,tileparams);
+
+  /* read mask file and apply to magnitude */
+  ReadByteMask(mag,infiles,linelen,nlines,tileparams,params);
+
+  /* make sure we have at least one pixel that is not masked */
+  allmasked=CheckMagMasking(mag,nrow,ncol);  
 
   /* read the coarse unwrapped estimate, if provided */
   unwrappedest=NULL;
@@ -348,12 +475,11 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
     Free2DArray((void **)mag,nrow);
     Free2DArray((void **)wrappedphase,nrow);
     Free2DArray((void **)flows,2*nrow-1);
-    return;
+    return(1);
   }
 
   /* set network function pointers for grid network */
-  NeighborNode=NeighborNodeGrid;
-  GetArc=GetArcGrid;
+  SetGridNetworkFunctionPointers();
 
   /* initialize the flows (find simple unwrapping to get a feasible flow) */
   unwrappedphase=NULL;
@@ -374,6 +500,7 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 		   params->cs2scalefactor);
 
     }else{
+      fflush(NULL);
       fprintf(sp0,"Illegal initialization method\nAbort\n");
       exit(ABNORMAL_EXIT);
     }
@@ -401,7 +528,7 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 	  Free2DArray((void **)nodes,nrow-1);
 	}
 	Free2DArray((void **)flows,2*nrow-1);
-	return;
+	return(1);
       }else{
 	fprintf(sp2,"Writing initialization to file %s\n",outfiles->initfile);
 	WriteOutputFile(mag,unwrappedphase,outfiles->initfile,outfiles,
@@ -417,6 +544,9 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 	      &candidatelist,&iscandidate,&apexes,&bkts,&iincrcostfile,
 	      &incrcosts,&nodes,ground,&nnoderow,&nnodesperrow,&narcrow,
 	      &narcsperrow,nrow,ncol,&notfirstloop,&totalcost,params);
+  oldtotalcost=totalcost;
+  mintotalcost=totalcost;
+  nincreasedcostiter=0;
 
   /* regrow regions with -G parameter */
   if(params->regrowconncomps){
@@ -440,9 +570,11 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
     Free2DArray((void **)flows,2*nrow-1);
     free(nnodesperrow);
     free(narcsperrow);
-    return;
+    return(1);
   }
 
+  /* mask zero-magnitude nodes so they are not considered in optimization */
+  MaskNodes(nrow,ncol,nodes,ground,mag);
 
   /* if we have a single tile, trap signals for dumping results */
   if(params->ntilerow==1 && params->ntilecol==1){
@@ -451,77 +583,116 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
   }
 
   /* main loop: loop over flow increments and sources */
-  fprintf(sp1,"Running nonlinear network flow optimizer\n");
-  fprintf(sp1,"Maximum flow on network: %ld\n",mostflow);
-  fprintf(sp2,"Number of nodes in network: %ld\n",(nrow-1)*(ncol-1)+1);
-  while(TRUE){ 
+  if(!allmasked){
+    fprintf(sp1,"Running nonlinear network flow optimizer\n");
+    fprintf(sp1,"Maximum flow on network: %ld\n",mostflow);
+    fprintf(sp2,"Number of nodes in network: %ld\n",(nrow-1)*(ncol-1)+1);
+    while(TRUE){ 
  
-    fprintf(sp1,"Flow increment: %ld  (Total improvements: %ld)\n",
-	    nflow,ncycle);
+      fprintf(sp1,"Flow increment: %ld  (Total improvements: %ld)\n",
+	      nflow,ncycle);
 
-    /* set up the incremental (residual) cost arrays */
-    SetupIncrFlowCosts(costs,incrcosts,flows,nflow,nrow,narcrow,narcsperrow,
-		       params); 
-    if(params->dumpall && params->ntilerow==1 && params->ntilecol==1){
-      DumpIncrCostFiles(incrcosts,++iincrcostfile,nflow,nrow,ncol);
-    }
+      /* set up the incremental (residual) cost arrays */
+      SetupIncrFlowCosts(costs,incrcosts,flows,nflow,nrow,narcrow,narcsperrow,
+			 params); 
+      if(params->dumpall && params->ntilerow==1 && params->ntilecol==1){
+	DumpIncrCostFiles(incrcosts,++iincrcostfile,nflow,nrow,ncol);
+      }
 
-    /* set the tree root (equivalent to source of shortest path problem) */
-    source=SelectSource(nodes,ground,nflow,flows,ngroundarcs,
-			nrow,ncol,params);
+      /* set the tree root (equivalent to source of shortest path problem) */
+      sourcelist=NULL;
+      nconnectedarr=NULL;
+      nsource=SelectSources(nodes,ground,nflow,flows,ngroundarcs,
+                            nrow,ncol,params,&sourcelist,&nconnectedarr);
 
-    /* run the solver, and increment nflowdone if no cycles are found */
-    n=TreeSolve(nodes,NULL,ground,source,&candidatelist,&candidatebag,
-		&candidatelistsize,&candidatebagsize,
-		bkts,flows,costs,incrcosts,apexes,iscandidate,
-		ngroundarcs,nflow,mag,wrappedphase,outfiles->outfile,
-		nnoderow,nnodesperrow,narcrow,narcsperrow,nrow,ncol,
-		outfiles,params);
+      /* set up network variables for tree solver */
+      SetupTreeSolveNetwork(nodes,ground,apexes,iscandidate,
+                            nnoderow,nnodesperrow,narcrow,narcsperrow,
+                            nrow,ncol);
+      
+      /* loop over sources */
+      n=0;
+      for(isource=0;isource<nsource;isource++){
+
+        /* set source */
+        source=sourcelist[isource];
+
+        /* show status if verbose */
+        fprintf(sp3,"Source %ld row, col = %d, %d\n",
+                isource,source->row,source->col);
+
+        /* run the solver, and increment nflowdone if no cycles are found */
+        n+=TreeSolve(nodes,NULL,ground,source,
+                     &candidatelist,&candidatebag,
+                     &candidatelistsize,&candidatebagsize,
+                     bkts,flows,costs,incrcosts,apexes,iscandidate,
+                     ngroundarcs,nflow,mag,wrappedphase,outfiles->outfile,
+                     nnoderow,nnodesperrow,narcrow,narcsperrow,nrow,ncol,
+                     outfiles,nconnectedarr[isource],params);
+      }
+
+      /* free temporary memory */
+      free(sourcelist);
+      free(nconnectedarr);
     
-    /* evaluate and save the total cost (skip if first loop through nflow) */
-    if(notfirstloop){
-      oldtotalcost=totalcost;
-      totalcost=EvaluateTotalCost(costs,flows,nrow,ncol,NULL,params);
-      if(totalcost>oldtotalcost || (n>0 && totalcost==oldtotalcost)){
-	fprintf(sp0,"Unexpected increase in total cost.  Breaking loop\n");
+      /* evaluate and save the total cost (skip if first loop through nflow) */
+      if(notfirstloop){
+	oldtotalcost=totalcost;
+	totalcost=EvaluateTotalCost(costs,flows,nrow,ncol,NULL,params);
+        if(totalcost<mintotalcost){
+          mintotalcost=totalcost;
+        }
+	if(totalcost>oldtotalcost || (n>0 && totalcost==oldtotalcost)){
+          fflush(NULL);
+	  fprintf(sp1,"Caution: Unexpected increase in total cost\n");
+	}
+        if(totalcost > mintotalcost){
+          nincreasedcostiter++;
+        }else{
+          nincreasedcostiter=0;
+        }
+      }
+
+      /* consider this flow increment done if not too many neg cycles found */
+      ncycle+=n;
+      if(n<=params->maxnflowcycles){
+	nflowdone++;
+      }else{
+	nflowdone=1;
+      }
+
+      /* find maximum flow on network, excluding arcs affected by masking */
+      mostflow=MaxNonMaskFlow(flows,mag,nrow,ncol);
+      if(nincreasedcostiter>=mostflow){
+        fflush(NULL);
+        fprintf(sp0,"WARNING: Unexpected sustained increase in total cost."
+                "  Breaking loop\n");
+        break;
+      }
+
+      /* break if we're done with all flow increments or problem is convex */
+      if(nflowdone>=params->maxflow || nflowdone>=mostflow || params->p>=1.0){
 	break;
       }
-    }
 
-    /* consider this flow increment done if not too many neg cycles found */
-    ncycle+=n;
-    if(n<=params->maxnflowcycles){
-      nflowdone++;
-    }else{
-      nflowdone=1;
-    }
+      /* update flow increment */
+      nflow++;
+      if(nflow>params->maxflow || nflow>mostflow){
+	nflow=1;
+	notfirstloop=TRUE;
+      }
+      fprintf(sp2,"Maximum valid flow on network: %ld\n",mostflow);
 
-    /* find maximum flow on network */
-    mostflow=Short2DRowColAbsMax(flows,nrow,ncol);
+      /* dump flow arrays if necessary */
+      if(strlen(outfiles->flowfile)){
+	FlipFlowArraySign(flows,params,nrow,ncol);
+	Write2DRowColArray((void **)flows,outfiles->flowfile,nrow,ncol,
+			   sizeof(short));
+	FlipFlowArraySign(flows,params,nrow,ncol);
+      }
 
-    /* break if we're done with all flow increments or problem is convex */
-    if(nflowdone>=params->maxflow || nflowdone>=mostflow || params->p>=1.0){
-      break;
-    }
-
-    /* update flow increment */
-    nflow++;
-    if(nflow>params->maxflow || nflow>mostflow){
-      nflow=1;
-      notfirstloop=TRUE;
-    }
-    fprintf(sp2,"Maximum flow on network: %ld\n",mostflow);
-
-    /* dump flow arrays if necessary */
-    if(strlen(outfiles->flowfile)){
-      FlipFlowArraySign(flows,params,nrow,ncol);
-      Write2DRowColArray((void **)flows,outfiles->flowfile,nrow,ncol,
-			 sizeof(short));
-      FlipFlowArraySign(flows,params,nrow,ncol);
-    }
-
-  } /* end loop until no more neg cycles */
-
+    } /* end loop until no more neg cycles */
+  } /* end if all pixels masked */
 
   /* if we have single tile, return signal handlers to default behavior */
   if(params->ntilerow==1 && params->ntilecol==1){
@@ -544,7 +715,7 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 
   /* grow regions for tiling */
   if(params->ntilerow!=1 || params->ntilecol!=1){
-    GrowRegions(costs,flows,nrow,ncol,incrcosts,outfiles,params);
+    GrowRegions(costs,flows,nrow,ncol,incrcosts,outfiles,tileparams,params);
   }
 
   /* free some more memory */
@@ -582,6 +753,6 @@ void UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
   Free2DArray((void **)flows,2*nrow-1);
   free(nnodesperrow);
   free(narcsperrow);
-  return;
+  return(0);
 
 } /* end of UnwrapTile() */

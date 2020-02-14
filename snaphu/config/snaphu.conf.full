@@ -17,51 +17,69 @@
 
 # See section below for file format configuration options.
 
-# Input file name
+# Input file name (see possible file formats below)
 # INFILE	snaphu.in
 
 # Input file line length 
 # LINELENGTH	1000
 
-# Output file name
+# Output file name (see possible file formats below).  The output
+# array will have the same dimensions as the input unless the PIECE
+# parameters are specified.
 # OUTFILE	snaphu.out
 
-# Weight file name
+# Weight file name.  Weights are specified on arcs, not pixel values.
 # WEIGHTFILE	snaphu.weights.in
 
-# Amplitude file name(s)
+# Amplitude file name(s); (see possible file formats below).  The
+# array(s) should have the same dimensions as the input wrapped phase
+# array.  The values should be in linear units.
 # AMPFILE	snaphu.amp.in	# Single file containing amplitude images
 #
 # AMPFILE1      snaphu.amp1.in  # Pair of separate files for amplitude images
 # AMPFILE2      snaphu.amp2.in
 
-# Power file name(s)
+# Power file name(s); (see possible file formats below) The array(s)
+# should have the same dimensions as the input wrapped phase array.
+# The values should be in linear units (not dB).
 # PWRFILE	snaphu.amp.in	# Single file containing power images
 #
 # PWRFILE1      snaphu.amp1.in  # Pair of separate files for power images
 # PWRFILE2      snaphu.amp2.in
 
-# Interferogram magnitude file
+# Interferogram magnitude file (see possible file formats below).  The
+# array should have the same dimensions as the input wrapped phase
+# array.  The magnitude should be in linear units.
 # MAGFILE	snaphu.mag.in
 
-# Correlation file name
+# Correlation file name (see possible file formats below).  The array
+# should have the same dimensions as the input wrapped phase array.
 # CORRFILE	snaphu.corr.in
 
-# Coarse unwrapped-phase estimate file name
+# Coarse unwrapped-phase estimate file name (see possible file formats
+# below).  The array should have the same dimensions as the input
+# wrapped phase array.
 # ESTIMATEFILE	snaphu.est.in
 
 # Input cost file (for statistical costs).  If costs are read from this 
 # file, many of the other parameters will be ignored (string).
-# COSTINFILE snaphu.costinfile
+# COSTINFILE    snaphu.costinfile
 
 # Output cost file to which statistical costs will be dumped (string). 
 # Costs are not dumped if no file is given.
-# COSTOUTFILE snaphu.costoutfile
+# COSTOUTFILE   snaphu.costoutfile
+
+# Input file of signed binary byte (signed char) values.  Values in
+# the file should be either 0 or 1, with 0 denoting interferogram
+# pixels that should be masked out and 1 denoting valid pixels.  The
+# array should have the same dimensions as the input wrapped phase
+# array.
+# BYTEMASKFILE  snaphu.bytemask
 
 # Text file to which runtime parameters will be logged.  The format of
 # that file will be suitable so that it can also be used as a
 # configuration file.  
-# LOGFILE snaph.logfile
+# LOGFILE       snaph.logfile
 
 # Statistical-cost mode (TOPO, DEFO, SMOOTH, or NOSTATCOSTS)
 # STATCOSTMODE	TOPO
@@ -105,24 +123,23 @@
 
 # Input file format
 # Allowable formats:
+# If the data are not complex, the phase should be in radians from 0 to 2pi.
 #   COMPLEX_DATA        (default)
 #   ALT_LINE_DATA       (magnitude in channel 1, phase in radians in channel 2)
 #   ALT_SAMPLE_DATA     (magnitude in channel 1, phase in radians in channel 2)
 #   FLOAT_DATA          (phase in radians)
 #
 #INFILEFORMAT		COMPLEX_DATA
-INFILEFORMAT		FLOAT_DATA
 
 # Output file format
 # Allowable formats:
-#   ALT_LINE_DATA       (interferogram magnitude in channel 1, 
+#   ALT_LINE_DATA       (masked interferogram magnitude in channel 1, 
 #                        unwrapped phase in radians in channel 2; default)
-#   ALT_SAMPLE_DATA     (interferogram magnitude in channel 1, 
+#   ALT_SAMPLE_DATA     (masked interferogram magnitude in channel 1, 
 #                        unwrapped phase in radians in channel 2)
 #   FLOAT_DATA          (unwrapped phase in radians)
 #
 #OUTFILEFORMAT		ALT_LINE_DATA
-OUTFILEFORMAT		FLOAT_DATA
 
 # Amplitude or power file format
 # Units should be consistent with interferogram.  Allowable formats:
@@ -133,7 +150,6 @@ OUTFILEFORMAT		FLOAT_DATA
 #   FLOAT_DATA          (square root of average power of two images)
 #
 #AMPFILEFORMAT		ALT_SAMPLE_DATA
-AMPFILEFORMAT		FLOAT_DATA
 
 # Magnitude file format 
 # Allowable formats:
@@ -154,7 +170,6 @@ AMPFILEFORMAT		FLOAT_DATA
 #   FLOAT_DATA          (correlation values between 0 and 1)
 #
 #CORRFILEFORMAT		ALT_LINE_DATA
-CORRFILEFORMAT		FLOAT_DATA
 
 # Unwrapped estimate file format
 # Allowable formats:
@@ -165,7 +180,6 @@ CORRFILEFORMAT		FLOAT_DATA
 #   FLOAT_DATA          (unwrapped phase in radians)
 #
 #ESTFILEFORMAT		ALT_LINE_DATA
-ESTFILEFORMAT		FLOAT_DATA
 
 # Unwrapped input file format
 # Allowable formats:
@@ -432,7 +446,7 @@ DEFOTHRESHFACTOR 1.2
 # Maximum phase discontinuity likely (double).  Units are radians or cycles.
 # If abrupt phase discontinuities are not expected, this paramter can be 
 # set to zero.
-DEFOMAX_CYCLE	0.1
+DEFOMAX_CYCLE	1.2
 #DEFOMAX_RAD	7.5398
 
 # Phase variance (cycles^2) reflecting uncertainty in measurement of 
@@ -525,18 +539,40 @@ MAXNEWNODECONST	0.0008
 # is not given.
 MAXCYCLEFRACTION 0.00001
 
-# Determines how the source or root of the tree is chosen for the 
-# modified network-simplex solver.  If SOURCEMODE is zero, the 
-# ground node is used as the root (usually fastest).  Otherwise, 
-# SOURCEMODE should be 1 or -1, and the root is the endpoint of the 
-# longest chain of flow greater than or equal to the current flow 
-# increment, where the sign of SOURCEMODE determines which end of the
-# chain is used.
-SOURCEMODE	0
+# Gives the minimum number of connected nodes to consider for
+# unwrapping.  If masking separates the input data into disconnected
+# sets of pixels, a source is selected for each connected set,
+# provided that the number of nodes in the set is greater than
+# NCONNNODEMIN.  If NCONNNODEMIN is zero, all possible unmasked pixels
+# will be uwnrapped.  NCONNNODEMIN should be nonnegative.
+NCONNNODEMIN    0
 
 # Scale factor (long) for cs2 MCF initializations.  A larger number
 # gives greater speed, but uses more memory.
 CS2SCALEFACTOR	8
+
+# Number of major iterations between tree pruning operations.  A
+# smaller number causes pruning operations to occur more frequently.
+# This is experimental.
+NMAJORPRUNE     2000000000
+
+# Cost threshold for pruning tree.  A lower threshold prunes more
+# aggressively.  This is experimental.
+PRUNECOSTTHRESH 2000000000
+
+# If this parameters is set, the cost functions are approximated by
+# L^p cost functions with parameter p.  That is, the cost functions
+# are parameterized as (flow)^(PLPN), where p can be any nonnegative
+# decimal.  Statistical costs are generated in order to weight the Lp
+# cost functions by default.
+# PLPN		1
+
+# If this parameter is set to TRUE, bidirectional Lp costs are assumed
+# if PLPN is set.  This implies that the scalar weight of an Lp arc
+# may be different depending on the direction of net flow on the arc.
+# If this parameter is FALSE, the weight is the same regardless of the
+# arc direction.
+# BIDIRLPN	TRUE
 
 
 ##############################################
@@ -577,6 +613,22 @@ CS2SCALEFACTOR	8
 
 # Correlation coefficient magnitude (after clipping into [0,1] interval)
 # CORRDUMPFILE		snaphu.corr
+
+
+###########################
+# Edge masking parameters #
+###########################
+
+# These parameters (long, dimensionless) are used to mask out pixels
+# near the edges of the input array.  EDGEMASKTOP, EDGEMASKBOT,
+# EDGEMASKLEFT, and EDGEMASKRIGHT specify the numbers of pixels from the
+# top, bottom, left, and right edges respectively that should be
+# masked out.  Masking is only applied during the nonlinear solver
+# stage (not the initialization).  
+# EDGEMASKTOP           0
+# EDGEMASKBOT           0
+# EDGEMASKLEFT          0
+# EDGEMASKRIGHT         0
 
 
 ###############################
@@ -638,19 +690,52 @@ CS2SCALEFACTOR	8
 # The program will remove temporary tile files if this is set.
 # RMTMPTILE 		FALSE
 
-# If this is set to anything besides FALSE, the program will skip
-# the unwrapping step and only assemble temporary tile files from a previous 
-# invocation saved in the directory whose name is given here.  The tile size 
-# parameters and file names must be the same.
-# ASSEMBLEONLY		tiledir
+# This is the name (string) of a file of signed character data types
+# which serve as a mask for which tiles will be unwrapped.  The file
+# should be a raster array with NTILEROW rows and NTILECOL columns.
+# Where the array element is nonzero, the corresponding tile will be
+# unwrapped; where the array element is zero, the tile will not be
+# unwrapped and no output for that tile will be written.  This option
+# is used for reprocessing only certain tiles of a run.
+# DOTILEMASKFILE        snaphu.dotilemaskfile.in
+
+# This is the name of the tile directory.  Tiles will be stored
+# temporarily in the tile directory.  If in assemble only mode,
+# unwrapped tiles  are assumed to reside in this directory.  The
+# directory is create if it does not exist.
+# TILEDIR		snaphu_tiledir
+
+# If this is set to TRUE, the program will skip the unwrapping step
+# and only assemble temporary tile files from a previous invocation
+# saved in the directory whose name is given by the TILEDIR keyword.
+# The tile size parameters and file names must be the same.
+# ASSEMBLEONLY		FALSE
+
+# Repotimize as single tile after using tile mode for intialization if
+# this is set to TRUE.  This is equivalent to unwrapping with multiple
+# tiles, then using the unwrapped output as the input to a new, single-tile run
+# of snaphu with the -u option.  The purpose is for speed.
+#SINGLETILEREOPTIMIZE   FALSE
 
 
 ###############################
 # Connected component control #
 ###############################
 
-# Grow connected components mask and write to output file specified.
-# CONNCOMPFILE		snaphu.conncomp
+# Grow connected components mask and write to the output file whose
+# name is specified here as a string.  The mask is a file of unsigned
+# integer values with the same number of rows and columns as the
+# unwrapped interferogram.  The type of integer (1 byte vs. 4 byte) is
+# specified by the CONNCOMPOUTTYPE keyword, with 1-byte integers being
+# the default.
+# CONNCOMPFILE            snaphu.conncomp
+
+# Type of integer that the connected-component output, if requested,
+# will be written as (see the CONNCOMPFILE keyword).  The value here
+# may be either UCHAR or UINT, which specify unsigned character
+# (1-byte integer) or unsigned integer (4-byte integer) values,
+# respectively.
+# CONNCOMPOUTTYPE         UCHAR
 
 # Grow connected components mask from unwrapped input then exit if TRUE.
 # Output is written to the file specified by CONNCOMPFILE.
@@ -666,6 +751,11 @@ CS2SCALEFACTOR	8
 
 # Maximum number of connected components per tile (long).
 # MAXNCOMPS 		32
+
+# Type to use for connected component output file.  The value should
+# either be UCHAR for unsigned character (8 bit) or UINT for unsigned
+# integer (32 bit for common systems).
+# CONNCOMPOUTTYPE       UCHAR
 
 # End of snaphu configuration file
 
