@@ -11,9 +11,9 @@
 # Xiaohua(Eric) Xu, Jan 19 2016
 #
 
-  if ($#argv != 3) then
+  if ($#argv != 4) then
     echo ""
-    echo "Usage: preproc_tops_batch.csh data.in dem.grd mode"
+    echo "Usage: preproc_tops_batch.csh data.in dem.grd mode esd_mode"
     echo "  preprocess and align a set of tops images in data.in, precise orbits required"
     echo ""
     echo "  format of data.in:"
@@ -27,6 +27,9 @@
     echo "    baseline.ps align_table.ra (contains info for precise geomatric alignment)"
     echo "    *.PRM *.LED *.SLC(mode 2)"
     echo ""
+    echo "  esd_mode:"
+    echo "    0 for average, 1 for median, 2 for interpolation"
+    echo ""
     echo "  Note:"
     echo "    The names must be in time order in each line to be stitched together"
     echo ""
@@ -35,6 +38,7 @@
 
   # set up some parameters
   set mode = $3
+  set esd = $4
   set sl = `echo "1"`
   
   # sample the dem
@@ -212,7 +216,7 @@
           set spec_sep = `grep spectral_spectrationXdta tmp | awk '{print $3}'`
           awk '{print $3}' < ddphase > tmp2
 
-          if ($mode == 2) then
+          if ($esd == 2) then
             set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
             echo "Updating azimuth shift with mapping the residual da ...(mapping $res_shift)"
             awk '{print $1,$2,$3}' < ddphase > test
@@ -227,7 +231,7 @@
             mv tmp spec_div_output
             rm test*
           else
-            if ($mode == 1) then
+            if ($esd == 1) then
               set res_shift = `sort -n tmp2 | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }' | awk '{print $1/2.0/3.141592653/'$spec_sep'}'`
             else
               set res_shift = `grep residual_shift tmp | awk '{print $3}'`

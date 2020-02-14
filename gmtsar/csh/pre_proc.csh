@@ -14,7 +14,7 @@ unset noclobber
 # 
   if (!($#argv == 3 || $#argv == 5 || $#argv == 7 || $#argv == 9 || $#argv == 11)) then 
     echo ""
-    echo "Usage: pre_proc.csh SAT master_stem slave_stem [-near near_range] [-radius RE] [-npatch num_patches] [-fd1 DOPP]"
+    echo "Usage: pre_proc.csh SAT master_stem slave_stem [-near near_range] [-radius RE] [-npatch num_patches] [-fd1 DOPP] [-ESD mode]"
     echo ""
     echo "Example: pre_proc.csh ALOS IMG-HH-ALPSRP099496420-H1.0__A IMG-HH-ALPSRP220276420-H1.0__A"
     echo ""
@@ -380,11 +380,23 @@ unset noclobber
     ln -s ../topo/dem.grd .
 
     set iono = ""
+    set ESD = `grep spec_div config* | head -1 | awk '{print $3}'`
+    if ($ESD == "") set ESD = `grep spec_div ../config* | head -1 | awk '{print $3}'`
+    set ESD_mode = `grep spec_mode config* | head -1 | awk '{print $3}'`
+    if ($ESD_mode == "") set ESD_mode = `grep spec_mode ../config* | head -1 | awk '{print $3}'`
     if ($iono == "") set iono = `grep correct_iono config* | head -1 | awk '{print $3}'`
     if ($iono == "") set iono = `grep correct_iono ../config* | head -1 | awk '{print $3}'`
     
     if ($iono == "" || $iono == 0) then
-      align_tops.csh $master $master.EOF $slave $slave.EOF dem.grd
+      if ($ESD == "" || $ESD == 0) then
+        align_tops.csh $master $master.EOF $slave $slave.EOF dem.grd
+      else
+        if ($ESD_mode == "") then
+          align_tops.csh $master $master.EOF $slave $slave.EOF dem.grd
+        else
+          align_tops_esd.csh $master $master.EOF $slave $slave.EOF dem.grd $ESD_mode
+        endif
+      endif
     else
       echo "Running align TOPS script with BESD for ionospheric correction"
       align_tops_esd.csh $master $master.EOF $slave $slave.EOF dem.grd 2

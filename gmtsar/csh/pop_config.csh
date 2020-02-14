@@ -55,6 +55,13 @@ echo ""
 echo "# Doppler centroid "
 echo "fd1 = "
 echo ""
+if ($SAT == "S1_TOPS") then
+  echo "# apply spectral diversity to remove burst discontinuity"
+  echo "spec_div = 0"
+  echo "# spectral diversity mode, run align_tops_esd.csh to figure out the mode specification"
+  echo "spec_mode = 1"
+endif
+echo ""
 
 if ($SAT == "ALOS_SLC") then
   echo "# SLC scale factor to convert float to int "

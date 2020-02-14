@@ -82,6 +82,8 @@
   set iono_filt_azi = `grep iono_filt_azi $conf | awk '{print $3}'`
   set iono_dsamp = `grep iono_dsamp $conf | awk '{print $3}'`
   set iono_skip_est = `grep iono_skip_est $conf | awk '{print $3}'`
+  set spec_div = `grep spec_div $conf | awk '{print $3}'`
+  set spec_mode = `grep spec_mode $conf | awk '{print $3}'`
   #  set filter = 200
   #  echo " "
   #  echo "WARNING filter wavelength was not set in config.txt file"
@@ -460,7 +462,11 @@
         ln -s ../raw/a.grd .
         ln -s ../raw/r.grd .
         ln -s ../raw/offset*.dat .
-        align_tops.csh $2 $2.EOF $3 $3.EOF dem.grd 1
+        if ($spec_div == 1) then
+          align_tops_esd.csh $2 $2.EOF $3 $3.EOF dem.grd 1 $spec_mode
+        else
+          align_tops.csh $2 $2.EOF $3 $3.EOF dem.grd 1
+        endif
 
         set wl1 = `grep low_wavelength ../SLC/params1 | awk '{print $3}'`
         set wl2 = `grep low_wavelength ../SLC/params2 | awk '{print $3}'`
@@ -482,7 +488,11 @@
         ln -s ../raw/a.grd .
         ln -s ../raw/r.grd .
         ln -s ../raw/offset*.dat .
-        align_tops.csh $2 $2.EOF $3 $3.EOF dem.grd 1
+        if ($spec_div == 1) then
+          align_tops_esd.csh $2 $2.EOF $3 $3.EOF dem.grd 1 $spec_mode
+        else
+          align_tops.csh $2 $2.EOF $3 $3.EOF dem.grd 1
+        endif
 
         set wh1 = `grep high_wavelength ../SLC/params1 | awk '{print $3}'`
         set wh2 = `grep high_wavelength ../SLC/params2 | awk '{print $3}'`
