@@ -61,6 +61,8 @@ int compute_eap(fcomplex *, struct tree *, int);
 void fbisinc(double *, fcomplex *, int, int, fcomplex *);
 int get_words(char *);
 
+int DEF_SIZE = 1024;
+
 char *USAGE = "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd\n"
               "         xml_file    - name of xml file \n"
               "         tiff_file   - name of tiff file \n"
@@ -88,11 +90,11 @@ int main(int argc, char **argv) {
 	FILE *XML_FILE, *OUTPUT_PRM, *OUTPUT_LED;
 	FILE *OUTPUT_SLCL = NULL, *OUTPUT_SLCC = NULL, *OUTPUT_SLCH = NULL, *BB = NULL;
 	TIFF *TIFF_FILE;
-	char tmp_str[200], rshifts[200], ashifts[200];
+	char tmp_str[DEF_SIZE], rshifts[DEF_SIZE], ashifts[DEF_SIZE];
 	struct PRM prm;
 	struct tree *xml_tree;
-	struct state_vector sv[400];
-	struct burst_bounds bb[200];
+	struct state_vector sv[DEF_SIZE];
+	struct burst_bounds bb[DEF_SIZE];
 	int ch, n = 0, nc = 0, nlmx = 0, imode = 0;
 	double spec_sep = 0.0, dta = 0.0;
 
@@ -279,8 +281,8 @@ int write_orb(state_vector *sv, FILE *fp, int n) {
 
 int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *file_name, char *tiff_name) {
 
-	char tmp_c[200], tmp_cc[60000];
-	double tmp_d, dt, t[100];
+	char tmp_c[DEF_SIZE], tmp_cc[60000];
+	double tmp_d, dt, t[DEF_SIZE];
 	int i, j, k, nl = 0, nlf, ntl = 0, count, lpb, tmp_i, flag, flag0;
 	int k_start = 0, kC;
 	int *kF, *ksa, *ksr, *kea, *ker, *kover;
@@ -490,7 +492,7 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 
 	/*  this is a routine to apply an azimuth shift to a burst of TOPS data */
 	int ii, jj, k;
-	char tmp_c[200];
+	char tmp_c[DEF_SIZE];
 	double kpsi, fc, dta, dts = 0., ts0, tau0, vx, vy, vz;
 	double ks, vtot, ka, taus, phase, pramp, pmod;
 	double fnc[3], fka[3];
@@ -692,7 +694,7 @@ double shift_write_slc(void *API, struct PRM *prm, struct tree *xml_tree, struct
 	int ii, jj, nl, k, k2, kk;
 	int count, lpb, nlf, width2, nclip = 0;
 	uint32 width, height, widthi;
-	char tmp_c[200];
+	char tmp_c[DEF_SIZE];
 	fcomplex *cbrst, *cramp;
 	float rtest, itest;
 	int al_start = 0, cl;
@@ -960,7 +962,7 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
 	//       9=S3_HH, 10=S3_HV, 11=S3_VV, 12=S3_VH,
 	//
 
-	char tmp_str[200], *str;
+	char tmp_str[1024], *str;
 	int n = 0, srtcount;
 	int ii, jj, n_samples, lpb, mode;
 	double fs, dta, tau0, *tau_sub, *theta_sub, anx_time, *tau;
@@ -1008,7 +1010,7 @@ int compute_eap(fcomplex *cramp, tree *xml_tree, int nb) {
 	            "slantRangeTime/",
 	            tmp_str, 3, 4, jj);
 	srtcount = (int)str2double(tmp_str);
-	str = (char *)malloc(200 * srtcount * sizeof(char));
+	str = (char *)malloc(1024 * srtcount * sizeof(char));
 	tau_sub = (double *)malloc(srtcount * sizeof(double));
 	search_tree(xml_tree,
 	            "/product/antennaPattern/antennaPatternList/antennaPattern/"
