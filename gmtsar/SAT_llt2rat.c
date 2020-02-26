@@ -348,13 +348,24 @@ int goldop(double ts, double t1, double **orb_pos, int ax, int bx, int cx, doubl
 			SHFT2(f2, f1, dist(xpx, xpy, xpz, x1, orb_pos));
 		}
 	}
+
 	if (f1 < f2) {
-		xmin = x1;
+        if (x1 <= bx && x1 >= ax) {
+		    xmin = x1;
+        }
+        else{
+            xmin = abs(x1-bx) > abs(x1-ax) ? ax : bx;
+        }
 		*tm = orb_pos[0][x1];
 		*rng = f1;
 	}
 	else {
-		xmin = x2;
+        if (x2 <= bx && x2 >= ax) {
+		    xmin = x2;
+        }
+        else {
+            xmin = abs(x2-bx) > abs(x2-ax) ? ax : bx;
+        }
 		*tm = orb_pos[0][x2];
 		*rng = f2;
 	}
