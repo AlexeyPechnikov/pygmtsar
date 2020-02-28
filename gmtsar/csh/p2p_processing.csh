@@ -331,6 +331,8 @@
           else 
             split_spectrum $master.PRM > params1
           endif
+        else
+            split_spectrum $master.PRM > params1
         endif
         mv SLCH ../SLC_H/$master.SLC
         mv SLCL ../SLC_L/$master.SLC
@@ -341,6 +343,8 @@
           else
             split_spectrum $slave.PRM > params2
           endif
+        else
+            split_spectrum $slave.PRM > params2
         endif
         mv SLCH ../SLC_H/$slave.SLC
         mv SLCL ../SLC_L/$slave.SLC
