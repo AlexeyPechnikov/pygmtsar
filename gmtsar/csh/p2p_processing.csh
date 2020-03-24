@@ -681,8 +681,21 @@
       ln -s ../../SLC_H/*.LED .
       cp ../../SLC_H/*.PRM .
       cp ../../SLC/params* .
-      intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      if($topo_phase == 1) then
+        if ($shift_topo == 1) then
+          ln -s ../../topo/topo_shift.grd .
+          intf.csh $ref.PRM $rep.PRM -topo topo_shift.grd  
+          filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+        else 
+          ln -s ../../topo/topo_ra.grd . 
+          intf.csh $ref.PRM $rep.PRM -topo topo_ra.grd 
+          filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+        endif
+      else
+        echo "NO TOPOGRAPHIC PHASE REMOVAL PORFORMED"
+        intf.csh $ref.PRM $rep.PRM
+        filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      endif
       cp phase.grd phasefilt.grd
       if ($iono_skip_est == 0) then
         if ($mask_water == 1 || $switch_land == 1) then
@@ -702,8 +715,21 @@
       ln -s ../../SLC_L/*.LED .
       cp ../../SLC_L/*.PRM .
       cp ../../SLC/params* .
-      intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      if($topo_phase == 1) then
+        if ($shift_topo == 1) then
+          ln -s ../../topo/topo_shift.grd .
+          intf.csh $ref.PRM $rep.PRM -topo topo_shift.grd
+          filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+        else
+          ln -s ../../topo/topo_ra.grd .
+          intf.csh $ref.PRM $rep.PRM -topo topo_ra.grd
+          filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+        endif
+      else
+        echo "NO TOPOGRAPHIC PHASE REMOVAL PORFORMED"
+        intf.csh $ref.PRM $rep.PRM
+        filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      endif
       cp phase.grd phasefilt.grd
       if ($iono_skip_est == 0) then
         if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
@@ -716,8 +742,21 @@
       ln -s ../../SLC/*.SLC .
       ln -s ../../SLC/*.LED .
       cp ../../SLC/*.PRM .
-      intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      if($topo_phase == 1) then
+        if ($shift_topo == 1) then
+          ln -s ../../topo/topo_shift.grd .
+          intf.csh $ref.PRM $rep.PRM -topo topo_shift.grd
+          filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+        else
+          ln -s ../../topo/topo_ra.grd .
+          intf.csh $ref.PRM $rep.PRM -topo topo_ra.grd
+          filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+        endif
+      else
+        echo "NO TOPOGRAPHIC PHASE REMOVAL PORFORMED"
+        intf.csh $ref.PRM $rep.PRM
+        filter.csh $ref.PRM $rep.PRM 500 $dec $new_incx $new_incy
+      endif
       cp phase.grd phasefilt.grd
       if ($iono_skip_est == 0) then
         if ($mask_water == 1 || $switch_land == 1) ln -s ../../topo/landmask_ra.grd .
