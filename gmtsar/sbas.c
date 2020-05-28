@@ -222,8 +222,14 @@ int main(int argc, char **argv) {
 		sfs[n_atm] = sf;
 
 		if (n_atm >= 2) {
-			bb = (log(1000) - log(sf)) / (double)(n_atm);
-			aa = pow(EE, log(sf) - bb);
+            if (sf > 0) {
+			  bb = (log(1000) - log(sf)) / (double)(n_atm);
+			  aa = pow(EE, log(sf) - bb);
+            }
+            else {
+              bb = (log(1000) - log(0.01)) / (double)(n_atm);
+              aa = pow(EE, log(0.01) - bb);
+            }           
 			for (i = 1; i <= n_atm - 1; i++)
 				sfs[n_atm - i] = aa * pow(EE, bb * (double)(i + 1));
 		}
