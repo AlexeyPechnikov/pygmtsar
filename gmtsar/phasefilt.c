@@ -71,11 +71,11 @@ int read_file_hdr(void *API, char *sim, struct GMT_GRID **IM, char *sre, struct 
 	if ((R = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, sre, NULL)) == NULL)
 		die("error reading file", sre);
 
-	if (!(R->header->nx == I->header->nx && R->header->ny == I->header->ny))
+	if (!(R->header->n_columns == I->header->n_columns && R->header->n_rows == I->header->n_rows))
 		die("dimensions not equal!", "");
 
-	*xdim = I->header->nx;
-	*ydim = I->header->ny;
+	*xdim = I->header->n_columns;
+	*ydim = I->header->n_rows;
 	*RE = R;
 	*IM = I;
 	return (EXIT_SUCCESS);
@@ -85,7 +85,7 @@ int phasefilt_read_data(void *API, char *imname, struct GMT_GRID *IM, char *rena
                         float *amp) {
 	long n, i;
 
-	n = IM->header->nx * IM->header->ny;
+	n = IM->header->n_columns * IM->header->n_rows;
 
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, imname, IM) == NULL)
 		die("error reading file", imname);

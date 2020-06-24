@@ -99,11 +99,11 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 1: num_rng=%d, num_azi=%d\n", num_rng[0], num_azi[0]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid1->header->nx,
-	        grid1->header->inc[GMT_X], grid1->header->ny, grid1->header->inc[GMT_Y]);
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid1->header->n_columns,
+	        grid1->header->inc[GMT_X], grid1->header->n_rows, grid1->header->inc[GMT_Y]);
 
-	if ((num_rng[0] != round(grid1->header->nx * grid1->header->inc[GMT_X])) ||
-	    (num_azi[0] != round(grid1->header->ny * grid1->header->inc[GMT_Y]))) {
+	if ((num_rng[0] != round(grid1->header->n_columns * grid1->header->inc[GMT_X])) ||
+	    (num_azi[0] != round(grid1->header->n_rows * grid1->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[2]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[2], grid1) == NULL)
@@ -127,10 +127,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 2: num_rng=%d, num_azi=%d\n", num_rng[1], num_azi[1]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid2->header->nx,
-	        grid2->header->inc[GMT_X], grid2->header->ny, grid2->header->inc[GMT_Y]);
-	if ((num_rng[1] != round(grid2->header->nx * grid2->header->inc[GMT_X])) ||
-	    (num_azi[1] != round(grid2->header->ny * grid2->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid2->header->n_columns,
+	        grid2->header->inc[GMT_X], grid2->header->n_rows, grid2->header->inc[GMT_Y]);
+	if ((num_rng[1] != round(grid2->header->n_columns * grid2->header->inc[GMT_X])) ||
+	    (num_azi[1] != round(grid2->header->n_rows * grid2->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[4]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[4], grid2) == NULL)
@@ -154,10 +154,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 3: num_rng=%d, num_azi=%d\n", num_rng[2], num_azi[2]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid3->header->nx,
-	        grid3->header->inc[GMT_X], grid3->header->ny, grid3->header->inc[GMT_Y]);
-	if ((num_rng[2] != round(grid3->header->nx * grid3->header->inc[GMT_X])) ||
-	    (num_azi[2] != round(grid3->header->ny * grid3->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid3->header->n_columns,
+	        grid3->header->inc[GMT_X], grid3->header->n_rows, grid3->header->inc[GMT_Y]);
+	if ((num_rng[2] != round(grid3->header->n_columns * grid3->header->inc[GMT_X])) ||
+	    (num_azi[2] != round(grid3->header->n_rows * grid3->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[6]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[6], grid3) == NULL)
@@ -181,10 +181,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 4: num_rng=%d, num_azi=%d\n", num_rng[3], num_azi[3]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid4->header->nx,
-	        grid4->header->inc[GMT_X], grid4->header->ny, grid4->header->inc[GMT_Y]);
-	if ((num_rng[3] != round(grid4->header->nx * grid4->header->inc[GMT_X])) ||
-	    (num_azi[3] != round(grid4->header->ny * grid4->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid4->header->n_columns,
+	        grid4->header->inc[GMT_X], grid4->header->n_rows, grid4->header->inc[GMT_Y]);
+	if ((num_rng[3] != round(grid4->header->n_columns * grid4->header->inc[GMT_X])) ||
+	    (num_azi[3] != round(grid4->header->n_rows * grid4->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[8]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[8], grid4) == NULL)
@@ -209,10 +209,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 5: num_rng=%d, num_azi=%d\n", num_rng[4], num_azi[4]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid5->header->nx,
-	        grid5->header->inc[GMT_X], grid5->header->ny, grid5->header->inc[GMT_Y]);
-	if ((num_rng[4] != round(grid5->header->nx * grid5->header->inc[GMT_X])) ||
-	    (num_azi[4] != round(grid5->header->ny * grid5->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid5->header->n_columns,
+	        grid5->header->inc[GMT_X], grid5->header->n_rows, grid5->header->inc[GMT_Y]);
+	if ((num_rng[4] != round(grid5->header->n_columns * grid5->header->inc[GMT_X])) ||
+	    (num_azi[4] != round(grid5->header->n_rows * grid5->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[10]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[10], grid5) == NULL)
@@ -237,10 +237,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 6: num_rng=%d, num_azi=%d\n", num_rng[5], num_azi[5]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid6->header->nx,
-	        grid6->header->inc[GMT_X], grid6->header->ny, grid6->header->inc[GMT_Y]);
-	if ((num_rng[5] != round(grid6->header->nx * grid6->header->inc[GMT_X])) ||
-	    (num_azi[5] != round(grid6->header->ny * grid6->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid6->header->n_columns,
+	        grid6->header->inc[GMT_X], grid6->header->n_rows, grid6->header->inc[GMT_Y]);
+	if ((num_rng[5] != round(grid6->header->n_columns * grid6->header->inc[GMT_X])) ||
+	    (num_azi[5] != round(grid6->header->n_rows * grid6->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[12]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[12], grid6) == NULL)
@@ -265,10 +265,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 7: num_rng=%d, num_azi=%d\n", num_rng[6], num_azi[6]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid7->header->nx,
-	        grid7->header->inc[GMT_X], grid7->header->ny, grid7->header->inc[GMT_Y]);
-	if ((num_rng[6] != round(grid7->header->nx * grid7->header->inc[GMT_X])) ||
-	    (num_azi[6] != round(grid7->header->ny * grid7->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid7->header->n_columns,
+	        grid7->header->inc[GMT_X], grid7->header->n_rows, grid7->header->inc[GMT_Y]);
+	if ((num_rng[6] != round(grid7->header->n_columns * grid7->header->inc[GMT_X])) ||
+	    (num_azi[6] != round(grid7->header->n_rows * grid7->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[14]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[14], grid7) == NULL)
@@ -293,10 +293,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 8: num_rng=%d, num_azi=%d\n", num_rng[7], num_azi[7]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid8->header->nx,
-	        grid8->header->inc[GMT_X], grid8->header->ny, grid8->header->inc[GMT_Y]);
-	if ((num_rng[7] != round(grid8->header->nx * grid8->header->inc[GMT_X])) ||
-	    (num_azi[7] != round(grid8->header->ny * grid8->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid8->header->n_columns,
+	        grid8->header->inc[GMT_X], grid8->header->n_rows, grid8->header->inc[GMT_Y]);
+	if ((num_rng[7] != round(grid8->header->n_columns * grid8->header->inc[GMT_X])) ||
+	    (num_azi[7] != round(grid8->header->n_rows * grid8->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[16]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[16], grid8) == NULL)
@@ -321,10 +321,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 9: num_rng=%d, num_azi=%d\n", num_rng[8], num_azi[8]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid9->header->nx,
-	        grid9->header->inc[GMT_X], grid9->header->ny, grid9->header->inc[GMT_Y]);
-	if ((num_rng[8] != round(grid9->header->nx * grid9->header->inc[GMT_X])) ||
-	    (num_azi[8] != round(grid9->header->ny * grid9->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid9->header->n_columns,
+	        grid9->header->inc[GMT_X], grid9->header->n_rows, grid9->header->inc[GMT_Y]);
+	if ((num_rng[8] != round(grid9->header->n_columns * grid9->header->inc[GMT_X])) ||
+	    (num_azi[8] != round(grid9->header->n_rows * grid9->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[18]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[18], grid9) == NULL)
@@ -349,10 +349,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	/* check if the dimension of the grid and PRM file match */
 	fprintf(stderr, "subswath 10: num_rng=%d, num_azi=%d\n", num_rng[9], num_azi[9]);
-	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid10->header->nx,
-	        grid10->header->inc[GMT_X], grid10->header->ny, grid10->header->inc[GMT_Y]);
-	if ((num_rng[9] != round(grid10->header->nx * grid10->header->inc[GMT_X])) ||
-	    (num_azi[9] != round(grid10->header->ny * grid10->header->inc[GMT_Y]))) {
+	fprintf(stderr, "gmt grid nx=%d, gmt grid inc_x=%f, gmt grid ny=%d, gmt grid inc_y=%f\n", grid10->header->n_columns,
+	        grid10->header->inc[GMT_X], grid10->header->n_rows, grid10->header->inc[GMT_Y]);
+	if ((num_rng[9] != round(grid10->header->n_columns * grid10->header->inc[GMT_X])) ||
+	    (num_azi[9] != round(grid10->header->n_rows * grid10->header->inc[GMT_Y]))) {
 		die("\nPRM file and GMT grid don't match!\n", argv[20]);
 	}
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[20], grid10) == NULL)
@@ -391,54 +391,54 @@ int main(int argc, char **argv) {
 
 	/* calculate the positions of the grids in dec meters */
 	ra[0][0] = round(near_range_rel[0] / dec);
-	ra[0][1] = ra[0][0] + round(grid1->header->nx * grid1->header->inc[GMT_X] * dr / dec);
+	ra[0][1] = ra[0][0] + round(grid1->header->n_columns * grid1->header->inc[GMT_X] * dr / dec);
 	ra[0][2] = round(clock_start_rel[0] * vel[0] / dec);
-	ra[0][3] = ra[0][2] + round(grid1->header->ny * grid1->header->inc[GMT_Y] * vel[0] / prf[0] / dec);
+	ra[0][3] = ra[0][2] + round(grid1->header->n_rows * grid1->header->inc[GMT_Y] * vel[0] / prf[0] / dec);
 
 	ra[1][0] = round(near_range_rel[1] / dec);
-	ra[1][1] = ra[1][0] + round(grid2->header->nx * grid2->header->inc[GMT_X] * dr / dec);
+	ra[1][1] = ra[1][0] + round(grid2->header->n_columns * grid2->header->inc[GMT_X] * dr / dec);
 	ra[1][2] = round(clock_start_rel[1] * vel[1] / dec);
-	ra[1][3] = ra[1][2] + round(grid2->header->ny * grid2->header->inc[GMT_Y] * vel[1] / prf[1] / dec);
+	ra[1][3] = ra[1][2] + round(grid2->header->n_rows * grid2->header->inc[GMT_Y] * vel[1] / prf[1] / dec);
 
 	ra[2][0] = round(near_range_rel[2] / dec);
-	ra[2][1] = ra[2][0] + round(grid3->header->nx * grid3->header->inc[GMT_X] * dr / dec);
+	ra[2][1] = ra[2][0] + round(grid3->header->n_columns * grid3->header->inc[GMT_X] * dr / dec);
 	ra[2][2] = round(clock_start_rel[2] * vel[2] / dec);
-	ra[2][3] = ra[2][2] + round(grid3->header->ny * grid3->header->inc[GMT_Y] * vel[2] / prf[2] / dec);
+	ra[2][3] = ra[2][2] + round(grid3->header->n_rows * grid3->header->inc[GMT_Y] * vel[2] / prf[2] / dec);
 
 	ra[3][0] = round(near_range_rel[3] / dec);
-	ra[3][1] = ra[3][0] + round(grid4->header->nx * grid4->header->inc[GMT_X] * dr / dec);
+	ra[3][1] = ra[3][0] + round(grid4->header->n_columns * grid4->header->inc[GMT_X] * dr / dec);
 	ra[3][2] = round(clock_start_rel[3] * vel[3] / dec);
-	ra[3][3] = ra[3][2] + round(grid4->header->ny * grid4->header->inc[GMT_Y] * vel[3] / prf[3] / dec);
+	ra[3][3] = ra[3][2] + round(grid4->header->n_rows * grid4->header->inc[GMT_Y] * vel[3] / prf[3] / dec);
 
 	ra[4][0] = round(near_range_rel[4] / dec);
-	ra[4][1] = ra[4][0] + round(grid5->header->nx * grid5->header->inc[GMT_X] * dr / dec);
+	ra[4][1] = ra[4][0] + round(grid5->header->n_columns * grid5->header->inc[GMT_X] * dr / dec);
 	ra[4][2] = round(clock_start_rel[4] * vel[4] / dec);
-	ra[4][3] = ra[4][2] + round(grid5->header->ny * grid5->header->inc[GMT_Y] * vel[4] / prf[4] / dec);
+	ra[4][3] = ra[4][2] + round(grid5->header->n_rows * grid5->header->inc[GMT_Y] * vel[4] / prf[4] / dec);
 
 	ra[5][0] = round(near_range_rel[5] / dec);
-	ra[5][1] = ra[5][0] + round(grid6->header->nx * grid6->header->inc[GMT_X] * dr / dec);
+	ra[5][1] = ra[5][0] + round(grid6->header->n_columns * grid6->header->inc[GMT_X] * dr / dec);
 	ra[5][2] = round(clock_start_rel[5] * vel[5] / dec);
-	ra[5][3] = ra[5][2] + round(grid6->header->ny * grid6->header->inc[GMT_Y] * vel[5] / prf[5] / dec);
+	ra[5][3] = ra[5][2] + round(grid6->header->n_rows * grid6->header->inc[GMT_Y] * vel[5] / prf[5] / dec);
 
 	ra[6][0] = round(near_range_rel[6] / dec);
-	ra[6][1] = ra[6][0] + round(grid7->header->nx * grid7->header->inc[GMT_X] * dr / dec);
+	ra[6][1] = ra[6][0] + round(grid7->header->n_columns * grid7->header->inc[GMT_X] * dr / dec);
 	ra[6][2] = round(clock_start_rel[6] * vel[6] / dec);
-	ra[6][3] = ra[6][2] + round(grid7->header->ny * grid7->header->inc[GMT_Y] * vel[6] / prf[6] / dec);
+	ra[6][3] = ra[6][2] + round(grid7->header->n_rows * grid7->header->inc[GMT_Y] * vel[6] / prf[6] / dec);
 
 	ra[7][0] = round(near_range_rel[7] / dec);
-	ra[7][1] = ra[7][0] + round(grid8->header->nx * grid8->header->inc[GMT_X] * dr / dec);
+	ra[7][1] = ra[7][0] + round(grid8->header->n_columns * grid8->header->inc[GMT_X] * dr / dec);
 	ra[7][2] = round(clock_start_rel[7] * vel[7] / dec);
-	ra[7][3] = ra[7][2] + round(grid8->header->ny * grid8->header->inc[GMT_Y] * vel[7] / prf[7] / dec);
+	ra[7][3] = ra[7][2] + round(grid8->header->n_rows * grid8->header->inc[GMT_Y] * vel[7] / prf[7] / dec);
 
 	ra[8][0] = round(near_range_rel[8] / dec);
-	ra[8][1] = ra[8][0] + round(grid9->header->nx * grid9->header->inc[GMT_X] * dr / dec);
+	ra[8][1] = ra[8][0] + round(grid9->header->n_columns * grid9->header->inc[GMT_X] * dr / dec);
 	ra[8][2] = round(clock_start_rel[8] * vel[8] / dec);
-	ra[8][3] = ra[8][2] + round(grid9->header->ny * grid9->header->inc[GMT_Y] * vel[8] / prf[8] / dec);
+	ra[8][3] = ra[8][2] + round(grid9->header->n_rows * grid9->header->inc[GMT_Y] * vel[8] / prf[8] / dec);
 
 	ra[9][0] = round(near_range_rel[9] / dec);
-	ra[9][1] = ra[9][0] + round(grid10->header->nx * grid10->header->inc[GMT_X] * dr / dec);
+	ra[9][1] = ra[9][0] + round(grid10->header->n_columns * grid10->header->inc[GMT_X] * dr / dec);
 	ra[9][2] = round(clock_start_rel[9] * vel[9] / dec);
-	ra[9][3] = ra[9][2] + round(grid10->header->ny * grid10->header->inc[GMT_Y] * vel[9] / prf[9] / dec);
+	ra[9][3] = ra[9][2] + round(grid10->header->n_rows * grid10->header->inc[GMT_Y] * vel[9] / prf[9] / dec);
 
 	/* debug */
 	/*for (i=0;i<5;i++) {
@@ -491,9 +491,9 @@ int main(int argc, char **argv) {
 		for (azimuth = ra[0][2]; azimuth < azimuth_boundary1; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[0]) / dr / grid1->header->inc[GMT_X]);
-			row = grid1->header->ny -
+			row = grid1->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[0] * vel[0]) / (vel[0] / prf[0]) / grid1->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid1->header->nx && row >= 0 && row <= grid1->header->ny) {
+			if (col >= 0 && col <= grid1->header->n_columns && row >= 0 && row <= grid1->header->n_rows) {
 				node1 = GMT_Get_Index(API, grid1->header, row, col);
 				grid11->data[node11] = grid1->data[node1];
 			}
@@ -509,9 +509,9 @@ int main(int argc, char **argv) {
 		for (azimuth = ra[1][2]; azimuth < azimuth_boundary2; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[1]) / dr / grid2->header->inc[GMT_X]);
-			row = grid2->header->ny -
+			row = grid2->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[1] * vel[1]) / (vel[1] / prf[1]) / grid2->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid2->header->nx && row >= 0 && row <= grid2->header->ny) {
+			if (col >= 0 && col <= grid2->header->n_columns && row >= 0 && row <= grid2->header->n_rows) {
 				node2 = GMT_Get_Index(API, grid2->header, row, col);
 				grid11->data[node11] = grid2->data[node2];
 			}
@@ -527,9 +527,9 @@ int main(int argc, char **argv) {
 		for (azimuth = ra[2][2]; azimuth < azimuth_boundary3; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[2]) / dr / grid3->header->inc[GMT_X]);
-			row = grid3->header->ny -
+			row = grid3->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[2] * vel[2]) / (vel[2] / prf[2]) / grid3->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid3->header->nx && row >= 0 && row <= grid3->header->ny) {
+			if (col >= 0 && col <= grid3->header->n_columns && row >= 0 && row <= grid3->header->n_rows) {
 				node3 = GMT_Get_Index(API, grid3->header, row, col);
 				grid11->data[node11] = grid3->data[node3];
 			}
@@ -545,9 +545,9 @@ int main(int argc, char **argv) {
 		for (azimuth = ra[3][2]; azimuth < azimuth_boundary4; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[3]) / dr / grid4->header->inc[GMT_X]);
-			row = grid4->header->ny -
+			row = grid4->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[3] * vel[3]) / (vel[3] / prf[3]) / grid4->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid4->header->nx && row >= 0 && row <= grid4->header->ny) {
+			if (col >= 0 && col <= grid4->header->n_columns && row >= 0 && row <= grid4->header->n_rows) {
 				node4 = GMT_Get_Index(API, grid4->header, row, col);
 				grid11->data[node11] = grid4->data[node4];
 			}
@@ -563,9 +563,9 @@ int main(int argc, char **argv) {
 		for (azimuth = ra[4][2]; azimuth < azimuth_boundary5; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[4]) / dr / grid5->header->inc[GMT_X]);
-			row = grid5->header->ny -
+			row = grid5->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[4] * vel[4]) / (vel[4] / prf[4]) / grid5->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid5->header->nx && row >= 0 && row <= grid5->header->ny) {
+			if (col >= 0 && col <= grid5->header->n_columns && row >= 0 && row <= grid5->header->n_rows) {
 				node5 = GMT_Get_Index(API, grid5->header, row, col);
 				grid11->data[node11] = grid5->data[node5];
 			}
@@ -578,9 +578,9 @@ int main(int argc, char **argv) {
 		for (azimuth = azimuth_boundary1; azimuth < ra[5][3]; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[5]) / dr / grid6->header->inc[GMT_X]);
-			row = grid6->header->ny -
+			row = grid6->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[5] * vel[5]) / (vel[5] / prf[5]) / grid6->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid6->header->nx && row >= 0 && row <= grid6->header->ny) {
+			if (col >= 0 && col <= grid6->header->n_columns && row >= 0 && row <= grid6->header->n_rows) {
 				node6 = GMT_Get_Index(API, grid6->header, row, col);
 				grid11->data[node11] = grid6->data[node6];
 			}
@@ -593,9 +593,9 @@ int main(int argc, char **argv) {
 		for (azimuth = azimuth_boundary2; azimuth < ra[6][3]; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[6]) / dr / grid7->header->inc[GMT_X]);
-			row = grid7->header->ny -
+			row = grid7->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[6] * vel[6]) / (vel[6] / prf[6]) / grid7->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid7->header->nx && row >= 0 && row <= grid7->header->ny) {
+			if (col >= 0 && col <= grid7->header->n_columns && row >= 0 && row <= grid7->header->n_rows) {
 				node7 = GMT_Get_Index(API, grid7->header, row, col);
 				grid11->data[node11] = grid7->data[node7];
 			}
@@ -608,9 +608,9 @@ int main(int argc, char **argv) {
 		for (azimuth = azimuth_boundary3; azimuth < ra[7][3]; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[7]) / dr / grid8->header->inc[GMT_X]);
-			row = grid8->header->ny -
+			row = grid8->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[7] * vel[7]) / (vel[7] / prf[7]) / grid8->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid8->header->nx && row >= 0 && row <= grid8->header->ny) {
+			if (col >= 0 && col <= grid8->header->n_columns && row >= 0 && row <= grid8->header->n_rows) {
 				node8 = GMT_Get_Index(API, grid8->header, row, col);
 				grid11->data[node11] = grid8->data[node8];
 			}
@@ -623,9 +623,9 @@ int main(int argc, char **argv) {
 		for (azimuth = azimuth_boundary4; azimuth < ra[8][3]; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[8]) / dr / grid9->header->inc[GMT_X]);
-			row = grid9->header->ny -
+			row = grid9->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[8] * vel[8]) / (vel[8] / prf[8]) / grid9->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid9->header->nx && row >= 0 && row <= grid9->header->ny) {
+			if (col >= 0 && col <= grid9->header->n_columns && row >= 0 && row <= grid9->header->n_rows) {
 				node9 = GMT_Get_Index(API, grid9->header, row, col);
 				grid11->data[node11] = grid9->data[node9];
 			}
@@ -638,9 +638,9 @@ int main(int argc, char **argv) {
 		for (azimuth = azimuth_boundary5; azimuth < ra[9][3]; azimuth++) {
 			node11 = GMT_Get_Index(API, grid11->header, azimuth, range);
 			col = round((range * dec - near_range_rel[9]) / dr / grid10->header->inc[GMT_X]);
-			row = grid10->header->ny -
+			row = grid10->header->n_rows -
 			      round((azimuth * dec - clock_start_rel[9] * vel[9]) / (vel[9] / prf[9]) / grid10->header->inc[GMT_Y]);
-			if (col >= 0 && col <= grid10->header->nx && row >= 0 && row <= grid10->header->ny) {
+			if (col >= 0 && col <= grid10->header->n_columns && row >= 0 && row <= grid10->header->n_rows) {
 				node10 = GMT_Get_Index(API, grid10->header, row, col);
 				grid11->data[node11] = grid10->data[node10];
 			}

@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 
 	/* make sure the dimensions match */
-	if (A->header->nx != T->header->nx) {
+	if (A->header->n_columns != T->header->n_columns) {
 		fprintf(stderr, "file dimensions do not match (must have same width)\n");
 		exit(EXIT_FAILURE);
 	}
@@ -79,12 +79,12 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[2], T) == NULL)
 		return EXIT_FAILURE;
-	if (A->header->ny < T->header->ny)
-		ni = A->header->ny;
+	if (A->header->n_rows < T->header->n_rows)
+		ni = A->header->n_rows;
 	else
-		ni = T->header->ny;
-	fprintf(stderr, " %d %d %d \n", ni, A->header->ny, T->header->ny);
-	nj = T->header->nx;
+		ni = T->header->n_rows;
+	fprintf(stderr, " %d %d %d \n", ni, A->header->n_rows, T->header->n_rows);
+	nj = T->header->n_columns;
 
 	/* compute average */
 	ntot = 0;

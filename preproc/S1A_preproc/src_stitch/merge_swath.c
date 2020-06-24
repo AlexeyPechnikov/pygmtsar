@@ -164,24 +164,24 @@ int main(int argc, char **argv) {
 	head2 = head2 - minh;
 	if (nfile == 3)
 		head3 = head3 - minh;
-	maxy = MAX(G1->header->ny + head1, G2->header->ny + head2);
+	maxy = MAX(G1->header->n_rows + head1, G2->header->n_rows + head2);
 	if (nfile == 3)
-		maxy = MAX(maxy, G3->header->ny + head3);
+		maxy = MAX(maxy, G3->header->n_rows + head3);
 	maxy = maxy + 1;
 
 	inc[GMT_X] = incx;
 	inc[GMT_Y] = incy;
 
-	ovl12 = G1->header->nx - (int)round((prm2.near_range - prm1.near_range) / (c_speed / prm1.fs / 2) / incx);
+	ovl12 = G1->header->n_columns - (int)round((prm2.near_range - prm1.near_range) / (c_speed / prm1.fs / 2) / incx);
 	if (nfile == 3)
-		ovl23 = G2->header->nx - (int)round((prm3.near_range - prm2.near_range) / (c_speed / prm1.fs / 2) / incx);
+		ovl23 = G2->header->n_columns - (int)round((prm3.near_range - prm2.near_range) / (c_speed / prm1.fs / 2) / incx);
 
 	wesn[GMT_XLO] = 0.0;
 	wesn[GMT_YLO] = 0.0;                     // minh*incy;
 	wesn[GMT_YHI] = (int)round(maxy * incy); //(maxy+minh-1)*incy;
-	wesn[GMT_XHI] = (G1->header->nx + G2->header->nx - ovl12 - 1) * incx;
+	wesn[GMT_XHI] = (G1->header->n_columns + G2->header->n_columns - ovl12 - 1) * incx;
 	if (nfile == 3)
-		wesn[GMT_XHI] = wesn[GMT_XHI] + (G3->header->nx - ovl23 - 1) * incx;
+		wesn[GMT_XHI] = wesn[GMT_XHI] + (G3->header->n_columns - ovl23 - 1) * incx;
 	wesn[GMT_XHI] = (int)round(wesn[GMT_XHI]);
 
 	// printf("%f,%f,%f,%f,%f,%f\n",inc[0],inc[1],wesn[0],wesn[1],wesn[2],wesn[3]);
@@ -195,16 +195,16 @@ int main(int argc, char **argv) {
 		die("could not allocate output grid", "");
 	if (GMT_Set_Comment(API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, "merged grid", GOUT))
 		die("could not set title", "");
-	// printf("%d,%d,%f,%f\n",GOUT->header->nx,GOUT->header->ny,GOUT->header->inc[GMT_X],GOUT->header->inc[GMT_Y]);
+	// printf("%d,%d,%f,%f\n",GOUT->header->n_columns,GOUT->header->n_rows,GOUT->header->inc[GMT_X],GOUT->header->inc[GMT_Y]);
 
-	for (ii = 0; ii < GOUT->header->ny; ii++)
-		for (jj = 0; jj < GOUT->header->nx; jj++)
-			GOUT->data[ii * GOUT->header->nx + jj] = (float)NAN;
+	for (ii = 0; ii < GOUT->header->n_rows; ii++)
+		for (jj = 0; jj < GOUT->header->n_columns; jj++)
+			GOUT->data[ii * GOUT->header->n_columns + jj] = (float)NAN;
 
-	head1 = GOUT->header->ny - G1->header->ny - head1;
-	head2 = GOUT->header->ny - G2->header->ny - head2;
+	head1 = GOUT->header->n_rows - G1->header->n_rows - head1;
+	head2 = GOUT->header->n_rows - G2->header->n_rows - head2;
 	if (nfile == 3)
-		head3 = GOUT->header->ny - G3->header->ny - head3;
+		head3 = GOUT->header->n_rows - G3->header->n_rows - head3;
 
 	n1 = (int)ceil((-(float)prm2.rshift + (float)prm2.first_sample + 150.0) / incx);
 	if (nfile == 3)
@@ -216,36 +216,36 @@ int main(int argc, char **argv) {
 			n2 = 10;
 
 	// printf("%d,%d\n",n1,n2);
-	for (ii = head1; ii < G1->header->ny + head1; ii++) {
-		for (jj = 0; jj < G1->header->nx - (ovl12 - n1); jj++) {
-			kk = ii * GOUT->header->nx + jj;
-			k = (ii - head1) * G1->header->nx + jj;
+	for (ii = head1; ii < G1->header->n_rows + head1; ii++) {
+		for (jj = 0; jj < G1->header->n_columns - (ovl12 - n1); jj++) {
+			kk = ii * GOUT->header->n_columns + jj;
+			k = (ii - head1) * G1->header->n_columns + jj;
 			GOUT->data[kk] = G1->data[k];
 		}
 	}
 
 	if (nfile != 3) {
-		for (ii = head2; ii < G2->header->ny + head2; ii++) {
-			for (jj = G1->header->nx - (ovl12 - n1); jj < GOUT->header->nx; jj++) {
-				kk = ii * GOUT->header->nx + jj;
-				k = (ii - head2) * G2->header->nx + jj - G1->header->nx + ovl12;
+		for (ii = head2; ii < G2->header->n_rows + head2; ii++) {
+			for (jj = G1->header->n_columns - (ovl12 - n1); jj < GOUT->header->n_columns; jj++) {
+				kk = ii * GOUT->header->n_columns + jj;
+				k = (ii - head2) * G2->header->n_columns + jj - G1->header->n_columns + ovl12;
 				GOUT->data[kk] = G2->data[k];
 			}
 		}
 	}
 
 	if (nfile == 3) {
-		for (ii = head2; ii < G2->header->ny + head2; ii++) {
-			for (jj = G1->header->nx - (ovl12 - n1); jj < G1->header->nx + G2->header->nx - ovl12 - 1 - (ovl23 - n2); jj++) {
-				kk = ii * GOUT->header->nx + jj;
-				k = (ii - head2) * G2->header->nx + jj - G1->header->nx + ovl12 - 1;
+		for (ii = head2; ii < G2->header->n_rows + head2; ii++) {
+			for (jj = G1->header->n_columns - (ovl12 - n1); jj < G1->header->n_columns + G2->header->n_columns - ovl12 - 1 - (ovl23 - n2); jj++) {
+				kk = ii * GOUT->header->n_columns + jj;
+				k = (ii - head2) * G2->header->n_columns + jj - G1->header->n_columns + ovl12 - 1;
 				GOUT->data[kk] = G2->data[k];
 			}
 		}
-		for (ii = head3; ii < G3->header->ny + head3; ii++) {
-			for (jj = G1->header->nx + G2->header->nx - ovl12 - 1 - (ovl23 - n2); jj < GOUT->header->nx; jj++) {
-				kk = ii * GOUT->header->nx + jj;
-				k = (ii - head3) * G3->header->nx + jj - (G1->header->nx + G2->header->nx - ovl12 - 1) + ovl23 - 1;
+		for (ii = head3; ii < G3->header->n_rows + head3; ii++) {
+			for (jj = G1->header->n_columns + G2->header->n_columns - ovl12 - 1 - (ovl23 - n2); jj < GOUT->header->n_columns; jj++) {
+				kk = ii * GOUT->header->n_columns + jj;
+				k = (ii - head3) * G3->header->n_columns + jj - (G1->header->n_columns + G2->header->n_columns - ovl12 - 1) + ovl23 - 1;
 				GOUT->data[kk] = G3->data[k];
 			}
 		}
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
 		prm1.num_lines = (int)round(maxy * incy);
 		prm1.nrows = prm1.num_lines;
 		prm1.num_valid_az = prm1.num_lines;
-		prm1.num_rng_bins = (int)round(GOUT->header->nx * incx);
+		prm1.num_rng_bins = (int)round(GOUT->header->n_columns * incx);
 		prm1.bytes_per_line = prm1.num_rng_bins * 4;
 		prm1.good_bytes = prm1.bytes_per_line;
 

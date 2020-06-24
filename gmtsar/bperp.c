@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 	                          P->header->registration, GMT_NOTSET, NULL)) == NULL)
 		return EXIT_FAILURE;
 
-	theta = (float *)malloc(P->header->nx * sizeof(float));
+	theta = (float *)malloc(P->header->n_columns * sizeof(float));
 
 	/* calculate drange */
 
@@ -121,19 +121,19 @@ int main(int argc, char **argv) {
 	Bhf = prm.baseline_end * cos(prm.alpha_end * PI / 180.);
 	Bv0 = prm.baseline_start * sin(prm.alpha_start * PI / 180.);
 	Bvf = prm.baseline_end * sin(prm.alpha_end * PI / 180.);
-	dBh = (Bhf - Bh0) / P->header->ny;
-	dBv = (Bvf - Bv0) / P->header->ny;
-	dBh = (Bhf - Bh0) / P->header->ny;
-	dBv = (Bvf - Bv0) / P->header->ny;
+	dBh = (Bhf - Bh0) / P->header->n_rows;
+	dBv = (Bvf - Bv0) / P->header->n_rows;
+	dBh = (Bhf - Bh0) / P->header->n_rows;
+	dBv = (Bvf - Bv0) / P->header->n_rows;
 
 	/* calculate height increment if available */
 	dht = 0.0;
 
 	if (prm.ht_start > 0.0 && prm.ht_end > 0.0) {
-		dht = (prm.ht_end - prm.ht_start) / P->header->ny;
+		dht = (prm.ht_end - prm.ht_start) / P->header->n_rows;
 	}
 
-	for (row = 0; row < BP->header->ny; row++) { /* For each row */
+	for (row = 0; row < BP->header->n_rows; row++) { /* For each row */
 
 		/* change the baseline and alpha along the satellite track */
 
@@ -143,10 +143,10 @@ int main(int argc, char **argv) {
 		alpha = atan2(Bv, Bh);
 		height = prm.ht_start + dht * row;
 
-		calc_theta(P->header->nx, prm.near_range, drange, prm.RE, height, alpha, theta);
+		calc_theta(P->header->n_columns, prm.near_range, drange, prm.RE, height, alpha, theta);
 
 		/* compute the perpendicular baseline */
-		for (col = 0; col < BP->header->nx; col++) { /* For each column, get node number */
+		for (col = 0; col < BP->header->n_columns; col++) { /* For each column, get node number */
 			node = GMT_Get_Index(API, BP->header, row, col);
 			BP->data[node] = (float)(B * cos((double)theta[col] - alpha));
 		}

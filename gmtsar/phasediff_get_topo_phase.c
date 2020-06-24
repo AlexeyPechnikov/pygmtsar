@@ -172,8 +172,8 @@ void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *t
 			if ((T = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, tp->input_file,
 			                       NULL)) == NULL)
 				die("cannot open topofile", tp->input_file);
-			tp->num_rng_bins = T->header->nx;
-			tp->num_lines = T->header->ny;
+			tp->num_rng_bins = T->header->n_columns;
+			tp->num_lines = T->header->n_rows;
 			*topoflag = 1;
 			i++;
 			GMT_Destroy_Data(API, &T);
@@ -185,8 +185,8 @@ void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *t
 			if ((M = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, mp->input_file,
 			                       NULL)) == NULL)
 				die("cannot open model file", mp->input_file);
-			mp->num_rng_bins = M->header->nx;
-			mp->num_lines = M->header->ny;
+			mp->num_rng_bins = M->header->n_columns;
+			mp->num_lines = M->header->n_rows;
 			*modelflag = 1;
 			i++;
 			GMT_Destroy_Data(API, &M);
@@ -330,14 +330,14 @@ int main(int argc, char **argv) {
 		if ((T = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, tp.input_file, NULL)) ==
 		    NULL)
 			return EXIT_FAILURE;
-		if (xdim % T->header->nx != 0 || ydim % T->header->ny != 0)
+		if (xdim % T->header->n_columns != 0 || ydim % T->header->n_rows != 0)
 			die("The dimension SLC must be multiplication factor of the topo_ra", tp.input_file);
 		if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, tp.input_file, T) == NULL)
 			return EXIT_FAILURE;
 		rdumt = floor(T->header->z_max + 1.0);
 
 		if (verbose)
-			fprintf(stderr, "\n%s %s %d %d\n", T->header->title, tp.input_file, T->header->nx, T->header->ny);
+			fprintf(stderr, "\n%s %s %d %d\n", T->header->title, tp.input_file, T->header->n_columns, T->header->n_rows);
 		if (verbose)
 			fprintf(stderr, "\n%f %f %f %f %f\n", T->header->wesn[GMT_XLO], T->header->wesn[GMT_YLO], T->header->inc[GMT_X],
 			        T->header->inc[GMT_Y], rdumt);
@@ -348,7 +348,7 @@ int main(int argc, char **argv) {
 
 		/* calculate the average and remove the average from the topography */
 
-		calc_average_topo(&avet, T->header->nx, T->header->ny, T->data);
+		calc_average_topo(&avet, T->header->n_columns, T->header->n_rows, T->data);
 		if (verbose)
 			fprintf(stderr, " read topo file: average %f \n", avet);
 	}
@@ -359,7 +359,7 @@ int main(int argc, char **argv) {
 		if ((M = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, mp.input_file, NULL)) ==
 		    NULL)
 			return EXIT_FAILURE;
-		if (xdim % M->header->nx != 0 || ydim % M->header->ny != 0)
+		if (xdim % M->header->n_columns != 0 || ydim % M->header->n_rows != 0)
 			die("The dimension SLC must be multiplication factor of the modelphase", mp.input_file);
 		if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, mp.input_file, M) == NULL)
 			return EXIT_FAILURE;
@@ -482,7 +482,7 @@ int main(int argc, char **argv) {
 			shft[k] = 0.;
 			if (topoflag) {
 				xt = k / xdect;
-				topo2[k] = T->data[xt + T->header->nx * yt];
+				topo2[k] = T->data[xt + T->header->n_columns * yt];
 			}
 		}
 
@@ -507,7 +507,7 @@ int main(int argc, char **argv) {
 			if (modelflag) {
 				xm = k / xdecm; /* xm is increment for model phase. note they are all
 				                   integers */
-				pha = pha - M->data[xm + M->header->nx * ym];
+				pha = pha - M->data[xm + M->header->n_columns * ym];
 			}
 			pshif = Cexp(pha);
 			//intfp[k] = Cmul(intfp[k], pshif);

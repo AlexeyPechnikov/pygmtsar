@@ -85,17 +85,17 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 
 	/* Make sure the topo and residual phase have the same dimensions */
-	if (!(T->header->nx == P->header->nx && T->header->ny == P->header->ny)) {
+	if (!(T->header->n_columns == P->header->n_columns && T->header->n_rows == P->header->n_rows)) {
 		die("\n", "topo and residue phase should have the same dimensions. \n");
 	}
 
 	get_prm(&prm, argv[1]); /* Open and read PRM file */
 
 	/* allocate the memory for work arrays */
-	scale = malloc(T->header->nx * sizeof(float));
-	res = malloc(T->header->nx * sizeof(float));
+	scale = malloc(T->header->n_columns * sizeof(float));
+	res = malloc(T->header->n_columns * sizeof(float));
 
-	ixdec = (int)prm.num_rng_bins / T->header->nx;
+	ixdec = (int)prm.num_rng_bins / T->header->n_columns;
 	drange = ixdec * SOL / (2.0 * prm.fs);
 	cnst = -prm.lambda / 4.0 / M_PI;
 
@@ -106,14 +106,14 @@ int main(int argc, char **argv) {
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, argv[3], P) == NULL)
 		return EXIT_FAILURE;
 
-	for (row = 0; row < T->header->ny; row++) {     /* For each row */
-		for (col = 0; col < T->header->nx; col++) { /* For each column, get node number */
+	for (row = 0; row < T->header->n_rows; row++) {     /* For each row */
+		for (col = 0; col < T->header->n_columns; col++) { /* For each column, get node number */
 			node = GMT_Get_Index(API, T->header, row, col);
 			scale[col] = T->data[node];
 			res[col] = P->data[node];
 		}
-		calc_phase2topo(T->header->nx, prm.near_range, drange, prm.RE, prm.ht, scale, res);
-		for (col = 0; col < T->header->nx; col++) { /* For each column, get node number */
+		calc_phase2topo(T->header->n_columns, prm.near_range, drange, prm.RE, prm.ht, scale, res);
+		for (col = 0; col < T->header->n_columns; col++) { /* For each column, get node number */
 			node = GMT_Get_Index(API, T->header, row, col);
 			T->data[node] += (float)(cnst * scale[col] + T->data[node]);
 		}

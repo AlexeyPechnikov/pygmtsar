@@ -641,15 +641,15 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 			for (jj = 0; jj < width; jj++) {
 				k = ii * width + jj;
 				if (floor((al_start + ii) / R->header->inc[GMT_Y] + 0.5) < 0 ||
-				    (int)floor((al_start + ii) / R->header->inc[GMT_Y] + 0.5) >= R->header->ny) {
+				    (int)floor((al_start + ii) / R->header->inc[GMT_Y] + 0.5) >= R->header->n_rows) {
 					cramp[k].r = 1;
 					cramp[k].i = 0;
 				}
 				else {
 					dr = R->data[(int)(jj / R->header->inc[GMT_X] + 0.5) +
-					             R->header->nx * (int)((al_start + ii) / R->header->inc[GMT_Y] + 0.5)];
+					             R->header->n_columns * (int)((al_start + ii) / R->header->inc[GMT_Y] + 0.5)];
 					da = A->data[(int)(jj / A->header->inc[GMT_X] + 0.5) +
-					             A->header->nx * (int)((al_start + ii) / A->header->inc[GMT_Y] + 0.5)] -
+					             A->header->n_columns * (int)((al_start + ii) / A->header->inc[GMT_Y] + 0.5)] -
 					     (double)bshift;
 
 					eta[0] = ((double)ii - (double)lpb / 2. + .5 + da) * dta;
@@ -1182,13 +1182,13 @@ int shift_burst(fcomplex *cbrst, fcomplex *cbrst2, int al_start, int lpb, int wi
 	for (ii = 0; ii < lpb; ii++) {
 		for (jj = 0; jj < width; jj++) {
 			k = ii * width + jj;
-			if (floor((al_start + ii) / incy + 0.5) < 0 || (int)floor((al_start + ii) / incy + 0.5) >= R->header->ny) {
+			if (floor((al_start + ii) / incy + 0.5) < 0 || (int)floor((al_start + ii) / incy + 0.5) >= R->header->n_rows) {
 				cbrst[k].r = 0;
 				cbrst[k].i = 0;
 			}
 			else {
-				kr = (int)floor(jj / incx + 0.5) + R->header->nx * (int)floor((al_start + ii) / incy + 0.5);
-				ka = (int)floor(jj / incx + 0.5) + A->header->nx * (int)floor((al_start + ii) / incy + 0.5);
+				kr = (int)floor(jj / incx + 0.5) + R->header->n_columns * (int)floor((al_start + ii) / incy + 0.5);
+				ka = (int)floor(jj / incx + 0.5) + A->header->n_columns * (int)floor((al_start + ii) / incy + 0.5);
 				ras[0] = (double)jj + R->data[kr];
 				ras[1] = (double)ii + A->data[ka] - (double)bshift;
 				fbisinc(ras, cbrst2, lpb, width, &cbrst[k]);

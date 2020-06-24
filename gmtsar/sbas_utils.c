@@ -270,15 +270,15 @@ int read_table_data_ts(void *API, FILE *infile, FILE *datefile, char **gfile, ch
 		if ((CC = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, cfile[i], NULL)) ==
 		    NULL)
 			die("Can't open ", cfile[i]);
-		xin = CC->header->nx;
-		yin = CC->header->ny;
+		xin = CC->header->n_columns;
+		yin = CC->header->n_rows;
 		if (xin != xdim || yin != ydim)
 			die("dimension don't match!", cfile[i]);
 		if ((GG = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_HEADER_ONLY, NULL, gfile[i], NULL)) ==
 		    NULL)
 			die("Can't open ", gfile[i]);
-		xin = GG->header->nx;
-		yin = GG->header->ny;
+		xin = GG->header->n_columns;
+		yin = GG->header->n_rows;
 		if (xin != xdim || yin != ydim)
 			die("dimension don't match!", gfile[i]);
 		if ((CC = GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, cfile[i], CC)) == NULL)

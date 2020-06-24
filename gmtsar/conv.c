@@ -209,12 +209,12 @@ int main(int argc, char **argv) {
 		if ((f_input = fopen(input_name, "r")) == NULL)
 			die("Can't open ", input_name);
 		fseek(f_input, 892L, SEEK_SET); /* Skip past the header */
-		xdim = In->header->nx;
-		ydim = In->header->ny;
+		xdim = In->header->n_columns;
+		ydim = In->header->n_rows;
 		xmax = In->header->wesn[GMT_XHI];
 		ymax = In->header->wesn[GMT_YHI];
 		if (verbose)
-			fprintf(stderr, "%d %d \n", In->header->nx, In->header->ny);
+			fprintf(stderr, "%d %d \n", In->header->n_columns, In->header->n_rows);
 		format_flag = 1;
 		break;
 	case 2:

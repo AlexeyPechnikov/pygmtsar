@@ -242,8 +242,8 @@ int create_grid(void *API, char *file, char *output, int radius) {
 	if (GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, file, T) == NULL)
 		return EXIT_FAILURE;
 
-	nx = T->header->nx;
-	ny = T->header->ny;
+	nx = T->header->n_columns;
+	ny = T->header->n_rows;
 	// printf("nx: %d, ny: %d\n",nx,ny);
 	m = T->data;
 	m_interp = (float *)malloc(sizeof(float) * nx * ny);

@@ -273,8 +273,8 @@ void handle_prm(void *API, char **argv, struct xcorr *xc, int nfiles) {
 				                            filename[i], NULL)) == NULL)
 					die("cannot open topofile", filename[i]);
 				strcpy(xc->data1_name, filename[i]);
-				xc->m_nx = xc->D1->header->nx;
-				xc->m_ny = xc->D1->header->ny;
+				xc->m_nx = xc->D1->header->n_columns;
+				xc->m_ny = xc->D1->header->n_rows;
 				if ((GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, filename[i],
 				                   xc->D1)) == NULL)
 					die("cannot open topofile", filename[i]);
@@ -284,8 +284,8 @@ void handle_prm(void *API, char **argv, struct xcorr *xc, int nfiles) {
 				                            filename[i], NULL)) == NULL)
 					die("cannot open topofile", filename[i]);
 				strcpy(xc->data2_name, filename[i]);
-				xc->s_nx = xc->D2->header->nx;
-				xc->s_ny = xc->D2->header->ny;
+				xc->s_nx = xc->D2->header->n_columns;
+				xc->s_ny = xc->D2->header->n_rows;
 				xc->x_offset = 0;
 				xc->y_offset = 0;
 				if ((GMT_Read_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_DATA_ONLY, NULL, filename[i],
