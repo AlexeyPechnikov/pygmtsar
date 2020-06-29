@@ -34,7 +34,7 @@ unset noclobber
 #
   if ((($1 =~ *PRM*) || ($1 =~ *prm*)) && ($3 =~ *grd*)) then
     echo " range decimation is:" $2
-    conv 4 $2 $fil1 $1 $3
+    conv 4 $2 $fil1 $1 $3=bf
   else 
     echo "slc2amp.csh"
     echo "wrong filename" 
