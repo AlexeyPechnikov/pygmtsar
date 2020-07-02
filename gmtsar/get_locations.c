@@ -9,7 +9,7 @@
 /*-------------------------------------------------------*/
 /* determine pixel location of each point for testing 	*/
 /* use master						*/
-/* pixel locations for slave includes x, y offset 	*/
+/* pixel locations for aligned includes x, y offset 	*/
 void get_locations(struct xcorr *xc) {
 	int i, j, n;
 

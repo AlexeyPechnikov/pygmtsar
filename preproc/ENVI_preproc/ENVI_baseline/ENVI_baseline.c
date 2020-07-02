@@ -15,16 +15,16 @@
 
 char *USAGE = "Usage: (two modes)\n"
               "mode 1:\n\n"
-              "SAT_baseline PRM_master PRM_slave \n\n"
+              "SAT_baseline PRM_master PRM_aligned \n\n"
               "PRM_master 	   PRM file for reference image\n"
-              "PRM_slave 	   PRM file of secondary image\n"
+              "PRM_aligned 	   PRM file of secondary image\n"
               "Please make sure the orbit file data is in PRM \n"
               "(writes out parameters for appending to PRM file)\n"
               "\nor mode 2:\n\n"
               "SAT_baseline -input file\n\n"
               "file: list of PRM files\n"
               "first file is assumed to be master\n"
-              "following are slaves\n"
+              "following are aligneds\n"
               "(writes out decimal year, Bperp, and PRM name)\n";
 
 /* function prototypes */
@@ -107,7 +107,7 @@ void read_all_ENVI_ldr(struct PRM *r, struct ALOS_ORB *orb, int nfiles) {
 		if (i == 0)
 			fprintf(stderr, "......master LED file %s \n", r[0].led_file);
 		if (i != 0)
-			fprintf(stderr, ".........slave LED file %s \n", r[i].led_file);
+			fprintf(stderr, ".........aligned LED file %s \n", r[i].led_file);
 
 		/* open each ldrfile and read into structure r */
 		if ((ldrfile = fopen(r[i].led_file, "r")) == NULL)

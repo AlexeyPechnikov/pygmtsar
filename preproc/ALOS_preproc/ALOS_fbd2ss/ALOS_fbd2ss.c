@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 	int j, k, headsize;
 
 	/*  set these three numbers and then recompile */
-	/*  ashift is the ashift from fitoffset this fbd file should be the slave */
+	/*  ashift is the ashift from fitoffset this fbd file should be the aligned */
 	/*  nburst is 355 for SW4 */
 	/*  ntot is the total number of lines between bursts scaled by the ratio of
 	 * the fbd_PRF/SW4_PRF */

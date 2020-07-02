@@ -25,7 +25,7 @@
   if ($#argv != 4 && $#argv != 6) then
 errormessage:
     echo ""
-    echo "Usage: filter.csh master.PRM slave.PRM filter decimation [rng_dec azi_dec]"
+    echo "Usage: filter.csh master.PRM aligned.PRM filter decimation [rng_dec azi_dec]"
     echo ""
     echo " Apply gaussian filter to amplitude and phase images."
     echo " "

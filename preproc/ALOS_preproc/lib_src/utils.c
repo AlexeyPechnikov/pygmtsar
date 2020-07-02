@@ -63,7 +63,7 @@ void get_seconds(struct PRM p, double *start, double *end) {
 	m = p.nrows - p.num_valid_az;
 
 	/*  adjust the prf to use the a_rsatretch_a scale factor which was
-	    needed to match the slave image to the master image */
+	    needed to match the aligned image to the master image */
 
 	prf_master = p.prf / (1. + p.a_stretch_a);
 

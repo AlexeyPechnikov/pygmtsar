@@ -69,7 +69,7 @@ int	iy, jx, ishft;
 	if (xc.format == 0) read_complex_short(xc.data1, xc.d1, iy, jx, xc.npx, xc.npy, xc.m_nx);
 	if (xc.format == 1) read_real_float(xc.data1, xc.d1, iy, jx, xc.npx, xc.npy, xc.m_nx);
 
-	/* set locations and read data for slave */
+	/* set locations and read data for aligned */
 	ishft = (int) xc.loc[iloc].y * xc.astretcha;
 	
 	iy = xc.loc[iloc].y + xc.y_offset + ishft - xc.npy/2;

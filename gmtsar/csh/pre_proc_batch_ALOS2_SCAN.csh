@@ -9,7 +9,7 @@
 
 #  format in data.in table file: 
 #  	line 1: master_name  
-# 	line 2 and below: slave_name
+# 	line 2 and below: aligned_name
 alias rm 'rm -f'
 unset noclobber
 #
@@ -23,7 +23,7 @@ unset noclobber
     echo ""
     echo "       format of data.in is:"
     echo "         line 1: master_name "
-    echo "         line 2 and below: slave_name"
+    echo "         line 2 and below: aligned_name"
     echo ""
     echo "       example of data.in for ALOS2 SCANSAR is:"
     echo "         IMG-HH-ALOS2047473650-150410-WBDR1.1__D"
@@ -77,47 +77,47 @@ unset noclobber
   baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$master-F$subswath.PRM >! baseline_table.dat
   baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$master-F$subswath.PRM GMT >! table.gmt
 #
-# loop and unpack the slave image using the same earth radius as the master image
+# loop and unpack the aligned image using the same earth radius as the master image
 #
   foreach line2 (`awk 'NR>1 {print $0}' $1`)
     echo "pre_proc_batch.csh"
-    echo "preprocess slave images"
+    echo "preprocess aligned images"
      
-    set slave = ` echo $line2 | awk '{ print substr($1,8,length($1)-7)}'`
-    if(! -f IMG-HH-$slave-F$subswath.SLC || ! -f IMG-HH-$slave-F$subswath.PRM ) then
-      echo "ALOS_pre_process_SLC IMG-HH-$slave-F$subswath LED-$slave -ALOS2 -radius $RAD -SLC_factor $SLC_factor"
-      ALOS_pre_process_SLC IMG-HH-$slave-F$subswath LED-$slave -ALOS2 -radius $RAD -SLC_factor $SLC_factor
+    set aligned = ` echo $line2 | awk '{ print substr($1,8,length($1)-7)}'`
+    if(! -f IMG-HH-$aligned-F$subswath.SLC || ! -f IMG-HH-$aligned-F$subswath.PRM ) then
+      echo "ALOS_pre_process_SLC IMG-HH-$aligned-F$subswath LED-$aligned -ALOS2 -radius $RAD -SLC_factor $SLC_factor"
+      ALOS_pre_process_SLC IMG-HH-$aligned-F$subswath LED-$aligned -ALOS2 -radius $RAD -SLC_factor $SLC_factor
     endif
 #
-# check the range sampling rate of the slave images and do conversion if necessary
+# check the range sampling rate of the aligned images and do conversion if necessary
 #
-    set rng_samp_rate_s = `grep rng_samp_rate IMG-HH-$slave-F$subswath.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+    set rng_samp_rate_s = `grep rng_samp_rate IMG-HH-$aligned-F$subswath.PRM | awk 'NR == 1 {printf("%d", $3)}'`
     set t = `echo $rng_samp_rate_m $rng_samp_rate_s | awk '{printf("%1.1f\n", $1/$2)}'`
     if ($t == 1.0) then
-      echo "The range sampling rate for master and slave images are: "$rng_samp_rate_m
+      echo "The range sampling rate for master and aligned images are: "$rng_samp_rate_m
 #
-      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$slave-F$subswath.PRM >> baseline_table.dat
-      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$slave-F$subswath.PRM GMT >> table.gmt
+      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$aligned-F$subswath.PRM >> baseline_table.dat
+      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$aligned-F$subswath.PRM GMT >> table.gmt
     else if ($t == 2.0) then
-      echo "Convert the slave image from FBD to FBS mode"
-      ALOS_fbd2fbs_SLC IMG-HH-$slave-F$subswath.PRM IMG-HH-$slave-F$subswath"_"FBS.PRM
+      echo "Convert the aligned image from FBD to FBS mode"
+      ALOS_fbd2fbs_SLC IMG-HH-$aligned-F$subswath.PRM IMG-HH-$aligned-F$subswath"_"FBS.PRM
 #
-      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$slave-F$subswath"_"FBS.PRM >> baseline_table.dat
-      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$slave-F$subswath"_"FBS.PRM GMT >> table.gmt
-      echo "Overwriting the old slave image"
-      mv IMG-HH-$slave-F$subswath"_"FBS.PRM IMG-HH-$slave-F$subswath.PRM
-      update_PRM IMG-HH-$slave-F$subswath.PRM input_file IMG-HH-$slave-F$subswath.SLC
-      mv IMG-HH-$slave-F$subswath"_"FBS.SLC IMG-HH-$slave-F$subswath.SLC
+      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$aligned-F$subswath"_"FBS.PRM >> baseline_table.dat
+      baseline_table.csh IMG-HH-$master-F$subswath.PRM IMG-HH-$aligned-F$subswath"_"FBS.PRM GMT >> table.gmt
+      echo "Overwriting the old aligned image"
+      mv IMG-HH-$aligned-F$subswath"_"FBS.PRM IMG-HH-$aligned-F$subswath.PRM
+      update_PRM IMG-HH-$aligned-F$subswath.PRM input_file IMG-HH-$aligned-F$subswath.SLC
+      mv IMG-HH-$aligned-F$subswath"_"FBS.SLC IMG-HH-$aligned-F$subswath.SLC
 
     else if  ($t == 0.5) then
       echo "Use FBS mode image as master"
       exit 1
     else
-      echo "The range sampling rate for master and slave images are not convertable"
+      echo "The range sampling rate for master and aligned images are not convertable"
       exit 1
     endif
 
-# end of the loop over slave images
+# end of the loop over aligned images
   end
 
 # end of the loop over subswath 

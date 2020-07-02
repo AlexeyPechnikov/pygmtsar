@@ -110,7 +110,7 @@
           echo $stem >> masterlist
           echo $stem >> tmp.stitchlist
         else
-          # sl>1 measn processing slave images, point-by-point alignment and corregistration is required 
+          # sl>1 measn processing aligned images, point-by-point alignment and corregistration is required 
           make_s1a_tops $file.xml $file.tiff $stem 0
           ext_orb_s1a $stem.PRM $orbit $stem
 

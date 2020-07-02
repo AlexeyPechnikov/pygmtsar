@@ -5,7 +5,7 @@
 #  May 23, 2017 - Anders Hogrelius, updated to fully support Envisat formatted SLC data
 #
 #  Script to calculate a table of parameters from master and
-#  slave PRM files.
+#  aligned PRM files.
 #
 unset noclobber
 #
@@ -13,11 +13,11 @@ unset noclobber
 #
  if ($#argv < 2) then
   echo " "
-  echo "Usage: baseline_table master.PRM slave.PRM [GMT] "
+  echo "Usage: baseline_table master.PRM aligned.PRM [GMT] "
   echo "               [GMT] creates table for pstext"
   echo " "
   echo " Output:"
-  echo " sat_orb slave_time slave_days(1992ERS,2006ALOS) Bpl Bperp xshift yshift"
+  echo " sat_orb aligned_time aligned_days(1992ERS,2006ALOS) Bpl Bperp xshift yshift"
   echo " "
   exit 1
  endif
@@ -34,7 +34,7 @@ set ERSSLC = `echo $1|cut -c1-10`
  set MTF = `grep SC_clock_stop $1 | awk '{print $3}'`
  set MSC = `grep SC_identity $1 | awk '{print $3}'`
 #
-#  get the time information from the slaver
+#  get the time information from the alignedr
 #
  set ST0 = `grep SC_clock_start $2 | awk '{print $3}'`
  set STF = `grep SC_clock_stop $2 | awk '{print $3}'`

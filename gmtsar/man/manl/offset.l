@@ -1,14 +1,14 @@
 .TH OFFSET l "04/10/98 \(co 1998 David Sandwell" "offset.l 1.0" "SIOSAR Command"
 .SH NAME
-offset \- calculates offsets in range and azimuth between master and slave SCL images
+offset \- calculates offsets in range and azimuth between master and aligned SCL images
 .SH SYNOPSIS
 .B offset
-.I master.head  slave.head offset.dat [-V]
+.I master.head  aligned.head offset.dat [-V]
 .SH DESCRIPTION
 The
 .B offset
-command reads two SLC SAR images, (master and slave) and computes
-row and column offsets needed to align the slave to the master. These offsets
+command reads two SLC SAR images, (master and aligned) and computes
+row and column offsets needed to align the aligned to the master. These offsets
 are used by a program 
 .B fitoffset 
 to generate parameters for the SAR processor 
@@ -58,8 +58,8 @@ gips header for master image must contain pointer to SLC file. Example pointer i
 .br
 input_file = 22876_585.SLC
 .TP 10
-.I slave.head
-gips header for slave image must also contain pointer to SLC file.
+.I aligned.head
+gips header for aligned image must also contain pointer to SLC file.
 .TP 10
 .I offset.dat
 ascii output file containing range and azimuthal offsets for numerous points

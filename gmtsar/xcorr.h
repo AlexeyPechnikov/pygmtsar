@@ -29,8 +29,8 @@ struct xcorr {
 	int ysearch;             /* size of y search offset */
 	int m_nx;                /* x size of master file */
 	int m_ny;                /* y size of master file */
-	int s_nx;                /* x size of slave file */
-	int s_ny;                /* y size of slave file */
+	int s_nx;                /* x size of aligned file */
+	int s_ny;                /* y size of aligned file */
 	int nxc;                 /* x size of correlation */
 	int nyc;                 /* y size of correlation */
 	int npx;                 /* x size of patch */

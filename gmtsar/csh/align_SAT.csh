@@ -25,7 +25,7 @@ endif
  gmt grd2xyz --FORMAT_FLOAT_OUT=%lf flt.grd -s > topo.llt
 
  set master = `awk '{if (NR==1) print $1}' $2`
- awk '{if (NR>1) print $1}' $2 > slave.list
+ awk '{if (NR>1) print $1}' $2 > aligned.list
 
  mv $master.PRM $master.PRM0
 
@@ -52,40 +52,40 @@ if ($1 == RAW) then
  echo "Focusing the master - END"
 endif
 
-set nslave = `cat slave.list |wc -l`
-set islave = 0
-foreach slave (`cat slave.list`)
-    @ islave = $islave + 1
-    echo "working on " $slave  " [ $islave / $nslave ]"
+set naligned = `cat aligned.list |wc -l`
+set ialigned = 0
+foreach aligned (`cat aligned.list`)
+    @ ialigned = $ialigned + 1
+    echo "working on " $aligned  " [ $ialigned / $naligned ]"
 
 
-    mv $slave.PRM $slave.PRM0
-    calc_dop_orb $slave.PRM0 $slave.log $earth_radius
+    mv $aligned.PRM $aligned.PRM0
+    calc_dop_orb $aligned.PRM0 $aligned.log $earth_radius
 
-    cat $slave.PRM0 $slave.log > $slave.PRM
-    echo "fdd1                    = 0" >> $slave.PRM
-    echo "fddd1                   = 0" >> $slave.PRM
+    cat $aligned.PRM0 $aligned.log > $aligned.PRM
+    echo "fdd1                    = 0" >> $aligned.PRM
+    echo "fddd1                   = 0" >> $aligned.PRM
     
-    update_PRM $slave.PRM earth_radius $earth_radius
-    update_PRM $slave.PRM fd1 $fd1
+    update_PRM $aligned.PRM earth_radius $earth_radius
+    update_PRM $aligned.PRM fd1 $fd1
 
-    rm -f $slave.log
+    rm -f $aligned.log
 
     if ($1 == RAW) then
-     echo "Focusing the slave - START"
-     sarp.csh $slave.PRM
-     echo "Focusing the slave - END"
+     echo "Focusing the aligned - START"
+     sarp.csh $aligned.PRM
+     echo "Focusing the aligned - END"
     endif
 
-    SAT_llt2rat $slave".PRM" 1 < topo.llt > slave.ratll
-    paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6 - $1, $2, $7 - $2, "100")}' > tmp.dat
+    SAT_llt2rat $aligned".PRM" 1 < topo.llt > aligned.ratll
+    paste master.ratll aligned.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6 - $1, $2, $7 - $2, "100")}' > tmp.dat
     awk '{if($1 > 0 && $1 < '$rmax' && $3 > 0 && $3 < '$amax') print $0 }' < tmp.dat > offset.dat
     awk '{ printf("%.6f %.6f %.6f \n",$1,$3,$2) }' < offset.dat > r.xyz
     awk '{ printf("%.6f %.6f %.6f \n",$1,$3,$4) }' < offset.dat > a.xyz
 
-   fitoffset.csh 3 3 offset.dat >> $slave".PRM"
-   resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-   mv $slave.SLC $slave.SLC_old
-   mv $slave.SLCresamp $slave.SLC
-   cp $slave.PRMresamp $slave.PRM
+   fitoffset.csh 3 3 offset.dat >> $aligned".PRM"
+   resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 4
+   mv $aligned.SLC $aligned.SLC_old
+   mv $aligned.SLCresamp $aligned.SLC
+   cp $aligned.PRMresamp $aligned.PRM
 end

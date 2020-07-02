@@ -12,7 +12,7 @@
     echo "  align a set of images listed in align.in file"
     echo ""
     echo "  format of align.in:"
-    echo "    master_name:slave_name:supermaster_name"
+    echo "    master_name:aligned_name:supermaster_name"
     echo ""
     echo "  example of align.in for ALOS is:"
     echo "   IMG-HH-ALPSRP096010650-H1.0__A:IMG-HH-ALPSRP089300650-H1.0__A:IMG-HH-ALPSRP096010650-H1.0__A"
@@ -38,18 +38,18 @@
 # 
   foreach line (`awk '{print $0}' $1`)
     set master = `echo $line | awk -F: '{print $1}'`
-    set slave = `echo $line | awk -F: '{print $2}'`
+    set aligned = `echo $line | awk -F: '{print $2}'`
     set supermaster = `echo $line | awk -F: '{print $3}'`
     set masterstem = ` echo $master | awk '{ print substr($1,8,length($1)-7)}'`
-    set slavestem =  ` echo $slave | awk '{ print substr($1,8,length($1)-7)}'`
+    set alignedstem =  ` echo $aligned | awk '{ print substr($1,8,length($1)-7)}'`
     set supermasterstem = ` echo $supermaster | awk '{ print substr($1,8,length($1)-7)}'`
 
-    if ($master != "" && $slave != "" && $supermaster != "") then
+    if ($master != "" && $aligned != "" && $supermaster != "") then
       echo " "
-      echo "Align $slave to $master via $supermaster - START"
+      echo "Align $aligned to $master via $supermaster - START"
       cd SLC
       cp ../raw/IMG-HH-$masterstem.PRM .
-      cp ../raw/IMG-HH-$slavestem.PRM .
+      cp ../raw/IMG-HH-$alignedstem.PRM .
       cp ../raw/IMG-HH-$supermasterstem.PRM .
 #
 #  need to add the SLC_file name to the master PRM's
@@ -57,13 +57,13 @@
       update_PRM IMG-HH-$masterstem.PRM SLC_file IMG-HH-$masterstem.SLC
       update_PRM IMG-HH-$supermasterstem.PRM SLC_file IMG-HH-$supermasterstem.SLC
       ln -s ../raw/IMG-HH-$masterstem.SLC . 
-      ln -s ../raw/IMG-HH-$slavestem.SLC . 
+      ln -s ../raw/IMG-HH-$alignedstem.SLC . 
       ln -s ../raw/LED-$masterstem . 
-      ln -s ../raw/LED-$slavestem .
+      ln -s ../raw/LED-$alignedstem .
       ln -s ../raw/LED-$supermasterstem .
-      align_ALOS_SLC.csh $master $slave $supermaster
+      align_ALOS_SLC.csh $master $aligned $supermaster
       cd ..
-      echo "Align $slave to $master via $supermaster - END"
+      echo "Align $aligned to $master via $supermaster - END"
     else 
       echo ""
       echo "Wrong format in align.in"

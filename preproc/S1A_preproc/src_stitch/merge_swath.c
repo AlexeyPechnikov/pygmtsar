@@ -25,7 +25,7 @@ char *USAGE = "\n\nUSAGE: merge_swath inputlist output [stem]\n"
               "                   "
               "F3/intf/2015036_2015060/S1A_20150609.PRM:F3/intf/2015036_2015060/"
               "phasefilt.grd\n"
-              "\nnote: use the slave PRM which contains the shift information\n"
+              "\nnote: use the aligned PRM which contains the shift information\n"
               "\noutput: output.grd [stem.PRM]\n"
               "\nnote: please put the files to stem.in in the order of swath numbers.\n"
               "\n      make sure all images have same num_rng_bin\n";

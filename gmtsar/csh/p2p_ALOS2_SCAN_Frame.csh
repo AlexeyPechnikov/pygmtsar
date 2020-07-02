@@ -33,7 +33,7 @@ unset noclobber
   echo "Processing 0-sequential  1-parallel [$seq] ..."
 
   set master = `echo $1 | awk '{print substr($1,8,length($1)-7)}'`
-  set slave = `echo $2 | awk '{print substr($1,8,length($1)-7)}'`
+  set aligned = `echo $2 | awk '{print substr($1,8,length($1)-7)}'`
 
 #if ( 6 == 9 ) then
 
@@ -52,7 +52,7 @@ unset noclobber
     ln -s ../../raw/$1"-F"$swath .
     ln -s ../../raw/$2"-F"$swath .
     ln -s ../../raw/LED-$master ./LED-$master"-F"$swath
-    ln -s ../../raw/LED-$slave ./LED-$slave"-F"$swath
+    ln -s ../../raw/LED-$aligned ./LED-$aligned"-F"$swath
     cd ..
     sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$3 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g"> $3
     cd ..

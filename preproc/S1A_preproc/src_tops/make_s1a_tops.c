@@ -1217,7 +1217,7 @@ void fbisinc(double *ras, fcomplex *s_in, int ydims, int xdims, fcomplex *sout) 
 	if (dr < 0. || dr > 1. || da < 0. || da > 1)
 		fprintf(stderr, " dr or da out of bounds %f %f \n", dr, da);
 
-	/* make sure all 4 corners are within the bounds of the slave array */
+	/* make sure all 4 corners are within the bounds of the aligned array */
 
 	if ((i0 - ns2) < 0 || (i0 + ns2 + 1) >= ydims || (j0 - ns2) < 0 || (j0 + ns2 + 1) >= xdims) {
 		sout->r = 0;

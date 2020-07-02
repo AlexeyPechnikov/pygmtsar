@@ -4,13 +4,13 @@
 #
 #  script to align S1 TOPS mode data 
 #
-#  1) Make PRM and LED files for both master and slave.
+#  1) Make PRM and LED files for both master and aligned.
 #
 #  2) Do geometric back geocoding to make the range and azimuth alignment grids 
 #
 #  3) Do spectral diversity to estimate residual shift and update azimuth shift
 #
-#  3) Make PRM, LED and SLC files for both master and slave that are aligned
+#  3) Make PRM, LED and SLC files for both master and aligned that are aligned
 #     at the fractional pixel level. 
 #
 alias rm 'rm -f'
@@ -18,7 +18,7 @@ unset noclobber
 #
 if ($#argv < 5 || $#argv > 6) then
  echo " "
- echo "Usage: align_tops.csh master_prefix master_orb_file slave_s1a_prefix slave_orb_file dem.grd [mode]" 
+ echo "Usage: align_tops.csh master_prefix master_orb_file aligned_s1a_prefix aligned_orb_file dem.grd [mode]" 
  echo " "
  echo "Be sure the tiff, xml, orbit and dem files are available in the local directory."
  echo " "
@@ -74,7 +74,7 @@ set spre = ` echo $3 | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"su
 echo $mpre
 echo $spre
 #
-#  1) make PRM and LED files for both master and slave but not the SLC file
+#  1) make PRM and LED files for both master and aligned but not the SLC file
 #
 make_s1a_tops $mxml $mtiff $mpre 0 
 make_s1a_tops $sxml $stiff $spre 0 
@@ -84,7 +84,7 @@ make_s1a_tops $sxml $stiff $spre 0
 ext_orb_s1a $mpre".PRM" $2 $mpre
 ext_orb_s1a $spre".PRM" $4 $spre
 #
-#  calculate the earth radius and make the slave match the master
+#  calculate the earth radius and make the aligned match the master
 #
 calc_dop_orb $mpre".PRM" tmp 0 0 
 cat tmp >> $mpre".PRM"
@@ -99,7 +99,7 @@ rm tmp tmp2#
 gmt grdfilter $5 -D3 -Fg2 -I12s -Ni -Gflt.grd 
 gmt grd2xyz --FORMAT_FLOAT_OUT=%lf flt.grd -s > topo.llt
 #
-# map the topography into the range and azimuth of the master and slave using polynomial refinement
+# map the topography into the range and azimuth of the master and aligned using polynomial refinement
 # can do this in parallel
 #
 # first check whether there are any burst shift
@@ -114,7 +114,7 @@ set tmp_da = `echo $tmp_am $tmp_as | awk '{printf("%d",$2 - $1)}'`
 #
 if ($tmp_da > -1000 && $tmp_da < 1000) then
   SAT_llt2rat $mpre".PRM" 1 < topo.llt > master.ratll &
-  SAT_llt2rat $spre".PRM" 1 < topo.llt > slave.ratll &
+  SAT_llt2rat $spre".PRM" 1 < topo.llt > aligned.ratll &
   wait
 else
   echo "Modifying master PRM by $tmp_da lines..."
@@ -133,7 +133,7 @@ else
 #
   #SAT_llt2rat tmp.PRM 1 < topo.llt > tmp.ratll &
   SAT_llt2rat tmp.PRM 1 < topo.llt > master.ratll &
-  SAT_llt2rat $spre".PRM" 1 < topo.llt > slave.ratll &
+  SAT_llt2rat $spre".PRM" 1 < topo.llt > aligned.ratll &
   wait
   #echo "Restoring $tmp_da lines to master ashifts..."
   #awk '{printf("%.6f %.6f %.6f %.6f %.6f\n",$1,$2-'$tmp_da',$3,$4,$5)}' tmp.ratll > master.ratll
@@ -141,10 +141,10 @@ endif
 #
 #  paste the files and compute the dr and da
 #
-#paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
-paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6 - $1, $2, $7 - $2, "100")}' > tmp.dat
+#paste master.ratll aligned.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
+paste master.ratll aligned.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $1, $6 - $1, $2, $7 - $2, "100")}' > tmp.dat
 #
-#  make sure the range and azimuth are within the bounds of the slave 
+#  make sure the range and azimuth are within the bounds of the aligned 
 #
 set rmax = `grep num_rng_bins $spre".PRM" | awk '{print $3}'`
 set amax = `grep num_lines $spre".PRM" | awk '{print $3}'`
@@ -171,7 +171,7 @@ wait
 gmt grdmath rtmp.grd FLIPUD = r.grd
 gmt grdmath atmp.grd FLIPUD = a.grd
 #
-#  3) make PRM, LED and SLC files for both master and slave that are aligned
+#  3) make PRM, LED and SLC files for both master and aligned that are aligned
 #     at the fractional pixel level but still need a integer alignment from 
 #     resamp
 #  
@@ -222,7 +222,7 @@ endif
 make_s1a_tops $mxml $mtiff $mpre 1 
 make_s1a_tops $sxml $stiff $spre 1 r.grd a.grd
 #
-#  resamp the slave and set the aoffset to zero
+#  resamp the aligned and set the aoffset to zero
 #
 cp $spre".PRM" $spre".PRM0"
 if ($tmp_da > -1000 && $tmp_da < 1000) then
@@ -246,7 +246,7 @@ endif
 ext_orb_s1a $mpre".PRM" $2 $mpre
 ext_orb_s1a $spre".PRM" $4 $spre
 #
-#  calculate the earth radius and make the slave match the master
+#  calculate the earth radius and make the aligned match the master
 #
 calc_dop_orb $mpre".PRM" tmp 0 0
 cat tmp >> $mpre".PRM"
@@ -255,4 +255,4 @@ calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
 cat tmp2 >> $spre".PRM"
 rm tmp tmp2
 #
-rm topo.llt master.ratll slave.ratll *tmp* flt.grd r.xyz a.xyz *.PRM0 *SLCH *SLCL
+rm topo.llt master.ratll aligned.ratll *tmp* flt.grd r.xyz a.xyz *.PRM0 *SLCH *SLCL

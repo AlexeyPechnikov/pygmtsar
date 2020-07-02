@@ -4,7 +4,7 @@
 #  D. Sandwell FEB 4 2010
 #  M. Wei MAY 4 2010 - ENVISAT
 # 
-# Align a slave image to a master image and check results
+# Align a aligned image to a master image and check results
 #
 alias rm 'rm -f'
 unset noclobber
@@ -13,7 +13,7 @@ unset noclobber
 # 
   if ($#argv < 2) then 
     echo ""
-    echo "Usage: align_ALOS_SLC.csh master_name slave_name [supermaster_name]"
+    echo "Usage: align_ALOS_SLC.csh master_name aligned_name [supermaster_name]"
     echo ""
     echo " The supermaster_namestem is required if this is secondary alignment."
     echo ""
@@ -31,14 +31,14 @@ unset noclobber
     update_PRM $1.PRM SLC_file $1.SLC
   endif
 #
-# focus the slave image
+# focus the aligned image
 #
 # check the range sampling rate 
 # 
   set rng_samp_rate_m = `grep rng_samp_rate $1.PRM | awk 'NR == 1 {printf("%d", $3)}'`
   set rng_samp_rate_s = `grep rng_samp_rate $2.PRM | awk 'NR == 1 {printf("%d", $3)}'`
   if ($rng_samp_rate_m != $rng_samp_rate_s) then 
-    echo "The range sampling rate for master and slave differ"
+    echo "The range sampling rate for master and aligned differ"
     echo "Need to run the interferogram in steps until process2pass.csh is fixed"
     exit 1
   endif 
@@ -68,7 +68,7 @@ unset noclobber
   update_PRM $2.PRM rshift $RSHIFT
   update_PRM $2.PRM ashift $ASHIFT
   echo "align.csh"
-  echo "correlate master and slave to find offset parameters"
+  echo "correlate master and aligned to find offset parameters"
   xcorr $1.PRM $2.PRM -xsearch 64 -ysearch 64 -nx 32 -ny 64
 #
   mv $2.PRM junk.PRM
@@ -82,7 +82,7 @@ unset noclobber
 #
 # refocus the second image
 #
-  echo "resamp slave"
+  echo "resamp aligned"
   resamp $1.PRM $2.PRM $2.PRMresamp $2.SLCresamp 4
   rm $2.SLC
   mv $2.SLCresamp $2.SLC

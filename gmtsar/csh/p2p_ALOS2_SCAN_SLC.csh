@@ -23,7 +23,7 @@ unset noclobber
 #
   if ($#argv != 4) then
     echo ""
-    echo "Usage: p2p_ALOS2_SCAN_SLC.csh master_image slave_image configuration_file subswatch"
+    echo "Usage: p2p_ALOS2_SCAN_SLC.csh master_image aligned_image configuration_file subswatch"
     echo ""
     echo "Example: p2p_ALOS2_SCAN_SLC.csh IMG-HH-ALOS2047033500-150407-WBDR1.1__D IMG-HH-ALOS2100853500-160405-WBDR1.1__D config.alos2.slc.txt 1"
     echo ""
@@ -91,15 +91,15 @@ unset noclobber
 # read file names of raw data
 #
   set master = ` echo $1 | awk '{ print substr($1,5,length($1)-4)}'`
-  set slave =  ` echo $2 | awk '{ print substr($1,5,length($1)-4)}'`
+  set aligned =  ` echo $2 | awk '{ print substr($1,5,length($1)-4)}'`
   set master_led = ` echo $1 | awk '{ print substr($1,8,length($1)-7)}'`
-  set slave_led =  ` echo $2 | awk '{ print substr($1,8,length($1)-7)}'`
+  set aligned_led =  ` echo $2 | awk '{ print substr($1,8,length($1)-7)}'`
 
   if ($switch_master == 0) then
     set ref = $master
-    set rep = $slave
+    set rep = $aligned
   else if ($switch_master == 1) then
-    set ref = $slave
+    set ref = $aligned
     set rep = $master
   else
     echo "Wrong paramter: switch_master "$switch_master
@@ -142,9 +142,9 @@ unset noclobber
 
     echo $commandline
 #   ALOS_pre_process_SLC IMG-$master LED-$master_led $commandline -rbias -68. 
-#   ALOS_pre_process_SLC IMG-$slave LED-$slave_led $commandline -rbias -68. 
+#   ALOS_pre_process_SLC IMG-$aligned LED-$aligned_led $commandline -rbias -68. 
     ALOS_pre_process_SLC IMG-$master-$subswath LED-$master_led $commandline 
-    ALOS_pre_process_SLC IMG-$slave-$subswath LED-$slave_led $commandline 
+    ALOS_pre_process_SLC IMG-$aligned-$subswath LED-$aligned_led $commandline 
 
 #
 # special code to filter the SLC data in range does not seem to work
@@ -171,24 +171,24 @@ unset noclobber
     cd SLC
     cp ../../raw/*.PRM .
     ln -s ../../raw/IMG-$master-$subswath.SLC . 
-    ln -s ../../raw/IMG-$slave-$subswath.SLC . 
+    ln -s ../../raw/IMG-$aligned-$subswath.SLC . 
     ln -s ../../raw/IMG-$master-$subswath.LED . 
-    ln -s ../../raw/IMG-$slave-$subswath.LED . 
+    ln -s ../../raw/IMG-$aligned-$subswath.LED . 
     
 
 # if images do not match, convert the FBD image to FBS
     set rng_samp_rate_m = `grep rng_samp_rate IMG-$master-$subswath.PRM | awk 'NR == 1 {printf("%d", $3)}'`
-    set rng_samp_rate_s = `grep rng_samp_rate IMG-$slave-$subswath.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+    set rng_samp_rate_s = `grep rng_samp_rate IMG-$aligned-$subswath.PRM | awk 'NR == 1 {printf("%d", $3)}'`
     set t = `echo $rng_samp_rate_m $rng_samp_rate_s | awk '{printf("%1.1f\n", $1/$2)}'`
     if ($t == 1.0) then
-        echo "The range sampling rate for master and slave images are: "$rng_samp_rate_m
+        echo "The range sampling rate for master and aligned images are: "$rng_samp_rate_m
     else if ($t == 2.0) then
-        echo "Convert the slave image from FBD to FBS mode"
-	ALOS_fbd2fbs_SLC IMG-$slave-$subswath.PRM IMG-$slave-$subswath"_"FBS.PRM
-        echo "Overwriting the old slave image"
-        mv IMG-$slave-$subswath"_"FBS.PRM IMG-$slave-$subswath.PRM
-	update_PRM IMG-$slave-$subswath.PRM input_file IMG-$slave-$subswath.SLC
-        mv IMG-$slave-$subswath"_"FBS.SLC IMG-$slave-$subswath.SLC
+        echo "Convert the aligned image from FBD to FBS mode"
+	ALOS_fbd2fbs_SLC IMG-$aligned-$subswath.PRM IMG-$aligned-$subswath"_"FBS.PRM
+        echo "Overwriting the old aligned image"
+        mv IMG-$aligned-$subswath"_"FBS.PRM IMG-$aligned-$subswath.PRM
+	update_PRM IMG-$aligned-$subswath.PRM input_file IMG-$aligned-$subswath.SLC
+        mv IMG-$aligned-$subswath"_"FBS.SLC IMG-$aligned-$subswath.SLC
     else if  ($t == 0.5) then
 	echo "Convert the master image from FBD to FBS mode"
 	ALOS_fbd2fbs_SLC IMG-$master-$subswath.PRM IMG-$master-$subswath"_"FBS.PRM
@@ -197,17 +197,17 @@ unset noclobber
 	update_PRM IMG-$master-$subswath.PRM input_file IMG-$master-$subswath.SLC
         mv IMG-$master-$subswath"_"FBS.SLC IMG-$master-$subswath.SLC
     else
-	echo "The range sampling rate for master and slave images are not convertable"
+	echo "The range sampling rate for master and aligned images are not convertable"
     	exit 1
     endif
 
-    cp IMG-$slave-$subswath.PRM IMG-$slave-$subswath.PRM0
-    SAT_baseline IMG-$master-$subswath.PRM IMG-$slave-$subswath.PRM0 >> IMG-$slave-$subswath.PRM
+    cp IMG-$aligned-$subswath.PRM IMG-$aligned-$subswath.PRM0
+    SAT_baseline IMG-$master-$subswath.PRM IMG-$aligned-$subswath.PRM0 >> IMG-$aligned-$subswath.PRM
 #
 #  there is a bug in xcorr so xsearch and ysearch must be the same
 #
-#    xcorr IMG-$master.PRM IMG-$slave.PRM -xsearch 128 -ysearch 128 -nx 64 -ny  256
-    xcorr IMG-$master-$subswath.PRM IMG-$slave-$subswath.PRM -xsearch 32 -ysearch 256 -nx 32 -ny  128
+#    xcorr IMG-$master.PRM IMG-$aligned.PRM -xsearch 128 -ysearch 128 -nx 64 -ny  256
+    xcorr IMG-$master-$subswath.PRM IMG-$aligned-$subswath.PRM -xsearch 32 -ysearch 256 -nx 32 -ny  128
 
     awk '{print $4}' < freq_xcorr.dat > tmp.dat
     set amedian = `sort -n tmp.dat | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }'`
@@ -215,11 +215,11 @@ unset noclobber
     set amin = `echo $amedian | awk '{print $1-3}'`
     awk '{if($4 > '$amin' && $4 < '$amax') print $0}' < freq_xcorr.dat > tmp2.dat
 
-    fitoffset.csh 2 3 tmp2.dat >> IMG-$slave-$subswath.PRM 10
-    resamp IMG-$master-$subswath.PRM IMG-$slave-$subswath.PRM IMG-$slave-$subswath.PRMresamp IMG-$slave-$subswath.SLCresamp 4
-    rm IMG-$slave-$subswath.SLC
-    mv IMG-$slave-$subswath.SLCresamp IMG-$slave-$subswath.SLC
-    cp IMG-$slave-$subswath.PRMresamp IMG-$slave-$subswath.PRM
+    fitoffset.csh 2 3 tmp2.dat >> IMG-$aligned-$subswath.PRM 10
+    resamp IMG-$master-$subswath.PRM IMG-$aligned-$subswath.PRM IMG-$aligned-$subswath.PRMresamp IMG-$aligned-$subswath.SLCresamp 4
+    rm IMG-$aligned-$subswath.SLC
+    mv IMG-$aligned-$subswath.SLCresamp IMG-$aligned-$subswath.SLC
+    cp IMG-$aligned-$subswath.PRMresamp IMG-$aligned-$subswath.PRM
         
     cd ../..
     echo "ALIGN - END"

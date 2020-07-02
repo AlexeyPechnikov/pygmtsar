@@ -35,7 +35,7 @@ typedef struct burst_bounds {
 	int E;
 } burst_bounds;
 
-char *USAGE = "\n Usage: spectral_diversity master_stem slave_stem bshfit filter\n"
+char *USAGE = "\n Usage: spectral_diversity master_stem aligned_stem bshfit filter\n"
               "\n Example: spectral_diversity S1A20150322_F1 S1A20150415_F1 0 gauss5x5\n"
               "\n Output: resitual_shift = 0.001234  [with a file ddphase]\n"
               "\n Note: make sure stem.SLCH stem.SLCL stem.BB exist \n";
@@ -220,14 +220,14 @@ int main(int argc, char **argv) {
 		kkm++;
 	}
 	if (kkm != kks)
-		printf("starting bursts are %d for master and %d for slave\n", kkm, kks);
+		printf("starting bursts are %d for master and %d for aligned\n", kkm, kks);
 	// printf("Working on burst %d (master, zz = %d)...\n",kkm,zz);
 	for (ii = 0; ii < ntl; ii++) {
 		if (ii >= bbm[kkm].ELi + 1 && ii <= bbm[kkm].EHi && ii >= bbs[kks].ELi + 1 && ii <= bbs[kks].EHi) {
 			// fprintf(stderr,"working on Line %d...\n",ii);
 			llm = ii - (bbm[kkm].ELi + 1) + bbm[kkm].S;
 			lls = ii - (bbs[kks].ELi + 1) + bbs[kks].S;
-			// if (llm%100 == 0) fprintf(stderr,"master_line %d, slave_line
+			// if (llm%100 == 0) fprintf(stderr,"master_line %d, aligned_line
 			// %d\n",llm,lls);
 			for (jj = 0; jj < spl; jj++) {
 				fmr = (float)mf[(llm * splm + jj) * 2];

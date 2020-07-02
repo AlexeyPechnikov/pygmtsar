@@ -11,7 +11,7 @@
 
 #  format in data.in table file: 
 #  	line 1: master_name  
-# 	line 2 and below: slave_name
+# 	line 2 and below: aligned_name
 
 alias rm 'rm -f'
 unset noclobber
@@ -26,7 +26,7 @@ unset noclobber
     echo ""
     echo "       format of data.in is:"
     echo "         line 1: master_name "
-    echo "         line 2 and below: slave_name"
+    echo "         line 2 and below: aligned_name"
     echo ""
     echo "       example of data.in for ALOS is:"
     echo "         IMG-HH-ALPSRP096010650-H1.0__A" 
@@ -84,47 +84,47 @@ unset noclobber
   baseline_table.csh IMG-HH-$master.PRM IMG-HH-$master.PRM >! baseline_table.dat
   baseline_table.csh IMG-HH-$master.PRM IMG-HH-$master.PRM GMT >! table.gmt
 #
-# loop and unpack the slave image using the same earth radius and near range as the master image
+# loop and unpack the aligned image using the same earth radius and near range as the master image
 #
   foreach line2 (`awk 'NR>1 {print $0}' $1`)
     echo "pre_proc_batch.csh"
-    echo "preprocess slave images"
+    echo "preprocess aligned images"
      
-    set slave = ` echo $line2 | awk '{ print substr($1,8,length($1)-7)}'`
-    if(! -f IMG-HH-$slave.SLC || ! -f IMG-HH-$slave.PRM ) then
-      echo "ALOS_pre_process_SLC IMG-HH-$slave LED-$slave -ALOS1 -radius $RAD "
-      ALOS_pre_process_SLC IMG-HH-$slave LED-$slave -ALOS1 -radius $RAD 
+    set aligned = ` echo $line2 | awk '{ print substr($1,8,length($1)-7)}'`
+    if(! -f IMG-HH-$aligned.SLC || ! -f IMG-HH-$aligned.PRM ) then
+      echo "ALOS_pre_process_SLC IMG-HH-$aligned LED-$aligned -ALOS1 -radius $RAD "
+      ALOS_pre_process_SLC IMG-HH-$aligned LED-$aligned -ALOS1 -radius $RAD 
     endif
 #
-# check the range sampling rate of the slave images and do conversion if necessary
+# check the range sampling rate of the aligned images and do conversion if necessary
 #
-    set rng_samp_rate_s = `grep rng_samp_rate IMG-HH-$slave.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+    set rng_samp_rate_s = `grep rng_samp_rate IMG-HH-$aligned.PRM | awk 'NR == 1 {printf("%d", $3)}'`
     set t = `echo $rng_samp_rate_m $rng_samp_rate_s | awk '{printf("%1.1f\n", $1/$2)}'`
     if ($t == 1.0) then
-      echo "The range sampling rate for master and slave images are: "$rng_samp_rate_m
+      echo "The range sampling rate for master and aligned images are: "$rng_samp_rate_m
 #
-      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave.PRM >> baseline_table.dat
-      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave.PRM GMT >> table.gmt
+      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned.PRM >> baseline_table.dat
+      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned.PRM GMT >> table.gmt
     else if ($t == 2.0) then
-      echo "Convert the slave image from FBD to FBS mode"
-      ALOS_fbd2fbs_SLC IMG-HH-$slave.PRM IMG-HH-$slave"_"FBS.PRM
+      echo "Convert the aligned image from FBD to FBS mode"
+      ALOS_fbd2fbs_SLC IMG-HH-$aligned.PRM IMG-HH-$aligned"_"FBS.PRM
 #
-      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave"_"FBS.PRM >> baseline_table.dat
-      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave"_"FBS.PRM GMT >> table.gmt
-      echo "Overwriting the old slave image"
-      mv IMG-HH-$slave"_"FBS.PRM IMG-HH-$slave.PRM
-      update_PRM IMG-HH-$slave.PRM input_file IMG-HH-$slave.SLC
-      mv IMG-HH-$slave"_"FBS.SLC IMG-HH-$slave.SLC
+      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned"_"FBS.PRM >> baseline_table.dat
+      baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned"_"FBS.PRM GMT >> table.gmt
+      echo "Overwriting the old aligned image"
+      mv IMG-HH-$aligned"_"FBS.PRM IMG-HH-$aligned.PRM
+      update_PRM IMG-HH-$aligned.PRM input_file IMG-HH-$aligned.SLC
+      mv IMG-HH-$aligned"_"FBS.SLC IMG-HH-$aligned.SLC
 
     else if  ($t == 0.5) then
       echo "Use FBS mode image as master"
       exit 1
     else
-      echo "The range sampling rate for master and slave images are not convertable"
+      echo "The range sampling rate for master and aligned images are not convertable"
       exit 1
     endif
 
-# end of the loop over slave images
+# end of the loop over aligned images
   end
 
 #

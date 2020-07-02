@@ -62,9 +62,9 @@ shift_topo = 1
 #   - intf.csh                                     #
 #   - filter.csh                                   #
 ####################################################
-# switch the master and slave when doing intf. 
-# put "1" if assume master as repeat and slave as reference 
-# put "0" if assume master as reference and slave as repeat [Default]
+# switch the master and aligned when doing intf. 
+# put "1" if assume master as repeat and aligned as reference 
+# put "0" if assume master as reference and aligned as repeat [Default]
 # phase = repeat phase - reference phase
 switch_master = 0
 

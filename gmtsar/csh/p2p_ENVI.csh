@@ -12,7 +12,7 @@ unset noclobber
 #
 if ($#argv < 3) then
     echo ""
-    echo "Usage: p2p_ENVI.csh master_stem slave_stem configuration_file"
+    echo "Usage: p2p_ENVI.csh master_stem aligned_stem configuration_file"
     echo ""
     echo "Example: p2p_ENVI.csh ENV1_2_077_0639_0657_41714 ENV1_2_077_0639_0657_42716 config.envi.txt"
     echo ""
@@ -80,13 +80,13 @@ if ($#argv < 3) then
 # read file names of raw data
 #
   set master = $1
-  set slave =  $2 
+  set aligned =  $2 
 
   if ($switch_master == 0) then
     set ref = $master
-    set rep = $slave
+    set rep = $aligned
   else if ($switch_master == 1) then
-    set ref = $slave
+    set ref = $aligned
     set rep = $master
   else
     echo "Wrong paramter: switch_master "$switch_master
@@ -114,16 +114,16 @@ if ($#argv < 3) then
     ENVI_pre_process $master $near_range $earth_radius $npatch $fd
     set NEAR = `grep near_range $master.PRM | awk '{print $3}'`
     set RAD = `grep earth_radius $master.PRM | awk '{print $3}'`
-    ENVI_pre_process $slave $NEAR $RAD $npatch $fd
+    ENVI_pre_process $aligned $NEAR $RAD $npatch $fd
 #   
 #   check patch number, if different, use the smaller one
 # 
     set pch1 = `grep patch $master.PRM | awk '{printf("%d ",$3)}'`
-    set pch2 = `grep patch $slave.PRM | awk '{printf("%d ",$3)}'`
+    set pch2 = `grep patch $aligned.PRM | awk '{printf("%d ",$3)}'`
     echo "Different number of patches: $pch1 $pch2"
     if ($pch1 != $pch2) then
       if ($pch1 < $pch2) then
-        update_PRM $slave.PRM num_patches $pch1
+        update_PRM $aligned.PRM num_patches $pch1
         echo "Number of patches is set to $pch1"
       else
         update_PRM $master.PRM num_patches $pch2
@@ -134,11 +134,11 @@ if ($#argv < 3) then
 #   set the Doppler to be the average of the two
 #
     grep fd1 $master.PRM | awk '{printf("%f ",$3)}' > temp
-    grep fd1 $slave.PRM | awk '{printf("%f",$3)}' >> temp
+    grep fd1 $aligned.PRM | awk '{printf("%f",$3)}' >> temp
     set fda = `cat temp | awk '{print( ($1 + $2)/2.)}'`
     echo " use average Doppler $fda "
     update_PRM $master.PRM fd1 $fda
-    update_PRM $slave.PRM fd1 $fda
+    update_PRM $aligned.PRM fd1 $fda
     rm -r temp
     cd ..
     echo " PREPROCESS Envisat DATA  -- END"
@@ -161,10 +161,10 @@ if ($#argv < 3) then
     cd SLC
     cp ../raw/*.PRM .
     ln -s ../raw/$master.raw . 
-    ln -s ../raw/$slave.raw . 
+    ln -s ../raw/$aligned.raw . 
     ln -s ../raw/$master.LED . 
-    ln -s ../raw/$slave.LED .
-    align.csh SAT $master $slave 
+    ln -s ../raw/$aligned.LED .
+    align.csh SAT $master $aligned 
     cd ..
     echo "ALIGN.CSH - END"
   endif
@@ -241,7 +241,7 @@ if ($#argv < 3) then
     echo "INTF.CSH, FILTER.CSH - START"
     cd intf/
     set ref_id  = `grep SC_clock_start ../raw/$master.PRM | awk '{printf("%d",int($3))}' `
-    set rep_id  = `grep SC_clock_start ../raw/$slave.PRM | awk '{printf("%d",int($3))}' `
+    set rep_id  = `grep SC_clock_start ../raw/$aligned.PRM | awk '{printf("%d",int($3))}' `
     mkdir $ref_id"_"$rep_id
     cd $ref_id"_"$rep_id
     ln -s ../../raw/$ref.LED . 
@@ -277,7 +277,7 @@ if ($#argv < 3) then
     if ($threshold_snaphu != 0 ) then
       cd intf
       set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
-      set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
+      set rep_id  = `grep SC_clock_start ../SLC/$aligned.PRM | awk '{printf("%d",int($3))}' `
       cd $ref_id"_"$rep_id
       if ((! $?region_cut) || ($region_cut == "")) then
         set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
@@ -321,7 +321,7 @@ if ($#argv < 3) then
   if ($stage <= 6) then
     cd intf
     set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
-    set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
+    set rep_id  = `grep SC_clock_start ../SLC/$aligned.PRM | awk '{printf("%d",int($3))}' `
     cd $ref_id"_"$rep_id
     echo " "
     echo "GEOCODE.CSH - START"

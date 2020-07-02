@@ -4,11 +4,11 @@
 #
 #  script to align S1 TOPS mode data 
 #
-#  1) Make PRM and LED files for both master and slave.
+#  1) Make PRM and LED files for both master and aligned.
 #
 #  2) Do geometric back projection to determine the alignment parameters.
 #
-#  3) Make PRM, LED and SLC files for both master and slave that are aligned
+#  3) Make PRM, LED and SLC files for both master and aligned that are aligned
 #     at the fractional pixel level. 
 #
 alias rm 'rm -f'
@@ -16,7 +16,7 @@ unset noclobber
 #
 if ($#argv < 5) then
  echo " "
- echo "Usage: align_tops.csh master_prefix master_orb_file slave_s1a_prefix slave_orb_file dem.grd" 
+ echo "Usage: align_tops.csh master_prefix master_orb_file aligned_s1a_prefix aligned_orb_file dem.grd" 
  echo " "
  echo "Be sure the tiff, xml, orbit and dem files are available in the local directory."
  echo " "
@@ -62,7 +62,7 @@ set swath = ` echo $1 | awk '{ print substr($1,7,1)}'`
 echo $mpre
 echo $spre
 #
-#  1) make PRM and LED files for both master and slave but not the SLC file
+#  1) make PRM and LED files for both master and aligned but not the SLC file
 #
 make_s1a_tops_6par $mxml $mtiff $mpre 0 0. 0. 0. 0. 0. 0.
 make_s1a_tops_6par $sxml $stiff $spre 0 0. 0. 0. 0. 0. 0.
@@ -72,7 +72,7 @@ make_s1a_tops_6par $sxml $stiff $spre 0 0. 0. 0. 0. 0. 0.
 ext_orb_s1a $mpre".PRM" $2 $mpre
 ext_orb_s1a $spre".PRM" $4 $spre
 #
-#  calculate the earth radius and make the slave match the master
+#  calculate the earth radius and make the aligned match the master
 #
 calc_dop_orb $mpre".PRM" tmp 0 0
 cat tmp >> $mpre".PRM"
@@ -88,7 +88,7 @@ rm tmp tmp2
 gmt grdfilter $5 -D2 -Fg4 -I30s -Gflt.grd 
 gmt grd2xyz --FORMAT_FLOAT_OUT=%lf flt.grd -s > topo.llt
 #
-# zero the alignment parameters of the slave image
+# zero the alignment parameters of the aligned image
 # don'd change the alignment parameters of the master image in case this is a surrogate master
 #
 update_PRM $spre".PRM" rshift 0
@@ -100,15 +100,15 @@ update_PRM $spre".PRM" sub_int_a 0.0
 update_PRM $spre".PRM" stretch_a 0.0
 update_PRM $spre".PRM" a_stretch_a 0.0
 #
-# map the topography into the range and azimuth of the master and slave using polynomial refinement
+# map the topography into the range and azimuth of the master and aligned using polynomial refinement
 #
 SAT_llt2rat $mpre".PRM" 1 < topo.llt > master.ratll
-SAT_llt2rat $spre".PRM" 1 < topo.llt > slave.ratll
+SAT_llt2rat $spre".PRM" 1 < topo.llt > aligned.ratll
 #
 #  paste the files and compute the dr and da
 #
-#paste master.ratll slave.ratll | awk '{print( $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
-paste master.ratll slave.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
+#paste master.ratll aligned.ratll | awk '{print( $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
+paste master.ratll aligned.ratll | awk '{printf("%.6f %.6f %.6f %.6f %d\n", $6, $6-$1, $7, $7-$2, "100")}' > tmp.dat
 #
 #  make sure the range and azimuth are within the bounds of the master
 #
@@ -127,9 +127,9 @@ set ashift = `grep ashift $spre".PRM" | tail -1 | awk '{print $3}'`
 #
 # clean up the mess
 #
-rm topo.llt master.ratll slave.ratll tmp.dat offset.dat flt.grd
+rm topo.llt master.ratll aligned.ratll tmp.dat offset.dat flt.grd
 #
-#  3) make PRM, LED and SLC files for both master and slave that are aligned
+#  3) make PRM, LED and SLC files for both master and aligned that are aligned
 #     at the fractional pixel level but still need a integer alignment from 
 #     resamp
 #
@@ -156,7 +156,7 @@ update_PRM $spre".PRM" ashift $ashift
 ext_orb_s1a $mpre".PRM" $2 $mpre
 ext_orb_s1a $spre".PRM" $4 $spre
 #
-#  calculate the earth radius and make the slave match the master
+#  calculate the earth radius and make the aligned match the master
 #
 calc_dop_orb $mpre".PRM" tmp 0 0
 cat tmp >> $mpre".PRM"
@@ -165,10 +165,10 @@ calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
 cat tmp2 >> $spre".PRM"
 rm tmp tmp2
 #
-# do integer resampling of the slave
+# do integer resampling of the aligned
 #
 resamp $mpre".PRM" $spre".PRM" $spre".PRMresamp" $spre".SLCresamp" 1
 mv $spre".SLCresamp" $spre".SLC"
 mv $spre".PRMresamp" $spre".PRM"
 #
-rm topo.llt master.ratll slave.ratll *tmp* flt.grd r.xyz a.xyz
+rm topo.llt master.ratll aligned.ratll *tmp* flt.grd r.xyz a.xyz

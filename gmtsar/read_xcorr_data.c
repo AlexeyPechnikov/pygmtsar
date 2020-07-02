@@ -95,12 +95,12 @@ void read_xcorr_data(struct xcorr *xc, int iloc) {
 	if (xc->format == 2)
 		read_real_float_grid(xc->D1, xc->d1, iy, xc->npy, xc->m_nx, xc->m_ny);
 
-	/* set locations and read data for slave */
+	/* set locations and read data for aligned */
 	ishft = (int)xc->loc[iloc].y * xc->astretcha;
 	iy = xc->loc[iloc].y + xc->y_offset + ishft - xc->npy / 2;
 
 	if (debug)
-		fprintf(stderr, " reading data from slave at y = %d and %d items\n", iy, xc->s_nx);
+		fprintf(stderr, " reading data from aligned at y = %d and %d items\n", iy, xc->s_nx);
 	if (xc->format == 0)
 		read_complex_short2(xc->data2, xc->d2, iy, xc->npy, xc->s_nx, tmp_s);
 	if (xc->format == 1)

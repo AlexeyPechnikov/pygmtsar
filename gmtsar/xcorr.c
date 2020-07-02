@@ -31,10 +31,10 @@
 #include "gmtsar.h"
 
 char *USAGE = "xcorr [GMTSAR] - Compute 2-D cross-correlation of two images\n\n"
-              "\nUsage: xcorr master.PRM slave.PRM [-time] [-real] [-freq] [-nx n] [-ny "
+              "\nUsage: xcorr master.PRM aligned.PRM [-time] [-real] [-freq] [-nx n] [-ny "
               "n] [-xsearch xs] [-ysearch ys]\n"
               "master.PRM     	PRM file for reference image\n"
-              "slave.PRM     	 	PRM file of secondary image\n"
+              "aligned.PRM     	 	PRM file of secondary image\n"
               "-time      		use time cross-correlation\n"
               "-freq      		use frequency cross-correlation (default)\n"
               "-real      		read float numbers instead of complex numbers\n"
@@ -77,9 +77,9 @@ int do_range_interpolate(void *API, struct FCOMPLEX *c, int nx, int ri, struct F
 }
 /*-------------------------------------------------------------------------------*/
 /* complex arrays used in fft correlation */
-/* load complex arrays and mask out slave */
+/* load complex arrays and mask out aligned */
 /* c1 is master */
-/* c2 is slave */
+/* c2 is aligned */
 /* c3 used in fft complex correlation */
 /* c1, c2, and c3 are npy by npx */
 /* d1, d2 are npy by nx (length of line in SLC) */
@@ -88,7 +88,7 @@ void assign_values(void *API, struct xcorr *xc, int iloc) {
 	int i, j, k, sx, mx;
 	double mean1, mean2;
 
-	/* master and slave x offsets */
+	/* master and aligned x offsets */
 	mx = xc->loc[iloc].x - xc->npx / 2;
 	sx = xc->loc[iloc].x + xc->x_offset - xc->npx / 2;
 

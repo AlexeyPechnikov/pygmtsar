@@ -47,7 +47,7 @@ void do_freq_corr(void *API, struct xcorr *xc, int iloc) {
 	cave = 0.0;
 
 	/* d1, c1 is the master					*/
-	/* d2, c2 is the slave					*/
+	/* d2, c2 is the aligned					*/
 	if (debug)
 		print_complex(xc->c1, xc->npy, xc->npx, 1);
 	if (debug)

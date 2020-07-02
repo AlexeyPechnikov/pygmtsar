@@ -1,6 +1,6 @@
 /*	$Id$	*/
 /***************************************************************************
- * resamp resamples a slave image to match the geometry of a master image. *
+ * resamp resamples a aligned image to match the geometry of a master image. *
  **************************************************************************/
 
 /***************************************************************************
@@ -30,11 +30,11 @@
 #include <sys/types.h>
 
 char *USAGE = "\nUsage: "
-              "resamp master.PRM slave.PRM new_slave.PRM new_slave.SLC intrp \n"
+              "resamp master.PRM aligned.PRM new_aligned.PRM new_aligned.SLC intrp \n"
               "   master.PRM       - PRM for master imagea \n"
-              "   slave.PRM        - PRM for slave image \n"
-              "   new_slave.PRM    - PRM for aligned slave image \n"
-              "   new_slave.SLC    - SLC for aligned slave image \n"
+              "   aligned.PRM        - PRM for aligned image \n"
+              "   new_aligned.PRM    - PRM for aligned aligned image \n"
+              "   new_aligned.SLC    - SLC for aligned aligned image \n"
 
               "   intrp            - interpolation method: 1-nearest; "
               "2-bilinear; 3-biquadratic; 4-bisinc \n \n";
@@ -53,9 +53,9 @@ int main(int argc, char **argv) {
 	int ii, jj;
 	int debug, intrp;
 	int xdimm, ydimm;                 /* size of master SLC file */
-	int xdims, ydims;                 /* size of slave SLC file */
+	int xdims, ydims;                 /* size of aligned SLC file */
 	short *sinn = NULL, *sout = NULL; /* pointer to input (whole array) and output (row) files.*/
-	double ram[2], ras[2];            /* range and azimuth locations for master and slave images */
+	double ram[2], ras[2];            /* range and azimuth locations for master and aligned images */
 	FILE *SLC_file2 = NULL, *prmout = NULL;
 	int fdin;
 	double sv_pr[6];
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 	if (debug)
 		print_prm_params(pm, ps);
 
-	/* set width and length of the master and slave images */
+	/* set width and length of the master and aligned images */
 	xdimm = pm.num_rng_bins;
 	ydimm = pm.num_patches * pm.num_valid_az;
 	xdims = ps.num_rng_bins;
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
 		ps.a_stretch_a = 0.;
 	}
 
-	/* allocate memory for one row of the slave image */
+	/* allocate memory for one row of the aligned image */
 	if ((sout = (short *)malloc(2 * xdimm * sizeof(short))) == NULL) {
 		fprintf(stderr, "Sorry, couldn't allocate memory for output indata.\n");
 		exit(-1);
@@ -116,13 +116,13 @@ int main(int argc, char **argv) {
 	if ((sinn = mmap(0, st_size, PROT_READ, MAP_SHARED, fdin, 0)) == MAP_FAILED)
 		die("mmap error for input", " ");
 
-	/* open the slave slc file for writing and write one row at a time */
+	/* open the aligned slc file for writing and write one row at a time */
 	if ((SLC_file2 = fopen(argv[4], "w")) == NULL)
 		die("Can't open SLCfile for output", argv[4]);
 	for (ii = 0; ii < ydimm; ii++) {
 		for (jj = 0; jj < xdimm; jj++) {
 
-			/* convert master ra to slave ra */
+			/* convert master ra to aligned ra */
 			ram[0] = jj;
 			ram[1] = ii;
 			ram2ras(ps, ram, ras);
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
 		ps.a_stretch_a = sv_pr[5];
 	}
 
-	/* update and write the slave PRM file */
+	/* update and write the aligned PRM file */
 	ps.num_rng_bins = pm.num_rng_bins;
 	ps.fs = pm.fs;
 	ps.bytes_per_line = pm.bytes_per_line;
@@ -285,7 +285,7 @@ void nearest(double *ras, short *s_in, int ydims, int xdims, short *sout) {
 	tmp_sin++;
 	tmp_sin = s_in + (size_t)(2 * xdims) * (size_t)i * (tmp_sin - s_in);
 
-	/* use the nearest point if it is within the bounds of the slave array */
+	/* use the nearest point if it is within the bounds of the aligned array */
 
 	if (i < 0 || i >= ydims || j < 0 || j >= xdims) {
 		sout[0] = 0;
@@ -332,7 +332,7 @@ void bilinear(double *ras, short *s_in, int ydims, int xdims, short *sout) {
 	k10 = 2 * xdims + 2 * j0;
 	k11 = 2 * xdims + 2 * (j0 + 1);
 
-	/* do the interpolation if all 4 corners are within the bounds of the slave
+	/* do the interpolation if all 4 corners are within the bounds of the aligned
 	 * array */
 
 	if (i0 < 0 || i0 >= (ydims - 1) || j0 < 0 || j0 >= (xdims - 1)) {
@@ -381,7 +381,7 @@ void bicubic(double *ras, short *s_in, int ydims, int xdims, short *sout) {
 	if (dr < 0. || dr > 1. || da < 0. || da > 1)
 		fprintf(stderr, " dr or da out of bounds %f %f \n", dr, da);
 
-	/* make sure all 4 corners are within the bounds of the slave array */
+	/* make sure all 4 corners are within the bounds of the aligned array */
 
 	if ((i0 - 1) < 0 || (i0 + 2) >= ydims || (j0 - 1) < 0 || (j0 + 2) >= xdims) {
 		sout[0] = 0;
@@ -439,7 +439,7 @@ void bisinc(double *ras, short *s_in, int ydims, int xdims, short *sout) {
 	if (dr < 0. || dr > 1. || da < 0. || da > 1)
 		fprintf(stderr, " dr or da out of bounds %f %f \n", dr, da);
 
-	/* make sure all 4 corners are within the bounds of the slave array */
+	/* make sure all 4 corners are within the bounds of the aligned array */
 
 	if ((i0 - ns2) < 0 || (i0 + ns2 + 1) >= ydims || (j0 - ns2) < 0 || (j0 + ns2 + 1) >= xdims) {
 		sout[0] = 0;
@@ -511,7 +511,7 @@ void fix_prm_params(struct PRM *p, char *s) {
 }
 /************************************************************************
  * ram2ras maps range and azimuth from a master image location into the  *
- * corresponding range and azimuth location of the slave image.          *
+ * corresponding range and azimuth location of the aligned image.          *
  ************************************************************************/
 /************************************************************************
  * Creator: David Sandwell       (Scripps Institution of Oceanography)   *

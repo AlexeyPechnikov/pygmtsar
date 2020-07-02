@@ -7,7 +7,7 @@
 #
   if ($#argv != 3 && $#argv != 4) then
     echo ""
-    echo "Usage: MAI_processing.csh SAT master_image slave_image [configuration_file] "
+    echo "Usage: MAI_processing.csh SAT master_image aligned_image [configuration_file] "
     echo ""
     echo "Example: MAI_processing.csh ALOS_SLC IMG-HH-ALPSRP055750660-H1.0__A IMG-HH-ALPSRP049040660-H1.0__A [config.alos.txt]"
     echo ""
@@ -30,7 +30,7 @@
     set conf = `echo "config.$SAT.txt"`
   endif
   set master = ` echo $2 `
-  set slave =  ` echo $3 `
+  set aligned =  ` echo $3 `
   set region_cut = `grep region_cut $conf | awk '{print $3}'`
   set filter = `grep filter_wavelength $conf | awk '{print $3}'`
   set dec = `grep dec_factor $conf | awk '{print $3}'`
@@ -47,17 +47,17 @@
   rm -r SLC_F SLC_B MAI_intf
 
   sed "s/.*skip_stage.*/skip_stage = 4,5,6/g" $conf > tmp_config
-  p2p_processing.csh $SAT $master $slave tmp_config
+  p2p_processing.csh $SAT $master $aligned tmp_config
 
   echo ""
   echo "Splitting aperture ..."
   cd raw
   if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
     sarp.csh $master.PRM
-    sarp.csh $slave.PRM
+    sarp.csh $aligned.PRM
   endif
   split_aperture $master.PRM > MAI_m.rec
-  split_aperture $slave.PRM > MAI_s.rec
+  split_aperture $aligned.PRM > MAI_s.rec
   cd ..
 
   mkdir SLC_F
@@ -65,34 +65,34 @@
   ln -s ../raw/$master.LED .
   cp ../raw/$master.PRM .
   ln -s ../raw/$master.SLCF ./$master.SLC
-  ln -s ../raw/$slave.LED .
-  cp ../raw/$slave.PRM .
-  ln -s ../raw/$slave.SLCF ./$slave.SLC
-  cp $slave.PRM $slave.PRM0
+  ln -s ../raw/$aligned.LED .
+  cp ../raw/$aligned.PRM .
+  ln -s ../raw/$aligned.SLCF ./$aligned.SLC
+  cp $aligned.PRM $aligned.PRM0
   if ($SAT == "ALOS2_SCAN") then
     ln -s ../SLC/freq_alos2.dat
-    fitoffset.csh  2 3 freq_alos2.dat 10 >> $slave.PRM
+    fitoffset.csh  2 3 freq_alos2.dat 10 >> $aligned.PRM
   else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
     ln -s ../SLC/freq_xcorr.dat .
-    fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
+    fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
   else
     ln -s ../SLC/freq_xcorr.dat .
-    fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
+    fitoffset.csh 2 2 freq_xcorr.dat 18 >> $aligned.PRM
   endif
-  resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-  rm $slave.SLC
-  mv $slave.SLCresamp $slave.SLC
-  cp $slave.PRMresamp $slave.PRM
+  resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 4
+  rm $aligned.SLC
+  mv $aligned.SLCresamp $aligned.SLC
+  cp $aligned.PRMresamp $aligned.PRM
   if ($region_cut != "") then
     echo "Cutting SLC image to $region_cut"
     cut_slc $master.PRM junk1 $region_cut
-    cut_slc $slave.PRM junk2 $region_cut
+    cut_slc $aligned.PRM junk2 $region_cut
     mv junk1.PRM $master.PRM
-    mv junk2.PRM $slave.PRM
+    mv junk2.PRM $aligned.PRM
     mv junk1.SLC $master.SLC
-    mv junk2.SLC $slave.SLC
+    mv junk2.SLC $aligned.SLC
   endif
-  intf.csh $master.PRM $slave.PRM
+  intf.csh $master.PRM $aligned.PRM
   cd ..
 
   mkdir SLC_B
@@ -100,34 +100,34 @@
   ln -s ../raw/$master.LED .
   cp ../raw/$master.PRM .
   ln -s ../raw/$master.SLCB ./$master.SLC
-  ln -s ../raw/$slave.LED .
-  cp ../raw/$slave.PRM .
-  ln -s ../raw/$slave.SLCB ./$slave.SLC
-  cp $slave.PRM $slave.PRM0
+  ln -s ../raw/$aligned.LED .
+  cp ../raw/$aligned.PRM .
+  ln -s ../raw/$aligned.SLCB ./$aligned.SLC
+  cp $aligned.PRM $aligned.PRM0
   if ($SAT == "ALOS2_SCAN") then
     ln -s ../SLC/freq_alos2.dat
-    fitoffset.csh  2 3 freq_alos2.dat 10 >> $slave.PRM
+    fitoffset.csh  2 3 freq_alos2.dat 10 >> $aligned.PRM
   else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
     ln -s ../SLC/freq_xcorr.dat .
-    fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
+    fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
   else
     ln -s ../SLC/freq_xcorr.dat .
-    fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
+    fitoffset.csh 2 2 freq_xcorr.dat 18 >> $aligned.PRM
   endif
-  resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-  rm $slave.SLC
-  mv $slave.SLCresamp $slave.SLC
-  cp $slave.PRMresamp $slave.PRM
+  resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 4
+  rm $aligned.SLC
+  mv $aligned.SLCresamp $aligned.SLC
+  cp $aligned.PRMresamp $aligned.PRM
   if ($region_cut != "") then
     echo "Cutting SLC image to $region_cut"
     cut_slc $master.PRM junk1 $region_cut
-    cut_slc $slave.PRM junk2 $region_cut
+    cut_slc $aligned.PRM junk2 $region_cut
     mv junk1.PRM $master.PRM
-    mv junk2.PRM $slave.PRM
+    mv junk2.PRM $aligned.PRM
     mv junk1.SLC $master.SLC
-    mv junk2.SLC $slave.SLC
+    mv junk2.SLC $aligned.SLC
   endif
-  intf.csh $master.PRM $slave.PRM
+  intf.csh $master.PRM $aligned.PRM
   cd .. 
 
   cd raw
@@ -145,12 +145,12 @@
   gmt grdmath ../SLC_F/real.grd=bf ../SLC_B/real.grd=bf MUL ../SLC_F/imag.grd=bf ../SLC_B/imag.grd=bf MUL ADD 3e5 MUL = real.grd=bf
   gmt grdmath ../SLC_F/imag.grd=bf ../SLC_B/real.grd=bf MUL ../SLC_F/real.grd=bf ../SLC_B/imag.grd=bf MUL -1 MUL ADD 3e5 MUL = imag.grd=bf
   cp ../SLC/$master.PRM .
-  cp ../SLC/$slave.PRM .
+  cp ../SLC/$aligned.PRM .
   ln -s ../SLC/$master.LED .
-  ln -s ../SLC/$slave.LED .
+  ln -s ../SLC/$aligned.LED .
   ln -s ../SLC/$master.SLC .
-  ln -s ../SLC/$slave.SLC .
-  filter.csh $master.PRM $slave.PRM $filter $dec $range_dec $azimuth_dec
+  ln -s ../SLC/$aligned.SLC .
+  filter.csh $master.PRM $aligned.PRM $filter $dec $range_dec $azimuth_dec
 
   gmt grdmath phase.grd 2 PI MUL DIV $spec_sep DIV $prf MUL $pix_size MUL = MAI_intf.grd
   gmt grdmath phasefilt.grd 2 PI MUL DIV $spec_sep DIV $prf MUL $pix_size MUL = MAI_intf_filt.grd

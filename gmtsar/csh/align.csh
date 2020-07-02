@@ -4,7 +4,7 @@
 #  D. Sandwell FEB 4 2010
 #  M. Wei MAY 4 2010 - ENVISAT
 # 
-# Align a slave image to a master image and check results
+# Align a aligned image to a master image and check results
 #
 alias rm 'rm -f'
 unset noclobber
@@ -13,7 +13,7 @@ unset noclobber
 # 
   if ($#argv < 3) then 
     echo ""
-    echo "Usage: align.csh SAT master_name slave_name [supermaster_name]"
+    echo "Usage: align.csh SAT master_name aligned_name [supermaster_name]"
     echo ""
     echo " The supermaster_namestem is required if this is secondary alignment."
     echo " SAT = ERS or ENVI or ALOS  or generic SAT"
@@ -42,19 +42,19 @@ unset noclobber
     update_PRM $2.PRM SLC_file $2.SLC
   endif
 #
-# focus the slave image
+# focus the aligned image
 #
 # check the range sampling rate 
 # 
   set rng_samp_rate_m = `grep rng_samp_rate $2.PRM | awk 'NR == 1 {printf("%d", $3)}'`
   set rng_samp_rate_s = `grep rng_samp_rate $3.PRM | awk 'NR == 1 {printf("%d", $3)}'`
   if ($rng_samp_rate_m != $rng_samp_rate_s) then 
-    echo "The range sampling rate for master and slave differ"
+    echo "The range sampling rate for master and aligned differ"
     echo "Need to run the interferogram in steps until process2pass.csh is fixed"
     exit 1
   endif 
   echo "align.csh"
-  echo "focusing slave"
+  echo "focusing aligned"
   sarp.csh $3.PRM 
 #
 # get the starting alignment parameters and run xcorr
@@ -76,7 +76,7 @@ unset noclobber
   update_PRM $3.PRM rshift $RSHIFT
   update_PRM $3.PRM ashift $ASHIFT
   echo "align.csh"
-  echo "correlate master and slave to find offset parameters"
+  echo "correlate master and aligned to find offset parameters"
   if( $SAT == "ERS") then
     xcorr $2.PRM $3.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
   else
@@ -96,7 +96,7 @@ unset noclobber
 # refocus the second image
 #
   echo "align.csh"
-  echo "refocus slave"
+  echo "refocus aligned"
   sarp.csh $3.PRM 
 #
 rm *SLC0

@@ -22,9 +22,9 @@ char *USAGE = "Usage: (two modes)\n"
               "This is used to compute height information\n"
               "(writes out height information for appending to PRM file)\n"
               "\nmode 2:\n\n"
-              "SAT_baseline PRM_master PRM_slave \n\n"
+              "SAT_baseline PRM_master PRM_aligned \n\n"
               "PRM_master 	   PRM file for reference image\n"
-              "PRM_slave 	   PRM file of secondary image\n"
+              "PRM_aligned 	   PRM file of secondary image\n"
               "Please make sure the orbit file data is in PRM \n"
               "Program runs through repeat orbit to find nearest point \n"
               "to the start, center and end on the reference orbit\n"
@@ -34,7 +34,7 @@ char *USAGE = "Usage: (two modes)\n"
 "SAT_baseline -input file\n\n"
 "file: list of PRM files\n"
 "first file is assumed to be master\n"
-"following are slaves\n"
+"following are aligneds\n"
 "(writes out decimal year, Bperp, and PRM name)\n";
  */
 
@@ -122,7 +122,7 @@ void read_all_ldr(struct PRM *r, struct SAT_ORB *orb, int nfiles) {
 		if (i == 0)
 			printf("......master LED file %s \n", r[0].led_file);
 		if (i != 0)
-			printf(".........slave LED file %s \n", r[i].led_file);
+			printf(".........aligned LED file %s \n", r[i].led_file);
 
 		/* open each ldrfile and read into structure r */
 		if ((ldrfile = fopen(r[i].led_file, "r")) == NULL)

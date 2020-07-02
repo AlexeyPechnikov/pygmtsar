@@ -31,7 +31,7 @@ set trsr = `echo $nrsr $orsr | awk '{printf("%.10f", $1/$2)}'`
 set tprf = `echo $nprf $oprf | awk '{printf("%.10f", $1/$2)}'`
 
 cp $image.PRM tmp_master.PRM
-cp $image.PRM tmp_slave.PRM
+cp $image.PRM tmp_aligned.PRM
 
 set ta = `echo $tprf | awk '{if($1>1) print 1;else if($1<1) print 2;else print 0;}'`
 set tr = `echo $trsr | awk '{if($1>1) print 1;else if($1<1) print 2;else print 0;}'`
@@ -48,7 +48,7 @@ if ($nrsr != 0) then
   set r = `echo $trsr | awk '{printf("%.10f", -(1 - 1/$1))}'`
   set tmp = `grep num_rng_bins tmp_master.PRM | awk '{print $3}'`
   set new_num_rng_bins = `echo $tmp $trsr | awk '{printf("%d",$1*$2/4)}' | awk '{printf("%d",$1*4)}'`
-  update_PRM tmp_slave.PRM stretch_r $r
+  update_PRM tmp_aligned.PRM stretch_r $r
   update_PRM tmp_master.PRM rng_samp_rate $nrsr
   update_PRM tmp_master.PRM num_rng_bins $new_num_rng_bins
   set bytes = `echo $new_num_rng_bins | awk '{printf("%d",$1*4)}'`
@@ -60,7 +60,7 @@ if ($nprf != 0) then
   set a = `echo $tprf | awk '{printf("%.10f", -(1 - 1/$1))}'`
   set tmp = `grep num_lines tmp_master.PRM | awk '{print $3}'`
   set new_nl = `echo $tmp $tprf | awk '{printf("%d",$1*$2/4)}' | awk '{printf("%d",$1*4)}'`
-  update_PRM tmp_slave.PRM a_stretch_a $a
+  update_PRM tmp_aligned.PRM a_stretch_a $a
   update_PRM tmp_master.PRM PRF $nprf
   update_PRM tmp_master.PRM num_lines $new_nl
   update_PRM tmp_master.PRM num_valid_az $new_nl
@@ -68,10 +68,10 @@ if ($nprf != 0) then
   update_PRM tmp_master.PRM nrows $new_nl
 endif
 
-resamp tmp_master.PRM tmp_slave.PRM tmp_slave.PRMresamp tmp_slave.SLCresamp 4
+resamp tmp_master.PRM tmp_aligned.PRM tmp_aligned.PRMresamp tmp_aligned.SLCresamp 4
 
 mv tmp_master.PRM $image.PRM
-mv tmp_slave.SLCresamp $image.SLC
+mv tmp_aligned.SLCresamp $image.SLC
 rm tmp*
 
 

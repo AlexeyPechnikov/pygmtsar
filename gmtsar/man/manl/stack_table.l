@@ -3,13 +3,13 @@
 stack_table \- prepares a table of Bperp vs days into mission. 
 .SH SYNOPSIS
 .B stack_table
-.I master.PRM slave.PRM [GMT]
+.I master.PRM aligned.PRM [GMT]
 .SH DESCRIPTION
 The
 .B stack_table
-command reads master and slave parameter files and creates a table
+command reads master and aligned parameter files and creates a table
 of 
-.I sat_orb slave_time slave_days(1992) Bpl Bperp xshift yshift.
+.I sat_orb aligned_time aligned_days(1992) Bpl Bperp xshift yshift.
 The optional GMT parameter reformats the table for use with
 the GMT command pstext.  This command is most useful for assembly
 of many repeat sar images into a stack for topographic recovery
@@ -18,8 +18,8 @@ and change detection.
 .I master.PRM
 parameter file for master SAR image for the entire stack
 .TP 10
-.I slave.PRM
-parameter file for one of the slave SAR images
+.I aligned.PRM
+parameter file for one of the aligned SAR images
 .TP 10
 .I [GMT]
 option to create a textfile suitable for plotting with pstext

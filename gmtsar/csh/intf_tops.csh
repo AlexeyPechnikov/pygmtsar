@@ -14,7 +14,7 @@
     echo "  supermaster's name required in batch_tops.config"
     echo ""
     echo "  format of data.in:"
-    echo "    master_image_stem:slave_image_stem"
+    echo "    master_image_stem:aligned_image_stem"
     echo ""
     echo "  example of data.in"
     echo "    S1_20150628_ALL_F1:S1_20150720_ALL_F1"

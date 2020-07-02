@@ -25,7 +25,7 @@ endif
 echo "make_a_offset.csh" $1 $2 $3 $4 $5 $6
 #
 set master = $1
-set slave = $2
+set aligned = $2
 set nx = $3
 set ny = $4
 set xsearch = $5
@@ -66,18 +66,18 @@ update_PRM $master ashift 0
 update_PRM $master sub_int_a 0.0
 update_PRM $master stretch_a 0.0
 update_PRM $master a_stretch_a 0.0
-update_PRM $slave rshift 0
-update_PRM $slave sub_int_r 0
-update_PRM $slave stretch_r 0.0
-update_PRM $slave a_stretch_r 0.0
-update_PRM $slave ashift 0
-update_PRM $slave sub_int_a 0.0
-update_PRM $slave stretch_a 0.0
-update_PRM $slave a_stretch_a 0.0 
+update_PRM $aligned rshift 0
+update_PRM $aligned sub_int_r 0
+update_PRM $aligned stretch_r 0.0
+update_PRM $aligned a_stretch_r 0.0
+update_PRM $aligned ashift 0
+update_PRM $aligned sub_int_a 0.0
+update_PRM $aligned stretch_a 0.0
+update_PRM $aligned a_stretch_a 0.0 
 #
 # make azimuth offset if do_xcorr = 1
 #
-if ($do_xcorr == 1 ) xcorr $master $slave -nx $nx -ny $ny -xsearch $xsearch -ysearch $ysearch -noshift
+if ($do_xcorr == 1 ) xcorr $master $aligned -nx $nx -ny $ny -xsearch $xsearch -ysearch $ysearch -noshift
 #
 # ********assume all offsets are less than 1. pixels 
 # ********edit the following line

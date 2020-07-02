@@ -8,7 +8,7 @@
 
   if ($#argv != 3 && $#argv != 4) then
     echo ""
-    echo "Usage: p2p_processing.csh SAT master_image slave_image [configuration_file] "
+    echo "Usage: p2p_processing.csh SAT master_image aligned_image [configuration_file] "
     echo ""
     echo "Example: p2p_processing.csh ALOS IMG-HH-ALPSRP055750660-H1.0__A IMG-HH-ALPSRP049040660-H1.0__A [config.alos.txt]"
     echo ""
@@ -102,7 +102,7 @@
   set SLC_factor = `grep SLC_factor $conf | awk '{print $3}'`
   set near_interp = `grep near_interp $conf | awk '{print $3}'`
   set master = ` echo $2 `
-  set slave =  ` echo $3 `
+  set aligned =  ` echo $3 `
   echo ""
   
 
@@ -131,14 +131,14 @@
     echo ""
     echo "PREPROCESS - START"
     echo ""
-    echo "Working on images $master $slave ..."
+    echo "Working on images $master $aligned ..."
     if ($SAT == "ALOS" || $SAT == "ALOS2" || $SAT == "ALOS_SLC" || $SAT == "ALOS2_SCAN") then
       if(! -f raw/$master ) then
         echo " no file  raw/"$master
         exit
       endif
-      if(! -f raw/$slave ) then
-        echo " no file  raw/"$slave
+      if(! -f raw/$aligned ) then
+        echo " no file  raw/"$aligned
         exit
       endif
     else if ($SAT == "ENVI_SLC") then
@@ -146,8 +146,8 @@
         echo " no file  raw/"$master.N1
         exit
       endif
-      if(! -f raw/$slave.N1 ) then
-        echo " no file  raw/"$slave.N1
+      if(! -f raw/$aligned.N1 ) then
+        echo " no file  raw/"$aligned.N1
         exit
       endif
     else if ($SAT == "ERS") then
@@ -155,16 +155,16 @@
         echo " no file  raw/"$master.dat
         exit
       endif
-      if(! -f raw/$slave.dat ) then
-        echo " no file  raw/"$slave.dat
+      if(! -f raw/$aligned.dat ) then
+        echo " no file  raw/"$aligned.dat
         exit
       endif
       if(! -f raw/$master.ldr ) then
         echo " no file  raw/"$master.ldr
         exit
       endif
-      if(! -f raw/$slave.ldr ) then
-        echo " no file  raw/"$slave.ldr
+      if(! -f raw/$aligned.ldr ) then
+        echo " no file  raw/"$aligned.ldr
         exit
       endif
     else if ($SAT == "ENVI") then
@@ -172,8 +172,8 @@
         echo " no file  raw/"$master.baq
         exit
       endif
-      if(! -f raw/$slave.baq ) then
-        echo " no file  raw/"$slave.baq
+      if(! -f raw/$aligned.baq ) then
+        echo " no file  raw/"$aligned.baq
         exit
       endif
     else if ($SAT == "S1_STRIP" || $SAT == "S1_TOPS") then
@@ -185,20 +185,20 @@
         echo " no file  raw/"$master".tiff"
         exit
       endif
-      if(! -f raw/$slave.xml ) then
-        echo " no file  raw/"$slave".xml"
+      if(! -f raw/$aligned.xml ) then
+        echo " no file  raw/"$aligned".xml"
         exit
       endif
-      if(! -f raw/$slave.tiff ) then
-        echo " no file  raw/"$slave".tiff"
+      if(! -f raw/$aligned.tiff ) then
+        echo " no file  raw/"$aligned".tiff"
         exit
       endif
       if ($SAT == "S1_TOPS") then
         if(! -f raw/$master.EOF ) then
           echo " no file  raw/"$master".EOF"
         endif
-        if(! -f raw/$slave.EOF ) then
-          echo " no file  raw/"$slave".EOF"
+        if(! -f raw/$aligned.EOF ) then
+          echo " no file  raw/"$aligned".EOF"
         endif
       endif
     else if ($SAT == "CSK_RAW" || $SAT == "CSK_SLC") then
@@ -206,8 +206,8 @@
         echo " no file  raw/"$master".h5"
         exit
       endif
-      if(! -f raw/$slave.h5 ) then
-        echo " no file  raw/"$slave".h5"
+      if(! -f raw/$aligned.h5 ) then
+        echo " no file  raw/"$aligned".h5"
         exit
       endif
     else if ($SAT == "RS2") then
@@ -219,12 +219,12 @@
         echo " no file  raw/"$master".tif"
         exit
       endif
-      if(! -f raw/$slave.xml ) then
-        echo " no file  raw/"$slave".xml"
+      if(! -f raw/$aligned.xml ) then
+        echo " no file  raw/"$aligned".xml"
         exit
       endif
-      if(! -f raw/$slave.tif ) then
-        echo " no file  raw/"$slave".tif"
+      if(! -f raw/$aligned.tif ) then
+        echo " no file  raw/"$aligned".tif"
         exit
       endif
     else if ($SAT == "TSX") then
@@ -232,16 +232,16 @@
         echo " no file  raw/"$master".xml"
         exit
       endif
-      if(! -f raw/$slave.xml ) then
-        echo " no file  raw/"$slave".xml"
+      if(! -f raw/$aligned.xml ) then
+        echo " no file  raw/"$aligned".xml"
         exit
       endif
       if(! -f raw/$master.cos ) then
         echo " no file  raw/"$master".cos"
         exit
       endif
-      if(! -f raw/$slave.cos ) then
-        echo " no file  raw/"$slave".cos"
+      if(! -f raw/$aligned.cos ) then
+        echo " no file  raw/"$aligned".cos"
         exit
       endif
     endif
@@ -254,8 +254,8 @@
     rm raw/*.LED
     cd raw
     
-    #echo "pre_proc.csh $SAT $master $slave $commandline"
-    pre_proc.csh $SAT $master $slave $commandline   
+    #echo "pre_proc.csh $SAT $master $aligned $commandline"
+    pre_proc.csh $SAT $master $aligned $commandline   
         
     cd ..
     echo " "
@@ -276,7 +276,7 @@
 
   if ($SAT == "S1_TOPS") then
     set master = `echo $master | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-    set slave = `echo $slave | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    set aligned = `echo $aligned | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
   endif
 
   if ($stage <= 2 && $skip_2 == 0) then 
@@ -297,36 +297,36 @@
       if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
         cp ../raw/*.PRM .
         ln -s ../raw/$master.raw . 
-        ln -s ../raw/$slave.raw . 
+        ln -s ../raw/$aligned.raw . 
         ln -s ../raw/$master.LED . 
-        ln -s ../raw/$slave.LED . 
+        ln -s ../raw/$aligned.LED . 
         if ($iono == 1) then
           # set chirp extention to zero for ionospheric phase estimation
           sed "s/.*fd1.*/fd1 = 0.0000/g" $master.PRM > tmp
           sed "s/.*chirp_ext.*/chirp_ext = 0/g" tmp > tmp2
           mv tmp2 $master.PRM
-          sed "s/.*fd1.*/fd1 = 0.0000/g" $slave.PRM > tmp
+          sed "s/.*fd1.*/fd1 = 0.0000/g" $aligned.PRM > tmp
           sed "s/.*chirp_ext.*/chirp_ext = 0/g" tmp > tmp2
-          mv tmp2 $slave.PRM
+          mv tmp2 $aligned.PRM
           rm tmp
         endif
       else
         cp ../raw/*.PRM .
         ln -s ../raw/$master.SLC .
-        ln -s ../raw/$slave.SLC .
+        ln -s ../raw/$aligned.SLC .
         ln -s ../raw/$master.LED .
-        ln -s ../raw/$slave.LED .
+        ln -s ../raw/$aligned.LED .
       endif
 
       if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
         sarp.csh $master.PRM
-        sarp.csh $slave.PRM
+        sarp.csh $aligned.PRM
       endif
 
       if ($iono == 1) then
         if (-f ../raw/ALOS_fbd2fbs_log || -f ../raw/ALOS2_fbd2fbs_log) then
           set cfile = `grep IMG-HH ../raw/ALOS*fbd2fbs_log | awk '{print $1}'`
-          if ($cfile == $slave) then
+          if ($cfile == $aligned) then
             split_spectrum $master.PRM 1 > params1
           else 
             split_spectrum $master.PRM > params1
@@ -339,15 +339,15 @@
         if (-f ../raw/ALOS_fbd2fbs_log || -f ../raw/ALOS2_fbd2fbs_log) then
           set cfile = `grep IMG-HH ../raw/ALOS*fbd2fbs_log | awk '{print $1}'`
           if ($cfile == $master) then
-            split_spectrum $slave.PRM 1 > params2
+            split_spectrum $aligned.PRM 1 > params2
           else
-            split_spectrum $slave.PRM > params2
+            split_spectrum $aligned.PRM > params2
           endif
         else
-            split_spectrum $slave.PRM > params2
+            split_spectrum $aligned.PRM > params2
         endif
-        mv SLCH ../SLC_H/$slave.SLC
-        mv SLCL ../SLC_L/$slave.SLC
+        mv SLCH ../SLC_H/$aligned.SLC
+        mv SLCL ../SLC_L/$aligned.SLC
         
         cd ../SLC_L
         set wl1 = `grep low_wavelength ../SLC/params1 | awk '{print $3}'`
@@ -356,10 +356,10 @@
         ln -s ../raw/$master.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wl1/g" $master.PRM > tmp
         mv tmp $master.PRM
-        cp ../SLC/$slave.PRM .
-        ln -s ../raw/$slave.LED .
-        sed "s/.*wavelength.*/radar_wavelength    = $wl2/g" $slave.PRM > tmp
-        mv tmp $slave.PRM
+        cp ../SLC/$aligned.PRM .
+        ln -s ../raw/$aligned.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wl2/g" $aligned.PRM > tmp
+        mv tmp $aligned.PRM
 
         cd ../SLC_H
         set wh1 = `grep high_wavelength ../SLC/params1 | awk '{print $3}'`
@@ -368,80 +368,80 @@
         ln -s ../raw/$master.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wh1/g" $master.PRM > tmp
         mv tmp $master.PRM
-        cp ../SLC/$slave.PRM .
-        ln -s ../raw/$slave.LED .
-        sed "s/.*wavelength.*/radar_wavelength    = $wh2/g" $slave.PRM > tmp
-        mv tmp $slave.PRM
+        cp ../SLC/$aligned.PRM .
+        ln -s ../raw/$aligned.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wh2/g" $aligned.PRM > tmp
+        mv tmp $aligned.PRM
 
         cd ../SLC
 
       endif
 
-      cp $slave.PRM $slave.PRM0
-      SAT_baseline $master.PRM $slave.PRM0 >> $slave.PRM
+      cp $aligned.PRM $aligned.PRM0
+      SAT_baseline $master.PRM $aligned.PRM0 >> $aligned.PRM
       if ($SAT == "ALOS2_SCAN") then
-        xcorr $master.PRM $slave.PRM -xsearch 32 -ysearch 256 -nx 32 -ny 128
+        xcorr $master.PRM $aligned.PRM -xsearch 32 -ysearch 256 -nx 32 -ny 128
         awk '{print $4}' < freq_xcorr.dat > tmp.dat
         set amedian = `sort -n tmp.dat | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }'`
         set amax = `echo $amedian | awk '{print $1+3}'`
         set amin = `echo $amedian | awk '{print $1-3}'`
         awk '{if($4 > '$amin' && $4 < '$amax') print $0}' < freq_xcorr.dat > freq_alos2.dat
-        fitoffset.csh 2 3 freq_alos2.dat 10 >> $slave.PRM
+        fitoffset.csh 2 3 freq_alos2.dat 10 >> $aligned.PRM
       else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
-        xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
-        fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
+        xcorr $master.PRM $aligned.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
+        fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
       else
-        xcorr $master.PRM $slave.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
-        fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
+        xcorr $master.PRM $aligned.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
+        fitoffset.csh 2 2 freq_xcorr.dat 18 >> $aligned.PRM
       endif
-      resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-      rm $slave.SLC
-      mv $slave.SLCresamp $slave.SLC
-      cp $slave.PRMresamp $slave.PRM
+      resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 4
+      rm $aligned.SLC
+      mv $aligned.SLCresamp $aligned.SLC
+      cp $aligned.PRMresamp $aligned.PRM
 
       if ($iono == 1) then
         cd ../SLC_L
-        cp $slave.PRM $slave.PRM0
+        cp $aligned.PRM $aligned.PRM0
         if ($SAT == "ALOS2_SCAN") then
           ln -s ../SLC/freq_alos2.dat
-          fitoffset.csh  2 3 freq_alos2.dat 10 >> $slave.PRM
+          fitoffset.csh  2 3 freq_alos2.dat 10 >> $aligned.PRM
         else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
           ln -s ../SLC/freq_xcorr.dat .
-          fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
+          fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
         else
           ln -s ../SLC/freq_xcorr.dat .
-          fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
+          fitoffset.csh 2 2 freq_xcorr.dat 18 >> $aligned.PRM
         endif
-        resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-        rm $slave.SLC
-        mv $slave.SLCresamp $slave.SLC
-        cp $slave.PRMresamp $slave.PRM
+        resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 4
+        rm $aligned.SLC
+        mv $aligned.SLCresamp $aligned.SLC
+        cp $aligned.PRMresamp $aligned.PRM
        
         cd ../SLC_H
-        cp $slave.PRM $slave.PRM0
+        cp $aligned.PRM $aligned.PRM0
         if ($SAT == "ALOS2_SCAN") then
           ln -s ../SLC/freq_alos2.dat
-          fitoffset.csh  2 3 freq_alos2.dat 10 >> $slave.PRM
+          fitoffset.csh  2 3 freq_alos2.dat 10 >> $aligned.PRM
         else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
           ln -s ../SLC/freq_xcorr.dat .
-          fitoffset.csh 3 3 freq_xcorr.dat 18 >> $slave.PRM
+          fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
         else
           ln -s ../SLC/freq_xcorr.dat .
-          fitoffset.csh 2 2 freq_xcorr.dat 18 >> $slave.PRM
+          fitoffset.csh 2 2 freq_xcorr.dat 18 >> $aligned.PRM
         endif
-        resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 4
-        rm $slave.SLC
-        mv $slave.SLCresamp $slave.SLC
-        cp $slave.PRMresamp $slave.PRM
+        resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 4
+        rm $aligned.SLC
+        mv $aligned.SLCresamp $aligned.SLC
+        cp $aligned.PRMresamp $aligned.PRM
         cd ../SLC
       endif
 
     else if ($SAT == "S1_TOPS") then
       cp ../raw/*.PRM .
       ln -s ../raw/$master.SLC . 
-      ln -s ../raw/$slave.SLC . 
+      ln -s ../raw/$aligned.SLC . 
       ln -s ../raw/$master.LED . 
-      ln -s ../raw/$slave.LED .
+      ln -s ../raw/$aligned.LED .
 
       if ($iono == 1) then
         cd ..
@@ -453,7 +453,7 @@
         split_spectrum $master.PRM > params1
         mv high.tiff ../SLC_H/$2.tiff
         mv low.tiff ../SLC_L/$2.tiff
-        split_spectrum $slave.PRM > params2
+        split_spectrum $aligned.PRM > params2
         mv high.tiff ../SLC_H/$3.tiff
         mv low.tiff ../SLC_L/$3.tiff
 
@@ -478,10 +478,10 @@
         #ln -s ../raw/$master.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wl1/g" $master.PRM > tmp
         mv tmp $master.PRM
-        #cp ../raw/$slave.PRM .
-        #ln -s ../raw/$slave.LED .
-        sed "s/.*wavelength.*/radar_wavelength    = $wl2/g" $slave.PRM > tmp
-        mv tmp $slave.PRM
+        #cp ../raw/$aligned.PRM .
+        #ln -s ../raw/$aligned.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wl2/g" $aligned.PRM > tmp
+        mv tmp $aligned.PRM
 
         cd ../SLC_H
         ln -s ../raw/$2.xml .
@@ -504,10 +504,10 @@
         #ln -s ../raw/$master.LED .
         sed "s/.*wavelength.*/radar_wavelength    = $wh1/g" $master.PRM > tmp
         mv tmp $master.PRM
-        #cp ../raw/$slave.PRM .
-        #ln -s ../raw/$slave.LED .
-        sed "s/.*wavelength.*/radar_wavelength    = $wh2/g" $slave.PRM > tmp
-        mv tmp $slave.PRM
+        #cp ../raw/$aligned.PRM .
+        #ln -s ../raw/$aligned.LED .
+        sed "s/.*wavelength.*/radar_wavelength    = $wh2/g" $aligned.PRM > tmp
+        mv tmp $aligned.PRM
 
         cd ../SLC
 
@@ -518,28 +518,28 @@
     if ($region_cut != "") then
       echo "Cutting SLC image to $region_cut"
       cut_slc $master.PRM junk1 $region_cut
-      cut_slc $slave.PRM junk2 $region_cut
+      cut_slc $aligned.PRM junk2 $region_cut
       mv junk1.PRM $master.PRM 
-      mv junk2.PRM $slave.PRM
+      mv junk2.PRM $aligned.PRM
       mv junk1.SLC $master.SLC
-      mv junk2.SLC $slave.SLC
+      mv junk2.SLC $aligned.SLC
 
       if ($iono == 1) then
         cd ../SLC_L
         cut_slc $master.PRM junk1 $region_cut
-        cut_slc $slave.PRM junk2 $region_cut
+        cut_slc $aligned.PRM junk2 $region_cut
         mv junk1.PRM $master.PRM
-        mv junk2.PRM $slave.PRM
+        mv junk2.PRM $aligned.PRM
         mv junk1.SLC $master.SLC
-        mv junk2.SLC $slave.SLC
+        mv junk2.SLC $aligned.SLC
 
         cd ../SLC_H
         cut_slc $master.PRM junk1 $region_cut
-        cut_slc $slave.PRM junk2 $region_cut
+        cut_slc $aligned.PRM junk2 $region_cut
         mv junk1.PRM $master.PRM
-        mv junk2.PRM $slave.PRM
+        mv junk2.PRM $aligned.PRM
         mv junk1.SLC $master.SLC
-        mv junk2.SLC $slave.SLC
+        mv junk2.SLC $aligned.SLC
 
       endif
       
@@ -619,9 +619,9 @@
 #    
     if ($switch_master == 0) then
       set ref = $master
-      set rep = $slave
+      set rep = $aligned
     else if ($switch_master == 1) then
-      set ref = $slave
+      set ref = $aligned
       set rep = $master
     else
       echo "Wrong paramter: switch_master "$switch_master

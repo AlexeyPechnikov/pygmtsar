@@ -11,7 +11,7 @@
 
 #  format in data.in table file: 
 #  	line 1: master_name 
-# 	line 2 and below: slave_name
+# 	line 2 and below: aligned_name
 
 alias rm 'rm -f'
 unset noclobber
@@ -34,7 +34,7 @@ unset noclobber
     echo ""
     echo "       format of data.in is:"
     echo "         line 1: master_name"
-    echo "         line 2 and below: slave_name"
+    echo "         line 2 and below: aligned_name"
     echo ""
     echo "       example of data.in for ALOS is:"
     echo "         IMG-HH-ALPSRP096010650-H1.0__A" 
@@ -107,56 +107,56 @@ unset noclobber
   endif
 
 #
-# loop and unpack the slave image using the same earth radius and near range as the master image
+# loop and unpack the aligned image using the same earth radius and near range as the master image
 #
   foreach line2 (`awk 'NR>1 {print $0}' $2`)
     echo "pre_proc_batch.csh"
-    echo "preprocess slave images"
+    echo "preprocess aligned images"
     if ($SAT == ERS || $SAT == ENVI) then
 
-      set slave = $line2  
-      if(! -f $slave.raw || ! -f $slave.LED) then
-        $1_pre_process $slave 0 0 0 
+      set aligned = $line2  
+      if(! -f $aligned.raw || ! -f $aligned.LED) then
+        $1_pre_process $aligned 0 0 0 
       endif
-      baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
-      baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
+      baseline_table.csh $master.PRM $aligned.PRM >> baseline_table.dat
+      baseline_table.csh $master.PRM $aligned.PRM GMT >> table.gmt
     else if ($SAT == ALOS) then 
 
-      set slave = ` echo $line2 | awk '{ print substr($1,8,length($1)-7)}'`
-      if(! -f IMG-HH-$slave.raw || ! -f IMG-HH-$slave.PRM ) then
-        $1_pre_process IMG-HH-$slave LED-$slave 
+      set aligned = ` echo $line2 | awk '{ print substr($1,8,length($1)-7)}'`
+      if(! -f IMG-HH-$aligned.raw || ! -f IMG-HH-$aligned.PRM ) then
+        $1_pre_process IMG-HH-$aligned LED-$aligned 
       endif
 #
-# check the range sampling rate of the slave images and do conversion if necessary
+# check the range sampling rate of the aligned images and do conversion if necessary
 #
-      set rng_samp_rate_s = `grep rng_samp_rate IMG-HH-$slave.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+      set rng_samp_rate_s = `grep rng_samp_rate IMG-HH-$aligned.PRM | awk 'NR == 1 {printf("%d", $3)}'`
       set t = `echo $rng_samp_rate_m $rng_samp_rate_s | awk '{printf("%1.1f\n", $1/$2)}'`
       if ($t == 1.0) then
-        echo "The range sampling rate for master and slave images are: "$rng_samp_rate_m
+        echo "The range sampling rate for master and aligned images are: "$rng_samp_rate_m
 #
-        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave.PRM >> baseline_table.dat
-        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave.PRM GMT >> table.gmt
+        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned.PRM >> baseline_table.dat
+        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned.PRM GMT >> table.gmt
       else if ($t == 2.0) then
-        echo "Convert the slave image from FBD to FBS mode"
-        ALOS_fbd2fbs IMG-HH-$slave.PRM IMG-HH-$slave"_"FBS.PRM
+        echo "Convert the aligned image from FBD to FBS mode"
+        ALOS_fbd2fbs IMG-HH-$aligned.PRM IMG-HH-$aligned"_"FBS.PRM
 #
-        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave"_"FBS.PRM >> baseline_table.dat
-        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$slave"_"FBS.PRM GMT >> table.gmt
-        echo "Overwriting the old slave image"
-        mv IMG-HH-$slave"_"FBS.PRM IMG-HH-$slave.PRM
-        update_PRM IMG-HH-$slave.PRM input_file IMG-HH-$slave.raw
-        mv IMG-HH-$slave"_"FBS.raw IMG-HH-$slave.raw
+        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned"_"FBS.PRM >> baseline_table.dat
+        baseline_table.csh IMG-HH-$master.PRM IMG-HH-$aligned"_"FBS.PRM GMT >> table.gmt
+        echo "Overwriting the old aligned image"
+        mv IMG-HH-$aligned"_"FBS.PRM IMG-HH-$aligned.PRM
+        update_PRM IMG-HH-$aligned.PRM input_file IMG-HH-$aligned.raw
+        mv IMG-HH-$aligned"_"FBS.raw IMG-HH-$aligned.raw
 
       else if  ($t == 0.5) then
 	echo "Use the FBS mode image as master"
         exit 1
       else
-        echo "The range sampling rate for master and slave images are not convertable"
+        echo "The range sampling rate for master and aligned images are not convertable"
         exit 1
       endif    
 # end of the if ($SAT == ALOS) 
     endif 
-# end of the loop over slave images
+# end of the loop over aligned images
   end
 #
 # make baseline plots 

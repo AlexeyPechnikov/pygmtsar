@@ -1,15 +1,15 @@
 .TH FITOFFSET l "04/10/98 \(co 1998 David Sandwell" "fitoffset.l 1.0" "SIOSAR Command"
 .SH NAME
-fitoffset \-  calculates 6 parameters needed to align slave image to master image
+fitoffset \-  calculates 6 parameters needed to align aligned image to master image
 .SH SYNOPSIS
 .B fitoffset
 .I offset.dat [SNR]
 .SH DESCRIPTION
 The
 .B fitoffset
-command reads numerous estimates of pixel offset between master and slave images
+command reads numerous estimates of pixel offset between master and aligned images
 and performs a least-squares adjustment to establish 6 parameters needed
-for reprocessing the slave image using 
+for reprocessing the aligned image using 
 .B esarp 
 so it will be in sub-pixel
 alignment with the master image.  The optional SNR parameter will edit
@@ -32,7 +32,7 @@ fitoffset offset.dat 50
 .br
   sub_int_r              =    0.806506
 .br
-These parameters should be appended to the slave.PRM file.
+These parameters should be appended to the aligned.PRM file.
 .sp
 
 .TP 10

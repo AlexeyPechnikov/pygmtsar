@@ -12,7 +12,7 @@ unset noclobber
 #
   if ($#argv < 3) then
     echo ""
-    echo "Usage: p2p_S1_TOPS.csh master_image slave_image configuration_file"
+    echo "Usage: p2p_S1_TOPS.csh master_image aligned_image configuration_file"
     echo ""
     echo "Example: p2p_S1_TOPS.csh S1_20150526_F1 S1_20150607_F1 config.tsx.slc.txt "
     echo ""
@@ -82,13 +82,13 @@ unset noclobber
 # read file names of raw data
 #
   set master = $1 
-  set slave = $2 
+  set aligned = $2 
 
   if ($switch_master == 0) then
     set ref = $master
-    set rep = $slave
+    set rep = $aligned
   else if ($switch_master == 1) then
-    set ref = $slave
+    set ref = $aligned
     set rep = $master
   else
     echo "Wrong paramter: switch_master "$switch_master
@@ -117,24 +117,24 @@ unset noclobber
 #
     if(-e $master.PRM00) then
        cp $master.PRM00 $master.PRM
-       cp $slave.PRM00 $slave.PRM
+       cp $aligned.PRM00 $aligned.PRM
     else
        cp $master.PRM $master.PRM00
-       cp $slave.PRM $slave.PRM00
+       cp $aligned.PRM $aligned.PRM00
     endif
 #
-# set the num_lines to be the min of the master and slave
+# set the num_lines to be the min of the master and aligned
 #
     @ m_lines  = `grep num_lines ../raw/$master.PRM | awk '{printf("%d",int($3))}' `
-    @ s_lines  = `grep num_lines ../raw/$slave.PRM | awk '{printf("%d",int($3))}' `
+    @ s_lines  = `grep num_lines ../raw/$aligned.PRM | awk '{printf("%d",int($3))}' `
     if($s_lines <  $m_lines) then
       update_PRM $master.PRM num_lines $s_lines
       update_PRM $master.PRM num_valid_az $s_lines
       update_PRM $master.PRM nrows $s_lines
     else
-      update_PRM $slave.PRM num_lines $m_lines
-      update_PRM $slave.PRM num_valid_az $m_lines
-      update_PRM $slave.PRM nrows $m_lines
+      update_PRM $aligned.PRM num_lines $m_lines
+      update_PRM $aligned.PRM num_valid_az $m_lines
+      update_PRM $aligned.PRM nrows $m_lines
     endif
 #
 #   set the higher Doppler terms to zerp to be zero
@@ -142,8 +142,8 @@ unset noclobber
     update_PRM $master.PRM fdd1 0
     update_PRM $master.PRM fddd1 0
 #
-    update_PRM $slave.PRM fdd1 0
-    update_PRM $slave.PRM fddd1 0
+    update_PRM $aligned.PRM fdd1 0
+    update_PRM $aligned.PRM fddd1 0
 #
     rm *.log
     rm *.PRM0
@@ -169,15 +169,15 @@ unset noclobber
     cd SLC
     cp ../raw/*.PRM .
     ln -s ../raw/$master.SLC .
-    ln -s ../raw/$slave.SLC .
+    ln -s ../raw/$aligned.SLC .
     ln -s ../raw/$master.LED . 
-    ln -s ../raw/$slave.LED .
+    ln -s ../raw/$aligned.LED .
     
-#    cp $slave.PRM $slave.PRM0
-#    resamp $master.PRM $slave.PRM $slave.PRMresamp $slave.SLCresamp 1
-#    rm $slave.SLC
-#    mv $slave.SLCresamp $slave.SLC
-#    cp $slave.PRMresamp $slave.PRM
+#    cp $aligned.PRM $aligned.PRM0
+#    resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 1
+#    rm $aligned.SLC
+#    mv $aligned.SLCresamp $aligned.SLC
+#    cp $aligned.PRMresamp $aligned.PRM
     cd ..
     echo "ALIGN - END"
   endif
@@ -259,7 +259,7 @@ unset noclobber
     echo "INTF.CSH, FILTER.CSH - START"
     cd intf/
     set ref_id  = `grep SC_clock_start ../raw/$master.PRM | awk '{printf("%d",int($3))}' `
-    set rep_id  = `grep SC_clock_start ../raw/$slave.PRM | awk '{printf("%d",int($3))}' `
+    set rep_id  = `grep SC_clock_start ../raw/$aligned.PRM | awk '{printf("%d",int($3))}' `
     mkdir $ref_id"_"$rep_id
     cd $ref_id"_"$rep_id
     ln -s ../../raw/$ref.LED . 
@@ -295,7 +295,7 @@ unset noclobber
     if ($threshold_snaphu != 0 ) then
       cd intf
       set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
-      set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
+      set rep_id  = `grep SC_clock_start ../SLC/$aligned.PRM | awk '{printf("%d",int($3))}' `
       cd $ref_id"_"$rep_id
       if ((! $?region_cut) || ($region_cut == "")) then
         set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
@@ -340,7 +340,7 @@ unset noclobber
     if ($threshold_geocode != 0 ) then
       cd intf
       set ref_id  = `grep SC_clock_start ../SLC/$master.PRM | awk '{printf("%d",int($3))}' `
-      set rep_id  = `grep SC_clock_start ../SLC/$slave.PRM | awk '{printf("%d",int($3))}' `
+      set rep_id  = `grep SC_clock_start ../SLC/$aligned.PRM | awk '{printf("%d",int($3))}' `
       cd $ref_id"_"$rep_id
       echo " "
       echo "GEOCODE.CSH - START"
