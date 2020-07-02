@@ -35,6 +35,7 @@
 /*  DEC 29, 2010 - Modified for little endian computer.                 */
 /*                 Does not change byte order on output.                */
 /*  Jan 23, 2011 - Modified to read near range instead of swst          */
+/*  JUL 02, 2020 - modified to suppress bit 24 in the ifc counter       */
 
 #include <ctype.h>
 #include <math.h>
@@ -137,6 +138,7 @@ int main(int argc, char *argv[]) {
 	int char_count, ignore_flag;
 	int ofd, ifd = 0;
 	int endian;
+	int itest = 0;
 	int pcount; /* actual count of data pixels */
 	double pri, swst;
 	double near_range, near_range_in = 0.0;
@@ -338,6 +340,7 @@ int main(int argc, char *argv[]) {
 
 			/*------------------------------------*/
 			/* determine the image format counter */
+			/* turn bit 24 off if it is set       */
 			/*------------------------------------*/
 
 			memcpy((char *)&ifc, data + ifc_index, IFC_SIZE);
@@ -346,6 +349,9 @@ int main(int argc, char *argv[]) {
 			if (ifc == 0) {
 				printf("  Line: %d,  Previously inserted line\n", input_line_number);
 			}
+			itest = ifc;
+                        if( (itest & 16777216) == 16777216)
+                              ifc = itest - 16777216;
 
 			/*----------------------*/
 			/* detect missing lines */
