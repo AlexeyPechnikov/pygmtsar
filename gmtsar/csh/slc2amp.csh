@@ -43,4 +43,4 @@ unset noclobber
 # 
 # get the zmin and zmax value
 #
-  gmt grdmath $3 1 MUL = $3
+  gmt grdmath $3=bf 1 MUL = $3
