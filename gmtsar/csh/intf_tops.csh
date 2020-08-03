@@ -192,12 +192,12 @@ if ($stage <= 2) then
     
     if ($threshold_snaphu != 0 ) then
       if ($switch_land == 1) then
-        if ($region_cut == "") then
-          set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
-        endif
+        #if ($region_cut == "") then
+        #  set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+        #endif
         cd ../../topo
         if (! -f landmask_ra.grd) then
-          landmask.csh $region_cut
+          landmask.csh
         endif
         cd ../intf
         cd $ref_id"_"$rep_id
@@ -208,9 +208,11 @@ if ($stage <= 2) then
       echo "SNAPHU.CSH - START"
       echo "threshold_snaphu: $threshold_snaphu"
       if ($near_interp == 1) then
-        snaphu_interp.csh $threshold_snaphu $defomax $region_cut
+        #snaphu_interp.csh $threshold_snaphu $defomax $region_cut
+        snaphu_interp.csh $threshold_snaphu $defomax
       else
-        snaphu.csh $threshold_snaphu $defomax $region_cut
+        #snaphu.csh $threshold_snaphu $defomax $region_cut
+        snaphu.csh $threshold_snaphu $defomax
       endif
       echo "SNAPHU.CSH - END"
     else
