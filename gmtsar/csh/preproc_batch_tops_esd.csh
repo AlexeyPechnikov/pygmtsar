@@ -76,8 +76,8 @@
       calc_dop_orb junk1 junk2 0 0
       cat junk1 junk2 > $m_stem_master.PRM
 
-      baseline_table.csh $mmaster.PRM $m_stem_master.PRM >> baseline_table.dat
-      baseline_table.csh $mmaster.PRM $m_stem_master.PRM GMT >> table.gmt
+      #baseline_table.csh $mmaster.PRM $m_stem_master.PRM >> baseline_table.dat
+      #baseline_table.csh $mmaster.PRM $m_stem_master.PRM GMT >> table.gmt
 
       # clean up the mess
       rm junk1 junk2
@@ -310,6 +310,13 @@
        set sl = `echo $sl | awk '{print $1+1}'`
     endif
   end
+
+  # create baseline table
+  ls *ALL*PRM > prmlist 
+  foreach prm_aligned (`cat $list`)
+    baseline_table.csh $mmaster $prm_aligned >> baseline_table.dat 
+    baseline_table.csh $mmaster $prm_aligned GMT >> table.gmt 
+  end 
 
   # for mode 1, plot the time-baseline figure
   if($mode == 1) then
