@@ -6,6 +6,9 @@
 # user should follow the naming of each parameter.
 # the parameter name, "=" sign, parameter value should be separated by space " ". 
 # leave the parameter value blank if using default value. 
+# 
+# DO NOT DIRECTLY COMMENT PARAMTERS WITH "#" !!!
+# THIS WILL DUPLICATE PARAMETERS AND CAUSE TROUBLE !!!
 #
   
 #####################
