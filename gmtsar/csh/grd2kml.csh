@@ -40,6 +40,6 @@ endif
 #   now make the kml and png
 #
 echo "Make $1.kml and $1.png"
-gmt psconvert $1.ps -W+k+t"$1" -E$DPI -TG -P $VS -F$1.png
+gmt psconvert $1.ps -W+k+t"$1" -E$DPI -TG -P $VS -F$1
 rm -f $1.ps grad.grd ps2raster* psconvert*
 #
