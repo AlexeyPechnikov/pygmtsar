@@ -33,7 +33,11 @@ git clone https://github.com/GenericMappingTools/gmt
 #
 # switch to a specific branch
 #
-git branch 5.7
+git checkout 5.7
+#
+# show current branches
+#
+git branch
 # undo the committed
 git revert
 # create a new branch
