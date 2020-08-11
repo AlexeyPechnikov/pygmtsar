@@ -118,7 +118,7 @@ set std = `echo $tmp | awk '{printf("%5.1f", $13)}'`
 gmt makecpt -Cseis -I -Z -T"$limitL"/"$limitU"/1 -D > unwrap.cpt
 gmt grdimage unwrap.grd -Iunwrap_grad.grd -Cunwrap.cpt -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > unwrap.ps
 gmt psscale -Runwrap.grd -J -DJTC+w5/0.2+h+e -Cunwrap.cpt -Bxaf+l"Unwrapped phase" -By+lrad -O >> unwrap.ps
-gmt psconvert -Tf -P -Z unwrap.ps
+gmt psconvert -Tf -P -A -Z unwrap.ps
 echo "Unwrapped phase map: unwrap.pdf"
 #
 # clean up

@@ -45,30 +45,30 @@ endif
 #
 gmt grdimage phase_mask.grd -JX6.5i -Cphase.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > phase_mask.ps
 gmt psscale -Rphase_mask.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phase_mask.ps
-gmt psconvert -Tf -P -Z phase_mask.ps
+gmt psconvert -Tf -P -A -Z phase_mask.ps
 echo "Masked phase map: phase_mask.pdf"
 if (-e xphase_mask.grd) then
-  makecpt -Cgray -T-.3/.3/.1 -N -Z > xphase.cpt
+  gmt makecpt -Cgray -T-.3/.3/.1 -N -Z > xphase.cpt
   gmt grdimage xphase_mask.grd -JX8i -Cxphase.cpt -X.2i -Y.5i -P -K > xphase_mask.ps
   gmt psscale -Rxphase_mask.grd -J -DJTC+w5i/0.2i+h -Cxphase.cpt -Bxa0.1+l"Phase" -By+lrad -O >> xphase_mask.ps
-  gmt psconvert -Tf -P -Z xphase_mask.ps
+  gmt psconvert -Tf -P -A -Z xphase_mask.ps
   echo "Masked x phase map: xphase_mask.pdf"
-  makecpt -Cgray -T-.6/.6/.1 -N -Z > yphase.cpt
+  gmt makecpt -Cgray -T-.6/.6/.1 -N -Z > yphase.cpt
   gmt grdimage yphase_mask.grd -JX8i -Cyphase.cpt -X.2i -Y.5i -P -K > yphase_mask.ps
   gmt psscale -Ryphase_mask.grd -J -DJTC+w5i/0.2i+h -Cyphase.cpt -Bxa0.1+l"Phase" -By+lrad -O >> yphase_mask.ps
-  gmt psconvert -Tf -P -Z yphase_mask.ps
+  gmt psconvert -Tf -P -A -Z yphase_mask.ps
   echo "Masked y phase map: yphase_mask.pdf"
 endif
 if (-e unwrap_mask.grd) then 
   gmt grdimage unwrap_mask.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cunwrap.cpt -X1.3i -Y3i -P -K > unwrap_mask.ps
   gmt psscale -Runwrap_mask.grd -J -DJTC+w5i/0.2i+h+e -Cunwrap.cpt -Bxaf+l"Unwrapped phase" -By+lrad -O >> unwrap_mask.ps
-  gmt psconvert -Tf -P -Z unwrap_mask.ps
+  gmt psconvert -Tf -P -A -Z unwrap_mask.ps
   echo "Unwrapped masked phase map: unwrap_mask.pdf"
 endif
 if (-e phasefilt_mask.grd) then 
   gmt grdimage phasefilt_mask.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt_mask.ps
   gmt psscale -Rphasefilt_mask.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt_mask.ps
-  gmt psconvert -Tf -P -Z phasefilt_mask.ps
+  gmt psconvert -Tf -P -A -Z phasefilt_mask.ps
   echo "Filtered masked phase map: phasefilt_mask.pdf"
 endif
 # line-of-sight displacement
@@ -82,7 +82,7 @@ if (-e unwrap_mask.grd) then
   gmt makecpt -Cpolar -Z -T"$limitL"/"$limitU"/1 -D > los.cpt
   gmt grdimage los.grd -Ilos_grad.grd -Clos.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -JX6.5i -X1.3i -Y3i -P -K > los.ps
   gmt psscale -Rlos.grd -J -DJTC+w5i/0.2i+h+e -Clos.cpt -Bxaf+l"LOS displacement [range decrease @~\256@~]" -By+lmm -O >> los.ps 
-  gmt psconvert -Tf -P -Z los.ps
+  gmt psconvert -Tf -P -A -Z los.ps
   echo "Line-of-sight map: los.pdf"
 endif
 

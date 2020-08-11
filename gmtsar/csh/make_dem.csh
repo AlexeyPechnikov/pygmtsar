@@ -202,7 +202,7 @@ endif
   gmt grd2cpt dem.grd -Cgray -Z $V > dem.cpt 
   gmt grdimage dem.grd $scale -Baf -BWSne -P $V -X0.2i -Cdem.cpt -K > dem.ps 
   gmt psscale -Rdem.grd -J -DJTC+w5i/0.2i+h -Cdem.cpt -Baf -O >> dem.ps
-  gmt psconvert -Tf -P -Z dem.ps
+  gmt psconvert -Tf -P -A -Z dem.ps
   echo "DEM map: dem.pdf"
 #
 #   make a kml file of shaded relief

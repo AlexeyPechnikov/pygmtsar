@@ -130,7 +130,7 @@ set boundR = `gmt grdinfo unwrap.grd -C | awk '{print ($3-$2)/4}'`
 set boundA = `gmt grdinfo unwrap.grd -C | awk '{print ($5-$4)/4}'`
 gmt grdimage unwrap.grd -Iunwrap_grad.grd -Cunwrap.cpt -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > unwrap.ps
 gmt psscale -Runwrap.grd -J -DJTC+w5/0.2+h+e -Cunwrap.cpt -Bxaf+l"Unwrapped phase" -By+lrad -O >> unwrap.ps
-gmt psconvert -Tf -P -Z unwrap.ps
+gmt psconvert -Tf -P -A -Z unwrap.ps
 echo "Unwrapped phase map: unwrap.pdf"
 #
 # clean up

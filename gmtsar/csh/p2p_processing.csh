@@ -774,7 +774,7 @@
         gmt grdmath phasefilt_non_corrected.grd ph_iono.grd SUB PI ADD 2 PI MUL MOD PI SUB = phasefilt.grd
         gmt grdimage phasefilt.grd -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
         gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
-        gmt psconvert -Tf -P -Z phasefilt.ps
+        gmt psconvert -Tf -P -A -Z phasefilt.ps
         #rm phasefilt.ps
       endif
       cd ../../
