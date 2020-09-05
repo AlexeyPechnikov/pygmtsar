@@ -592,15 +592,15 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 	search_tree(xml_tree, "/product/generalAnnotation/orbitList/orbit/velocity/x/", tmp_c, 1, 4, ii - 1);
 	vx = str2double(tmp_c);
 	search_tree(xml_tree, "/product/generalAnnotation/orbitList/orbit/velocity/x/", tmp_c, 1, 4, ii);
-	vx = (str2double(tmp_c) * (t2 - t_brst) + vx * (t_brst - t1)) / (t2 - t1);
+	vx = (str2double(tmp_c) * (t_brst - t1) + vx * (t2 - t_brst)) / (t2 - t1);
 	search_tree(xml_tree, "/product/generalAnnotation/orbitList/orbit/velocity/y/", tmp_c, 1, 4, ii - 1);
 	vy = str2double(tmp_c);
 	search_tree(xml_tree, "/product/generalAnnotation/orbitList/orbit/velocity/y/", tmp_c, 1, 4, ii);
-	vy = (str2double(tmp_c) * (t2 - t_brst) + vy * (t_brst - t1)) / (t2 - t1);
+	vy = (str2double(tmp_c) * (t_brst - t1) + vy * (t2 - t_brst)) / (t2 - t1);
 	search_tree(xml_tree, "/product/generalAnnotation/orbitList/orbit/velocity/z/", tmp_c, 1, 4, ii - 1);
 	vz = str2double(tmp_c);
 	search_tree(xml_tree, "/product/generalAnnotation/orbitList/orbit/velocity/z/", tmp_c, 1, 4, ii);
-	vz = (str2double(tmp_c) * (t2 - t_brst) + vz * (t_brst - t1)) / (t2 - t1);
+	vz = (str2double(tmp_c) * (t_brst - t1) + vz * (t2 - t_brst)) / (t2 - t1);
 
 	// malloc the memory
 	eta = (double *)malloc(lpb * sizeof(double));
