@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 
-char *USAGE = "\n\nUSAGE: merge_swath inputlist output [stem]\n"
+char *USAGE = "\n\nUSAGE: merge_swath inputlist output [stem] [n1 n2]\n"
               "\ninputlist example: "
               "F1/intf/2015036_2015060/S1A_20150609.PRM:F1/intf/2015036_2015060/"
               "phasefilt.grd\n"
@@ -28,7 +28,9 @@ char *USAGE = "\n\nUSAGE: merge_swath inputlist output [stem]\n"
               "\nnote: use the aligned PRM which contains the shift information\n"
               "\noutput: output.grd [stem.PRM]\n"
               "\nnote: please put the files to stem.in in the order of swath numbers.\n"
-              "\n      make sure all images have same num_rng_bin\n";
+              "\n      make sure all images have same num_rng_bin\n"
+              "\n      the n1 and n2 will determine where to stitch, they have to be\n"
+              "\n      pairs when assigned. In case you have only two, use 0 for n2\n";
 
 void fix_prm(struct PRM *p) {
 
@@ -60,7 +62,7 @@ int main(int argc, char **argv) {
 	struct GMT_GRID *G1 = NULL, *G2 = NULL, *G3 = NULL;
 	struct GMT_GRID *GOUT = NULL;
 
-	if (argc != 4 && argc != 3)
+	if (argc != 4 && argc != 3 && argc != 5 && argc != 6)
 		die(USAGE, "");
 
 	/* read in the filelist */
@@ -215,6 +217,16 @@ int main(int argc, char **argv) {
 		if (n2 < 10)
 			n2 = 10;
 
+    /* assign n1 and n2 from input */
+    if (argc == 5) {
+        n1 = atoi(argv[4]);
+        n2 = atoi(argv[5]);
+    }
+    if (argc == 6) {
+        n1 = atoi(argv[5]);
+        n2 = atoi(argv[6]);
+    }
+
 	// printf("%d,%d\n",n1,n2);
 	for (ii = head1; ii < G1->header->n_rows + head1; ii++) {
 		for (jj = 0; jj < G1->header->n_columns - (ovl12 - n1); jj++) {
@@ -256,7 +268,7 @@ int main(int argc, char **argv) {
 	if (GMT_Write_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, tmp_str, GOUT))
 		die("Failed to write output grid", "");
 
-	if (argc == 4) {
+	if (argc == 4 || argc == 6) {
 		strcpy(tmp_str, argv[3]);
 		strcat(tmp_str, ".PRM");
 		if ((PRM = fopen(tmp_str, "w")) == NULL)
