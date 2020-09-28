@@ -249,5 +249,5 @@ echo $n1 $n2 $orb
   endif   
 
   rm tmp*
-  rm *.EOF
+  #rm *.EOF
   
