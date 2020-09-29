@@ -270,7 +270,7 @@
   
   # create baseline table
   ls *ALL*PRM > prmlist 
-  foreach prm_aligned (`cat $list`)
+  foreach prm_aligned (`cat prmlist`)
     baseline_table.csh $mmaster $prm_aligned >> baseline_table.dat 
     baseline_table.csh $mmaster $prm_aligned GMT >> table.gmt 
   end
