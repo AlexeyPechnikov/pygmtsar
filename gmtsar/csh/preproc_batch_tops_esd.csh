@@ -76,6 +76,9 @@
       calc_dop_orb junk1 junk2 0 0
       cat junk1 junk2 > $m_stem_master.PRM
 
+      update_PRM $m_stem_master.PRM input_file $m_stem_master.raw
+      update_PRM $m_stem_master.PRM SLC_file $m_stem_master.SLC
+      update_PRM $m_stem_master.PRM led_file $m_stem_master.LED
       #baseline_table.csh $mmaster.PRM $m_stem_master.PRM >> baseline_table.dat
       #baseline_table.csh $mmaster.PRM $m_stem_master.PRM GMT >> table.gmt
 
