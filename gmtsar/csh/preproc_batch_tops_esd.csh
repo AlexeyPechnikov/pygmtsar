@@ -314,8 +314,8 @@
   # create baseline table
   ls *ALL*PRM > prmlist 
   foreach prm_aligned (`cat prmlist`)
-    baseline_table.csh $mmaster $prm_aligned >> baseline_table.dat 
-    baseline_table.csh $mmaster $prm_aligned GMT >> table.gmt 
+    baseline_table.csh $mmaster.PRM $prm_aligned >> baseline_table.dat 
+    baseline_table.csh $mmaster.PRM $prm_aligned GMT >> table.gmt 
   end 
 
   # for mode 1, plot the time-baseline figure
