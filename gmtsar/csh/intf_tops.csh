@@ -193,11 +193,11 @@ if ($stage <= 2) then
     if ($threshold_snaphu != 0 ) then
       if ($switch_land == 1) then
         #if ($region_cut == "") then
-        #  set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+        set mask_region = `gmt grdinfo phase.grd -I- | cut -c3-20`
         #endif
         cd ../../topo
         if (! -f landmask_ra.grd) then
-          landmask.csh
+          landmask.csh $mask_region
         endif
         cd ../intf
         cd $ref_id"_"$rep_id
