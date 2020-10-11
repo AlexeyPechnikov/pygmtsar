@@ -62,16 +62,16 @@ unset noclobber
   cp $2.PRM $2.PRM0
   cp $3.PRM $3.PRM0
   if($#argv == 4) then
-    set RSHIFT = `$1_baseline $4.PRM $3.PRM | grep rshift | awk '{print $3}'`
-    set ASHIFT = `$1_baseline $4.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    set RSHIFT = `SAT_baseline $4.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    set ASHIFT = `SAT_baseline $4.PRM $3.PRM | grep ashift | awk '{print $3}'`
 #
 #   use the PRF of the supermaster in the surrogate master
 #
     set PRF = `grep PRF $4.PRM | awk '{print $3}'`
     update_PRM $2.PRM PRF $PRF
   else
-    set RSHIFT = `$1_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
-    set ASHIFT = `$1_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    set RSHIFT = `SAT_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    set ASHIFT = `SAT_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
   endif
   update_PRM $3.PRM rshift $RSHIFT
   update_PRM $3.PRM ashift $ASHIFT
