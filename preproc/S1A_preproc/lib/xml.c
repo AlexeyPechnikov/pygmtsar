@@ -750,7 +750,7 @@ int assemble_trees(int nfiles, struct tree **T, int ct, int lvl, FILE *fp) {
 		else {
 			j = ct;
 			k = 1;
-			while (T[0][j].sibr == -1 & j != 0) {
+			while (T[0][j].sibr == -1 && j != 0) {
 				print_space(2 * (lvl - k), fp);
 				print_tree(T[0], T[0][j].parent, 2, fp);
 				j = T[0][j].parent;
@@ -783,7 +783,7 @@ int assemble_trees(int nfiles, struct tree **T, int ct, int lvl, FILE *fp) {
 		if (T[0][ct].firstchild == -1 && T[0][ct].sibr == -1) {
 			j = ct;
 			k = 1;
-			while (T[0][j].sibr == -1 & j != 0) {
+			while (T[0][j].sibr == -1 && j != 0) {
 				print_space(2 * (lvl - k), fp);
 				print_tree(T[0], T[0][j].parent, 2, fp);
 				j = T[0][j].parent;
