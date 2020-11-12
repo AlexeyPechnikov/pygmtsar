@@ -84,8 +84,8 @@ endif
 # convert to grd
 #
 gmt xyz2grd unwrap.out -ZTLf -r `gmt grdinfo -I- phase_patch.grd` `gmt grdinfo -I phase_patch.grd` -Gtmp.grd
-#gmt grdmath tmp.grd mask2_patch.grd MUL = tmp.grd
-gmt grdmath tmp.grd mask_patch.grd MUL = tmp.grd
+gmt grdmath tmp.grd mask2_patch.grd MUL = tmp.grd
+#gmt grdmath tmp.grd mask_patch.grd MUL = tmp.grd
 #
 # detrend the unwrapped if DEFOMAX = 0 for interseismic
 #
