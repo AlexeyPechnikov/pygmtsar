@@ -2,7 +2,7 @@
 name: General help
 about: Help with problems users met during software installation, data processing,
   etc.
-title: ''
+title: "[Help]: "
 labels: ''
 assignees: ''
 
