@@ -3,7 +3,8 @@ configure_file (gmtsar_sharedir.csh.in gmtsar_sharedir.csh)
 install (PROGRAMS align.csh align_ALOS2_SCAN.csh align_ALOS_SLC.csh align_batch.csh align_batch_ALOS2_SCAN.csh
 	align_batch_ALOS_SLC.csh align_tops.csh align_tops_6par.csh align_tops_esd.csh baseline_table.csh
 	cleanup.csh create_frame_tops.csh dem2topo_ra.csh dem2topo_ra_ALOS2.csh detrend_before_unwrap.csh
-	filter.csh fitoffset.csh geocode.csh gmtsar.csh gmtsar_sharedir.csh grd2geotiff.csh grd2kml.csh intf.csh
+	filter.csh fitoffset.csh geocode.csh gmtsar.csh ${CMAKE_CURRENT_BINARY_DIR}/gmtsar_sharedir.csh
+	grd2geotiff.csh grd2kml.csh intf.csh
 	intf_batch.csh intf_batch_ALOS2_SCAN.csh intf_tops.csh landmask.csh landmask_ALOS2.csh m2s.csh
 	make_a_offset.csh make_dem.csh make_los_ascii.csh make_profile.csh merge_batch.csh
     merge_unwrap_geocode_tops.csh p2p_ALOS2_SCAN_Frame.csh p2p_ALOS2_SCAN_SLC.csh
