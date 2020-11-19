@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
 		die("mmap error for input", " ");
 
 	/* open the aligned slc file for writing and write one row at a time */
-	if ((SLC_file2 = fopen(argv[4], "w")) == NULL)
+	if ((SLC_file2 = fopen(argv[4], "wb")) == NULL)
 		die("Can't open SLCfile for output", argv[4]);
 	for (ii = 0; ii < ydimm; ii++) {
 		for (jj = 0; jj < xdimm; jj++) {
