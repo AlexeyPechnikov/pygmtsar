@@ -75,15 +75,17 @@ set sharedir = `gmtsar_sharedir.csh`
 echo "unwrapping phase with snaphu - higher threshold for faster unwrapping "
 
 if ($2 == 0) then
-  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f $sharedir/snaphu/config/snaphu.conf.brief -c corr.in -o unwrap.out -v -s
+  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f $sharedir/snaphu/config/snaphu.conf.brief -c corr.in -o unwrap.out -v -s -g conncomp.out
 else
   sed "s/.*DEFOMAX_CYCLE.*/DEFOMAX_CYCLE  $2/g" $sharedir/snaphu/config/snaphu.conf.brief > snaphu.conf.brief
-  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f snaphu.conf.brief -c corr.in -o unwrap.out -v -d
+  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f snaphu.conf.brief -c corr.in -o unwrap.out -v -d -g conncomp.out
 endif
 #
 # convert to grd
 #
 gmt xyz2grd unwrap.out -ZTLf -r `gmt grdinfo -I- phase_patch.grd` `gmt grdinfo -I phase_patch.grd` -Gtmp.grd
+#Generate connected component
+gmt xyz2grd conncomp.out -ZTLu -r `gmt grdinfo -I- phase_patch.grd` `gmt grdinfo -I phase_patch.grd` -Gconncomp.grd
 gmt grdmath tmp.grd mask2_patch.grd MUL = tmp.grd
 #gmt grdmath tmp.grd mask_patch.grd MUL = tmp.grd
 #
@@ -123,7 +125,7 @@ echo "Unwrapped phase map: unwrap.pdf"
 #
 # clean up
 #
-rm -f tmp.grd corr_tmp.grd unwrap.out tmp2.grd unwrap_grad.grd 
+rm -f tmp.grd corr_tmp.grd unwrap.out tmp2.grd unwrap_grad.grd conncomp.out
 rm -f phase.in corr.in 
 #
 #   cleanup more
