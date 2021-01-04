@@ -1,7 +1,10 @@
 #
 #  clone the master or a branch
 #
-#  Github will soon start two-step authentification for use from a terminal. 
+#  Github will soon start two-factor authentification for use from a terminal. 
+#  After setting up 2FA, the old username/passward will fail when you run git push, etc.
+#  Then you have to set up a token on your github_account/Settings/Developer_Settings/Personal_access_tokens
+#  After setting the token, save it, then use that as the password when running git push, etc.
 #
 cd /usr/local
 git clone https://github.com/gmtsar/gmtsar GMTSAR_master
