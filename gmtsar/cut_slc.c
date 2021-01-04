@@ -82,7 +82,8 @@ int main(int argc, char **argv) {
 	// printf("%d %d %d %d %d %d
 	// %d\n",xl,xh,yl,yh,pp.num_rng_bins,pp.num_patches,pp.num_valid_az);
 
-	if (xl < 0 || xl > xh || xh > nr - 1 || yl < 0 || yl > yh || yh > nl - 1)
+	//if (xl < 0 || xl > xh || xh > nr - 1 || yl < 0 || yl > yh || yh > nl - 1)
+	if (xl < 0 || xl > xh || xh > nr || yl < 0 || yl > yh || yh > nl)
 		die("wrong range ", "");
 
     if (do_slc == 1)
