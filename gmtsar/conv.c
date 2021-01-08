@@ -74,7 +74,8 @@ FILE *read_PRM_file(char *prmfilename, char *input_file_name, struct PRM p, int 
 		fprintf(stderr, " reading PRM file %s\n", prmfilename);
 	if ((f_input_prm = fopen(prmfilename, "r")) == NULL)
 		die("Can't open input header", prmfilename);
-	get_sio_struct(f_input_prm, &p);
+	null_sio_struct(&p);
+    get_sio_struct(f_input_prm, &p);
 	strcpy(input_file_name, p.SLC_file);
 	format_flag = 2;
 	if (strncmp(p.dtype, "c", 1) == 0)

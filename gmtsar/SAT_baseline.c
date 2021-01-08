@@ -92,6 +92,7 @@ int main(int argc, char **argv) {
 		if ((prmfile = fopen(filename[i], "r")) == NULL)
 			die("Can't open prmfile ", filename[i]);
 
+        null_sio_struct(&r[i]);
 		get_sio_struct(prmfile, &r[i]);
 
 		/* check whether range sampling rate is same. If not, warning */

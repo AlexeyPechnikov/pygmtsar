@@ -228,7 +228,7 @@ void handle_prm(void *API, char **argv, struct xcorr *xc, int nfiles) {
 			// fprintf(stderr," Reading in PRM file: %s\n",filename[i]);
 			if ((prmfile = fopen(filename[i], "r")) == NULL)
 				die("Can't open prmfile ", filename[i]);
-
+            null_sio_struct(&r[i]);
 			get_sio_struct(prmfile, &r[i]);
 
 			if (i == 0) {

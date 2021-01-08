@@ -144,6 +144,7 @@ int main(int argc, char **argv) {
 
 	/* initialize the prm file   */
 
+    null_sio_struct(&prm);
 	set_prm_defaults(&prm);
 	get_sio_struct(fprm1, &prm);
 

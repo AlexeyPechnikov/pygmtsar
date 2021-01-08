@@ -107,6 +107,7 @@ int main(int argc, char **argv) {
 	i = 0;
 	if ((prmfile = fopen(PRMname[i], "r")) == NULL)
 		die("Can't open prmfile ", PRMname[i]);
+    null_sio_struct(&r[i]);
 	get_sio_struct(prmfile, &r[i]);
 	xdimm = r[i].num_rng_bins;
 	ydimm = r[i].num_patches * r[i].num_valid_az;

@@ -92,6 +92,7 @@ void llt2rat_sub(char *filename, double *target_llt, double *target_rat) {
 	}
 
 	/* initialize the prm file   */
+    null_sio_struct(&prm);
 	set_prm_defaults(&prm);
 	get_sio_struct(fprm1, &prm);
 
