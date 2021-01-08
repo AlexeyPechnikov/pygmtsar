@@ -39,6 +39,7 @@ int main(int argc, char **argv) {
 	re = atof(argv[3]);
 
 	/* get the PRM parameters */
+    null_sio_struct(prm);
 	get_sio_struct(prmfile, prm);
 	/*fprintf(stderr,"%lf", prm->near_range);*/
 
