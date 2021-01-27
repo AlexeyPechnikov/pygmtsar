@@ -143,15 +143,19 @@
     echo ""
     echo "GEOCODE-START"
     proj_ra2ll.csh trans.dat phasefilt.grd phasefilt_ll.grd
+    gmt grdmath corr.grd $threshold_geocode GE 0 NAN mask.grd MUL = mask2.grd
+    gmt grdmath phasefilt.grd mask2.grd MUL = phasefilt_mask.grd
+    proj_ra2ll.csh trans.dat phasefilt_mask.grd phasefilt_mask_ll.grd
     proj_ra2ll.csh trans.dat corr.grd corr_ll.grd
     gmt makecpt -Crainbow -T-3.15/3.15/0.05 -Z > phase.cpt
     set BT = `gmt grdinfo -C corr.grd | awk '{print $7}'`
     gmt makecpt -Cgray -T0/$BT/0.05 -Z > corr.cpt
     grd2kml.csh phasefilt_ll phase.cpt
+    grd2kml.csh phasefilt_mask_ll phase.cpt
     grd2kml.csh corr_ll corr.cpt
 
     if (-f unwrap.grd) then
-      gmt grdmath unwrap.grd mask.grd MUL = unwrap_mask.grd
+      gmt grdmath unwrap.grd mask2.grd MUL = unwrap_mask.grd
       proj_ra2ll.csh trans.dat unwrap.grd unwrap_ll.grd
       proj_ra2ll.csh trans.dat unwrap_mask.grd unwrap_mask_ll.grd
       set BT = `gmt grdinfo -C unwrap.grd | awk '{print $7}'`
