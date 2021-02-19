@@ -393,7 +393,7 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
 	kea = (int *)malloc((count + 1) * sizeof(int));
 	ker = (int *)malloc((count + 1) * sizeof(int));
 	kover = (int *)malloc((count + 1) * sizeof(int));
-	cflag_orig = (char *)malloc(sizeof(char) * 80 * (lpb + 1));
+	cflag_orig = (char *)malloc(sizeof(char) * 180 * (lpb + 1));
 	cflag = cflag_orig;
 
 	search_tree(xml_tree, "/product/imageAnnotation/imageInformation/productFirstLineUtcTime/", tmp_c, 2, 0, 1);
