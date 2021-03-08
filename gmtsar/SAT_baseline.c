@@ -248,7 +248,6 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 	x21 = y21 = z21 = -99999.0;
 	x22 = y22 = z22 = -99999.0;
 	x23 = y23 = z23 = -99999.0;
-	printf("hahahah\n");
 
 	/* roughly compute baseline */
 	for (k = -ns2; k < ns + ns2; k++) {
