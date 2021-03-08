@@ -10,7 +10,7 @@ if ($#argv != 3) then
   echo ""
   echo "Usage: samp_slc.csh image_stem new_prf new_rng_samp_rate "
   echo ""
-  echo "Example: p2p_ALOS_SLC.csh IMG-ALPSRP022200660-H1.1__A 2000 3200000"
+  echo "Example: samp_slc.csh IMG-ALPSRP022200660-H1.1__A 2000 3200000"
   echo ""
   echo "Note: A very small change in prf or rng_samp_rate change will be ignored"
   echo "      as they can be accounted during normal processing with resamp."
