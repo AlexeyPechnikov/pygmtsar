@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import re
 import requests
 import os
 import argparse
 import datetime
 from html.parser import HTMLParser
 
+server = 'https://scihub.copernicus.eu/gnss/'
 
-server = 'https://qc.sentinel1.eo.esa.int/'
-
-orbitMap = [('precise','aux_poeorb'),
-            ('restituted','aux_resorb')]
+orbitMap = [('precise', 'AUX_POEORB'),
+            ('restituted', 'AUX_RESORB')]
 
 datefmt = "%Y%m%dT%H%M%S"
 queryfmt = "%Y-%m-%d"
+queryfmt2 = "%Y/%m/%d/"
+
+#Generic credentials to query and download orbit files
+credentials = ('gnssguest', 'gnssguest')
+
 
 def cmdLineParse():
     '''
@@ -23,9 +28,9 @@ def cmdLineParse():
 
     parser = argparse.ArgumentParser(description='Fetch orbits corresponding to given SAFE package')
     parser.add_argument('-i', '--input', dest='input', type=str, required=True,
-            help='Path to SAFE package of interest')
+                        help='Path to SAFE package of interest')
     parser.add_argument('-o', '--output', dest='outdir', type=str, default='.',
-            help='Path to output directory')
+                        help='Path to output directory')
 
     return parser.parse_args()
 
@@ -34,38 +39,44 @@ def FileToTimeStamp(safename):
     '''
     Return timestamp from SAFE name.
     '''
-
+    safename = os.path.basename(safename)
     fields = safename.split('_')
-    tstamp = datetime.datetime.strptime(fields[-4], datefmt)
-    return tstamp
+    sstamp = []  # sstamp for getting SAFE file start time, not needed for orbit file timestamps
+
+    try:
+        tstamp = datetime.datetime.strptime(fields[-4], datefmt)
+        sstamp = datetime.datetime.strptime(fields[-5], datefmt)
+    except:
+        p = re.compile(r'(?<=_)\d{8}')
+        dt2 = p.search(safename).group()
+        tstamp = datetime.datetime.strptime(dt2, '%Y%m%d')
+
+    satName = fields[0]
+
+    return tstamp, satName, sstamp
 
 
 class MyHTMLParser(HTMLParser):
 
-    def __init__(self):
+    def __init__(self,url):
         HTMLParser.__init__(self)
         self.fileList = []
-        self.in_td = False
-        self.in_a = False
-
+        self._url = url
+        
     def handle_starttag(self, tag, attrs):
-        if tag == 'td':
-            self.in_td = True
-        elif tag == 'a':
-            self.in_a = True
-
-    def handle_data(self,data):
-        if self.in_td and self.in_a:
-            if 'S1A_OPER' in data:
-                self.fileList.append(data.strip())
-
-    def handle_tag(self, tag):
-        if tag == 'td':
-            self.in_td = False
-            self.in_a = False
-        elif tag == 'a':
-            self.in_a = False
-
+        for name, val in attrs:
+            if name == 'href':
+                if val.startswith("https://scihub.copernicus.eu/gnss/odata") and val.endswith("Products('Quicklook')/$value"):
+                    pass
+                elif val.startswith("https://scihub.copernicus.eu/gnss/odata") and val.endswith("/"):
+                    pass
+                else:
+                    self._url = val.strip()
+                
+    def handle_data(self, data):
+        if data.startswith("S1") and data.endswith(".EOF"):
+            self.fileList.append((self._url, data.strip()))
+            
 
 def download_file(url, outdir='.', session=None):
     '''
@@ -75,9 +86,9 @@ def download_file(url, outdir='.', session=None):
     if session is None:
         session = requests.session()
 
-    path = os.path.join(outdir, os.path.basename(url))
+    path = outdir
     print('Downloading URL: ', url)
-    request = session.get(url, stream=True, verify=False)
+    request = session.get(url, stream=True, verify=True, auth=credentials)
 
     try:
         val = request.raise_for_status()
@@ -86,7 +97,7 @@ def download_file(url, outdir='.', session=None):
         success = False
 
     if success:
-        with open(path,'wb') as f:
+        with open(path, 'wb') as f:
             for chunk in request.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
@@ -94,6 +105,18 @@ def download_file(url, outdir='.', session=None):
 
     return success
 
+
+def fileToRange(fname):
+    '''
+    Derive datetime range from orbit file name.
+    '''
+
+    fields = os.path.basename(fname).split('_')
+    start = datetime.datetime.strptime(fields[-2][1:16], datefmt)
+    stop = datetime.datetime.strptime(fields[-1][:15], datefmt)
+    mission = fields[0]
+
+    return (start, stop, mission)
 
 
 if __name__ == '__main__':
@@ -103,67 +126,45 @@ if __name__ == '__main__':
 
     inps = cmdLineParse()
 
-    fileTS = FileToTimeStamp(inps.input)
+    fileTS, satName, fileTSStart = FileToTimeStamp(inps.input)
     print('Reference time: ', fileTS)
-
-
+    print('Satellite name: ', satName)
     match = None
     session = requests.Session()
+
     for spec in orbitMap:
         oType = spec[0]
-
-        if oType == 'precise':
-            delta = datetime.timedelta(days=2)
-        elif oType == 'restituted':
-            delta = datetime.timedelta(hours=6)
-
+        delta = datetime.timedelta(days=1)
         timebef = (fileTS - delta).strftime(queryfmt)
         timeaft = (fileTS + delta).strftime(queryfmt)
-
-        url = server + spec[1]
-
-    
-        query = url + '/?validity_start_time={0}..{1}'.format(timebef, timeaft)
-
-        print(query)
+        url = server + 'search?q=( beginPosition:[{0}T00:00:00.000Z TO {1}T23:59:59.999Z] AND endPosition:[{0}T00:00:00.000Z TO {1}T23:59:59.999Z] ) AND ( (platformname:Sentinel-1 AND filename:{2}_* AND producttype:{3}))&start=0&rows=100'.format(timebef,timeaft, satName,spec[1])
+        
         success = False
         match = None
+  
         try:
-            print('Querying for {0} orbits'.format(oType))
-            r = session.get(query, verify=False)
+            r = session.get(url, verify=True, auth=credentials)
             r.raise_for_status()
-            res = r.text
-
-
-            parser = MyHTMLParser()
+            parser = MyHTMLParser(url)
             parser.feed(r.text)
-
-            match = None
-            for result in parser.fileList:
-                fields = result.split('_')
-                taft = datetime.datetime.strptime(fields[-1][0:15], datefmt)
-                tbef = datetime.datetime.strptime(fields[-2][1:16], datefmt)
-
-                if (tbef <= fileTS) and (taft >= fileTS):
-                    match = os.path.join(url, result)
-                    break
+            for resulturl, result in parser.fileList:
+                tbef, taft, mission = fileToRange(os.path.basename(result))
+                if (tbef <= fileTSStart) and (taft >= fileTS):
+                    matchFileName = result
+                    match = os.path.join(resulturl)
 
             if match is not None:
                 success = True
-        except :
+        except:
             pass
-
-        if match is None:
-            print('Failed to find {0} orbits for Time {1}'.format(oType, fileTS))
-
 
         if success:
             break
 
-    if match:
-        res = download_file(match, inps.outdir, session=session)
-
+    if match is not None:
+        output = os.path.join(inps.outdir, matchFileName)
+        res = download_file(match, output, session)
         if res is False:
             print('Failed to download URL: ', match)
-
-    session.close()
+    else:
+        print('Failed to find {1} orbits for tref {0}'.format(fileTS, satName))
