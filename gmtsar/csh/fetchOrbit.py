@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import re
 import requests
+import re
 import os
 import argparse
 import datetime
@@ -66,12 +66,13 @@ class MyHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         for name, val in attrs:
             if name == 'href':
-                if val.startswith("https://scihub.copernicus.eu/gnss/odata") and val.endswith("Products('Quicklook')/$value"):
-                    pass
-                elif val.startswith("https://scihub.copernicus.eu/gnss/odata") and val.endswith("/"):
+                if val.startswith("https://scihub.copernicus.eu/gnss/odata") and val.endswith(")/"):
                     pass
                 else:
-                    self._url = val.strip()
+                    downloadLink = val.strip()
+                    downloadLink = downloadLink.split("/Products('Quicklook')")
+                    downloadLink = downloadLink[0] + downloadLink[-1]
+                    self._url = downloadLink
                 
     def handle_data(self, data):
         if data.startswith("S1") and data.endswith(".EOF"):
@@ -151,7 +152,7 @@ if __name__ == '__main__':
                 tbef, taft, mission = fileToRange(os.path.basename(result))
                 if (tbef <= fileTSStart) and (taft >= fileTS):
                     matchFileName = result
-                    match = os.path.join(resulturl)
+                    match = os.path.join(server[0:-5],resulturl[36:])
 
             if match is not None:
                 success = True
