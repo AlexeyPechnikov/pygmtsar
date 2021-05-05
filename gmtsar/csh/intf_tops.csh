@@ -66,6 +66,7 @@
   set range_dec = `grep range_dec $2 | awk '{print $3}'`
   set azimuth_dec = `grep azimuth_dec $2 | awk '{print $3}'`
   set near_interp = `grep near_interp $2 | awk '{print $3}'`
+  set mask_water = `grep mask_water $2 | awk '{print $3}'`
 
 ##################################
 # 1 - start from make topo_ra  #
@@ -191,7 +192,7 @@ if ($stage <= 2) then
 #
     
     if ($threshold_snaphu != 0 ) then
-      if ($switch_land == 1) then
+      if ($mask_water == 1 || $switch_land == 1) then
         #if ($region_cut == "") then
         set mask_region = `gmt grdinfo phase.grd -I- | cut -c3-20`
         #endif

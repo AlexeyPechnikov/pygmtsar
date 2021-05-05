@@ -78,6 +78,7 @@ unset noclobber
   set range_dec = `grep range_dec $3 | awk '{print $3}'`
   set azimuth_dec = `grep azimuth_dec $3 | awk '{print $3}'`
   set near_interp = `grep near_interp $3 | awk '{print $3}'`
+  set mask_water = `grep mask_water $3 | awk '{print $3}'`
 #
 # read file names of raw data
 #
@@ -304,7 +305,7 @@ unset noclobber
 #
 # landmask
 #
-      if ($switch_land == 1) then
+      if ($mask_water == 1 || $switch_land == 1) then
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask.csh $region_cut

@@ -85,6 +85,7 @@ unset noclobber
   set range_dec = `grep range_dec $3 | awk '{print $3}'`
   set azimuth_dec = `grep azimuth_dec $3 | awk '{print $3}'`
   set near_interp = `grep near_interp $3 | awk '{print $3}'`
+  set mask_water = `grep mask_water $3 | awk '{print $3}'`
 #
 # loop over 5 subswath
 #
@@ -244,7 +245,7 @@ if ($stage <= 2) then
 
     if ($threshold_snaphu != 0 ) then
 
-      if ($switch_land == 1) then
+      if ($mask_water == 1 || $switch_land == 1) then
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask_ALOS2.csh $region_cut

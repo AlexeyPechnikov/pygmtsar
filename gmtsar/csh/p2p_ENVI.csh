@@ -75,6 +75,7 @@ if ($#argv < 3) then
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
   set near_interp = `grep near_interp $3 | awk '{print $3}'`
+  set mask_water = `grep mask_water $3 | awk '{print $3}'`
 
 #
 # read file names of raw data
@@ -286,7 +287,7 @@ if ($#argv < 3) then
 #
 # landmask
 #
-      if ($switch_land == 1) then
+      if ($mask_water == 1 || $switch_land == 1) then
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask.csh $region_cut

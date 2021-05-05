@@ -100,6 +100,7 @@ unset noclobber
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
   set near_interp = `grep near_interp $3 | awk '{print $3}'`
+  set mask_water = `grep mask_water $3 | awk '{print $3}'`
 #
 ##################################
 # 1 - start from make topo_ra  #
@@ -232,7 +233,7 @@ if ($stage <= 2) then
       set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
     endif
     if ($threshold_snaphu != 0 ) then
-      if ($switch_land == 1) then
+      if ($mask_water == 1 || $switch_land == 1) then
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask.csh $region_cut

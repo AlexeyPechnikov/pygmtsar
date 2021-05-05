@@ -109,13 +109,14 @@
   set switch_land = `grep switch_land $2 | awk '{print $3}'`
   set defomax = `grep defomax $2 | awk '{print $3}'`
   set near_interp = `grep near_interp $2 | awk '{print $3}'`
+  set mask_water = `grep mask_water $2 | awk '{print $3}'`
 
   # Unwrapping
   if ($region_cut == "") then
     set region_cut = `gmt grdinfo phasefilt.grd -I- | cut -c3-20`
   endif
   if ($threshold_snaphu != 0 ) then
-    if ($switch_land == 1) then
+    if ($mask_water == 1 || $switch_land == 1) then
       if (! -f landmask_ra.grd) then
         landmask.csh $region_cut
       endif
