@@ -11,7 +11,7 @@ unset noclobber
 #
   if ($#argv !=  4) then
     echo ""
-    echo "Usage: p2p_ALOS2_Scan_Frame.csh Master_stem Slave_stem config.alos2.txt parallel"
+    echo "Usage: p2p_ALOS2_Scan_Frame.csh Master_stem Aligned_stem config.alos2.txt parallel"
     echo ""
     echo "Example: p2p_ALOS2_Scan_Frame.csh IMG-HH-ALOS2234653650-180927-WBDR1.1__D IMG-HH-ALOS2236723650-181011-WBDR1.1__D config.alos2.txt 1" 
     echo ""

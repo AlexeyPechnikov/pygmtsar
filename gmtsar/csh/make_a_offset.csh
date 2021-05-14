@@ -12,7 +12,7 @@
 #
 if ($#argv != 7) then
    echo ""
-   echo "Usage: make_a_offset.csh Master.PRM Slave.PRM nx ny xsearch ysearch do_xcorr"
+   echo "Usage: make_a_offset.csh Master.PRM Aligned.PRM nx ny xsearch ysearch do_xcorr"
    echo ""
    echo "       nx - number of offsets to compute in the range direction (~num_rng/4)  "
    echo "       ny - number of offsets to compute in the azimuth direction (~num_az/6)  "

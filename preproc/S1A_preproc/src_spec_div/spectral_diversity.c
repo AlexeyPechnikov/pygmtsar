@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
 		nlm = nlm + bbm[ii].EH - (bbm[ii].EL + 1) + 1;
 		ntlm = ntlm + bbm[ii].EC - bbm[ii].SC + 1;
 	}
-	// fprintf(stderr,"Slave Image Size %d x %d \n",nlm,splm);
+	// fprintf(stderr,"Aligned Image Size %d x %d \n",nlm,splm);
 
 	fgets(tmp_str, 200 * sizeof(char), BBS);
 	tmp_str[strlen(tmp_str) - 1] = ' ';
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
 		ntls = ntls + bbs[ii].EC - bbs[ii].SC + 1;
 	}
 
-	// fprintf(stderr,"Slave Image Size %d x %d \n",nls,spls);
+	// fprintf(stderr,"Aligned Image Size %d x %d \n",nls,spls);
 
 	// malloc memory for images
 	mf = (short *)malloc(nlm * splm * 2 * sizeof(short));
