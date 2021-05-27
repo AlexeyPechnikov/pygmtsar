@@ -209,8 +209,11 @@ int main(int argc, char **argv) {
 		head3 = GOUT->header->n_rows - G3->header->n_rows - head3;
 
 	n1 = (int)ceil((-(float)prm2.rshift + (float)prm2.first_sample + 150.0) / incx);
-	if (nfile == 3)
+    printf("Stitching location n1 = %d\n",n1);
+	if (nfile == 3) {
 		n2 = (int)ceil((-(float)prm3.rshift + (float)prm3.first_sample + 150.0) / incx);
+        printf("Stitching location n2 = %d\n",n2);
+    }
 	if (n1 < 10)
 		n1 = 10;
 	if (nfile == 3)
@@ -219,13 +222,15 @@ int main(int argc, char **argv) {
 
     /* assign n1 and n2 from input */
     if (argc == 5) {
+        n1 = atoi(argv[3]);
+        n2 = atoi(argv[4]);
+    }
+    if (argc == 6) {
         n1 = atoi(argv[4]);
         n2 = atoi(argv[5]);
     }
-    if (argc == 6) {
-        n1 = atoi(argv[5]);
-        n2 = atoi(argv[6]);
-    }
+    //printf("Stitching location n1 = %d\n",n1);
+    //printf("Stitching location n2 = %d\n",n2);
 
 	// printf("%d,%d\n",n1,n2);
 	for (ii = head1; ii < G1->header->n_rows + head1; ii++) {
