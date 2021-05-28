@@ -29,7 +29,7 @@ set DX = `gmt grdinfo $1.grd -C | cut -f8`
 set DPI = `gmt gmtmath -Q $DX INV RINT = `
 #echo $DPI
 gmt set COLOR_MODEL = hsv
-gmt set PS_MEDIA = tabloid
+gmt set PS_MEDIA = A2
 #
 if ($#argv == 3) then
   gmt grdimage $1.grd -C$2 $3 -Jx1id -P -Y2i -X2i -Q $V > $1.ps 
