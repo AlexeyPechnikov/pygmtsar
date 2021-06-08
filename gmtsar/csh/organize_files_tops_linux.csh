@@ -97,7 +97,7 @@ source ~/.cshrc
         set n1 = ` date --date="$date0 - 1 day" +%Y%m%d `
         set n2 = ` date --date="$date0 + 1 day" +%Y%m%d `
 
-        set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2`
+        set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
 
 echo $n1 $n2 $orb
 
@@ -201,7 +201,7 @@ echo $n1 $n2 $orb
   set n2 = ` date --date="$date0 + 1 day" +%Y%m%d `
   #set n1 = `date -v-1d -jf "%Y%m%d" $date0 +%Y%m%d`
   #set n2 = `date -v+1d -jf "%Y%m%d" $date0 +%Y%m%d`
-  set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2`
+  set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
 
   if (! -f $orb) then
     if (-f $orb_dir/$SAT0/$orb) then
