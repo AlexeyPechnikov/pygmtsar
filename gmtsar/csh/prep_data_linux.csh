@@ -43,7 +43,7 @@ foreach line ( ` awk '{ print $0 }' < text.dat ` )
     set SAT = `echo $mname | awk '{print toupper(substr($1,1,3))}'`
 
     #cp ../../../../orbit/*$n1*$n2* .
-    set orb = `grep $SAT orbits.list | grep $n1 | grep $n2`
+    set orb = `grep $SAT orbits.list | grep $n1 | grep $n2 | tail -1`
     if (! -f $orb) then
       if (-f $orb_dir/$SAT/$orb) then 
         cp $orb_dir/$SAT/$orb .
@@ -76,7 +76,7 @@ set n2 = ` date --date="$mstem + 1 day" +%Y%m%d `
 set SAT = `echo $mname | awk '{print toupper(substr($1,1,3))}'`
 echo "Writing record $mstem"
 #set orb = `ls *$n1*$n2*`
-set orb = `grep $SAT orbits.list | grep $n1 | grep $n2`
+set orb = `grep $SAT orbits.list | grep $n1 | grep $n2 | tail -1`
 if (! -f $orb) then 
   if (-f $orb_dir/$SAT/$orb) then
     cp $orb_dir/$SAT/$orb .
