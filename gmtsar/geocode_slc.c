@@ -158,8 +158,7 @@ int main (int argc, char **argv) {
             rp[0] = DEM->header->wesn[3]-ii*DEM->header->inc[1];    // latitude
             rp[1] = DEM->header->wesn[0]+jj*DEM->header->inc[0];    // longitude
             rp[2] = DEM->data[ii*DEM->header->n_columns+jj];              // elevation
-//printf("llt = %.9f %.9f %.9f\n",rp[0],rp[1],rp[2]);
-//exit(1);
+            
             plh2xyz(rp, xp, prm.ra, fll);
             if (rp[1] > 180.)
                 rp[1] = rp[1] - 360.;
@@ -191,7 +190,6 @@ int main (int argc, char **argv) {
 
             /* compute the range and azimuth in pixel space */
             xt[0] = rng0;
-//if (ii == 0 && jj == 0) printf ("rng0 = %.12f\n",rng0);
             xt[1] = tm;
             xt[0] = (xt[0] - prm.near_range) / dr - (prm.rshift + prm.sub_int_r) + prm.chirp_ext;
             xt[1] = prm.prf * (xt[1] - t1) - (prm.ashift + prm.sub_int_a);
@@ -213,10 +211,7 @@ int main (int argc, char **argv) {
                 xt[0] = xt[0] + drr;
                 xt[1] = xt[1] + daa;
             }
-//printf ("lon = %.9f; lat = %.9f; tp = %.9f; rng = %.12f; azi = %.12f\n",rp[1], rp[0],rp[2],xt[0],xt[1]);
             
-//printf("%.9f %.9f %.9f %.9f %.9f \n", xt[0], xt[1], rp[2], rp[1], rp[0]);
-//exit(1);
             /* write into the output grids. */ 
             ras[0] = xt[0];
             ras[1] = xt[1];
@@ -231,13 +226,6 @@ int main (int argc, char **argv) {
             r_i2 = Cmuld(r_i,pshif);
             real[ii*DEM->header->n_columns+jj] = r_i2.r;
             imag[ii*DEM->header->n_columns+jj] = r_i2.i;
-//printf("%.9f %.9f %.9f %.9f \n",rp[1], rp[0],r_i2.r,r_i2.i);
-//if (ii == 500 && jj == 500) {
-//    printf("%.9f %.9f %.9f %.9f %.9f \n", xt[0], xt[1], rp[2], rp[1], rp[0]);
-//    printf("real = %.12f; %.12f;\n imag = %.12f; %.12f\n", r_i.r,r_i2.r,r_i.i,r_i2.i);
-//}
-
-
         }
     }
 
@@ -255,10 +243,21 @@ int main (int argc, char **argv) {
         strcat(tmp1, argv[i]);
         strcat(tmp1, " ");
     }
+    strcpy(OUT_R->header->command, "");
+    strcpy(OUT_I->header->command, "");
     if (GMT_Set_Comment(API, GMT_IS_GRID, GMT_COMMENT_IS_COMMAND, tmp1, OUT_R))
         die("GMT[ERROR]: could not set title", "");
     if (GMT_Set_Comment(API, GMT_IS_GRID, GMT_COMMENT_IS_COMMAND, tmp1, OUT_I))
         die("GMT[ERROR]: could not set title", "");
+
+    strcpy(OUT_R->header->title, "");
+    strcpy(OUT_I->header->title, "");
+    strcpy(tmp1, "Produced by geocode_slc");
+    if (GMT_Set_Comment(API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, tmp1, OUT_R))
+        die("GMT[ERROR]: could not set title", "");
+    if (GMT_Set_Comment(API, GMT_IS_GRID, GMT_COMMENT_IS_TITLE, tmp1, OUT_I))
+        die("GMT[ERROR]: could not set title", "");
+
     OUT_R->data = real;
     OUT_I->data = imag;
 
@@ -268,8 +267,6 @@ int main (int argc, char **argv) {
     if (GMT_Write_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, "imag.grd", OUT_I))
         die("Failed to write output grid ", "imag.grd");
     
-    //free(real);
-    //free(imag);
     for (j = 0; j < 4; j++) {
         free(orb_pos[j]);
     } 

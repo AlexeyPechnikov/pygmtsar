@@ -100,6 +100,8 @@ gmtsar/utils_complex.o
 gmtsar/write_orb.o
 gmtsar/xcorr
 gmtsar/xcorr.o
+gmtsar/geocode_slc
+gmtsar/geocode_slc.o
 preproc/ALOS_preproc/ALOS_baseline/ALOS_baseline.o
 preproc/ALOS_preproc/ALOS_baseline/ALOS_llt2rat_sub.o
 preproc/ALOS_preproc/ALOS_fbd2fbs/ALOS_fbd2fbs
