@@ -55,7 +55,7 @@ int pop_led(struct tree *, struct state_vector *);
 int write_orb(struct state_vector *sv, FILE *fp, int);
 int pop_burst(struct PRM *, struct tree *, struct burst_bounds *, char *, char *);
 double dramp_dmod(struct tree *, int, fcomplex *, int, int, int, struct GMT_GRID *, struct GMT_GRID *, int, int);
-double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, char *, char *);
+double shift_write_slc(void *, struct PRM *, struct tree *, burst_bounds *, int, TIFF *, FILE *, FILE *, FILE *, FILE *, char *, char *);
 int shift_burst(fcomplex *, fcomplex *, int, int, int, struct GMT_GRID *, struct GMT_GRID *, int);
 int compute_eap(fcomplex *, struct tree *, int);
 void fbisinc(double *, fcomplex *, int, int, fcomplex *);
@@ -67,8 +67,8 @@ char *USAGE = "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd 
               "         xml_file    - name of xml file \n"
               "         tiff_file   - name of tiff file \n"
               "         output      - stem name of output files .PRM, .LED, .SLC \n"
-              "         mode        - (0) no SLC; (1) center SLC; (2) high SLCH and low "
-              "SLCL \n"
+              "         mode        - (0) no SLC; (1) center SLC; (2) high SLCH and low"
+              "SLCL; (3) output ramp phase\n"
               "         dr.grd      - range shift table to be read in \n"
               "         da.grd      - azimuth shift table to be read in \n"
               "\nExample: make_slc_s1a_tops s1a-s1-slc-vv-20140807.xml "
@@ -88,7 +88,7 @@ char *USAGE = "\nUsage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd 
 int main(int argc, char **argv) {
 
 	FILE *XML_FILE, *OUTPUT_PRM, *OUTPUT_LED;
-	FILE *OUTPUT_SLCL = NULL, *OUTPUT_SLCC = NULL, *OUTPUT_SLCH = NULL, *BB = NULL;
+	FILE *OUTPUT_SLCL = NULL, *OUTPUT_SLCC = NULL, *OUTPUT_SLCH = NULL, *BB = NULL, *OUTPUT_RMP;
 	TIFF *TIFF_FILE;
 	char tmp_str[DEF_SIZE], rshifts[DEF_SIZE], ashifts[DEF_SIZE];
 	struct PRM prm;
@@ -165,11 +165,17 @@ int main(int argc, char **argv) {
 
 	// open output files depending on the imode
 	imode = atoi(argv[4]);
-	if (imode == 1) {
+	if (imode == 1 || imode == 3) {
 		strcpy(tmp_str, argv[3]);
 		strcat(tmp_str, ".SLC");
 		if ((OUTPUT_SLCC = fopen(tmp_str, "wb")) == NULL)
 			die("Couldn't open slc(C) file: \n", tmp_str);
+        if (imode == 3) {
+            strcpy(tmp_str, argv[3]);
+            strcat(tmp_str, ".RMP");
+            if ((OUTPUT_RMP = fopen(tmp_str, "wb")) == NULL)
+                die("Couldn't open ramp file: \n", tmp_str);
+        }
 	}
 	else if (imode == 2) {
 		strcpy(tmp_str, argv[3]);
@@ -191,9 +197,9 @@ int main(int argc, char **argv) {
 
 	/* apply range and azimuth shifts to each burst and write the three SLC files
 	 * SLCL SLC and SLCH depending on imode */
-	if (imode == 1 || imode == 2) {
+	if (imode == 1 || imode == 2 || imode == 3) {
 		spec_sep =
-		    shift_write_slc(API, &prm, xml_tree, bb, imode, TIFF_FILE, OUTPUT_SLCL, OUTPUT_SLCC, OUTPUT_SLCH, rshifts, ashifts);
+		    shift_write_slc(API, &prm, xml_tree, bb, imode, TIFF_FILE, OUTPUT_SLCL, OUTPUT_SLCC, OUTPUT_SLCH, OUTPUT_RMP, rshifts, ashifts);
 	}
 	/* shift applied */
 
@@ -219,6 +225,8 @@ int main(int argc, char **argv) {
 		fclose(OUTPUT_SLCH);
 	if (imode == 2)
 		fclose(BB);
+    if (imode == 3)
+        fclose(OUTPUT_RMP);
 
 	strcpy(tmp_str, argv[3]);
 	strcat(tmp_str, ".PRM");
@@ -535,8 +543,8 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 		jj = ii - 1;
 	else
 		jj = ii;
+    
 	// fprintf(stderr,"finding the %d DcPolynomial\n",jj);
-
 	search_tree(xml_tree, "/product/dopplerCentroid/dcEstimateList/dcEstimate/dataDcPolynomial/", tmp_c, 1, 4, jj);
 	str2dbs(fnc, tmp_c);
 
@@ -557,8 +565,8 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 		jj = ii - 1;
 	else
 		jj = ii;
-	// fprintf(stderr,"finding the %d AziFmRate\n",jj);
-
+    
+    // fprintf(stderr,"finding the %d AziFmRate\n",jj);
 	ii = search_tree(xml_tree, "/product/generalAnnotation/azimuthFmRateList/azimuthFmRate/t0/", tmp_c, 1, 0, 1);
 	if (xml_tree[xml_tree[ii].sibr].sibr < 0) {
 		search_tree(xml_tree,
@@ -612,7 +620,7 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 	vtot = sqrt(vx * vx + vy * vy + vz * vz);
 	ks = 2. * vtot * fc * kpsi / SOL;
 
-	if (imode == 0) {
+	if (imode == 0 || imode == 3) {
 		for (ii = 0; ii < lpb; ii++) {
 			eta[ii] = ((double)ii - (double)lpb / 2. + .5) * dta;
 		}
@@ -632,7 +640,13 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 				pramp = -M_PI * kt[jj] * pow((eta[ii] - etaref[jj]), 2);
 				pmod = -2. * M_PI * fnct[jj] * eta[ii];
 				phase = pramp + pmod;
-				cramp[k] = Cexp(phase);
+				if (imode == 0)
+                    cramp[k] = Cexp(phase);
+                else if (imode == 3) {
+                    cramp[k].i = phase;
+                    cramp[k].r = phase;
+                }
+                
 			}
 		}
 	}
@@ -684,13 +698,13 @@ double dramp_dmod(struct tree *xml_tree, int nb, fcomplex *cramp, int lpb, int w
 }
 
 double shift_write_slc(void *API, struct PRM *prm, struct tree *xml_tree, struct burst_bounds *bb, int imode, TIFF *tif,
-                       FILE *slcl, FILE *slcc, FILE *slch, char *dr_table, char *da_table) {
+                       FILE *slcl, FILE *slcc, FILE *slch, FILE *rmp,char *dr_table, char *da_table) {
 
 	uint16 s = 0;
 	uint16 *buf;
 	uint32 it;
 	short *tmp, *brst;
-	float *rtmp;
+	float *rtmp,*prmp;
 	int ii, jj, nl, k, k2, kk;
 	int count, lpb, nlf, width2, nclip = 0;
 	uint32 width, height, widthi;
@@ -745,9 +759,10 @@ double shift_write_slc(void *API, struct PRM *prm, struct tree *xml_tree, struct
 	buf = (uint16 *)_TIFFmalloc(TIFFScanlineSize(tif));
 	tmp = (short *)malloc(width * 2 * sizeof(short));
 	rtmp = (float *)malloc(width * 2 * sizeof(float));
+    prmp = (float *)malloc(lpb * width * sizeof(float));
 	nl = prm->num_lines;
 
-	if (imode == 1)
+	if (imode == 1 || imode == 3)
 		printf("Writing SLC..Image Size: %d X %d...\n", width, nl);
 	else if (imode == 2)
 		printf("Writing SLCL & SLCH..\n");
@@ -845,6 +860,16 @@ double shift_write_slc(void *API, struct PRM *prm, struct tree *xml_tree, struct
 				}
 			}
 		}
+        else if(imode == 3){
+            dramp_dmod(xml_tree, kk, cramp, lpb, width, al_start, R, A, bshift, 3);
+            for (ii = 0; ii < lpb; ii++) {
+                for (jj = 0; jj < width; jj++) {
+                    k = ii * width + jj;
+                    prmp[k] = cramp[k].r;
+                    if (ii == 500 && jj == 5000) printf("%e\n",prmp[k]);
+                }
+            }
+        }
 
 		// compute the elevation antenna pattern (EAP) change if ipf version is 2.36
 		// and aux_file and manifest file are concatenated to xml
@@ -921,10 +946,19 @@ double shift_write_slc(void *API, struct PRM *prm, struct tree *xml_tree, struct
 					k = ii * width2 + jj;
 					tmp[jj] = brst[k];
 				}
-				if (imode == 1)
+				if (imode == 1 || imode == 3)
 					fwrite(tmp, sizeof(short), width * 2, slcc);
 				cl++;
 			}
+            if (imode == 3) {
+                if (ii >= bb[kk].SC && ii <= bb[kk].EC) {
+                    for (jj = 0; jj < width; jj++) {
+                        k = ii * width + jj;
+                        rtmp[jj] = prmp[k];
+                    }
+                    fwrite(rtmp, sizeof(float), width, rmp);
+                }
+            }
 
 			// write high
 			if (kk < count && ii >= bb[kk].EL + 1 && ii <= bb[kk].EH) {
