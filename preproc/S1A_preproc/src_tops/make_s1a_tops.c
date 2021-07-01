@@ -859,14 +859,22 @@ double shift_write_slc(void *API, struct PRM *prm, struct tree *xml_tree, struct
 					cbrst[k] = Cmul(cbrst[k], cramp[k]);
 				}
 			}
+            if (imode == 3) {
+                for (ii = 0; ii < lpb; ii++) {
+                    for (jj = 0; jj < width; jj++) {
+                        k = ii * width + jj;
+                        prmp[k] = cramp[k].r;
+                    }
+                }
+            }
 		}
-        else if(imode == 3){
+        else if (imode == 3 && dr_table[0] == '\0' && da_table[0] == '\0'){
             dramp_dmod(xml_tree, kk, cramp, lpb, width, al_start, R, A, bshift, 3);
             for (ii = 0; ii < lpb; ii++) {
                 for (jj = 0; jj < width; jj++) {
                     k = ii * width + jj;
                     prmp[k] = cramp[k].r;
-                    if (ii == 500 && jj == 5000) printf("%e\n",prmp[k]);
+                    //if (ii == 500 && jj == 5000) printf("%e\n",prmp[k]);
                 }
             }
         }
