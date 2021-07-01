@@ -23,6 +23,7 @@ char *USAGE = "geocode_slc [GMTSAR] - Sample slc to DEM and remove propogation d
               "(Put your .LED .SLC .PRM file in PWD)\n \n";
 
 void fbisinc(double *, short *, int, int, double *);
+void fbisinc_tops(double *, short *, float *, int , int , double *);
 void read_orb(FILE *, struct PRM *, struct SAT_ORB *); 
 void set_prm_defaults(struct PRM *); 
 void hermite_c(double *, double *, double *, int, int, double, double *, int *); 
@@ -60,7 +61,7 @@ dcomplex Cexpd(double theta) {
 
 int main (int argc, char **argv) {
     
-    FILE *SLCfile = NULL, *ldrfile = NULL;
+    FILE *SLCfile = NULL, *ldrfile = NULL, *RMPfile = NULL;
     int i,j,k,ii,jj;
     struct PRM p1;
     double **orb_pos = NULL;
@@ -83,9 +84,10 @@ int main (int argc, char **argv) {
     void *API = NULL;
     struct GMT_GRID *DEM = NULL, *OUT_R = NULL, *OUT_I = NULL;
     float *real, *imag;
-    int fdin;
+    int fdin,pdin;
     size_t st_size;
     short *sinn = NULL;
+    float *pinn = NULL;
     char tmp1[256];
 
     if (argc != 3) {
@@ -104,6 +106,17 @@ int main (int argc, char **argv) {
     st_size = (size_t)4 * (size_t)prm.num_rng_bins * (size_t)prm.num_patches*prm.num_valid_az;
     if ((sinn = mmap(0, st_size, PROT_READ, MAP_SHARED, fdin, 0)) == MAP_FAILED)
         die("mmap error for input", " ");
+    // read in ramp file for sampling purpose
+    if (prm.SC_identity == 10) {
+        strcpy(tmp1,argv[1]);
+        tmp1[strlen(tmp1)-4] = '\0';
+        strcat(tmp1,".RMP");
+        if ((pdin = open(tmp1, O_RDONLY)) < 0)
+            die("can't open %s for reading", tmp1);
+        st_size = (size_t)4 * (size_t)prm.num_rng_bins * (size_t)prm.num_patches*prm.num_valid_az;
+        if ((pinn = mmap(0, st_size, PROT_READ, MAP_SHARED, pdin, 0)) == MAP_FAILED)
+            die("mmap error for input", " ");
+    }
 
     if ((ldrfile = fopen(prm.led_file, "r")) == NULL)
         die("Can't open LEDfile", p1.led_file);
@@ -217,8 +230,14 @@ int main (int argc, char **argv) {
             ras[1] = xt[1];
 
             r_i.r = 0.; r_i.i = 0.;
-            fbisinc(ras,sinn,prm.num_patches*prm.num_valid_az,prm.num_rng_bins,&r_i.r);
-             
+            if (prm.SC_identity == 10) {
+                fbisinc_tops(ras,sinn,pinn,prm.num_patches*prm.num_valid_az,prm.num_rng_bins,&r_i.r);
+                //fbisinc(ras,sinn,prm.num_patches*prm.num_valid_az,prm.num_rng_bins,&r_i.r);
+            }
+            else {
+                fbisinc(ras,sinn,prm.num_patches*prm.num_valid_az,prm.num_rng_bins,&r_i.r);
+            }
+            
             //cnst = -4.0 * PI / prm.lambda;
             cnst = 4.0 * PI / prm.lambda;
             pha = cnst*xt[0]*dr;
@@ -274,6 +293,8 @@ int main (int argc, char **argv) {
     free(orb);
     fclose(SLCfile);
     fclose(ldrfile);
+    if (prm.SC_identity == 10)
+        fclose(RMPfile);
 
     if (GMT_Destroy_Data(API, &OUT_R))
         die("error freeing data ", "real.grd");
@@ -380,6 +401,100 @@ void fbisinc(double *ras, short *s_in, int ydims, int xdims, double *sout) {
     // if(nclip > 0) fprintf(stderr," %d integers were clipped \n",nclip);
 }
 
+void sample_one_p(double *pdata, double x, double y, double *p) {
+    int i, j, ij, ns2 = NS / 2 - 1;
+    double wx[NS], wy[NS];
+    double arg, w, wsum, psum;
+    
+    for (i = 0; i < NS; i++) {
+        arg = fabs(x + ns2 - i);
+        wx[i] = 1/arg;
+        arg = fabs(y + ns2 - i);
+        wy[i] = 1/arg;
+    }
+    
+    psum = wsum = 0.0;
+    ij = 0;
+    for (j = 0; j < NS; j++) {
+        for (i = 0; i < NS; i++) {
+            w = wx[i] * wy[j];
+            psum += pdata[ij + i] * w;
+            wsum += w;
+        }
+        ij += NS;
+    }
+    if (wsum <= 0.0)
+        printf(" error wsum is zero \n");
+    *p = psum / wsum;
+}
+
+void fbisinc_tops(double *ras, short *s_in, float *p_in, int ydims, int xdims, double *sout) {
+    double dr, da, ns2 = NS / 2 - 1;
+    double rdata[NS * NS], idata[NS * NS], pdata[NS * NS], cz[2], pp;
+    dcomplex dd,dd2,dd3;
+    int i, j, k, kk;
+    int i0, j0;
+    int nclip;
+    
+    /* compute the residual offsets */
+    nclip = 0;
+    j0 = (int)floor(ras[0]);
+    i0 = (int)floor(ras[1]);
+    dr = ras[0] - (double)j0;
+    da = ras[1] - (double)i0;
+    if (dr < 0. || dr > 1. || da < 0. || da > 1)
+        fprintf(stderr, " dr or da out of bounds %f %f \n", dr, da);
+    
+    /* make sure all 4 corners are within the bounds of the aligned array */
+    
+    if ((i0 - ns2) < 0 || (i0 + ns2 + 1) >= ydims || (j0 - ns2) < 0 || (j0 + ns2 + 1) >= xdims) {
+        sout[0] = NAN;
+        sout[1] = NAN;
+    }
+    else {
+        
+        /* safe to do the interpolation */
+        
+        for (i = 0; i < NS; i++) {
+            for (j = 0; j < NS; j++) {
+                k = i * NS + j;
+                kk = xdims * (i0 - ns2 + i)  + (j0 - ns2 + j);
+                pdata[k] = (double)p_in[kk];
+                dd = Cexpd((double)pdata[k]);
+                dd2.r = (double)s_in[kk*2];
+                dd2.i = (double)s_in[kk*2+1];
+                dd3 = Cmuld(dd2,dd);
+                rdata[k] = dd3.r;
+                idata[k] = dd3.i;
+                
+                //rdata[k] = (double)s_in[kk*2];
+                //idata[k] = (double)s_in[kk*2+1];
+            }
+        }
+        
+        /* interpolate the real and imaginary data */
+        
+        sinc_one(rdata, idata, dr, da, cz);
+
+        sample_one_p(pdata, dr, da, &pp);
+        dd = Cexpd(pp);
+        dd.i = -dd.i;
+        dd2.r = cz[0];
+        dd2.i = cz[1];
+        
+        dd3 = Cmuld(dd2,dd);
+        cz[0] = dd3.r;
+        cz[1] = dd3.i;
+
+        if ((int)fabs(cz[0]) > I2MAX)
+            nclip = nclip + 1;
+        sout[0] = cz[0];
+        if ((int)fabs(cz[1]) > I2MAX)
+            nclip = nclip + 1;
+        sout[1] = cz[1];
+    }
+    // if(nclip > 0) fprintf(stderr," %d integers were clipped \n",nclip);
+}
 
 /*    subfunctions    */
 
