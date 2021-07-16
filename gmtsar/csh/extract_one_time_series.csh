@@ -12,7 +12,7 @@ if ($#argv != 5 && $#argv != 7) then
     echo "Usage: extract_one_time_series.csh longitude latitude PRM dem.grd scene.tab [m_rng m_azi]"
     echo " "
     echo "   m_rng and m_azi is the number of pixels to be averaged for output, default is 5 5"
-    echo "   scene.tab is the same input needed by sbas"
+    echo "   scene.tab is the same input needed by sbas, dem.grd is the elevation model data"
     echo "   output (time_series.dat) will have two colums of data, displacements and standard deviation"
     echo " "
     echo "Example: extract_one_time_series.csh -119.782 36.292 supermaster.PRM dem.grd scene.tab 5 5"
