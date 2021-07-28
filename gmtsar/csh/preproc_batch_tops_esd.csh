@@ -13,7 +13,7 @@
 
   if ($#argv != 4) then
     echo ""
-    echo "Usage: preproc_tops_batch.csh data.in dem.grd mode esd_mode"
+    echo "Usage: preproc_batch_tops_esd.csh data.in dem.grd mode esd_mode"
     echo "  preprocess and align a set of tops images in data.in, precise orbits required"
     echo ""
     echo "  format of data.in:"
