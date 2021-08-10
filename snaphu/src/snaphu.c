@@ -58,7 +58,7 @@ int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params,
            long linelen, long nlines);
 static
 int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params, 
-		tileparamT *tileparams, long nlines, long linelen);
+                tileparamT *tileparams, long nlines, long linelen);
 
 
 
@@ -250,7 +250,7 @@ int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params,
 
             /* unwrap next tile if there are free processors and tiles left */
             if(nchildren<nthreads && nexttilerow<ntilerow){
-	    
+            
               /* see if next tile needs to be unwrapped */
               if(dotilemask[nexttilerow][nexttilecol]){
 
@@ -295,7 +295,7 @@ int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params,
                 SetupTile(nlines,linelen,iterparams,tileparams,
                           iteroutfiles,tileoutfiles,
                           nexttilerow,nexttilecol);
-	      
+              
                 /* reset stream pointers for logging */
                 ChildResetStreamPointers(pid,nexttilerow,nexttilecol,
                                          iterparams);
@@ -311,7 +311,7 @@ int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params,
                 exit(NORMAL_EXIT);
 
               }
-	      
+              
               /* parent executes this code after fork */
 
               /* increment tile counters */
@@ -369,7 +369,7 @@ int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params,
                 SetupTile(nlines,linelen,iterparams,tileparams,
                           iteroutfiles,tileoutfiles,
                           nexttilerow,nexttilecol);
-	    
+            
                 /* unwrap the tile */
                 UnwrapTile(iterinfiles,tileoutfiles,iterparams,tileparams,
                            nlines,linelen);
@@ -409,7 +409,7 @@ int Unwrap(infileT *infiles, outfileT *outfiles, paramT *params,
  */
 static
 int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params, 
-               tileparamT *tileparams,	long nlines, long linelen){
+               tileparamT *tileparams,  long nlines, long linelen){
 
   /* variable declarations */
   long nrow, ncol, nnoderow, narcrow, n, ngroundarcs, iincrcostfile;
@@ -439,7 +439,7 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 
   /* read input file (memory allocated by read function) */
   ReadInputFile(infiles,&mag,&wrappedphase,&flows,linelen,nlines,
-		params,tileparams);
+                params,tileparams);
 
   /* read interferogram magnitude if specified separately */
   ReadMagnitude(mag,infiles,linelen,nlines,tileparams);
@@ -454,7 +454,7 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
   unwrappedest=NULL;
   if(strlen(infiles->estfile)){
     ReadUnwrappedEstimateFile(&unwrappedest,infiles,linelen,nlines,
-			      params,tileparams);
+                              params,tileparams);
 
     /* subtract the estimate from the wrapped phase (and re-wrap) */
     FlattenWrappedPhase(wrappedphase,unwrappedest,nrow,ncol);
@@ -463,7 +463,7 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 
   /* build the cost arrays */  
   BuildCostArrays(&costs,&mstcosts,mag,wrappedphase,unwrappedest,
-		  linelen,nlines,nrow,ncol,params,tileparams,infiles,outfiles);
+                  linelen,nlines,nrow,ncol,params,tileparams,infiles,outfiles);
 
   /* if in quantify-only mode, evaluate cost of unwrapped input then return */
   if(params->eval){
@@ -491,13 +491,13 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 
       /* use minimum spanning tree (MST) algorithm */
       MSTInitFlows(wrappedphase,&flows,mstcosts,nrow,ncol,
-		   &nodes,ground,params->initmaxflow);
+                   &nodes,ground,params->initmaxflow);
     
     }else if(params->initmethod==MCFINIT){
 
       /* use minimum cost flow (MCF) algorithm */
       MCFInitFlows(wrappedphase,&flows,mstcosts,nrow,ncol,
-		   params->cs2scalefactor);
+                   params->cs2scalefactor);
 
     }else{
       fflush(NULL);
@@ -509,41 +509,41 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
     if(params->initonly || strlen(outfiles->initfile)){
       fprintf(sp1,"Integrating phase\n");
       unwrappedphase=(float **)Get2DMem(nrow,ncol,
-					sizeof(float *),sizeof(float));
+                                        sizeof(float *),sizeof(float));
       IntegratePhase(wrappedphase,unwrappedphase,flows,nrow,ncol);
       if(unwrappedest!=NULL){
-	Add2DFloatArrays(unwrappedphase,unwrappedest,nrow,ncol);
+        Add2DFloatArrays(unwrappedphase,unwrappedest,nrow,ncol);
       }
       FlipPhaseArraySign(unwrappedphase,params,nrow,ncol);
 
       /* return if called in init only; otherwise, free memory and continue */
       if(params->initonly){
-	fprintf(sp1,"Writing output to file %s\n",outfiles->outfile);
-	WriteOutputFile(mag,unwrappedphase,outfiles->outfile,outfiles,
-			nrow,ncol);  
-	Free2DArray((void **)mag,nrow);
-	Free2DArray((void **)wrappedphase,nrow);
-	Free2DArray((void **)unwrappedphase,nrow);
-	if(nodes!=NULL){
-	  Free2DArray((void **)nodes,nrow-1);
-	}
-	Free2DArray((void **)flows,2*nrow-1);
-	return(1);
+        fprintf(sp1,"Writing output to file %s\n",outfiles->outfile);
+        WriteOutputFile(mag,unwrappedphase,outfiles->outfile,outfiles,
+                        nrow,ncol);  
+        Free2DArray((void **)mag,nrow);
+        Free2DArray((void **)wrappedphase,nrow);
+        Free2DArray((void **)unwrappedphase,nrow);
+        if(nodes!=NULL){
+          Free2DArray((void **)nodes,nrow-1);
+        }
+        Free2DArray((void **)flows,2*nrow-1);
+        return(1);
       }else{
-	fprintf(sp2,"Writing initialization to file %s\n",outfiles->initfile);
-	WriteOutputFile(mag,unwrappedphase,outfiles->initfile,outfiles,
-			nrow,ncol);  
-	Free2DArray((void **)unwrappedphase,nrow);
+        fprintf(sp2,"Writing initialization to file %s\n",outfiles->initfile);
+        WriteOutputFile(mag,unwrappedphase,outfiles->initfile,outfiles,
+                        nrow,ncol);  
+        Free2DArray((void **)unwrappedphase,nrow);
       }
     }
   }
 
   /* initialize network variables */
   InitNetwork(flows,&ngroundarcs,&ncycle,&nflowdone,&mostflow,&nflow,
-	      &candidatebagsize,&candidatebag,&candidatelistsize,
-	      &candidatelist,&iscandidate,&apexes,&bkts,&iincrcostfile,
-	      &incrcosts,&nodes,ground,&nnoderow,&nnodesperrow,&narcrow,
-	      &narcsperrow,nrow,ncol,&notfirstloop,&totalcost,params);
+              &candidatebagsize,&candidatebag,&candidatelistsize,
+              &candidatelist,&iscandidate,&apexes,&bkts,&iincrcostfile,
+              &incrcosts,&nodes,ground,&nnoderow,&nnodesperrow,&narcrow,
+              &narcsperrow,nrow,ncol,&notfirstloop,&totalcost,params);
   oldtotalcost=totalcost;
   mintotalcost=totalcost;
   nincreasedcostiter=0;
@@ -590,13 +590,13 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
     while(TRUE){ 
  
       fprintf(sp1,"Flow increment: %ld  (Total improvements: %ld)\n",
-	      nflow,ncycle);
+              nflow,ncycle);
 
       /* set up the incremental (residual) cost arrays */
       SetupIncrFlowCosts(costs,incrcosts,flows,nflow,nrow,narcrow,narcsperrow,
-			 params); 
+                         params); 
       if(params->dumpall && params->ntilerow==1 && params->ntilecol==1){
-	DumpIncrCostFiles(incrcosts,++iincrcostfile,nflow,nrow,ncol);
+        DumpIncrCostFiles(incrcosts,++iincrcostfile,nflow,nrow,ncol);
       }
 
       /* set the tree root (equivalent to source of shortest path problem) */
@@ -637,15 +637,15 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
     
       /* evaluate and save the total cost (skip if first loop through nflow) */
       if(notfirstloop){
-	oldtotalcost=totalcost;
-	totalcost=EvaluateTotalCost(costs,flows,nrow,ncol,NULL,params);
+        oldtotalcost=totalcost;
+        totalcost=EvaluateTotalCost(costs,flows,nrow,ncol,NULL,params);
         if(totalcost<mintotalcost){
           mintotalcost=totalcost;
         }
-	if(totalcost>oldtotalcost || (n>0 && totalcost==oldtotalcost)){
+        if(totalcost>oldtotalcost || (n>0 && totalcost==oldtotalcost)){
           fflush(NULL);
-	  fprintf(sp1,"Caution: Unexpected increase in total cost\n");
-	}
+          fprintf(sp1,"Caution: Unexpected increase in total cost\n");
+        }
         if(totalcost > mintotalcost){
           nincreasedcostiter++;
         }else{
@@ -656,9 +656,9 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
       /* consider this flow increment done if not too many neg cycles found */
       ncycle+=n;
       if(n<=params->maxnflowcycles){
-	nflowdone++;
+        nflowdone++;
       }else{
-	nflowdone=1;
+        nflowdone=1;
       }
 
       /* find maximum flow on network, excluding arcs affected by masking */
@@ -672,23 +672,23 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
 
       /* break if we're done with all flow increments or problem is convex */
       if(nflowdone>=params->maxflow || nflowdone>=mostflow || params->p>=1.0){
-	break;
+        break;
       }
 
       /* update flow increment */
       nflow++;
       if(nflow>params->maxflow || nflow>mostflow){
-	nflow=1;
-	notfirstloop=TRUE;
+        nflow=1;
+        notfirstloop=TRUE;
       }
       fprintf(sp2,"Maximum valid flow on network: %ld\n",mostflow);
 
       /* dump flow arrays if necessary */
       if(strlen(outfiles->flowfile)){
-	FlipFlowArraySign(flows,params,nrow,ncol);
-	Write2DRowColArray((void **)flows,outfiles->flowfile,nrow,ncol,
-			   sizeof(short));
-	FlipFlowArraySign(flows,params,nrow,ncol);
+        FlipFlowArraySign(flows,params,nrow,ncol);
+        Write2DRowColArray((void **)flows,outfiles->flowfile,nrow,ncol,
+                           sizeof(short));
+        FlipFlowArraySign(flows,params,nrow,ncol);
       }
 
     } /* end loop until no more neg cycles */
@@ -743,7 +743,7 @@ int UnwrapTile(infileT *infiles, outfileT *outfiles, paramT *params,
   /* write the unwrapped output */
   fprintf(sp1,"Writing output to file %s\n",outfiles->outfile);
   WriteOutputFile(mag,unwrappedphase,outfiles->outfile,outfiles,
-		  nrow,ncol);  
+                  nrow,ncol);  
 
   /* free remaining memory and return */
   Free2DArray((void **)costs,2*nrow-1);

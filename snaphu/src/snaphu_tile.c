@@ -34,13 +34,13 @@ static
 long ThickenCosts(incrcostT **incrcosts, long nrow, long ncol);
 static
 nodeT *RegionsNeighborNode(nodeT *node1, long *arcnumptr, nodeT **nodes, 
-			   long *arcrowptr, long *arccolptr, 
-			   long nrow, long ncol);
+                           long *arcrowptr, long *arccolptr, 
+                           long nrow, long ncol);
 static
 int ClearBuckets(bucketT *bkts);
 static
 int MergeRegions(nodeT **nodes, nodeT *source, long *regionsizes, 
-		  long closestregion, long nrow, long ncol);
+                  long closestregion, long nrow, long ncol);
 static
 int RenumberRegion(nodeT **nodes, nodeT *source, long newnum, 
                    long nrow, long ncol);
@@ -74,9 +74,9 @@ int TraceRegions(short **regions, short **nextregions, short **lastregions,
                  paramT *params);
 static
 long FindNumPathsOut(nodeT *from, paramT *params, long tilerow, long tilecol, 
-		     long nnrow, long nncol, short **regions, 
-		     short **nextregions, short **lastregions,
-		     short *regionsabove, short *regionsbelow, long prevncol);
+                     long nnrow, long nncol, short **regions, 
+                     short **nextregions, short **lastregions,
+                     short *regionsabove, short *regionsbelow, long prevncol);
 static
 int RegionTraceCheckNeighbors(nodeT *from, nodeT **nextnodeptr, 
                               nodeT **primarynodes, short **regions, 
@@ -141,7 +141,7 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
                       short **inontilenodeoutarcptr, long *totarclenptr);
 static
 nodeT *FindScndryNode(nodeT **scndrynodes, nodesuppT **nodesupp, 
-		      long tilenum, long primaryrow, long primarycol);
+                      long tilenum, long primaryrow, long primarycol);
 static
 int IntegrateSecondaryFlows(long linelen, long nlines, nodeT **scndrynodes, 
                             nodesuppT **nodesupp, scndryarcT **scndryarcs, 
@@ -177,9 +177,9 @@ int SetupTile(long nlines, long linelen, paramT *params,
 
   /* set parameters for current tile */
   ni=ceil((nlines+(params->ntilerow-1)*params->rowovrlp)
-	  /(double )params->ntilerow);
+          /(double )params->ntilerow);
   nj=ceil((linelen+(params->ntilecol-1)*params->colovrlp)
-	  /(double )params->ntilecol);
+          /(double )params->ntilecol);
   tileparams->firstrow=tilerow*(ni-params->rowovrlp);
   tileparams->firstcol=tilecol*(nj-params->colovrlp);
   if(tilerow==params->ntilerow-1){
@@ -204,12 +204,12 @@ int SetupTile(long nlines, long linelen, paramT *params,
   tiledir=params->tiledir;
   ParseFilename(outfiles->outfile,path,basename);
   sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	  tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+          tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
   StrNCopy(tileoutfiles->outfile,tempstring,MAXSTRLEN);
   if(strlen(outfiles->initfile)){
     ParseFilename(outfiles->initfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->initfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->initfile,"",MAXSTRLEN);
@@ -217,7 +217,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->flowfile)){
     ParseFilename(outfiles->flowfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->flowfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->flowfile,"",MAXSTRLEN);
@@ -225,7 +225,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->eifile)){
     ParseFilename(outfiles->eifile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->eifile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->eifile,"",MAXSTRLEN);
@@ -233,7 +233,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->rowcostfile)){
     ParseFilename(outfiles->rowcostfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->rowcostfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->rowcostfile,"",MAXSTRLEN);
@@ -241,7 +241,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->colcostfile)){
     ParseFilename(outfiles->colcostfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->colcostfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->colcostfile,"",MAXSTRLEN);
@@ -249,7 +249,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->mstrowcostfile)){
     ParseFilename(outfiles->mstrowcostfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->mstrowcostfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->mstrowcostfile,"",MAXSTRLEN);
@@ -257,7 +257,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->mstcolcostfile)){
     ParseFilename(outfiles->mstcolcostfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->mstcolcostfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->mstcolcostfile,"",MAXSTRLEN);
@@ -265,7 +265,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->mstcostsfile)){
     ParseFilename(outfiles->mstcostsfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->mstcostsfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->mstcostsfile,"",MAXSTRLEN);
@@ -273,7 +273,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->corrdumpfile)){
     ParseFilename(outfiles->corrdumpfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->corrdumpfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->corrdumpfile,"",MAXSTRLEN);
@@ -281,7 +281,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->rawcorrdumpfile)){
     ParseFilename(outfiles->rawcorrdumpfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->rawcorrdumpfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->rawcorrdumpfile,"",MAXSTRLEN);
@@ -289,7 +289,7 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->conncompfile)){
     ParseFilename(outfiles->conncompfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->conncompfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->conncompfile,"",MAXSTRLEN);
@@ -297,18 +297,18 @@ int SetupTile(long nlines, long linelen, paramT *params,
   if(strlen(outfiles->costoutfile)){
     ParseFilename(outfiles->costoutfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->costoutfile,tempstring,MAXSTRLEN);
   }else{
     sprintf(tempstring,"%s/%s%s%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,TMPTILECOSTSUFFIX,tilerow,tilecol,
-	    tileparams->ncol);
+            tiledir,TMPTILEROOT,TMPTILECOSTSUFFIX,tilerow,tilecol,
+            tileparams->ncol);
     StrNCopy(tileoutfiles->costoutfile,tempstring,MAXSTRLEN);
   }
   if(strlen(outfiles->logfile)){
     ParseFilename(outfiles->logfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld",
-	    tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
+            tiledir,TMPTILEROOT,basename,tilerow,tilecol,tileparams->ncol);
     StrNCopy(tileoutfiles->logfile,tempstring,MAXSTRLEN);
   }else{
     StrNCopy(tileoutfiles->logfile,"",MAXSTRLEN);
@@ -338,7 +338,7 @@ signed char **SetUpDoTileMask(infileT *infiles, long ntilerow, long ntilecol){
   
   /* get memory */
   dotilemask=(signed char **)Get2DMem(ntilerow,ntilecol,sizeof(signed char *),
-				      sizeof(signed char));
+                                      sizeof(signed char));
 
   /* see if a file name was passed */
   if(strlen(infiles->dotilemaskfile)){
@@ -349,14 +349,14 @@ signed char **SetUpDoTileMask(infileT *infiles, long ntilerow, long ntilecol){
     readparams->firstrow=0;
     readparams->firstcol=0;
     Read2DArray((void ***)&dotilemask,infiles->dotilemaskfile,ntilecol,
-		ntilerow,readparams,sizeof(signed char *),sizeof(signed char));
+                ntilerow,readparams,sizeof(signed char *),sizeof(signed char));
 
   }else{
 
     /* set array to be all ones */
     for(row=0;row<ntilerow;row++){
       for(col=0;col<ntilecol;col++){
-	dotilemask[row][col]=1;
+        dotilemask[row][col]=1;
       }
     }
   }
@@ -433,7 +433,7 @@ int GrowRegions(void **costs, short **flows, long nrow, long ncol,
     temptileparams->ncol=ncol;
     growregionscosts=NULL;
     Read2DRowColFile((void ***)&growregionscosts,outfiles->costoutfile,
-		     ncol,nrow,temptileparams,costtypesize);
+                     ncol,nrow,temptileparams,costtypesize);
   }else{
     growregionscosts=costs;
   }
@@ -449,19 +449,19 @@ int GrowRegions(void **costs, short **flows, long nrow, long ncol,
 
       /* compute incremental costs of unit flows in either direction */
       ReCalcCost(growregionscosts,incrcosts,flows[arcrow][arccol],
-		 arcrow,arccol,1,nrow,params);
+                 arcrow,arccol,1,nrow,params);
 
       /* store lesser of incremental costs in first field */
       if(incrcosts[arcrow][arccol].negcost<incrcosts[arcrow][arccol].poscost){
-	incrcosts[arcrow][arccol].poscost=incrcosts[arcrow][arccol].negcost;
+        incrcosts[arcrow][arccol].poscost=incrcosts[arcrow][arccol].negcost;
       }
 
       /* subtract costthresh and take negative of costs, then clip to zero */
       incrcosts[arcrow][arccol].poscost
-	=-(incrcosts[arcrow][arccol].poscost-costthresh);
+        =-(incrcosts[arcrow][arccol].poscost-costthresh);
       if(incrcosts[arcrow][arccol].poscost<0){
-	incrcosts[arcrow][arccol].poscost=0;
-      }	
+        incrcosts[arcrow][arccol].poscost=0;
+      } 
     }
   }
 
@@ -501,118 +501,118 @@ int GrowRegions(void **costs, short **flows, long nrow, long ncol,
       /* see if node is not in a group */
       if(nodes[row][col].incost<0){
 
-	/* clear the buckets */
-	ClearBuckets(bkts);
+        /* clear the buckets */
+        ClearBuckets(bkts);
 
-	/* make node source and put it in the first bucket */
-	source=&nodes[row][col];
-	source->next=NULL;
-	source->prev=NULL;
-	source->group=INBUCKET;
-	source->outcost=0;
-	bkts->bucket[0]=source;
-	bkts->curr=0;
-	lastfromdist=0;
+        /* make node source and put it in the first bucket */
+        source=&nodes[row][col];
+        source->next=NULL;
+        source->prev=NULL;
+        source->group=INBUCKET;
+        source->outcost=0;
+        bkts->bucket[0]=source;
+        bkts->curr=0;
+        lastfromdist=0;
 
-	/* increment the region counter */
-	if(++regioncounter>=regionsizeslen){
-	  regionsizeslen+=INITARRSIZE;
-	  regionsizes=(long *)ReAlloc(regionsizes,
-				       regionsizeslen*sizeof(long));
-	}
-	thisregionsize=&regionsizes[regioncounter];
+        /* increment the region counter */
+        if(++regioncounter>=regionsizeslen){
+          regionsizeslen+=INITARRSIZE;
+          regionsizes=(long *)ReAlloc(regionsizes,
+                                       regionsizeslen*sizeof(long));
+        }
+        thisregionsize=&regionsizes[regioncounter];
 
-	/* set up */
-	(*thisregionsize)=0;
-	closestregiondist=VERYFAR;
+        /* set up */
+        (*thisregionsize)=0;
+        closestregiondist=VERYFAR;
 
-	/* loop to grow region */
-	while(TRUE){
+        /* loop to grow region */
+        while(TRUE){
 
-	  /* set from node to closest node in circular bucket structure */
-	  from=ClosestNode(bkts);
-	  
-	  /* break if we can't grow any more and the region is big enough */
-	  if(from==NULL){
-	    if(*thisregionsize>=minsize){
+          /* set from node to closest node in circular bucket structure */
+          from=ClosestNode(bkts);
+          
+          /* break if we can't grow any more and the region is big enough */
+          if(from==NULL){
+            if(*thisregionsize>=minsize){
 
-	      /* no more nonregion nodes, and current region is big enough */
-	      break;
+              /* no more nonregion nodes, and current region is big enough */
+              break;
 
-	    }else{
+            }else{
 
-	      /* no more nonregion nodes, but current region still too small */
-	      /* merge with another region */
-	      MergeRegions(nodes,source,regionsizes,closestregion,nrow,ncol);
-	      regioncounter--;
-	      break;
+              /* no more nonregion nodes, but current region still too small */
+              /* merge with another region */
+              MergeRegions(nodes,source,regionsizes,closestregion,nrow,ncol);
+              regioncounter--;
+              break;
 
-	    }
-	  }else{
-	    fromdist=from->outcost;
-	    if(fromdist>lastfromdist){
-	      if(regionsizes[regioncounter]>=minsize){
+            }
+          }else{
+            fromdist=from->outcost;
+            if(fromdist>lastfromdist){
+              if(regionsizes[regioncounter]>=minsize){
 
-		/* region grown to all nodes within mincost, is big enough */
-		break;
+                /* region grown to all nodes within mincost, is big enough */
+                break;
 
-	      }
-	      if(fromdist>closestregiondist){
+              }
+              if(fromdist>closestregiondist){
 
-		/* another region closer than new node, so merge regions */
-		MergeRegions(nodes,source,regionsizes,closestregion,nrow,ncol);
-		regioncounter--;
-		break;
-	      }
-	    }
-	  }
+                /* another region closer than new node, so merge regions */
+                MergeRegions(nodes,source,regionsizes,closestregion,nrow,ncol);
+                regioncounter--;
+                break;
+              }
+            }
+          }
 
-	  /* make from node a part of the current region */
-	  from->incost=regioncounter;
-	  (*thisregionsize)++;
-	  lastfromdist=fromdist;
+          /* make from node a part of the current region */
+          from->incost=regioncounter;
+          (*thisregionsize)++;
+          lastfromdist=fromdist;
 
-	  /* scan from's neighbors */
-	  arcnum=0;
-	  while((to=RegionsNeighborNode(from,&arcnum,nodes,
-					&arcrow,&arccol,nrow,ncol))!=NULL){
-	   
-	    /* get cost of arc to the to node */
-	    arcdist=incrcosts[arcrow][arccol].negcost;
+          /* scan from's neighbors */
+          arcnum=0;
+          while((to=RegionsNeighborNode(from,&arcnum,nodes,
+                                        &arcrow,&arccol,nrow,ncol))!=NULL){
+           
+            /* get cost of arc to the to node */
+            arcdist=incrcosts[arcrow][arccol].negcost;
 
-	    /* see if to node is already in another region */
-	    if(to->incost>=0){
+            /* see if to node is already in another region */
+            if(to->incost>=0){
 
-	      /* keep track of which neighboring region is closest */
-	      if(to->incost!=regioncounter && arcdist<closestregiondist){
-		closestregiondist=arcdist;
-		closestregion=to->incost;
-	      }
+              /* keep track of which neighboring region is closest */
+              if(to->incost!=regioncounter && arcdist<closestregiondist){
+                closestregiondist=arcdist;
+                closestregion=to->incost;
+              }
 
-	    }else{
+            }else{
 
-	      /* to node is not in another region */
-	      /* compare distance of new nodes to temp labels */
-	      if(arcdist<(to->outcost)){
+              /* to node is not in another region */
+              /* compare distance of new nodes to temp labels */
+              if(arcdist<(to->outcost)){
 
-		/* if to node is already in a (circular) bucket, remove it */
-		if(to->group==INBUCKET){
-		  BucketRemove(to,to->outcost,bkts);
-		}
+                /* if to node is already in a (circular) bucket, remove it */
+                if(to->group==INBUCKET){
+                  BucketRemove(to,to->outcost,bkts);
+                }
                 
-		/* update to node */
-		to->outcost=arcdist;
-		to->pred=from;
+                /* update to node */
+                to->outcost=arcdist;
+                to->pred=from;
 
-		/* insert to node into appropriate (circular) bucket */
-		BucketInsert(to,arcdist,bkts);
-		if(arcdist<bkts->curr){
-		  bkts->curr=arcdist;
-		}
-	      }
-	    }
-	  }
-	}
+                /* insert to node into appropriate (circular) bucket */
+                BucketInsert(to,arcdist,bkts);
+                if(arcdist<bkts->curr){
+                  bkts->curr=arcdist;
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -624,13 +624,13 @@ int GrowRegions(void **costs, short **flows, long nrow, long ncol,
     regions=(short **)Get2DMem(nrow,ncol,sizeof(short *),sizeof(short));
     for(row=0;row<nrow;row++){
       for(col=0;col<ncol;col++){
-	if(nodes[row][col].incost>LARGESHORT){
+        if(nodes[row][col].incost>LARGESHORT){
           fflush(NULL);
-	  fprintf(sp0,
-		  "Number of regions in tile exceeds max allowed\nAbort\n");
-	  exit(ABNORMAL_EXIT);
-	}
-	regions[row][col]=nodes[row][col].incost;
+          fprintf(sp0,
+                  "Number of regions in tile exceeds max allowed\nAbort\n");
+          exit(ABNORMAL_EXIT);
+        }
+        regions[row][col]=nodes[row][col].incost;
       }
     }
     sprintf(regionfile,"%s%s",outfiles->outfile,REGIONSUFFIX);
@@ -712,19 +712,19 @@ int GrowConnCompsMask(void **costs, short **flows, long nrow, long ncol,
 
       /* compute incremental costs of unit flows in either direction */
       ReCalcCost(costs,incrcosts,flows[arcrow][arccol],
-		 arcrow,arccol,1,nrow,params);
+                 arcrow,arccol,1,nrow,params);
 
       /* store lesser of incremental costs in first field */
       if(incrcosts[arcrow][arccol].negcost<incrcosts[arcrow][arccol].poscost){
-	incrcosts[arcrow][arccol].poscost=incrcosts[arcrow][arccol].negcost;
+        incrcosts[arcrow][arccol].poscost=incrcosts[arcrow][arccol].negcost;
       }
 
       /* subtract costthresh and take negative of costs, then clip to zero */
       incrcosts[arcrow][arccol].poscost
-	=-(incrcosts[arcrow][arccol].poscost-costthresh);
+        =-(incrcosts[arcrow][arccol].poscost-costthresh);
       if(incrcosts[arcrow][arccol].poscost<0){
-	incrcosts[arcrow][arccol].poscost=0;
-      }	
+        incrcosts[arcrow][arccol].poscost=0;
+      } 
     }
   }
 
@@ -761,73 +761,73 @@ int GrowConnCompsMask(void **costs, short **flows, long nrow, long ncol,
       /* see if node is not in a group */
       if(nodes[row][col].incost<0){
 
-	/* clear the buckets */
-	ClearBuckets(bkts);
+        /* clear the buckets */
+        ClearBuckets(bkts);
 
-	/* make node source and put it in the first bucket */
-	source=&nodes[row][col];
-	source->next=NULL;
-	source->prev=NULL;
-	source->group=INBUCKET;
-	source->outcost=0;
-	bkts->bucket[0]=source;
-	bkts->curr=0;
+        /* make node source and put it in the first bucket */
+        source=&nodes[row][col];
+        source->next=NULL;
+        source->prev=NULL;
+        source->group=INBUCKET;
+        source->outcost=0;
+        bkts->bucket[0]=source;
+        bkts->curr=0;
 
-	/* increment the region counter */
-	if(++regioncounter>=regionsizeslen){
-	  regionsizeslen+=INITARRSIZE;
-	  regionsizes=(long *)ReAlloc(regionsizes,
-				       regionsizeslen*sizeof(long));
-	}
-	thisregionsize=&regionsizes[regioncounter];
+        /* increment the region counter */
+        if(++regioncounter>=regionsizeslen){
+          regionsizeslen+=INITARRSIZE;
+          regionsizes=(long *)ReAlloc(regionsizes,
+                                       regionsizeslen*sizeof(long));
+        }
+        thisregionsize=&regionsizes[regioncounter];
 
-	/* set up */
-	(*thisregionsize)=0;
+        /* set up */
+        (*thisregionsize)=0;
 
-	/* loop to grow region */
-	while(TRUE){
+        /* loop to grow region */
+        while(TRUE){
 
-	  /* set from node to closest node in circular bucket structure */
-	  from=ClosestNode(bkts);
-	  
-	  /* break if we can't grow any more and the region is big enough */
-	  if(from==NULL){
-	    if(regionsizes[regioncounter]>=minsize){
+          /* set from node to closest node in circular bucket structure */
+          from=ClosestNode(bkts);
+          
+          /* break if we can't grow any more and the region is big enough */
+          if(from==NULL){
+            if(regionsizes[regioncounter]>=minsize){
 
-	      /* no more nonregion nodes, and current region is big enough */
-	      break;
+              /* no more nonregion nodes, and current region is big enough */
+              break;
 
-	    }else{
+            }else{
 
-	      /* no more nonregion nodes, but current region still too small */
-	      /* zero out the region */
-	      RenumberRegion(nodes,source,0,nrow,ncol);
-	      regioncounter--;
-	      break;
+              /* no more nonregion nodes, but current region still too small */
+              /* zero out the region */
+              RenumberRegion(nodes,source,0,nrow,ncol);
+              regioncounter--;
+              break;
 
-	    }
-	  }
+            }
+          }
 
-	  /* make from node a part of the current region */
-	  from->incost=regioncounter;
-	  (*thisregionsize)++;
+          /* make from node a part of the current region */
+          from->incost=regioncounter;
+          (*thisregionsize)++;
 
-	  /* scan from's neighbors */
-	  arcnum=0;
-	  while((to=RegionsNeighborNode(from,&arcnum,nodes,
-					&arcrow,&arccol,nrow,ncol))!=NULL){
-	   
-	    /* see if to can be reached */
-	    if(to->incost<0 && incrcosts[arcrow][arccol].negcost==0 
-	       && to->group!=INBUCKET){
+          /* scan from's neighbors */
+          arcnum=0;
+          while((to=RegionsNeighborNode(from,&arcnum,nodes,
+                                        &arcrow,&arccol,nrow,ncol))!=NULL){
+           
+            /* see if to can be reached */
+            if(to->incost<0 && incrcosts[arcrow][arccol].negcost==0 
+               && to->group!=INBUCKET){
 
-	      /* update to node */
-	      to->pred=from;
-	      BucketInsert(to,0,bkts);
+              /* update to node */
+              to->pred=from;
+              BucketInsert(to,0,bkts);
 
-	    }
-	  }
-	}
+            }
+          }
+        }
       }
     }
   }
@@ -857,29 +857,29 @@ int GrowConnCompsMask(void **costs, short **flows, long nrow, long ncol,
     newnum=-1;
     for(row=0;row<nrow;row++){
       for(col=0;col<ncol;col++){
-	i=nodes[row][col].incost;
-	if(i>0){
-	  if(regionsizes[i]<minsize 
-	     || (regionsizes[i]==minsize && (ntied--)>0)){
+        i=nodes[row][col].incost;
+        if(i>0){
+          if(regionsizes[i]<minsize 
+             || (regionsizes[i]==minsize && (ntied--)>0)){
 
-	    /* region too small, so zero it out */
-	    RenumberRegion(nodes,&(nodes[row][col]),0,nrow,ncol);
+            /* region too small, so zero it out */
+            RenumberRegion(nodes,&(nodes[row][col]),0,nrow,ncol);
 
-	  }else{
+          }else{
 
-	    /* keep region, assign it new region number */
-	    /* temporarily assign negative of new number to avoid collisions */
-	    RenumberRegion(nodes,&(nodes[row][col]),newnum--,nrow,ncol);
+            /* keep region, assign it new region number */
+            /* temporarily assign negative of new number to avoid collisions */
+            RenumberRegion(nodes,&(nodes[row][col]),newnum--,nrow,ncol);
 
-	  }
-	}
+          }
+        }
       }
     }
 
     /* flip temporary negative region numbers so they are positive */
     for(row=0;row<nrow;row++){
       for(col=0;col<ncol;col++){
-	nodes[row][col].incost=-nodes[row][col].incost;
+        nodes[row][col].incost=-nodes[row][col].incost;
       }
     }
   }
@@ -922,7 +922,7 @@ int GrowConnCompsMask(void **costs, short **flows, long nrow, long ncol,
     if(fwrite(outbufptr,outtypesize,ncol,conncompfp)!=ncol){
       fflush(NULL);
       fprintf(sp0,"Error while writing to file %s (device full?)\nAbort\n",
-	      realoutfile);
+              realoutfile);
       exit(ABNORMAL_EXIT);
     }
   }
@@ -961,23 +961,23 @@ long ThickenCosts(incrcostT **incrcosts, long nrow, long ncol){
       templong=2*incrcosts[row][col].poscost;
       n=2.0;
       if(col!=0){
-	templong+=incrcosts[row][col-1].poscost;
-	n+=1.0;
+        templong+=incrcosts[row][col-1].poscost;
+        n+=1.0;
       }
       if(col!=ncol-1){
-	templong+=incrcosts[row][col+1].poscost;
-	n+=1.0;
+        templong+=incrcosts[row][col+1].poscost;
+        n+=1.0;
       }
       templong=LRound(templong/n);
       if(templong>LARGESHORT){
         fflush(NULL);
         fprintf(sp0,"WARNING: COSTS CLIPPED IN ThickenCosts()\n");
-	incrcosts[row][col].negcost=LARGESHORT;
+        incrcosts[row][col].negcost=LARGESHORT;
       }else{
-	incrcosts[row][col].negcost=templong;
+        incrcosts[row][col].negcost=templong;
       }
       if(incrcosts[row][col].negcost>maxcost){
-	maxcost=incrcosts[row][col].negcost;
+        maxcost=incrcosts[row][col].negcost;
       }
     }
   }
@@ -988,23 +988,23 @@ long ThickenCosts(incrcostT **incrcosts, long nrow, long ncol){
       templong=2*incrcosts[row][col].poscost;
       n=2.0;
       if(row!=nrow-1){
-	templong+=incrcosts[row-1][col].poscost;
-	n+=1.0;
+        templong+=incrcosts[row-1][col].poscost;
+        n+=1.0;
       }
       if(row!=2*nrow-2){
-	templong+=incrcosts[row+1][col].poscost;
-	n+=1.0;
+        templong+=incrcosts[row+1][col].poscost;
+        n+=1.0;
       }
       templong=LRound(templong/n);
       if(templong>LARGESHORT){
         fflush(NULL);
         fprintf(sp0,"WARNING: COSTS CLIPPED IN ThickenCosts()\n");
-	incrcosts[row][col].negcost=LARGESHORT;
+        incrcosts[row][col].negcost=LARGESHORT;
       }else{      
-	incrcosts[row][col].negcost=templong;
+        incrcosts[row][col].negcost=templong;
       }
       if(incrcosts[row][col].negcost>maxcost){
-	maxcost=incrcosts[row][col].negcost;
+        maxcost=incrcosts[row][col].negcost;
       }
     }
   }
@@ -1022,8 +1022,8 @@ long ThickenCosts(incrcostT **incrcosts, long nrow, long ncol){
  */
 static
 nodeT *RegionsNeighborNode(nodeT *node1, long *arcnumptr, nodeT **nodes, 
-			   long *arcrowptr, long *arccolptr, 
-			   long nrow, long ncol){
+                           long *arcrowptr, long *arccolptr, 
+                           long nrow, long ncol){
   
   long row, col;
 
@@ -1034,30 +1034,30 @@ nodeT *RegionsNeighborNode(nodeT *node1, long *arcnumptr, nodeT **nodes,
     switch((*arcnumptr)++){
     case 0:
       if(col!=ncol-1){
-	*arcrowptr=nrow-1+row;
-	*arccolptr=col;
-	return(&nodes[row][col+1]);
+        *arcrowptr=nrow-1+row;
+        *arccolptr=col;
+        return(&nodes[row][col+1]);
       }
       break;
     case 1:
       if(row!=nrow-1){
       *arcrowptr=row;
       *arccolptr=col;
-	return(&nodes[row+1][col]);
+        return(&nodes[row+1][col]);
       }
       break;
     case 2:
       if(col!=0){
-	*arcrowptr=nrow-1+row;
-	*arccolptr=col-1;
-	return(&nodes[row][col-1]);
+        *arcrowptr=nrow-1+row;
+        *arccolptr=col-1;
+        return(&nodes[row][col-1]);
       }
       break;
     case 3:
       if(row!=0){
-	*arcrowptr=row-1;
-	*arccolptr=col;
-	return(&nodes[row-1][col]);
+        *arcrowptr=row-1;
+        *arccolptr=col;
+        return(&nodes[row-1][col]);
       }
       break;
     default:
@@ -1129,14 +1129,14 @@ int MergeRegions(nodeT **nodes, nodeT *source, long *regionsizes,
     from->incost=closestregion;
     arcnum=0;
     while((to=RegionsNeighborNode(from,&arcnum,nodes,
-				  &arcrow,&arccol,nrow,ncol))!=NULL){
+                                  &arcrow,&arccol,nrow,ncol))!=NULL){
       if(to->incost==regionnum){
-	if(nextnodelistnext>=nextnodelistlen){
-	  nextnodelistlen+=INITARRSIZE;
-	  nextnodelist=(nodeT **)ReAlloc(nextnodelist,
-					 nextnodelistlen*sizeof(nodeT *));
-	}
-	nextnodelist[nextnodelistnext++]=to;
+        if(nextnodelistnext>=nextnodelistlen){
+          nextnodelistlen+=INITARRSIZE;
+          nextnodelist=(nodeT **)ReAlloc(nextnodelist,
+                                         nextnodelistlen*sizeof(nodeT *));
+        }
+        nextnodelist[nextnodelistnext++]=to;
       }
     }
   }
@@ -1177,14 +1177,14 @@ int RenumberRegion(nodeT **nodes, nodeT *source, long newnum,
     from->incost=newnum;
     arcnum=0;
     while((to=RegionsNeighborNode(from,&arcnum,nodes,
-				  &arcrow,&arccol,nrow,ncol))!=NULL){
+                                  &arcrow,&arccol,nrow,ncol))!=NULL){
       if(to->incost==regionnum){
-	if(nextnodelistnext>=nextnodelistlen){
-	  nextnodelistlen+=INITARRSIZE;
-	  nextnodelist=(nodeT **)ReAlloc(nextnodelist,
-					 nextnodelistlen*sizeof(nodeT *));
-	}
-	nextnodelist[nextnodelistnext++]=to;
+        if(nextnodelistnext>=nextnodelistlen){
+          nextnodelistlen+=INITARRSIZE;
+          nextnodelist=(nodeT **)ReAlloc(nextnodelist,
+                                         nextnodelistlen*sizeof(nodeT *));
+        }
+        nextnodelist[nextnodelistnext++]=to;
       }
     }
   }
@@ -1271,10 +1271,10 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
   }else if(CalcCost==CalcCostSmooth){
     costtypesize=sizeof(smoothcostT);
   }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	   || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+           || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
     costtypesize=sizeof(short);
   }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	   || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+           || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
     costtypesize=sizeof(bidircostT);
   }
   */
@@ -1298,7 +1298,7 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
   nscndryarcs=(int *)MAlloc(ntiles*sizeof(int));
   totarclens=(long *)MAlloc(ntiles*sizeof(long));
   bulkoffsets=(short **)Get2DMem(ntilerow,ntilecol,sizeof(short *),
-				 sizeof(short));
+                                 sizeof(short));
   costs=(void **)Get2DRowColMem(ni+2,nj+2,sizeof(void *),costtypesize);
   nextcosts=(void **)Get2DRowColMem(ni+2,nj+2,sizeof(void *),costtypesize);
   lastcosts=(void **)Get2DRowColMem(ni+2,nj+2,sizeof(void *),costtypesize);
@@ -1313,11 +1313,11 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
 
       /* read region, unwrapped phase, and flow data */
       if(tilecol==0){
-	ReadNextRegion(tilerow,0,nlines,linelen,outfiles,params,
-		       &nextregions,&nextunwphase,&nextcosts,
-		       &nextnrow,&nextncol);
-	prevnrow=nrow;
-	nrow=nextnrow;
+        ReadNextRegion(tilerow,0,nlines,linelen,outfiles,params,
+                       &nextregions,&nextunwphase,&nextcosts,
+                       &nextnrow,&nextncol);
+        prevnrow=nrow;
+        nrow=nextnrow;
       }
       prevncol=ncol;
       ncol=nextncol;
@@ -1334,23 +1334,23 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
       costs=nextcosts;
       nextcosts=tempcosts;
       if(tilecol!=ntilecol-1){
-	ReadNextRegion(tilerow,tilecol+1,nlines,linelen,outfiles,params,
-		       &nextregions,&nextunwphase,&nextcosts,
-		       &nextnrow,&nextncol);
+        ReadNextRegion(tilerow,tilecol+1,nlines,linelen,outfiles,params,
+                       &nextregions,&nextunwphase,&nextcosts,
+                       &nextnrow,&nextncol);
       }
       ReadEdgesAboveAndBelow(tilerow,tilecol,nlines,linelen,params,
-			     outfiles,regionsabove,regionsbelow,
-			     unwphaseabove,unwphasebelow,
-			     costsabove,costsbelow);
+                             outfiles,regionsabove,regionsbelow,
+                             unwphaseabove,unwphasebelow,
+                             costsabove,costsbelow);
 
       /* trace region edges to form nodes and arcs */
       TraceRegions(regions,nextregions,lastregions,regionsabove,regionsbelow,
-		   unwphase,nextunwphase,lastunwphase,unwphaseabove,
-		   unwphasebelow,costs,nextcosts,lastcosts,costsabove,
-		   costsbelow,prevnrow,prevncol,tilerow,tilecol,
-		   nrow,ncol,scndrynodes,nodesupp,scndryarcs,
-		   scndrycosts,nscndrynodes,nscndryarcs,totarclens,
-		   bulkoffsets,params);
+                   unwphase,nextunwphase,lastunwphase,unwphaseabove,
+                   unwphasebelow,costs,nextcosts,lastcosts,costsabove,
+                   costsbelow,prevnrow,prevncol,tilerow,tilecol,
+                   nrow,ncol,scndrynodes,nodesupp,scndryarcs,
+                   scndrycosts,nscndrynodes,nscndryarcs,totarclens,
+                   bulkoffsets,params);
 
     }
   }
@@ -1368,14 +1368,14 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
   for(i=0;i<ntiles;i++){
     for(j=0;j<nscndryarcs[i];j++){
       if(scndrycosts[i][j][2*flowmax+1]!=ZEROCOSTARC){
-	for(k=1;k<=2*flowmax;k++){
-	  scndrycosts[i][j][k]=(long )ceil(scndrycosts[i][j][k]/avgarclen);
-	}
-	scndrycosts[i][j][2*flowmax+1]=LRound(scndrycosts[i][j][2*flowmax+1]
-					      /avgarclen);
-	if(scndrycosts[i][j][2*flowmax+1]<0){
-	  scndrycosts[i][j][2*flowmax+1]=0;
-	}
+        for(k=1;k<=2*flowmax;k++){
+          scndrycosts[i][j][k]=(long )ceil(scndrycosts[i][j][k]/avgarclen);
+        }
+        scndrycosts[i][j][2*flowmax+1]=LRound(scndrycosts[i][j][2*flowmax+1]
+                                              /avgarclen);
+        if(scndrycosts[i][j][2*flowmax+1]<0){
+          scndrycosts[i][j][2*flowmax+1]=0;
+        }
       }
     }
   }
@@ -1414,9 +1414,9 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
   
   /* set up network for secondary solver */
   InitNetwork(scndryflows,&dummylong,&ncycle,&nflowdone,&dummylong,&nflow,
-	      &candidatebagsize,&candidatebag,&candidatelistsize,
-	      &candidatelist,NULL,NULL,&bkts,&dummylong,NULL,NULL,NULL,
-	      NULL,NULL,NULL,NULL,ntiles,0,&notfirstloop,&totalcost,params);
+              &candidatebagsize,&candidatebag,&candidatelistsize,
+              &candidatelist,NULL,NULL,&bkts,&dummylong,NULL,NULL,NULL,
+              NULL,NULL,NULL,NULL,ntiles,0,&notfirstloop,&totalcost,params);
   oldtotalcost=totalcost;
   mintotalcost=totalcost;
   nincreasedcostiter=0;
@@ -1438,7 +1438,7 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
 
     /* set up the incremental (residual) cost arrays */
     SetupIncrFlowCosts((void **)scndrycosts,incrcosts,scndryflows,nflow,ntiles,
-		       ntiles,nscndryarcs,params); 
+                       ntiles,nscndryarcs,params); 
 
     /* set the tree root (equivalent to source of shortest path problem) */
     sourcetilenum=(long )ntilecol*floor(ntilerow/2.0)+floor(ntilecol/2.0);
@@ -1452,15 +1452,15 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
     /* run the solver, and increment nflowdone if no cycles are found */
     n=TreeSolve(scndrynodes,nodesupp,NULL,source,&candidatelist,&candidatebag,
                 &candidatelistsize,&candidatebagsize,bkts,scndryflows,
-		(void **)scndrycosts,incrcosts,scndryapexes,iscandidate,0,
-		nflow,NULL,NULL,NULL,ntiles,nscndrynodes,ntiles,nscndryarcs,
-		ntiles,0,NULL,nnodes,params);
+                (void **)scndrycosts,incrcosts,scndryapexes,iscandidate,0,
+                nflow,NULL,NULL,NULL,ntiles,nscndrynodes,ntiles,nscndryarcs,
+                ntiles,0,NULL,nnodes,params);
     
     /* evaluate and save the total cost (skip if first loop through nflow) */
     if(notfirstloop){
       oldtotalcost=totalcost;
       totalcost=EvaluateTotalCost((void **)scndrycosts,scndryflows,ntiles,0,
-				  nscndryarcs,params);
+                                  nscndryarcs,params);
       if(totalcost<mintotalcost){
         mintotalcost=totalcost;
       }
@@ -1527,7 +1527,7 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
   
   /* integrate phase from secondary network problem */
   IntegrateSecondaryFlows(linelen,nlines,scndrynodes,nodesupp,scndryarcs,
-			  nscndryarcs,scndryflows,bulkoffsets,outfiles,params);
+                          nscndryarcs,scndryflows,bulkoffsets,outfiles,params);
 
   /* free remaining memory */
   for(i=0;i<ntiles;i++){
@@ -1550,9 +1550,9 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
     fprintf(sp1,"Removing temporary directory %s\n",params->tiledir);
     for(tilerow=0;tilerow<ntilerow;tilerow++){
       for(tilecol=0;tilecol<ntilecol;tilecol++){
-	sprintf(filename,"%s/%s%ld_%ld",
-		params->tiledir,LOGFILEROOT,tilerow,tilecol);
-	unlink(filename);
+        sprintf(filename,"%s/%s%ld_%ld",
+                params->tiledir,LOGFILEROOT,tilerow,tilecol);
+        unlink(filename);
       }
     }
     rmdir(params->tiledir);
@@ -1602,10 +1602,10 @@ int ReadNextRegion(long tilerow, long tilecol, long nlines, long linelen,
   }else if(CalcCost==CalcCostSmooth){
     costtypesize=sizeof(smoothcostT);
   }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	   || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+           || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
     costtypesize=sizeof(short);
   }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	   || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+           || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
     costtypesize=sizeof(bidircostT);
   }else{
     fflush(NULL);
@@ -1615,32 +1615,32 @@ int ReadNextRegion(long tilerow, long tilecol, long nlines, long linelen,
 
   /* use SetupTile() to set filenames only; tile params overwritten below */
   SetupTile(nlines,linelen,params,nexttileparams,outfiles,nexttileoutfiles,
-	    tilerow,tilecol);
+            tilerow,tilecol);
   nexttilenlines=nexttileparams->nrow;
   nexttilelinelen=nexttileparams->ncol;
 
   /* set tile parameters, overwriting values set by SetupTile() above */
   SetTileReadParams(nexttileparams,nexttilenlines,nexttilelinelen,
-		    tilerow,tilecol,nlines,linelen,params);
+                    tilerow,tilecol,nlines,linelen,params);
 
   /* read region data */
   ParseFilename(outfiles->outfile,path,basename);
   sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld%s",
-	  params->tiledir,TMPTILEROOT,basename,tilerow,tilecol,
-	  nexttilelinelen,REGIONSUFFIX);
+          params->tiledir,TMPTILEROOT,basename,tilerow,tilecol,
+          nexttilelinelen,REGIONSUFFIX);
   StrNCopy(nextfile,tempstring,MAXSTRLEN);
   Read2DArray((void ***)nextregionsptr,nextfile,
-	      nexttilelinelen,nexttilenlines,
-	      nexttileparams,sizeof(short *),sizeof(short));
+              nexttilelinelen,nexttilenlines,
+              nexttileparams,sizeof(short *),sizeof(short));
 
   /* read unwrapped phase data */
   if(TMPTILEOUTFORMAT==ALT_LINE_DATA){
     ReadAltLineFilePhase(nextunwphaseptr,nexttileoutfiles->outfile,
-			 nexttilelinelen,nexttilenlines,nexttileparams);
+                         nexttilelinelen,nexttilenlines,nexttileparams);
   }else if(TMPTILEOUTFORMAT==FLOAT_DATA){
     Read2DArray((void ***)nextunwphaseptr,nexttileoutfiles->outfile,
-		nexttilelinelen,nexttilenlines,nexttileparams,
-		sizeof(float *),sizeof(float));
+                nexttilelinelen,nexttilenlines,nexttileparams,
+                sizeof(float *),sizeof(float));
   }else{
     fflush(NULL);
     fprintf(sp0,"Cannot read format of unwrapped phase tile data\nAbort\n");
@@ -1649,12 +1649,12 @@ int ReadNextRegion(long tilerow, long tilecol, long nlines, long linelen,
 
   /* read cost data */
   Read2DRowColFile((void ***)nextcostsptr,nexttileoutfiles->costoutfile,
-		   nexttilelinelen,nexttilenlines,nexttileparams,
-		   costtypesize);
+                   nexttilelinelen,nexttilenlines,nexttileparams,
+                   costtypesize);
 
   /* flip sign of wrapped phase if flip flag is set */
   FlipPhaseArraySign(*nextunwphaseptr,params,
-		     nexttileparams->nrow,nexttileparams->ncol);
+                     nexttileparams->nrow,nexttileparams->ncol);
 
   /* set outputs */
   (*nextnrowptr)=nexttileparams->nrow;
@@ -1752,10 +1752,10 @@ int ReadEdgesAboveAndBelow(long tilerow, long tilecol, long nlines,
   }else if(CalcCost==CalcCostSmooth){
     costtypesize=sizeof(smoothcostT);
   }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	   || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+           || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
     costtypesize=sizeof(short);
   }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	   || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+           || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
     costtypesize=sizeof(bidircostT);
   }else{
     fflush(NULL);
@@ -1767,11 +1767,11 @@ int ReadEdgesAboveAndBelow(long tilerow, long tilecol, long nlines,
   /* tile parameters set by SetupTile() will be overwritten below */
   if(tilerow!=0){
     SetupTile(nlines,linelen,params,tileparams,outfiles,outfilesabove,
-	      tilerow-1,tilecol);
+              tilerow-1,tilecol);
   }
   if(tilerow!=ntilerow-1){
     SetupTile(nlines,linelen,params,tileparams,outfiles,outfilesbelow,
-	      tilerow+1,tilecol);
+              tilerow+1,tilecol);
   }
 
   /* temporary pointers, so we can use Read2DArray() with 1D output array */
@@ -1805,32 +1805,32 @@ int ReadEdgesAboveAndBelow(long tilerow, long tilecol, long nlines,
     /* read region data */
     ParseFilename(outfiles->outfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld%s",
-	    params->tiledir,TMPTILEROOT,basename,tilerow-1,tilecol,
-	    readtilelinelen,REGIONSUFFIX);
+            params->tiledir,TMPTILEROOT,basename,tilerow-1,tilecol,
+            readtilelinelen,REGIONSUFFIX);
     StrNCopy(readregionfile,tempstring,MAXSTRLEN);
     Read2DArray((void ***)&regionsaboveptr,readregionfile,
-		readtilelinelen,readtilenlines,
-		tileparams,sizeof(short *),sizeof(short));
+                readtilelinelen,readtilenlines,
+                tileparams,sizeof(short *),sizeof(short));
 
     /* read unwrapped phase data */
     if(TMPTILEOUTFORMAT==ALT_LINE_DATA){
       ReadAltLineFilePhase(&unwphaseaboveptr,outfilesabove->outfile,
-			   readtilelinelen,readtilenlines,tileparams);
+                           readtilelinelen,readtilenlines,tileparams);
     }else if(TMPTILEOUTFORMAT==FLOAT_DATA){
       Read2DArray((void ***)&unwphaseaboveptr,outfilesabove->outfile,
-		  readtilelinelen,readtilenlines,tileparams,
-		  sizeof(float *),sizeof(float));
+                  readtilelinelen,readtilenlines,tileparams,
+                  sizeof(float *),sizeof(float));
     }
 
     /* flip sign of wrapped phase if flip flag is set */
     FlipPhaseArraySign(unwphaseaboveptr,params,
-		       tileparams->nrow,tileparams->ncol);
+                       tileparams->nrow,tileparams->ncol);
 
     /* read costs data */
     tileparams->firstrow--;
     Read2DRowColFileRows((void ***)&costsaboveptr,outfilesabove->costoutfile,
-			 readtilelinelen,readtilenlines,tileparams,
-			 costtypesize);
+                         readtilelinelen,readtilenlines,tileparams,
+                         costtypesize);
 
     /* remove temporary tile cost file unless told to save it */
     if(params->rmtmptile && !strlen(outfiles->costoutfile)){
@@ -1848,38 +1848,38 @@ int ReadEdgesAboveAndBelow(long tilerow, long tilecol, long nlines,
     /* read region data */
     ParseFilename(outfiles->outfile,path,basename);
     sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld%s",
-	    params->tiledir,TMPTILEROOT,basename,tilerow+1,tilecol,
-	    readtilelinelen,REGIONSUFFIX);
+            params->tiledir,TMPTILEROOT,basename,tilerow+1,tilecol,
+            readtilelinelen,REGIONSUFFIX);
     StrNCopy(readregionfile,tempstring,MAXSTRLEN);
     Read2DArray((void ***)&regionsbelowptr,readregionfile,
-		readtilelinelen,readtilenlines,
-		tileparams,sizeof(short *),sizeof(short));
+                readtilelinelen,readtilenlines,
+                tileparams,sizeof(short *),sizeof(short));
 
     /* read unwrapped phase data */
     if(TMPTILEOUTFORMAT==ALT_LINE_DATA){
       ReadAltLineFilePhase(&unwphasebelowptr,outfilesbelow->outfile,
-			   readtilelinelen,readtilenlines,tileparams);
+                           readtilelinelen,readtilenlines,tileparams);
     }else if(TMPTILEOUTFORMAT==FLOAT_DATA){
       Read2DArray((void ***)&unwphasebelowptr,outfilesbelow->outfile,
-		  readtilelinelen,readtilenlines,tileparams,
-		  sizeof(float *),sizeof(float));
+                  readtilelinelen,readtilenlines,tileparams,
+                  sizeof(float *),sizeof(float));
     }
 
     /* flip the sign of the wrapped phase if flip flag is set */
     FlipPhaseArraySign(unwphasebelowptr,params,
-		       tileparams->nrow,tileparams->ncol);
+                       tileparams->nrow,tileparams->ncol);
 
     /* read costs data */
     Read2DRowColFileRows((void ***)&costsbelowptr,outfilesbelow->costoutfile,
-			 readtilelinelen,readtilenlines,tileparams,
-			 costtypesize);
+                         readtilelinelen,readtilenlines,tileparams,
+                         costtypesize);
 
   }else{
 
     /* remove temporoary tile cost file for last row unless told to save it */
     if(params->rmtmptile && !strlen(outfiles->costoutfile)){
       SetupTile(nlines,linelen,params,tileparams,outfiles,outfilesbelow,
-		tilerow,tilecol);
+                tilerow,tilecol);
       unlink(outfilesbelow->costoutfile);
     }
   }
@@ -1958,10 +1958,10 @@ int TraceRegions(short **regions, short **nextregions, short **lastregions,
   }else if(CalcCost==CalcCostSmooth){
     costtypesize=sizeof(smoothcostT);
   }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	   || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+           || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
     costtypesize=sizeof(short);
   }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	   || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+           || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
     costtypesize=sizeof(bidircostT);
   }else{
     fflush(NULL);
@@ -1987,15 +1987,15 @@ int TraceRegions(short **regions, short **nextregions, short **lastregions,
 
   /* set up cost and flow arrays for boundaries */
   SetUpperEdge(ncol,tilerow,tilecol,costs,costsabove,unwphase,unwphaseabove,
-	       upperedgecosts,upperedgeflows,params, bulkoffsets);
+               upperedgecosts,upperedgeflows,params, bulkoffsets);
   SetLowerEdge(nrow,ncol,tilerow,tilecol,costs,costsbelow,unwphase,
-	       unwphasebelow,loweredgecosts,loweredgeflows,
-	       params,bulkoffsets);
+               unwphasebelow,loweredgecosts,loweredgeflows,
+               params,bulkoffsets);
   SetLeftEdge(nrow,prevncol,tilerow,tilecol,costs,lastcosts,unwphase,
-	      lastunwphase,leftedgecosts,leftedgeflows,params, bulkoffsets);
+              lastunwphase,leftedgecosts,leftedgeflows,params, bulkoffsets);
   SetRightEdge(nrow,ncol,tilerow,tilecol,costs,nextcosts,unwphase, 
-	       nextunwphase,rightedgecosts,rightedgeflows,
-	       params,bulkoffsets);
+               nextunwphase,rightedgecosts,rightedgeflows,
+               params,bulkoffsets);
 
   /* trace edges between regions */
   while(nextnode!=NULL){
@@ -2007,8 +2007,8 @@ int TraceRegions(short **regions, short **nextregions, short **lastregions,
 
     /* find number of paths out of from node */
     npathsout=FindNumPathsOut(from,params,tilerow,tilecol,nnrow,nncol,regions,
-			      nextregions,lastregions,regionsabove,
-			      regionsbelow,prevncol);
+                              nextregions,lastregions,regionsabove,
+                              regionsbelow,prevncol);
 
     /* secondary node exists if region edges fork */
     if(npathsout>2){
@@ -2019,55 +2019,55 @@ int TraceRegions(short **regions, short **nextregions, short **lastregions,
       /* create secondary node if not already created in another tile */
       if((from->row!=0 || tilerow==0) && (from->col!=0 || tilecol==0)){
 
-	/* create the secondary node */
-	nnewnodes++;
-	if(nnewnodes > SHRT_MAX){
+        /* create the secondary node */
+        nnewnodes++;
+        if(nnewnodes > SHRT_MAX){
           fflush(NULL);
-	  fprintf(sp0,"Exceeded maximum number of secondary nodes\n"
-		  "Decrease TILECOSTTHRESH and/or increase MINREGIONSIZE\n");
-	  exit(ABNORMAL_EXIT);
-	}
-	scndrynodes[tilenum]=(nodeT *)ReAlloc(scndrynodes[tilenum],
-					      nnewnodes*sizeof(nodeT));
-	nodesupp[tilenum]=(nodesuppT *)ReAlloc(nodesupp[tilenum],
-					       nnewnodes*sizeof(nodesuppT));
-	scndrynodes[tilenum][nnewnodes-1].row=tilenum;
-	scndrynodes[tilenum][nnewnodes-1].col=nnewnodes-1;
-	nodesupp[tilenum][nnewnodes-1].row=from->row;
-	nodesupp[tilenum][nnewnodes-1].col=from->col;
-	nodesupp[tilenum][nnewnodes-1].noutarcs=0;
-	nodesupp[tilenum][nnewnodes-1].neighbornodes=NULL;
-	nodesupp[tilenum][nnewnodes-1].outarcs=NULL;
+          fprintf(sp0,"Exceeded maximum number of secondary nodes\n"
+                  "Decrease TILECOSTTHRESH and/or increase MINREGIONSIZE\n");
+          exit(ABNORMAL_EXIT);
+        }
+        scndrynodes[tilenum]=(nodeT *)ReAlloc(scndrynodes[tilenum],
+                                              nnewnodes*sizeof(nodeT));
+        nodesupp[tilenum]=(nodesuppT *)ReAlloc(nodesupp[tilenum],
+                                               nnewnodes*sizeof(nodesuppT));
+        scndrynodes[tilenum][nnewnodes-1].row=tilenum;
+        scndrynodes[tilenum][nnewnodes-1].col=nnewnodes-1;
+        nodesupp[tilenum][nnewnodes-1].row=from->row;
+        nodesupp[tilenum][nnewnodes-1].col=from->col;
+        nodesupp[tilenum][nnewnodes-1].noutarcs=0;
+        nodesupp[tilenum][nnewnodes-1].neighbornodes=NULL;
+        nodesupp[tilenum][nnewnodes-1].outarcs=NULL;
       }      
 
       /* create the secondary arc to this node if it doesn't already exist */
       if(from->pred!=NULL
-	 && ((from->row==from->pred->row && (from->row!=0 || tilerow==0))
-	     || (from->col==from->pred->col && (from->col!=0 || tilecol==0)))){
+         && ((from->row==from->pred->row && (from->row!=0 || tilerow==0))
+             || (from->col==from->pred->col && (from->col!=0 || tilecol==0)))){
 
-	TraceSecondaryArc(from,scndrynodes,nodesupp,scndryarcs,scndrycosts,
-			  &nnewnodes,&nnewarcs,tilerow,tilecol,flowmax,
-			  nrow,ncol,prevnrow,prevncol,params,costs,
-			  rightedgecosts,loweredgecosts,leftedgecosts,
-			  upperedgecosts,flows,rightedgeflows,loweredgeflows, 
-			  leftedgeflows,upperedgeflows,&updatednontilenodes,
-			  &nupdatednontilenodes,&updatednontilenodesize,
-			  &inontilenodeoutarc,&totarclen);
+        TraceSecondaryArc(from,scndrynodes,nodesupp,scndryarcs,scndrycosts,
+                          &nnewnodes,&nnewarcs,tilerow,tilecol,flowmax,
+                          nrow,ncol,prevnrow,prevncol,params,costs,
+                          rightedgecosts,loweredgecosts,leftedgecosts,
+                          upperedgecosts,flows,rightedgeflows,loweredgeflows, 
+                          leftedgeflows,upperedgeflows,&updatednontilenodes,
+                          &nupdatednontilenodes,&updatednontilenodesize,
+                          &inontilenodeoutarc,&totarclen);
       }
     }
 
     /* scan neighboring primary nodes and place path candidates into stack */
     RegionTraceCheckNeighbors(from,&nextnode,primarynodes,regions,
-			      nextregions,lastregions,regionsabove,
-			      regionsbelow,tilerow,tilecol,nnrow,nncol,
-			      scndrynodes,nodesupp,scndryarcs,&nnewnodes,
-			      &nnewarcs,flowmax,nrow,ncol,prevnrow,prevncol,
-			      params,costs,rightedgecosts,loweredgecosts,
-			      leftedgecosts,upperedgecosts,flows,
-			      rightedgeflows,loweredgeflows,leftedgeflows,
-			      upperedgeflows,scndrycosts,&updatednontilenodes,
-			      &nupdatednontilenodes,&updatednontilenodesize,
-			      &inontilenodeoutarc,&totarclen);
+                              nextregions,lastregions,regionsabove,
+                              regionsbelow,tilerow,tilecol,nnrow,nncol,
+                              scndrynodes,nodesupp,scndryarcs,&nnewnodes,
+                              &nnewarcs,flowmax,nrow,ncol,prevnrow,prevncol,
+                              params,costs,rightedgecosts,loweredgecosts,
+                              leftedgecosts,upperedgecosts,flows,
+                              rightedgeflows,loweredgeflows,leftedgeflows,
+                              upperedgeflows,scndrycosts,&updatednontilenodes,
+                              &nupdatednontilenodes,&updatednontilenodesize,
+                              &inontilenodeoutarc,&totarclen);
   }
 
 
@@ -2079,7 +2079,7 @@ int TraceRegions(short **regions, short **nextregions, short **lastregions,
     for(j=0;j<nodesupp[tilenum][i].noutarcs;j++){
       tempnode=nodesupp[tilenum][i].neighbornodes[j];
       nodesupp[tilenum][i].neighbornodes[j]
-	=&scndrynodes[tempnode->level][tempnode->incost];
+        =&scndrynodes[tempnode->level][tempnode->incost];
     }
   }
 
@@ -2147,9 +2147,9 @@ int TraceRegions(short **regions, short **nextregions, short **lastregions,
  */
 static
 long FindNumPathsOut(nodeT *from, paramT *params, long tilerow, long tilecol, 
-		     long nnrow, long nncol, short **regions, 
-		     short **nextregions, short **lastregions,
-		     short *regionsabove, short *regionsbelow, long prevncol){
+                     long nnrow, long nncol, short **regions, 
+                     short **nextregions, short **lastregions,
+                     short *regionsabove, short *regionsbelow, long prevncol){
 
   long npathsout, ntilerow, ntilecol, fromrow, fromcol;
 
@@ -2265,22 +2265,22 @@ int RegionTraceCheckNeighbors(nodeT *from, nodeT **nextnodeptr,
     if(fromrow==0 || fromrow==nnrow-1 
        || regions[fromrow-1][fromcol]!=regions[fromrow][fromcol]){
       if(to!=from->pred){
-	to->pred=from;
-	if(to->group==NOTINBUCKET){
-	  to->group=INBUCKET;
-	  to->next=nextnode;
-	  nextnode=to;
-	}else if(to->group==ONTREE && (fromrow!=0 || tilerow==0)){
-	  TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
-			    nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
-			    nrow,ncol,prevnrow,prevncol,params,costs,
-			    rightedgecosts,loweredgecosts,leftedgecosts,
-			    upperedgecosts,flows,rightedgeflows,
-			    loweredgeflows,leftedgeflows,upperedgeflows,
-			    updatednontilenodesptr,nupdatednontilenodesptr,
-			    updatednontilenodesizeptr,inontilenodeoutarcptr,
-			    totarclenptr);
-	}
+        to->pred=from;
+        if(to->group==NOTINBUCKET){
+          to->group=INBUCKET;
+          to->next=nextnode;
+          nextnode=to;
+        }else if(to->group==ONTREE && (fromrow!=0 || tilerow==0)){
+          TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
+                            nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
+                            nrow,ncol,prevnrow,prevncol,params,costs,
+                            rightedgecosts,loweredgecosts,leftedgecosts,
+                            upperedgecosts,flows,rightedgeflows,
+                            loweredgeflows,leftedgeflows,upperedgeflows,
+                            updatednontilenodesptr,nupdatednontilenodesptr,
+                            updatednontilenodesizeptr,inontilenodeoutarcptr,
+                            totarclenptr);
+        }
       }
     }
   }
@@ -2292,22 +2292,22 @@ int RegionTraceCheckNeighbors(nodeT *from, nodeT **nextnodeptr,
     if(fromcol==0 || fromcol==nncol-1
        || regions[fromrow][fromcol]!=regions[fromrow][fromcol-1]){
       if(to!=from->pred){
-	to->pred=from;
-	if(to->group==NOTINBUCKET){
-	  to->group=INBUCKET;
-	  to->next=nextnode;
-	  nextnode=to;
-	}else if(to->group==ONTREE && (fromcol!=0 || tilecol==0)){
-	  TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
-			    nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
-			    nrow,ncol,prevnrow,prevncol,params,costs,
-			    rightedgecosts,loweredgecosts,leftedgecosts,
-			    upperedgecosts,flows,rightedgeflows,
-			    loweredgeflows,leftedgeflows,upperedgeflows,
-			    updatednontilenodesptr,nupdatednontilenodesptr,
-			    updatednontilenodesizeptr,inontilenodeoutarcptr,
-			    totarclenptr);
-	}
+        to->pred=from;
+        if(to->group==NOTINBUCKET){
+          to->group=INBUCKET;
+          to->next=nextnode;
+          nextnode=to;
+        }else if(to->group==ONTREE && (fromcol!=0 || tilecol==0)){
+          TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
+                            nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
+                            nrow,ncol,prevnrow,prevncol,params,costs,
+                            rightedgecosts,loweredgecosts,leftedgecosts,
+                            upperedgecosts,flows,rightedgeflows,
+                            loweredgeflows,leftedgeflows,upperedgeflows,
+                            updatednontilenodesptr,nupdatednontilenodesptr,
+                            updatednontilenodesizeptr,inontilenodeoutarcptr,
+                            totarclenptr);
+        }
       }
     }
   }
@@ -2319,22 +2319,22 @@ int RegionTraceCheckNeighbors(nodeT *from, nodeT **nextnodeptr,
     if(fromrow==0 || fromrow==nnrow-1 
        || regions[fromrow][fromcol-1]!=regions[fromrow-1][fromcol-1]){
       if(to!=from->pred){
-	to->pred=from;
-	if(to->group==NOTINBUCKET){
-	  to->group=INBUCKET;
-	  to->next=nextnode;
-	  nextnode=to;
-	}else if(to->group==ONTREE && (fromrow!=0 || tilerow==0)){
-	  TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
-			    nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
-			    nrow,ncol,prevnrow,prevncol,params,costs,
-			    rightedgecosts,loweredgecosts,leftedgecosts,
-			    upperedgecosts,flows,rightedgeflows,
-			    loweredgeflows,leftedgeflows,upperedgeflows,
-			    updatednontilenodesptr,nupdatednontilenodesptr,
-			    updatednontilenodesizeptr,inontilenodeoutarcptr,
-			    totarclenptr);
-	}
+        to->pred=from;
+        if(to->group==NOTINBUCKET){
+          to->group=INBUCKET;
+          to->next=nextnode;
+          nextnode=to;
+        }else if(to->group==ONTREE && (fromrow!=0 || tilerow==0)){
+          TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
+                            nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
+                            nrow,ncol,prevnrow,prevncol,params,costs,
+                            rightedgecosts,loweredgecosts,leftedgecosts,
+                            upperedgecosts,flows,rightedgeflows,
+                            loweredgeflows,leftedgeflows,upperedgeflows,
+                            updatednontilenodesptr,nupdatednontilenodesptr,
+                            updatednontilenodesizeptr,inontilenodeoutarcptr,
+                            totarclenptr);
+        }
       }
     }
   }
@@ -2346,22 +2346,22 @@ int RegionTraceCheckNeighbors(nodeT *from, nodeT **nextnodeptr,
     if(fromcol==0 || fromcol==nncol-1
        || regions[fromrow-1][fromcol-1]!=regions[fromrow-1][fromcol]){
       if(to!=from->pred){
-	to->pred=from;
-	if(to->group==NOTINBUCKET){
-	  to->group=INBUCKET;
-	  to->next=nextnode;
-	  nextnode=to;
-	}else if(to->group==ONTREE && (fromcol!=0 || tilecol==0)){
-	  TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
-			    nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
-			    nrow,ncol,prevnrow,prevncol,params,costs,
-			    rightedgecosts,loweredgecosts,leftedgecosts,
-			    upperedgecosts,flows,rightedgeflows,
-			    loweredgeflows,leftedgeflows,upperedgeflows,
-			    updatednontilenodesptr,nupdatednontilenodesptr,
-			    updatednontilenodesizeptr,inontilenodeoutarcptr,
-			    totarclenptr);
-	}
+        to->pred=from;
+        if(to->group==NOTINBUCKET){
+          to->group=INBUCKET;
+          to->next=nextnode;
+          nextnode=to;
+        }else if(to->group==ONTREE && (fromcol!=0 || tilecol==0)){
+          TraceSecondaryArc(to,scndrynodes,nodesupp,scndryarcs,scndrycosts,
+                            nnewnodesptr,nnewarcsptr,tilerow,tilecol,flowmax,
+                            nrow,ncol,prevnrow,prevncol,params,costs,
+                            rightedgecosts,loweredgecosts,leftedgecosts,
+                            upperedgecosts,flows,rightedgeflows,
+                            loweredgeflows,leftedgeflows,upperedgeflows,
+                            updatednontilenodesptr,nupdatednontilenodesptr,
+                            updatednontilenodesizeptr,inontilenodeoutarcptr,
+                            totarclenptr);
+        }
       }
     }
   }
@@ -2410,67 +2410,67 @@ int SetUpperEdge(long ncol, long tilerow, long tilecol, void **voidcosts,
       upperedgeflows[0][col]=(short )LRound(dphi)-reloffset;
       dpsi=dphi-floor(dphi);
       if(dpsi>0.5){
-	dpsi-=1.0;
+        dpsi-=1.0;
       }
       if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
-	upperedgecosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
-	upperedgecosts[0][col].sigsq=AvgSigSq(costs[0][col].sigsq,
+        upperedgecosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
+        upperedgecosts[0][col].sigsq=AvgSigSq(costs[0][col].sigsq,
                                               costsabove[col].sigsq);
-	if(costs[0][col].dzmax>costsabove[col].dzmax){
-	  upperedgecosts[0][col].dzmax=costs[0][col].dzmax;
-	}else{
-	  upperedgecosts[0][col].dzmax=costsabove[col].dzmax;
-	}
-	if(costs[0][col].laycost<costsabove[col].laycost){
-	  upperedgecosts[0][col].laycost=costs[0][col].laycost;
-	}else{
-	  upperedgecosts[0][col].laycost=costsabove[col].laycost;
-	}
+        if(costs[0][col].dzmax>costsabove[col].dzmax){
+          upperedgecosts[0][col].dzmax=costs[0][col].dzmax;
+        }else{
+          upperedgecosts[0][col].dzmax=costsabove[col].dzmax;
+        }
+        if(costs[0][col].laycost<costsabove[col].laycost){
+          upperedgecosts[0][col].laycost=costs[0][col].laycost;
+        }else{
+          upperedgecosts[0][col].laycost=costsabove[col].laycost;
+        }
       }else if(CalcCost==CalcCostSmooth){
-	upperedgesmoothcosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
-	upperedgesmoothcosts[0][col].sigsq
+        upperedgesmoothcosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
+        upperedgesmoothcosts[0][col].sigsq
           =AvgSigSq(smoothcosts[0][col].sigsq,smoothcostsabove[col].sigsq);
       }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	       || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
-	((short **)voidupperedgecosts)[0][col]=
-	  (((short **)voidcosts)[0][col]+((short *)voidcostsabove)[col])/2;
+               || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+        ((short **)voidupperedgecosts)[0][col]=
+          (((short **)voidcosts)[0][col]+((short *)voidcostsabove)[col])/2;
       }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	       || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
-	((bidircostT **)voidupperedgecosts)[0][col].posweight=
-	  (((bidircostT **)voidcosts)[0][col].posweight
-	   +((bidircostT *)voidcostsabove)[col].posweight)/2;
-	((bidircostT **)voidupperedgecosts)[0][col].negweight=
-	  (((bidircostT **)voidcosts)[0][col].negweight
-	   +((bidircostT *)voidcostsabove)[col].negweight)/2;
+               || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+        ((bidircostT **)voidupperedgecosts)[0][col].posweight=
+          (((bidircostT **)voidcosts)[0][col].posweight
+           +((bidircostT *)voidcostsabove)[col].posweight)/2;
+        ((bidircostT **)voidupperedgecosts)[0][col].negweight=
+          (((bidircostT **)voidcosts)[0][col].negweight
+           +((bidircostT *)voidcostsabove)[col].negweight)/2;
       }else{
         fflush(NULL);
-	fprintf(sp0,"Illegal cost mode in SetUpperEdge().  This is a bug.\n");
-	exit(ABNORMAL_EXIT);
+        fprintf(sp0,"Illegal cost mode in SetUpperEdge().  This is a bug.\n");
+        exit(ABNORMAL_EXIT);
       }
     }
   }else{
     if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
       for(col=0;col<ncol;col++){
-	upperedgecosts[0][col].offset=LARGESHORT/2;
-	upperedgecosts[0][col].sigsq=LARGESHORT;
-	upperedgecosts[0][col].dzmax=LARGESHORT;
-	upperedgecosts[0][col].laycost=0;
+        upperedgecosts[0][col].offset=LARGESHORT/2;
+        upperedgecosts[0][col].sigsq=LARGESHORT;
+        upperedgecosts[0][col].dzmax=LARGESHORT;
+        upperedgecosts[0][col].laycost=0;
       }
     }else if(CalcCost==CalcCostSmooth){
       for(col=0;col<ncol;col++){
-	upperedgesmoothcosts[0][col].offset=0;
-	upperedgesmoothcosts[0][col].sigsq=LARGESHORT;
+        upperedgesmoothcosts[0][col].offset=0;
+        upperedgesmoothcosts[0][col].sigsq=LARGESHORT;
       }
     }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	     || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+             || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
       for(col=0;col<ncol;col++){
-	((short **)voidupperedgecosts)[0][col]=0;
+        ((short **)voidupperedgecosts)[0][col]=0;
       }
     }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	     || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+             || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
       for(col=0;col<ncol;col++){
-	((bidircostT **)voidupperedgecosts)[0][col].posweight=0;
-	((bidircostT **)voidupperedgecosts)[0][col].negweight=0;
+        ((bidircostT **)voidupperedgecosts)[0][col].posweight=0;
+        ((bidircostT **)voidupperedgecosts)[0][col].negweight=0;
       }
     }else{
       fflush(NULL);
@@ -2528,61 +2528,61 @@ int SetLowerEdge(long nrow, long ncol, long tilerow, long tilecol,
       tempflow=(short )LRound(dphi);
       loweredgeflows[0][col]=tempflow;
       if(tempflow<minflow){
-	if(tempflow<flowlimlo){
+        if(tempflow<flowlimlo){
           fflush(NULL);
-	  fprintf(sp0,"Overflow in tile offset\nAbort\n");
-	  exit(ABNORMAL_EXIT);
-	}
-	minflow=tempflow;
+          fprintf(sp0,"Overflow in tile offset\nAbort\n");
+          exit(ABNORMAL_EXIT);
+        }
+        minflow=tempflow;
       }
       if(tempflow>maxflow){
-	if(tempflow>flowlimhi){
+        if(tempflow>flowlimhi){
           fflush(NULL);
-	  fprintf(sp0,"Overflow in tile offset\nAbort\n");
-	  exit(ABNORMAL_EXIT);
-	}
-	maxflow=tempflow;
+          fprintf(sp0,"Overflow in tile offset\nAbort\n");
+          exit(ABNORMAL_EXIT);
+        }
+        maxflow=tempflow;
       }
       flowhistogram[tempflow-flowlimlo]++;
       dpsi=dphi-floor(dphi);
       if(dpsi>0.5){
-	dpsi-=1.0;
+        dpsi-=1.0;
       }
       if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
-	loweredgecosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
-	loweredgecosts[0][col].sigsq=AvgSigSq(costs[nrow-2][col].sigsq,
+        loweredgecosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
+        loweredgecosts[0][col].sigsq=AvgSigSq(costs[nrow-2][col].sigsq,
                                               costsbelow[col].sigsq);
-	if(costs[nrow-2][col].dzmax>costsbelow[col].dzmax){
-	  loweredgecosts[0][col].dzmax=costs[nrow-2][col].dzmax;
-	}else{
-	  loweredgecosts[0][col].dzmax=costsbelow[col].dzmax;
-	}
-	if(costs[nrow-2][col].laycost<costsbelow[col].laycost){
-	  loweredgecosts[0][col].laycost=costs[nrow-2][col].laycost;
-	}else{
-	  loweredgecosts[0][col].laycost=costsbelow[col].laycost;
-	}
+        if(costs[nrow-2][col].dzmax>costsbelow[col].dzmax){
+          loweredgecosts[0][col].dzmax=costs[nrow-2][col].dzmax;
+        }else{
+          loweredgecosts[0][col].dzmax=costsbelow[col].dzmax;
+        }
+        if(costs[nrow-2][col].laycost<costsbelow[col].laycost){
+          loweredgecosts[0][col].laycost=costs[nrow-2][col].laycost;
+        }else{
+          loweredgecosts[0][col].laycost=costsbelow[col].laycost;
+        }
       }else if(CalcCost==CalcCostSmooth){
-	loweredgesmoothcosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
-	loweredgesmoothcosts[0][col].sigsq
-	  =AvgSigSq(smoothcosts[nrow-2][col].sigsq,smoothcostsbelow[col].sigsq);
+        loweredgesmoothcosts[0][col].offset=(short )LRound(nshortcycle*dpsi);
+        loweredgesmoothcosts[0][col].sigsq
+          =AvgSigSq(smoothcosts[nrow-2][col].sigsq,smoothcostsbelow[col].sigsq);
       }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	       || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
-	((short **)voidloweredgecosts)[0][col]=
-	  (((short **)voidcosts)[nrow-2][col]
-	   +((short *)voidcostsbelow)[col])/2;
+               || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+        ((short **)voidloweredgecosts)[0][col]=
+          (((short **)voidcosts)[nrow-2][col]
+           +((short *)voidcostsbelow)[col])/2;
       }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	       || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
-	((bidircostT **)voidloweredgecosts)[0][col].posweight=
-	  (((bidircostT **)voidcosts)[nrow-2][col].posweight
-	   +((bidircostT *)voidcostsbelow)[col].posweight)/2;
-	((bidircostT **)voidloweredgecosts)[0][col].negweight=
-	  (((bidircostT **)voidcosts)[nrow-2][col].negweight
-	   +((bidircostT *)voidcostsbelow)[col].negweight)/2;
+               || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+        ((bidircostT **)voidloweredgecosts)[0][col].posweight=
+          (((bidircostT **)voidcosts)[nrow-2][col].posweight
+           +((bidircostT *)voidcostsbelow)[col].posweight)/2;
+        ((bidircostT **)voidloweredgecosts)[0][col].negweight=
+          (((bidircostT **)voidcosts)[nrow-2][col].negweight
+           +((bidircostT *)voidcostsbelow)[col].negweight)/2;
       }else{
         fflush(NULL);
-	fprintf(sp0,"Illegal cost mode in SetLowerEdge().  This is a bug.\n");
-	exit(ABNORMAL_EXIT);
+        fprintf(sp0,"Illegal cost mode in SetLowerEdge().  This is a bug.\n");
+        exit(ABNORMAL_EXIT);
       }
     }
 
@@ -2591,8 +2591,8 @@ int SetLowerEdge(long nrow, long ncol, long tilerow, long tilecol,
     reloffset=0;
     for(iflow=minflow;iflow<=maxflow;iflow++){
       if(flowhistogram[iflow-flowlimlo]>nmax){
-	nmax=flowhistogram[iflow-flowlimlo];
-	reloffset=iflow;
+        nmax=flowhistogram[iflow-flowlimlo];
+        reloffset=iflow;
       }
     }
     bulkoffsets[tilerow+1][tilecol]=bulkoffsets[tilerow][tilecol]-reloffset;
@@ -2608,26 +2608,26 @@ int SetLowerEdge(long nrow, long ncol, long tilerow, long tilecol,
   }else{
     if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
       for(col=0;col<ncol;col++){
-	loweredgecosts[0][col].offset=LARGESHORT/2;
-	loweredgecosts[0][col].sigsq=LARGESHORT;
-	loweredgecosts[0][col].dzmax=LARGESHORT;
-	loweredgecosts[0][col].laycost=0;
+        loweredgecosts[0][col].offset=LARGESHORT/2;
+        loweredgecosts[0][col].sigsq=LARGESHORT;
+        loweredgecosts[0][col].dzmax=LARGESHORT;
+        loweredgecosts[0][col].laycost=0;
       }
     }else if(CalcCost==CalcCostSmooth){
       for(col=0;col<ncol;col++){
-	loweredgesmoothcosts[0][col].offset=0;
-	loweredgesmoothcosts[0][col].sigsq=LARGESHORT;
+        loweredgesmoothcosts[0][col].offset=0;
+        loweredgesmoothcosts[0][col].sigsq=LARGESHORT;
       }
     }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	     || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+             || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
       for(col=0;col<ncol;col++){
-	((short **)voidloweredgecosts)[0][col]=0;
+        ((short **)voidloweredgecosts)[0][col]=0;
       }
     }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	     || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+             || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
       for(col=0;col<ncol;col++){
-	((bidircostT **)voidloweredgecosts)[0][col].posweight=0;
-	((bidircostT **)voidloweredgecosts)[0][col].negweight=0;
+        ((bidircostT **)voidloweredgecosts)[0][col].posweight=0;
+        ((bidircostT **)voidloweredgecosts)[0][col].negweight=0;
       }
     }else{
       fflush(NULL);
@@ -2675,80 +2675,80 @@ int SetLeftEdge(long nrow, long prevncol, long tilerow, long tilecol,
     /* loop over all arcs on the boundary */
     for(row=0;row<nrow;row++){
       dphi=(unwphase[row][0]
-	    -lastunwphase[row][prevncol-1])/TWOPI;
+            -lastunwphase[row][prevncol-1])/TWOPI;
       leftedgeflows[row][0]=(short )LRound(dphi)-reloffset;
       dpsi=dphi-floor(dphi);
       if(dpsi>0.5){
-	dpsi-=1.0;
+        dpsi-=1.0;
       }
       if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
-	leftedgecosts[row][0].offset=(short )LRound(TILEDPSICOLFACTOR
+        leftedgecosts[row][0].offset=(short )LRound(TILEDPSICOLFACTOR
                                                     *nshortcycle*dpsi);
-	leftedgecosts[row][0].sigsq
+        leftedgecosts[row][0].sigsq
           =AvgSigSq(costs[row+nrow-1][0].sigsq,
                     lastcosts[row+nrow-1][prevncol-2].sigsq);
-	if(costs[row+nrow-1][0].dzmax>lastcosts[row+nrow-1][prevncol-2].dzmax){
-	  leftedgecosts[row][0].dzmax=costs[row+nrow-1][0].dzmax;
-	}else{
-	  leftedgecosts[row][0].dzmax=lastcosts[row+nrow-1][prevncol-2].dzmax;
-	}
-	if(costs[row+nrow-1][0].laycost
-	   >lastcosts[row+nrow-1][prevncol-2].laycost){
-	  leftedgecosts[row][0].laycost=costs[row+nrow-1][0].laycost;
-	}else{
-	  leftedgecosts[row][0].laycost
-	    =lastcosts[row+nrow-1][prevncol-2].laycost;
-	}
+        if(costs[row+nrow-1][0].dzmax>lastcosts[row+nrow-1][prevncol-2].dzmax){
+          leftedgecosts[row][0].dzmax=costs[row+nrow-1][0].dzmax;
+        }else{
+          leftedgecosts[row][0].dzmax=lastcosts[row+nrow-1][prevncol-2].dzmax;
+        }
+        if(costs[row+nrow-1][0].laycost
+           >lastcosts[row+nrow-1][prevncol-2].laycost){
+          leftedgecosts[row][0].laycost=costs[row+nrow-1][0].laycost;
+        }else{
+          leftedgecosts[row][0].laycost
+            =lastcosts[row+nrow-1][prevncol-2].laycost;
+        }
       }else if(CalcCost==CalcCostSmooth){
-	leftedgesmoothcosts[row][0].offset
-	  =(short )LRound(TILEDPSICOLFACTOR*nshortcycle*dpsi);
-	leftedgesmoothcosts[row][0].sigsq
-	  =AvgSigSq(smoothcosts[row+nrow-1][0].sigsq,
+        leftedgesmoothcosts[row][0].offset
+          =(short )LRound(TILEDPSICOLFACTOR*nshortcycle*dpsi);
+        leftedgesmoothcosts[row][0].sigsq
+          =AvgSigSq(smoothcosts[row+nrow-1][0].sigsq,
                     lastsmoothcosts[row+nrow-1][prevncol-2].sigsq);
       }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	       || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
-	((short **)voidleftedgecosts)[row][0]=
-	  (((short **)voidcosts)[row+nrow-1][0]
-	   +((short **)voidlastcosts)[row+nrow-1][prevncol-2])/2;
+               || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+        ((short **)voidleftedgecosts)[row][0]=
+          (((short **)voidcosts)[row+nrow-1][0]
+           +((short **)voidlastcosts)[row+nrow-1][prevncol-2])/2;
       }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	       || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
-	((bidircostT **)voidleftedgecosts)[row][0].posweight=
-	  (((bidircostT **)voidcosts)[row+nrow-1][0].posweight
-	   +((bidircostT **)voidlastcosts)[row+nrow-1][prevncol-2].posweight)
-	  /2;
-	((bidircostT **)voidleftedgecosts)[row][0].negweight=
-	  (((bidircostT **)voidcosts)[row+nrow-1][0].negweight
-	   +((bidircostT **)voidlastcosts)[row+nrow-1][prevncol-2].negweight)
-	  /2;
+               || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+        ((bidircostT **)voidleftedgecosts)[row][0].posweight=
+          (((bidircostT **)voidcosts)[row+nrow-1][0].posweight
+           +((bidircostT **)voidlastcosts)[row+nrow-1][prevncol-2].posweight)
+          /2;
+        ((bidircostT **)voidleftedgecosts)[row][0].negweight=
+          (((bidircostT **)voidcosts)[row+nrow-1][0].negweight
+           +((bidircostT **)voidlastcosts)[row+nrow-1][prevncol-2].negweight)
+          /2;
       }else{
         fflush(NULL);
-	fprintf(sp0,"Illegal cost mode in SetLeftEdge().  This is a bug.\n");
-	exit(ABNORMAL_EXIT);
+        fprintf(sp0,"Illegal cost mode in SetLeftEdge().  This is a bug.\n");
+        exit(ABNORMAL_EXIT);
       }
     }
   }else{
     if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
       for(row=0;row<nrow;row++){
-	leftedgecosts[row][0].offset=LARGESHORT/2;
-	leftedgecosts[row][0].sigsq=LARGESHORT;
-	leftedgecosts[row][0].dzmax=LARGESHORT;
-	leftedgecosts[row][0].laycost=0;
+        leftedgecosts[row][0].offset=LARGESHORT/2;
+        leftedgecosts[row][0].sigsq=LARGESHORT;
+        leftedgecosts[row][0].dzmax=LARGESHORT;
+        leftedgecosts[row][0].laycost=0;
       }
     }else if(CalcCost==CalcCostSmooth){
       for(row=0;row<nrow;row++){
-	leftedgesmoothcosts[row][0].offset=0;
-	leftedgesmoothcosts[row][0].sigsq=LARGESHORT;
+        leftedgesmoothcosts[row][0].offset=0;
+        leftedgesmoothcosts[row][0].sigsq=LARGESHORT;
       }
     }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	     || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+             || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
       for(row=0;row<nrow;row++){
-	((short **)voidleftedgecosts)[row][0]=0;
+        ((short **)voidleftedgecosts)[row][0]=0;
       }
     }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	     || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+             || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
       for(row=0;row<nrow;row++){
-	((bidircostT **)voidleftedgecosts)[row][0].posweight=0;
-	((bidircostT **)voidleftedgecosts)[row][0].negweight=0;
+        ((bidircostT **)voidleftedgecosts)[row][0].posweight=0;
+        ((bidircostT **)voidleftedgecosts)[row][0].negweight=0;
       }
     }else{
       fflush(NULL);
@@ -2803,69 +2803,69 @@ int SetRightEdge(long nrow, long ncol, long tilerow, long tilecol,
     /* loop over all arcs on the boundary */
     for(row=0;row<nrow;row++){
       dphi=(nextunwphase[row][0]
-	    -unwphase[row][ncol-1])/TWOPI;
+            -unwphase[row][ncol-1])/TWOPI;
       tempflow=(short )LRound(dphi);
       rightedgeflows[row][0]=tempflow;
       if(tempflow<minflow){
-	if(tempflow<flowlimlo){
+        if(tempflow<flowlimlo){
           fflush(NULL);
-	  fprintf(sp0,"Overflow in tile offset\nAbort\n");
-	  exit(ABNORMAL_EXIT);
-	}
-	minflow=tempflow;
+          fprintf(sp0,"Overflow in tile offset\nAbort\n");
+          exit(ABNORMAL_EXIT);
+        }
+        minflow=tempflow;
       }
       if(tempflow>maxflow){
-	if(tempflow>flowlimhi){
+        if(tempflow>flowlimhi){
           fflush(NULL);
-	  fprintf(sp0,"Overflow in tile offset\nAbort\n");
-	  exit(ABNORMAL_EXIT);
-	}
-	maxflow=tempflow;
+          fprintf(sp0,"Overflow in tile offset\nAbort\n");
+          exit(ABNORMAL_EXIT);
+        }
+        maxflow=tempflow;
       }
       flowhistogram[tempflow-flowlimlo]++;    
       dpsi=dphi-floor(dphi);
       if(dpsi>0.5){
-	dpsi-=1.0;
+        dpsi-=1.0;
       }
       if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
-	rightedgecosts[row][0].offset=(short )LRound(TILEDPSICOLFACTOR
+        rightedgecosts[row][0].offset=(short )LRound(TILEDPSICOLFACTOR
                                                      *nshortcycle*dpsi);
-	rightedgecosts[row][0].sigsq
-	  =AvgSigSq(costs[row+nrow-1][ncol-2].sigsq,
+        rightedgecosts[row][0].sigsq
+          =AvgSigSq(costs[row+nrow-1][ncol-2].sigsq,
                     nextcosts[row+nrow-1][0].sigsq);
-	if(costs[row+nrow-1][ncol-2].dzmax>nextcosts[row+nrow-1][0].dzmax){
-	  rightedgecosts[row][0].dzmax=costs[row+nrow-1][ncol-2].dzmax;
-	}else{
-	  rightedgecosts[row][0].dzmax=nextcosts[row+nrow-1][0].dzmax;
-	}
-	if(costs[row+nrow-1][ncol-2].laycost>nextcosts[row+nrow-1][0].laycost){
-	  rightedgecosts[row][0].laycost=costs[row+nrow-1][ncol-2].laycost;
-	}else{
-	  rightedgecosts[row][0].laycost=nextcosts[row+nrow-1][0].laycost;
-	}
+        if(costs[row+nrow-1][ncol-2].dzmax>nextcosts[row+nrow-1][0].dzmax){
+          rightedgecosts[row][0].dzmax=costs[row+nrow-1][ncol-2].dzmax;
+        }else{
+          rightedgecosts[row][0].dzmax=nextcosts[row+nrow-1][0].dzmax;
+        }
+        if(costs[row+nrow-1][ncol-2].laycost>nextcosts[row+nrow-1][0].laycost){
+          rightedgecosts[row][0].laycost=costs[row+nrow-1][ncol-2].laycost;
+        }else{
+          rightedgecosts[row][0].laycost=nextcosts[row+nrow-1][0].laycost;
+        }
       }else if(CalcCost==CalcCostSmooth){
-	rightedgesmoothcosts[row][0].offset
-	  =(short )LRound(TILEDPSICOLFACTOR*nshortcycle*dpsi);
-	rightedgesmoothcosts[row][0].sigsq
-	  =AvgSigSq(smoothcosts[row+nrow-1][ncol-2].sigsq,
+        rightedgesmoothcosts[row][0].offset
+          =(short )LRound(TILEDPSICOLFACTOR*nshortcycle*dpsi);
+        rightedgesmoothcosts[row][0].sigsq
+          =AvgSigSq(smoothcosts[row+nrow-1][ncol-2].sigsq,
                     nextsmoothcosts[row+nrow-1][0].sigsq);
       }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	       || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
-	((short **)voidrightedgecosts)[row][0]=
-	  (((short **)voidcosts)[row+nrow-1][ncol-2]
-	   +((short **)voidnextcosts)[row+nrow-1][0])/2;
+               || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+        ((short **)voidrightedgecosts)[row][0]=
+          (((short **)voidcosts)[row+nrow-1][ncol-2]
+           +((short **)voidnextcosts)[row+nrow-1][0])/2;
       }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	       || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
-	((bidircostT **)voidrightedgecosts)[row][0].posweight=
-	  (((bidircostT **)voidcosts)[row+nrow-1][ncol-2].posweight
-	   +((bidircostT **)voidnextcosts)[row+nrow-1][ncol-2].posweight)/2;
-	((bidircostT **)voidrightedgecosts)[row][0].negweight=
-	  (((bidircostT **)voidcosts)[row+nrow-1][ncol-2].negweight
-	   +((bidircostT **)voidnextcosts)[row+nrow-1][ncol-2].negweight)/2;
+               || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+        ((bidircostT **)voidrightedgecosts)[row][0].posweight=
+          (((bidircostT **)voidcosts)[row+nrow-1][ncol-2].posweight
+           +((bidircostT **)voidnextcosts)[row+nrow-1][ncol-2].posweight)/2;
+        ((bidircostT **)voidrightedgecosts)[row][0].negweight=
+          (((bidircostT **)voidcosts)[row+nrow-1][ncol-2].negweight
+           +((bidircostT **)voidnextcosts)[row+nrow-1][ncol-2].negweight)/2;
       }else{
         fflush(NULL);
-	fprintf(sp0,"Illegal cost mode in SetRightEdge().  This is a bug.\n");
-	exit(ABNORMAL_EXIT);
+        fprintf(sp0,"Illegal cost mode in SetRightEdge().  This is a bug.\n");
+        exit(ABNORMAL_EXIT);
       }
     }
 
@@ -2874,10 +2874,10 @@ int SetRightEdge(long nrow, long ncol, long tilerow, long tilecol,
       nmax=0;
       reloffset=0;
       for(iflow=minflow;iflow<=maxflow;iflow++){
-	if(flowhistogram[iflow-flowlimlo]>nmax){
-	  nmax=flowhistogram[iflow-flowlimlo];
-	  reloffset=iflow;
-	}
+        if(flowhistogram[iflow-flowlimlo]>nmax){
+          nmax=flowhistogram[iflow-flowlimlo];
+          reloffset=iflow;
+        }
       }
       bulkoffsets[tilerow][tilecol+1]=bulkoffsets[tilerow][tilecol]+reloffset;
     }else{
@@ -2896,26 +2896,26 @@ int SetRightEdge(long nrow, long ncol, long tilerow, long tilecol,
   }else{
     if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
       for(row=0;row<nrow;row++){
-	rightedgecosts[row][0].offset=LARGESHORT/2;
-	rightedgecosts[row][0].sigsq=LARGESHORT;
-	rightedgecosts[row][0].dzmax=LARGESHORT;
-	rightedgecosts[row][0].laycost=0;
+        rightedgecosts[row][0].offset=LARGESHORT/2;
+        rightedgecosts[row][0].sigsq=LARGESHORT;
+        rightedgecosts[row][0].dzmax=LARGESHORT;
+        rightedgecosts[row][0].laycost=0;
       }
     }else if(CalcCost==CalcCostSmooth){
       for(row=0;row<nrow;row++){
-	rightedgesmoothcosts[row][0].offset=0;
-	rightedgesmoothcosts[row][0].sigsq=LARGESHORT;
+        rightedgesmoothcosts[row][0].offset=0;
+        rightedgesmoothcosts[row][0].sigsq=LARGESHORT;
       }
     }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1
-	     || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+             || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
       for(row=0;row<nrow;row++){
-	((short **)voidrightedgecosts)[row][0]=0;
+        ((short **)voidrightedgecosts)[row][0]=0;
       }
     }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-	     || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+             || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
       for(row=0;row<nrow;row++){
-	((bidircostT **)voidrightedgecosts)[row][0].posweight=0;
-	((bidircostT **)voidrightedgecosts)[row][0].negweight=0;
+        ((bidircostT **)voidrightedgecosts)[row][0].posweight=0;
+        ((bidircostT **)voidrightedgecosts)[row][0].negweight=0;
       }
     }else{
       fflush(NULL);
@@ -3031,117 +3031,117 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
       /* get primary arc just traversed */
       arclen++;
       if(tempnode->col==primarytail->col+1){              /* rightward arc */
-	primaryarcdir=1;
-	primaryarccol=primarytail->col;
-	if(primarytail->row==0){                               /* top edge */
-	  if(tilerow==0){
-	    zerocost=TRUE;
-	  }else{
-	    primaryarcrow=0;
-	    costs=upperedgecosts;
-	    flows=upperedgeflows;
-	    calccostnrow=2;
-	  }
-	}else if(primarytail->row==nnrow-1){                /* bottom edge */
-	  if(tilerow==ntilerow-1){
-	    zerocost=TRUE;
-	  }else{
-	    primaryarcrow=0;
-	    costs=loweredgecosts;
-	    flows=loweredgeflows;
-	    calccostnrow=2;
-	  }
-	}else{                                               /* normal arc */
-	  primaryarcrow=primarytail->row-1;
-	  costs=tilecosts;
-	  flows=tileflows;
-	  calccostnrow=nrow;
-	}
+        primaryarcdir=1;
+        primaryarccol=primarytail->col;
+        if(primarytail->row==0){                               /* top edge */
+          if(tilerow==0){
+            zerocost=TRUE;
+          }else{
+            primaryarcrow=0;
+            costs=upperedgecosts;
+            flows=upperedgeflows;
+            calccostnrow=2;
+          }
+        }else if(primarytail->row==nnrow-1){                /* bottom edge */
+          if(tilerow==ntilerow-1){
+            zerocost=TRUE;
+          }else{
+            primaryarcrow=0;
+            costs=loweredgecosts;
+            flows=loweredgeflows;
+            calccostnrow=2;
+          }
+        }else{                                               /* normal arc */
+          primaryarcrow=primarytail->row-1;
+          costs=tilecosts;
+          flows=tileflows;
+          calccostnrow=nrow;
+        }
       }else if(tempnode->row==primarytail->row+1){         /* downward arc */
-	primaryarcdir=1;
-	if(primarytail->col==0){                              /* left edge */
-	  if(tilecol==0){
-	    zerocost=TRUE;
-	  }else{
-	    primaryarcrow=primarytail->row;
-	    primaryarccol=0;
-	    costs=leftedgecosts;
-	    flows=leftedgeflows; 
-	    calccostnrow=0;
-	  }
-	}else if(primarytail->col==nncol-1){                 /* right edge */
-	  if(tilecol==ntilecol-1){
-	    zerocost=TRUE;
-	  }else{
-	    primaryarcrow=primarytail->row;
-	    primaryarccol=0;
-	    costs=rightedgecosts;
-	    flows=rightedgeflows;
-	    calccostnrow=0;
-	  }
-	}else{                                               /* normal arc */
-	  primaryarcrow=primarytail->row+nrow-1;
-	  primaryarccol=primarytail->col-1;
-	  costs=tilecosts;
-	  flows=tileflows;
-	  calccostnrow=nrow;
-	}
+        primaryarcdir=1;
+        if(primarytail->col==0){                              /* left edge */
+          if(tilecol==0){
+            zerocost=TRUE;
+          }else{
+            primaryarcrow=primarytail->row;
+            primaryarccol=0;
+            costs=leftedgecosts;
+            flows=leftedgeflows; 
+            calccostnrow=0;
+          }
+        }else if(primarytail->col==nncol-1){                 /* right edge */
+          if(tilecol==ntilecol-1){
+            zerocost=TRUE;
+          }else{
+            primaryarcrow=primarytail->row;
+            primaryarccol=0;
+            costs=rightedgecosts;
+            flows=rightedgeflows;
+            calccostnrow=0;
+          }
+        }else{                                               /* normal arc */
+          primaryarcrow=primarytail->row+nrow-1;
+          primaryarccol=primarytail->col-1;
+          costs=tilecosts;
+          flows=tileflows;
+          calccostnrow=nrow;
+        }
       }else if(tempnode->col==primarytail->col-1){         /* leftward arc */
-	primaryarcdir=-1;
-	primaryarccol=primarytail->col-1;
-	if(primarytail->row==0){                               /* top edge */
-	  if(tilerow==0){
-	    zerocost=TRUE;
-	  }else{
-	    primaryarcrow=0;
-	    costs=upperedgecosts;
-	    flows=upperedgeflows;
-	    calccostnrow=2;
-	  }
-	}else if(primarytail->row==nnrow-1){                /* bottom edge */
-	  if(tilerow==ntilerow-1){
-	    zerocost=TRUE;
-	  }else{
-	    primaryarcrow=0;
-	    costs=loweredgecosts;
-	    flows=loweredgeflows;
-	    calccostnrow=2;
-	  }
-	}else{                                               /* normal arc */
-	  primaryarcrow=primarytail->row-1;
-	  costs=tilecosts;
-	  flows=tileflows;
-	  calccostnrow=nrow;
-	}
+        primaryarcdir=-1;
+        primaryarccol=primarytail->col-1;
+        if(primarytail->row==0){                               /* top edge */
+          if(tilerow==0){
+            zerocost=TRUE;
+          }else{
+            primaryarcrow=0;
+            costs=upperedgecosts;
+            flows=upperedgeflows;
+            calccostnrow=2;
+          }
+        }else if(primarytail->row==nnrow-1){                /* bottom edge */
+          if(tilerow==ntilerow-1){
+            zerocost=TRUE;
+          }else{
+            primaryarcrow=0;
+            costs=loweredgecosts;
+            flows=loweredgeflows;
+            calccostnrow=2;
+          }
+        }else{                                               /* normal arc */
+          primaryarcrow=primarytail->row-1;
+          costs=tilecosts;
+          flows=tileflows;
+          calccostnrow=nrow;
+        }
       }else{                                                 /* upward arc */
-	primaryarcdir=-1;
-	if(primarytail->col==0){                              /* left edge */
-	  if(tilecol==0){
-	    zerocost=TRUE;
-	  }else{
-	    primaryarcrow=primarytail->row-1; 
-	    primaryarccol=0;
-	    costs=leftedgecosts;
-	    flows=leftedgeflows;	
-	    calccostnrow=0;
-	  }
-	}else if(primarytail->col==nncol-1){                 /* right edge */
-	  if(tilecol==ntilecol-1){
-	    zerocost=TRUE;
-	  }else{	    
-	    primaryarcrow=primarytail->row-1; 
-	    primaryarccol=0;
-	    costs=rightedgecosts;
-	    flows=rightedgeflows;
-	    calccostnrow=0;
-	  }
-	}else{                                               /* normal arc */
-	  primaryarcrow=primarytail->row+nrow-2; 
-	  primaryarccol=primarytail->col-1;
-	  costs=tilecosts;
-	  flows=tileflows;
-	  calccostnrow=nrow;
-	}
+        primaryarcdir=-1;
+        if(primarytail->col==0){                              /* left edge */
+          if(tilecol==0){
+            zerocost=TRUE;
+          }else{
+            primaryarcrow=primarytail->row-1; 
+            primaryarccol=0;
+            costs=leftedgecosts;
+            flows=leftedgeflows;        
+            calccostnrow=0;
+          }
+        }else if(primarytail->col==nncol-1){                 /* right edge */
+          if(tilecol==ntilecol-1){
+            zerocost=TRUE;
+          }else{            
+            primaryarcrow=primarytail->row-1; 
+            primaryarccol=0;
+            costs=rightedgecosts;
+            flows=rightedgeflows;
+            calccostnrow=0;
+          }
+        }else{                                               /* normal arc */
+          primaryarcrow=primarytail->row+nrow-2; 
+          primaryarccol=primarytail->col-1;
+          costs=tilecosts;
+          flows=tileflows;
+          calccostnrow=nrow;
+        }
       }
 
       /* keep absolute cost of arc to the previous node */
@@ -3149,61 +3149,61 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
 
         /* accumulate incremental cost in table for each nflow increment */
         /* offset flow in flow array temporarily by arroffset then undo below */
-	flows[primaryarcrow][primaryarccol]-=primaryarcdir*arroffset;
-	nomcost=EvalCost(costs,flows,primaryarcrow,primaryarccol,calccostnrow,
-			 params);
-	for(nflow=1;nflow<=flowmax;nflow++){
-	  flows[primaryarcrow][primaryarccol]+=(primaryarcdir*nflow);
-	  poscost=EvalCost(costs,flows,primaryarcrow,primaryarccol,
-			   calccostnrow,params);
-	  flows[primaryarcrow][primaryarccol]-=(2*primaryarcdir*nflow);
-	  negcost=EvalCost(costs,flows,primaryarcrow,primaryarccol,
-			   calccostnrow,params);
-	  flows[primaryarcrow][primaryarccol]+=(primaryarcdir*nflow);
-	  tempdouble=(scndrycostarr[nflow]+(poscost-nomcost));
-	  if(tempdouble>LARGEINT){
-	    scndrycostarr[nflow]=LARGEINT;
-	  }else if(tempdouble<-LARGEINT){
-	    scndrycostarr[nflow]=-LARGEINT;
-	  }else{
-	    scndrycostarr[nflow]+=(poscost-nomcost);
-	  }
-	  tempdouble=(scndrycostarr[nflow+flowmax]+(negcost-nomcost));
-	  if(tempdouble>LARGEINT){
-	    scndrycostarr[nflow+flowmax]=LARGEINT;
-	  }else if(tempdouble<-LARGEINT){
-	    scndrycostarr[nflow+flowmax]=-LARGEINT;
-	  }else{
-	    scndrycostarr[nflow+flowmax]+=(negcost-nomcost);
-	  }
-	}
-	flows[primaryarcrow][primaryarccol]+=primaryarcdir*arroffset;
+        flows[primaryarcrow][primaryarccol]-=primaryarcdir*arroffset;
+        nomcost=EvalCost(costs,flows,primaryarcrow,primaryarccol,calccostnrow,
+                         params);
+        for(nflow=1;nflow<=flowmax;nflow++){
+          flows[primaryarcrow][primaryarccol]+=(primaryarcdir*nflow);
+          poscost=EvalCost(costs,flows,primaryarcrow,primaryarccol,
+                           calccostnrow,params);
+          flows[primaryarcrow][primaryarccol]-=(2*primaryarcdir*nflow);
+          negcost=EvalCost(costs,flows,primaryarcrow,primaryarccol,
+                           calccostnrow,params);
+          flows[primaryarcrow][primaryarccol]+=(primaryarcdir*nflow);
+          tempdouble=(scndrycostarr[nflow]+(poscost-nomcost));
+          if(tempdouble>LARGEINT){
+            scndrycostarr[nflow]=LARGEINT;
+          }else if(tempdouble<-LARGEINT){
+            scndrycostarr[nflow]=-LARGEINT;
+          }else{
+            scndrycostarr[nflow]+=(poscost-nomcost);
+          }
+          tempdouble=(scndrycostarr[nflow+flowmax]+(negcost-nomcost));
+          if(tempdouble>LARGEINT){
+            scndrycostarr[nflow+flowmax]=LARGEINT;
+          }else if(tempdouble<-LARGEINT){
+            scndrycostarr[nflow+flowmax]=-LARGEINT;
+          }else{
+            scndrycostarr[nflow+flowmax]+=(negcost-nomcost);
+          }
+        }
+        flows[primaryarcrow][primaryarccol]+=primaryarcdir*arroffset;
 
         /* accumulate term to be used for cost growth beyond table bounds */
-	if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
-	  sigsq=((costT **)costs)[primaryarcrow][primaryarccol].sigsq;
-	}else if(CalcCost==CalcCostSmooth){
-	  sigsq=((smoothcostT **)costs)[primaryarcrow][primaryarccol].sigsq;
-	}else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1 
-		 || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
-	  minweight=((short **)costs)[primaryarcrow][primaryarccol];
+        if(CalcCost==CalcCostTopo || CalcCost==CalcCostDefo){
+          sigsq=((costT **)costs)[primaryarcrow][primaryarccol].sigsq;
+        }else if(CalcCost==CalcCostSmooth){
+          sigsq=((smoothcostT **)costs)[primaryarcrow][primaryarccol].sigsq;
+        }else if(CalcCost==CalcCostL0 || CalcCost==CalcCostL1 
+                 || CalcCost==CalcCostL2 || CalcCost==CalcCostLP){
+          minweight=((short **)costs)[primaryarcrow][primaryarccol];
           if(minweight<1){
             sigsq=LARGESHORT;
           }else{
             sigsq=1.0/(double )minweight;
           }
-	}else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
-		 || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
-	  minweight=LMin(((bidircostT **)costs)[primaryarcrow][primaryarccol]
-			 .posweight,
-			 ((bidircostT **)costs)[primaryarcrow][primaryarccol]
-			 .negweight);
+        }else if(CalcCost==CalcCostL0BiDir || CalcCost==CalcCostL1BiDir
+                 || CalcCost==CalcCostL2BiDir || CalcCost==CalcCostLPBiDir){
+          minweight=LMin(((bidircostT **)costs)[primaryarcrow][primaryarccol]
+                         .posweight,
+                         ((bidircostT **)costs)[primaryarcrow][primaryarccol]
+                         .negweight);
           if(minweight<1){
             sigsq=LARGESHORT;
           }else{
             sigsq=1.0/(double )minweight;
           }
-	}
+        }
         if(sigsq<LARGESHORT){    /* zero cost arc if sigsq == LARGESHORT */
           sumsigsqinv+=(1.0/sigsq);
         }
@@ -3211,7 +3211,7 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
 
       /* break if found the secondary arc tail */
       if(primarytail->group==ONTREE){
-	break;
+        break;
       }  
     
       /* move up the tree */
@@ -3231,18 +3231,18 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
     mincostflow=0;
     for(nflow=1;nflow<=flowmax;nflow++){
       if(scndrycostarr[nflow]<mincost){
-	mincost=scndrycostarr[nflow];
-	mincostflow=nflow;
+        mincost=scndrycostarr[nflow];
+        mincostflow=nflow;
       }
       if(scndrycostarr[flowmax+nflow]<mincost){
-	mincost=scndrycostarr[flowmax+nflow];
-	mincostflow=-nflow;
+        mincost=scndrycostarr[flowmax+nflow];
+        mincostflow=-nflow;
       }
       if(scndrycostarr[nflow]>maxcost){
-	maxcost=scndrycostarr[nflow];
+        maxcost=scndrycostarr[nflow];
       }
       if(scndrycostarr[flowmax+nflow]>maxcost){
-	maxcost=scndrycostarr[flowmax+nflow];
+        maxcost=scndrycostarr[flowmax+nflow];
       }
     }
 
@@ -3293,18 +3293,18 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
 
     /* give extra weight to arcs on tile edges */
     if((primaryhead->row==primarytail->row 
-	&& (primaryhead->row==0 || primaryhead->row==nnrow-1))
+        && (primaryhead->row==0 || primaryhead->row==nnrow-1))
        || (primaryhead->col==primarytail->col
-	   && (primaryhead->col==0 || primaryhead->col==nncol-1))){
+           && (primaryhead->col==0 || primaryhead->col==nncol-1))){
       for(nflow=1;nflow<=2*flowmax;nflow++){
-	tempdouble=scndrycostarr[nflow]*tileedgearcweight;
-	if(tempdouble>LARGEINT){
-	  scndrycostarr[nflow]=LARGEINT;
-	}else if(tempdouble<-LARGEINT){
-	  scndrycostarr[nflow]=-LARGEINT;
-	}else{
-	  scndrycostarr[nflow]=LRound(tempdouble);
-	}
+        tempdouble=scndrycostarr[nflow]*tileedgearcweight;
+        if(tempdouble>LARGEINT){
+          scndrycostarr[nflow]=LARGEINT;
+        }else if(tempdouble<-LARGEINT){
+          scndrycostarr[nflow]=-LARGEINT;
+        }else{
+          scndrycostarr[nflow]=LRound(tempdouble);
+        }
       }
       sumsigsqinv*=tileedgearcweight; 
 
@@ -3325,27 +3325,27 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
   /* find secondary nodes corresponding to primary head, tail */
   if(primarytail->row==0 && tilerow!=0){
     scndrytail=FindScndryNode(scndrynodes,nodesupp,
-			      (tilerow-1)*ntilecol+tilecol,
-			      prevnrow,primarytail->col);
+                              (tilerow-1)*ntilecol+tilecol,
+                              prevnrow,primarytail->col);
   }else if(primarytail->col==0 && tilecol!=0){
     scndrytail=FindScndryNode(scndrynodes,nodesupp,
-			      tilerow*ntilecol+(tilecol-1),
-			      primarytail->row,prevncol);
+                              tilerow*ntilecol+(tilecol-1),
+                              primarytail->row,prevncol);
   }else{
     scndrytail=FindScndryNode(scndrynodes,nodesupp,tilenum,
-			      primarytail->row,primarytail->col);
+                              primarytail->row,primarytail->col);
   }
   if(primaryhead->row==0 && tilerow!=0){
     scndryhead=FindScndryNode(scndrynodes,nodesupp,
-			      (tilerow-1)*ntilecol+tilecol,
-			      prevnrow,primaryhead->col);
+                              (tilerow-1)*ntilecol+tilecol,
+                              prevnrow,primaryhead->col);
   }else if(primaryhead->col==0 && tilecol!=0){
     scndryhead=FindScndryNode(scndrynodes,nodesupp,
-			      tilerow*ntilecol+(tilecol-1),
-			      primaryhead->row,prevncol);
+                              tilerow*ntilecol+(tilecol-1),
+                              primaryhead->row,prevncol);
   }else{
     scndryhead=FindScndryNode(scndrynodes,nodesupp,tilenum,
-			      primaryhead->row,primaryhead->col);
+                              primaryhead->row,primaryhead->col);
   }
 
   /* see if there is already arc between secondary head, tail */
@@ -3354,88 +3354,88 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
   for(i=0;i<nodesupp[row][col].noutarcs;i++){
     tempnode=nodesupp[row][col].neighbornodes[i];
     if((nodesupp[row][col].outarcs[i]==NULL
-	&& tempnode->row==primaryhead->row 
-	&& tempnode->col==primaryhead->col)
+        && tempnode->row==primaryhead->row 
+        && tempnode->col==primaryhead->col)
        || (nodesupp[row][col].outarcs[i]!=NULL
-	   && tempnode->row==scndryhead->row 
-	   && tempnode->col==scndryhead->col)){
+           && tempnode->row==scndryhead->row 
+           && tempnode->col==scndryhead->col)){
 
       /* see if secondary arc traverses only one primary arc */
       primarydummy=primaryhead->pred;
       if(primarydummy->group!=ONTREE){
       
-	/* arc already exists, free memory for cost array (will trace again) */
-	free(scndrycostarr);
+        /* arc already exists, free memory for cost array (will trace again) */
+        free(scndrycostarr);
 
-	/* set up dummy node */
-	primarydummy->group=ONTREE;
-	nnewnodes=++(*nnewnodesptr);
-	scndrynodes[tilenum]=(nodeT *)ReAlloc(scndrynodes[tilenum],
-					      nnewnodes*sizeof(nodeT));
-	scndrydummy=&scndrynodes[tilenum][nnewnodes-1];
-	nodesupp[tilenum]=(nodesuppT *)ReAlloc(nodesupp[tilenum],
-					       nnewnodes*sizeof(nodesuppT));
-	suppdummy=&nodesupp[tilenum][nnewnodes-1];
-	scndrydummy->row=tilenum;
-	scndrydummy->col=nnewnodes-1;
-	suppdummy->row=primarydummy->row;
-	suppdummy->col=primarydummy->col;
-	suppdummy->noutarcs=0;
-	suppdummy->neighbornodes=NULL;
-	suppdummy->outarcs=NULL;
+        /* set up dummy node */
+        primarydummy->group=ONTREE;
+        nnewnodes=++(*nnewnodesptr);
+        scndrynodes[tilenum]=(nodeT *)ReAlloc(scndrynodes[tilenum],
+                                              nnewnodes*sizeof(nodeT));
+        scndrydummy=&scndrynodes[tilenum][nnewnodes-1];
+        nodesupp[tilenum]=(nodesuppT *)ReAlloc(nodesupp[tilenum],
+                                               nnewnodes*sizeof(nodesuppT));
+        suppdummy=&nodesupp[tilenum][nnewnodes-1];
+        scndrydummy->row=tilenum;
+        scndrydummy->col=nnewnodes-1;
+        suppdummy->row=primarydummy->row;
+        suppdummy->col=primarydummy->col;
+        suppdummy->noutarcs=0;
+        suppdummy->neighbornodes=NULL;
+        suppdummy->outarcs=NULL;
 
-	/* recursively call TraceSecondaryArc() to set up arcs */
-	TraceSecondaryArc(primarydummy,scndrynodes,nodesupp,scndryarcs,
-			  scndrycosts,nnewnodesptr,nnewarcsptr,tilerow,tilecol,
-			  flowmax,nrow,ncol,prevnrow,prevncol,params,tilecosts,
-			  rightedgecosts,loweredgecosts,leftedgecosts,
-			  upperedgecosts,tileflows,rightedgeflows,
-			  loweredgeflows,leftedgeflows,upperedgeflows,
-			  updatednontilenodesptr,nupdatednontilenodesptr,
-			  updatednontilenodesizeptr,inontilenodeoutarcptr,
-			  totarclenptr);
-	TraceSecondaryArc(primaryhead,scndrynodes,nodesupp,scndryarcs,
-			  scndrycosts,nnewnodesptr,nnewarcsptr,tilerow,tilecol,
-			  flowmax,nrow,ncol,prevnrow,prevncol,params,tilecosts,
-			  rightedgecosts,loweredgecosts,leftedgecosts,
-			  upperedgecosts,tileflows,rightedgeflows,
-			  loweredgeflows,leftedgeflows,upperedgeflows,
-			  updatednontilenodesptr,nupdatednontilenodesptr,
-			  updatednontilenodesizeptr,inontilenodeoutarcptr,
-			  totarclenptr);
+        /* recursively call TraceSecondaryArc() to set up arcs */
+        TraceSecondaryArc(primarydummy,scndrynodes,nodesupp,scndryarcs,
+                          scndrycosts,nnewnodesptr,nnewarcsptr,tilerow,tilecol,
+                          flowmax,nrow,ncol,prevnrow,prevncol,params,tilecosts,
+                          rightedgecosts,loweredgecosts,leftedgecosts,
+                          upperedgecosts,tileflows,rightedgeflows,
+                          loweredgeflows,leftedgeflows,upperedgeflows,
+                          updatednontilenodesptr,nupdatednontilenodesptr,
+                          updatednontilenodesizeptr,inontilenodeoutarcptr,
+                          totarclenptr);
+        TraceSecondaryArc(primaryhead,scndrynodes,nodesupp,scndryarcs,
+                          scndrycosts,nnewnodesptr,nnewarcsptr,tilerow,tilecol,
+                          flowmax,nrow,ncol,prevnrow,prevncol,params,tilecosts,
+                          rightedgecosts,loweredgecosts,leftedgecosts,
+                          upperedgecosts,tileflows,rightedgeflows,
+                          loweredgeflows,leftedgeflows,upperedgeflows,
+                          updatednontilenodesptr,nupdatednontilenodesptr,
+                          updatednontilenodesizeptr,inontilenodeoutarcptr,
+                          totarclenptr);
       }else{
 
-	/* only one primary arc; just delete other secondary arc */
-	/* find existing secondary arc (must be in this tile) */
-	/* swap direction of existing secondary arc if necessary */
-	arcnum=0;
-	while(TRUE){
-	  if(scndryarcs[tilenum][arcnum].from==primarytail 
-	     && scndryarcs[tilenum][arcnum].to==primaryhead){
-	    break;
-	  }else if(scndryarcs[tilenum][arcnum].from==primaryhead
-		   && scndryarcs[tilenum][arcnum].to==primarytail){
-	    scndryarcs[tilenum][arcnum].from=primarytail;
-	    scndryarcs[tilenum][arcnum].to=primaryhead;
-	    break;
-	  }
-	  arcnum++;
-	}
+        /* only one primary arc; just delete other secondary arc */
+        /* find existing secondary arc (must be in this tile) */
+        /* swap direction of existing secondary arc if necessary */
+        arcnum=0;
+        while(TRUE){
+          if(scndryarcs[tilenum][arcnum].from==primarytail 
+             && scndryarcs[tilenum][arcnum].to==primaryhead){
+            break;
+          }else if(scndryarcs[tilenum][arcnum].from==primaryhead
+                   && scndryarcs[tilenum][arcnum].to==primarytail){
+            scndryarcs[tilenum][arcnum].from=primarytail;
+            scndryarcs[tilenum][arcnum].to=primaryhead;
+            break;
+          }
+          arcnum++;
+        }
 
-	/* assign cost of this secondary arc to existing secondary arc */
-	free(scndrycosts[tilenum][arcnum]);
-	scndrycosts[tilenum][arcnum]=scndrycostarr;
+        /* assign cost of this secondary arc to existing secondary arc */
+        free(scndrycosts[tilenum][arcnum]);
+        scndrycosts[tilenum][arcnum]=scndrycostarr;
 
-	/* update direction data in secondary arc structure */
-	if(primarytail->col==primaryhead->col+1){
-	  scndryarcs[tilenum][arcnum].fromdir=RIGHT;
-	}else if(primarytail->row==primaryhead->row+1){
-	  scndryarcs[tilenum][arcnum].fromdir=DOWN;
-	}else if(primarytail->col==primaryhead->col-1){
-	  scndryarcs[tilenum][arcnum].fromdir=LEFT;
-	}else{
-	  scndryarcs[tilenum][arcnum].fromdir=UP;
-	}
+        /* update direction data in secondary arc structure */
+        if(primarytail->col==primaryhead->col+1){
+          scndryarcs[tilenum][arcnum].fromdir=RIGHT;
+        }else if(primarytail->row==primaryhead->row+1){
+          scndryarcs[tilenum][arcnum].fromdir=DOWN;
+        }else if(primarytail->col==primaryhead->col-1){
+          scndryarcs[tilenum][arcnum].fromdir=LEFT;
+        }else{
+          scndryarcs[tilenum][arcnum].fromdir=UP;
+        }
       }
 
       /* we're done */
@@ -3448,16 +3448,16 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
   if(nnewarcs > SHRT_MAX){
     fflush(NULL);
     fprintf(sp0,"Exceeded maximum number of secondary arcs\n"
-	    "Decrease TILECOSTTHRESH and/or increase MINREGIONSIZE\n");
+            "Decrease TILECOSTTHRESH and/or increase MINREGIONSIZE\n");
     exit(ABNORMAL_EXIT);  
   }
   scndryarcs[tilenum]=(scndryarcT *)ReAlloc(scndryarcs[tilenum],
-					    nnewarcs*sizeof(scndryarcT));
+                                            nnewarcs*sizeof(scndryarcT));
   newarc=&scndryarcs[tilenum][nnewarcs-1];
   newarc->arcrow=tilenum;
   newarc->arccol=nnewarcs-1;
   scndrycosts[tilenum]=(long **)ReAlloc(scndrycosts[tilenum],
-					nnewarcs*sizeof(long *));
+                                        nnewarcs*sizeof(long *));
   scndrycosts[tilenum][nnewarcs-1]=scndrycostarr;
 
   /* update secondary node data */
@@ -3467,25 +3467,25 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
   supphead=&nodesupp[scndryhead->row][scndryhead->col];
   supptail->noutarcs++;
   supptail->neighbornodes=(nodeT **)ReAlloc(supptail->neighbornodes,
-					    supptail->noutarcs
-					    *sizeof(nodeT *));
+                                            supptail->noutarcs
+                                            *sizeof(nodeT *));
   supptail->neighbornodes[supptail->noutarcs-1]=primaryhead;
   primarytail->level=scndrytail->row;
   primarytail->incost=scndrytail->col;
   supptail->outarcs=(scndryarcT **)ReAlloc(supptail->outarcs,
-					   supptail->noutarcs
-					   *sizeof(scndryarcT *));
+                                           supptail->noutarcs
+                                           *sizeof(scndryarcT *));
   supptail->outarcs[supptail->noutarcs-1]=NULL;
   supphead->noutarcs++;
   supphead->neighbornodes=(nodeT **)ReAlloc(supphead->neighbornodes,
-					    supphead->noutarcs
-					    *sizeof(nodeT *));
+                                            supphead->noutarcs
+                                            *sizeof(nodeT *));
   supphead->neighbornodes[supphead->noutarcs-1]=primarytail;
   primaryhead->level=scndryhead->row;
   primaryhead->incost=scndryhead->col;
   supphead->outarcs=(scndryarcT **)ReAlloc(supphead->outarcs,
-					   supphead->noutarcs
-					   *sizeof(scndryarcT *));
+                                           supphead->noutarcs
+                                           *sizeof(scndryarcT *));
   supphead->outarcs[supphead->noutarcs-1]=NULL;
 
   /* keep track of updated secondary nodes that were not in this tile */
@@ -3493,11 +3493,11 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
     if(++(*nupdatednontilenodesptr)==(*updatednontilenodesizeptr)){
       (*updatednontilenodesizeptr)+=INITARRSIZE;
       (*updatednontilenodesptr)=(nodeT **)ReAlloc((*updatednontilenodesptr),
-						  (*updatednontilenodesizeptr)
-						  *sizeof(nodeT *));
+                                                  (*updatednontilenodesizeptr)
+                                                  *sizeof(nodeT *));
       (*inontilenodeoutarcptr)=(short *)ReAlloc((*inontilenodeoutarcptr),
-						(*updatednontilenodesizeptr)
-						*sizeof(short));
+                                                (*updatednontilenodesizeptr)
+                                                *sizeof(short));
     }    
     (*updatednontilenodesptr)[*nupdatednontilenodesptr-1]=scndrytail;
     (*inontilenodeoutarcptr)[*nupdatednontilenodesptr-1]=supptail->noutarcs-1;
@@ -3506,11 +3506,11 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
     if(++(*nupdatednontilenodesptr)==(*updatednontilenodesizeptr)){
       (*updatednontilenodesizeptr)+=INITARRSIZE;
       (*updatednontilenodesptr)=(nodeT **)ReAlloc((*updatednontilenodesptr),
-						  (*updatednontilenodesizeptr)
-						  *sizeof(nodeT *));
+                                                  (*updatednontilenodesizeptr)
+                                                  *sizeof(nodeT *));
       (*inontilenodeoutarcptr)=(short *)ReAlloc((*inontilenodeoutarcptr),
-						(*updatednontilenodesizeptr)
-						*sizeof(short));
+                                                (*updatednontilenodesizeptr)
+                                                *sizeof(short));
     }    
     (*updatednontilenodesptr)[*nupdatednontilenodesptr-1]=scndryhead;
     (*inontilenodeoutarcptr)[*nupdatednontilenodesptr-1]=supphead->noutarcs-1;
@@ -3546,7 +3546,7 @@ int TraceSecondaryArc(nodeT *primaryhead, nodeT **scndrynodes,
  */
 static
 nodeT *FindScndryNode(nodeT **scndrynodes, nodesuppT **nodesupp, 
-		      long tilenum, long primaryrow, long primarycol){
+                      long tilenum, long primaryrow, long primarycol){
 
   long nodenum;
   nodesuppT *nodesuppptr;
@@ -3557,7 +3557,7 @@ nodeT *FindScndryNode(nodeT **scndrynodes, nodesuppT **nodesupp,
   /* loop over all nodes in the tile until we find a match */
   nodenum=0;
   while(nodesuppptr[nodenum].row!=primaryrow
-	|| nodesuppptr[nodenum].col!=primarycol){
+        || nodesuppptr[nodenum].col!=primarycol){
     nodenum++;
   }
   return(&scndrynodes[tilenum][nodenum]);
@@ -3625,7 +3625,7 @@ int IntegrateSecondaryFlows(long linelen, long nlines, nodeT **scndrynodes,
   if(params->flipphasesign){
     for(row=0;row<ntilerow;row++){
       for(col=0;col<ntilecol;col++){
-	bulkoffsets[row][col]*=-1;
+        bulkoffsets[row][col]*=-1;
       }
     }
   }
@@ -3642,14 +3642,14 @@ int IntegrateSecondaryFlows(long linelen, long nlines, nodeT **scndrynodes,
 
       /* use SetupTile() to set filenames; tile params overwritten below */
       SetupTile(nlines,linelen,params,readtileparams,outfiles,
-		readtileoutfiles,tilerow,tilecol);
+                readtileoutfiles,tilerow,tilecol);
       colstart=readtileparams->firstcol;
       readtilenlines=readtileparams->nrow;
       readtilelinelen=readtileparams->ncol;
 
       /* set tile read parameters */
       SetTileReadParams(readtileparams,readtilenlines,readtilelinelen,
-			tilerow,tilecol,nlines,linelen,params);
+                        tilerow,tilecol,nlines,linelen,params);
       colstart+=readtileparams->firstcol;
       nrow=readtileparams->nrow;
       ncol=readtileparams->ncol;
@@ -3660,39 +3660,39 @@ int IntegrateSecondaryFlows(long linelen, long nlines, nodeT **scndrynodes,
       /* phase sign not flipped for positive baseline */
       /* since flow will be flipped if necessary */
       if(TMPTILEOUTFORMAT==ALT_LINE_DATA){
-	ReadAltLineFile(&tilemag,&tileunwphase,readtileoutfiles->outfile,
-			readtilelinelen,readtilenlines,readtileparams);
+        ReadAltLineFile(&tilemag,&tileunwphase,readtileoutfiles->outfile,
+                        readtilelinelen,readtilenlines,readtileparams);
       }else if(TMPTILEOUTFORMAT==FLOAT_DATA){
-	Read2DArray((void ***)&tileunwphase,readtileoutfiles->outfile,
-		    readtilelinelen,readtilenlines,readtileparams,
-		    sizeof(float *),sizeof(float));
+        Read2DArray((void ***)&tileunwphase,readtileoutfiles->outfile,
+                    readtilelinelen,readtilenlines,readtileparams,
+                    sizeof(float *),sizeof(float));
       }
-	
+        
       /* read regions */
       ParseFilename(outfiles->outfile,path,basename);
       sprintf(tempstring,"%s/%s%s_%ld_%ld.%ld%s",
-	      params->tiledir,TMPTILEROOT,basename,tilerow,tilecol,
-	      readtilelinelen,REGIONSUFFIX);
+              params->tiledir,TMPTILEROOT,basename,tilerow,tilecol,
+              readtilelinelen,REGIONSUFFIX);
       StrNCopy(readfile,tempstring,MAXSTRLEN);
       Read2DArray((void ***)&regions,readfile,readtilelinelen,readtilenlines,
-		  readtileparams,sizeof(short *),sizeof(short));
+                  readtileparams,sizeof(short *),sizeof(short));
 
       /* remove temporary files unless told so save them */
       if(params->rmtmptile){
-	unlink(readtileoutfiles->outfile);
-	unlink(readfile);
+        unlink(readtileoutfiles->outfile);
+        unlink(readfile);
       }
 
       /* zero out primary flow array */
       for(row=0;row<2*nrow+1;row++){
-	if(row<nrow){
-	  maxcol=ncol;
-	}else{
-	  maxcol=ncol+1;
-	}
-	for(col=0;col<maxcol;col++){
-	  tileflows[row][col]=0;
-	}
+        if(row<nrow){
+          maxcol=ncol;
+        }else{
+          maxcol=ncol+1;
+        }
+        for(col=0;col<maxcol;col++){
+          tileflows[row][col]=0;
+        }
       }
 
       /* loop over each secondary arc in this tile and parse flows */
@@ -3700,48 +3700,48 @@ int IntegrateSecondaryFlows(long linelen, long nlines, nodeT **scndrynodes,
       /* flip flow for integration in ParseSecondaryFlows() */
       tilenum=tilerow*ntilecol+tilecol;
       ParseSecondaryFlows(tilenum,nscndryarcs,tileflows,regions,scndryflows,
-			  nodesupp,scndryarcs,nrow,ncol,ntilerow,ntilecol,
-			  params);
+                          nodesupp,scndryarcs,nrow,ncol,ntilerow,ntilecol,
+                          params);
 
       /* place tile mag, adjusted unwrapped phase into output arrays */
       mag[0][colstart]=tilemag[0][0];
       if(tilecol==0){
-	tileoffset=TWOPI*nextcoloffset;
+        tileoffset=TWOPI*nextcoloffset;
       }else{
-	tileoffset=TWOPI*nextrowoffset;
+        tileoffset=TWOPI*nextrowoffset;
       }
       unwphase[0][colstart]=tileunwphase[0][0]+tileoffset;
       for(col=1;col<ncol;col++){
-	mag[0][colstart+col]=tilemag[0][col];
-	unwphase[0][colstart+col]
-	  =(float )((double )unwphase[0][colstart+col-1]
-		    +(double )tileunwphase[0][col]
-		    -(double )tileunwphase[0][col-1]
-		    +tileflows[nnrow][col]*TWOPI);
+        mag[0][colstart+col]=tilemag[0][col];
+        unwphase[0][colstart+col]
+          =(float )((double )unwphase[0][colstart+col-1]
+                    +(double )tileunwphase[0][col]
+                    -(double )tileunwphase[0][col-1]
+                    +tileflows[nnrow][col]*TWOPI);
       }
       if(tilecol!=ntilecol-1){
-	nextrowoffset=(LRound((unwphase[0][colstart+ncol-1]
-			       -tileunwphase[0][ncol-1])/TWOPI)
-		       +tileflows[nnrow][nncol-1]
-		       +bulkoffsets[tilerow][tilecol]
-		       -bulkoffsets[tilerow][tilecol+1]); 
+        nextrowoffset=(LRound((unwphase[0][colstart+ncol-1]
+                               -tileunwphase[0][ncol-1])/TWOPI)
+                       +tileflows[nnrow][nncol-1]
+                       +bulkoffsets[tilerow][tilecol]
+                       -bulkoffsets[tilerow][tilecol+1]); 
       }
       for(row=1;row<nrow;row++){
-	for(col=0;col<ncol;col++){
-	  mag[row][colstart+col]=tilemag[row][col];
-	  unwphase[row][colstart+col]
-	    =(float )((double )unwphase[row-1][colstart+col]
-		      +(double )tileunwphase[row][col]
-		      -(double )tileunwphase[row-1][col]
-		      -tileflows[row][col]*TWOPI);
-	}
+        for(col=0;col<ncol;col++){
+          mag[row][colstart+col]=tilemag[row][col];
+          unwphase[row][colstart+col]
+            =(float )((double )unwphase[row-1][colstart+col]
+                      +(double )tileunwphase[row][col]
+                      -(double )tileunwphase[row-1][col]
+                      -tileflows[row][col]*TWOPI);
+        }
       }
       if(tilecol==0 && tilerow!=ntilerow-1){
-	nextcoloffset=(LRound((unwphase[nrow-1][colstart]
-			      -tileunwphase[nrow-1][0])/TWOPI)
-		       -tileflows[nnrow-1][0]
-		       +bulkoffsets[tilerow][tilecol]
-		       -bulkoffsets[tilerow+1][tilecol]);
+        nextcoloffset=(LRound((unwphase[nrow-1][colstart]
+                              -tileunwphase[nrow-1][0])/TWOPI)
+                       -tileflows[nnrow-1][0]
+                       +bulkoffsets[tilerow][tilecol]
+                       -bulkoffsets[tilerow+1][tilecol]);
       }
 
     } /* end loop over tile columns */
@@ -3749,31 +3749,31 @@ int IntegrateSecondaryFlows(long linelen, long nlines, nodeT **scndrynodes,
     /* write out tile row */
     for(row=0;row<nrow;row++){
       if(outfiles->outfileformat==ALT_LINE_DATA){
-	if(fwrite(mag[row],sizeof(float),linelen,outfp)!=linelen
-	   || fwrite(unwphase[row],sizeof(float),linelen,outfp)!=linelen){
-	  writeerror=TRUE;
-	  break;
-	}
+        if(fwrite(mag[row],sizeof(float),linelen,outfp)!=linelen
+           || fwrite(unwphase[row],sizeof(float),linelen,outfp)!=linelen){
+          writeerror=TRUE;
+          break;
+        }
       }else if(outfiles->outfileformat==ALT_SAMPLE_DATA){
-	for(col=0;col<linelen;col++){
-	  outline[2*col]=mag[row][col];
-	  outline[2*col+1]=unwphase[row][col];
-	}
-	if(fwrite(outline,sizeof(float),2*linelen,outfp)!=2*linelen){
-	  writeerror=TRUE;
-	  break;
-	}
+        for(col=0;col<linelen;col++){
+          outline[2*col]=mag[row][col];
+          outline[2*col+1]=unwphase[row][col];
+        }
+        if(fwrite(outline,sizeof(float),2*linelen,outfp)!=2*linelen){
+          writeerror=TRUE;
+          break;
+        }
       }else{
-	if(fwrite(unwphase[row],sizeof(float),linelen,outfp)!=linelen){
-	  writeerror=TRUE;
-	  break;
-	}
+        if(fwrite(unwphase[row],sizeof(float),linelen,outfp)!=linelen){
+          writeerror=TRUE;
+          break;
+        }
       }
     }
     if(writeerror){
       fflush(NULL);
       fprintf(sp0,"Error while writing to file %s (device full?)\nAbort\n",
-	      realoutfile);
+              realoutfile);
       exit(ABNORMAL_EXIT);
     }
 
@@ -3803,10 +3803,10 @@ int IntegrateSecondaryFlows(long linelen, long nlines, nodeT **scndrynodes,
  */
 static
 int ParseSecondaryFlows(long tilenum, int *nscndryarcs, short **tileflows, 
-			 short **regions, short **scndryflows, 
-			 nodesuppT **nodesupp, scndryarcT **scndryarcs, 
-			 long nrow, long ncol, long ntilerow, long ntilecol,
-			 paramT *params){
+                         short **regions, short **scndryflows, 
+                         nodesuppT **nodesupp, scndryarcT **scndryarcs, 
+                         long nrow, long ncol, long ntilerow, long ntilecol,
+                         paramT *params){
 
   nodeT *scndryfrom, *scndryto;
   long arcnum, nnrow, nncol, nflow, primaryfromrow, primaryfromcol;
@@ -3834,108 +3834,108 @@ int ParseSecondaryFlows(long tilenum, int *nscndryarcs, short **tileflows,
       scndryfrom=scndryarcs[tilenum][arcnum].from;
       scndryto=scndryarcs[tilenum][arcnum].to;
       if(scndryfrom->row==tilenum){
-	primaryfromrow=nodesupp[scndryfrom->row][scndryfrom->col].row;
-	primaryfromcol=nodesupp[scndryfrom->row][scndryfrom->col].col;
+        primaryfromrow=nodesupp[scndryfrom->row][scndryfrom->col].row;
+        primaryfromcol=nodesupp[scndryfrom->row][scndryfrom->col].col;
       }else if(scndryfrom->row==tilenum-ntilecol){
-	primaryfromrow=0;
-	primaryfromcol=nodesupp[scndryfrom->row][scndryfrom->col].col;
+        primaryfromrow=0;
+        primaryfromcol=nodesupp[scndryfrom->row][scndryfrom->col].col;
       }else if(scndryfrom->row==tilenum-1){
-	primaryfromrow=nodesupp[scndryfrom->row][scndryfrom->col].row;
-	primaryfromcol=0;
+        primaryfromrow=nodesupp[scndryfrom->row][scndryfrom->col].row;
+        primaryfromcol=0;
       }else{
-	primaryfromrow=0;
-	primaryfromcol=0;
+        primaryfromrow=0;
+        primaryfromcol=0;
       }
       if(scndryto->row==tilenum){
-	thisrow=nodesupp[scndryto->row][scndryto->col].row;
-	thiscol=nodesupp[scndryto->row][scndryto->col].col;
+        thisrow=nodesupp[scndryto->row][scndryto->col].row;
+        thiscol=nodesupp[scndryto->row][scndryto->col].col;
       }else if(scndryto->row==tilenum-ntilecol){
-	thisrow=0;
-	thiscol=nodesupp[scndryto->row][scndryto->col].col;
+        thisrow=0;
+        thiscol=nodesupp[scndryto->row][scndryto->col].col;
       }else if(scndryto->row==tilenum-1){
-	thisrow=nodesupp[scndryto->row][scndryto->col].row;
-	thiscol=0;
+        thisrow=nodesupp[scndryto->row][scndryto->col].row;
+        thiscol=0;
       }else{
-	thisrow=0;
-	thiscol=0;
+        thisrow=0;
+        thiscol=0;
       }
 
       /* set initial direction out of secondary arc head */
       switch(scndryarcs[tilenum][arcnum].fromdir){
       case RIGHT:
-	nextrow=thisrow;
-	nextcol=thiscol+1;
-	tileflows[thisrow][thiscol]-=nflow;
-	break;
+        nextrow=thisrow;
+        nextcol=thiscol+1;
+        tileflows[thisrow][thiscol]-=nflow;
+        break;
       case DOWN:
-	nextrow=thisrow+1;
-	nextcol=thiscol;
-	tileflows[nnrow+thisrow][thiscol]-=nflow;
-	break;
+        nextrow=thisrow+1;
+        nextcol=thiscol;
+        tileflows[nnrow+thisrow][thiscol]-=nflow;
+        break;
       case LEFT:
-	nextrow=thisrow;
-	nextcol=thiscol-1;
-	tileflows[thisrow][thiscol-1]+=nflow;
-	break;
+        nextrow=thisrow;
+        nextcol=thiscol-1;
+        tileflows[thisrow][thiscol-1]+=nflow;
+        break;
       default:
-	nextrow=thisrow-1;
-	nextcol=thiscol;
-	tileflows[nnrow+thisrow-1][thiscol]+=nflow;
-	break;
+        nextrow=thisrow-1;
+        nextcol=thiscol;
+        tileflows[nnrow+thisrow-1][thiscol]+=nflow;
+        break;
       }
 
       /* use region data to trace path between secondary from, to */
       while(!(nextrow==primaryfromrow && nextcol==primaryfromcol)){
 
-	/* move to next node */
-	prevrow=thisrow;
-	prevcol=thiscol;
-	thisrow=nextrow;
-	thiscol=nextcol;
+        /* move to next node */
+        prevrow=thisrow;
+        prevcol=thiscol;
+        thisrow=nextrow;
+        thiscol=nextcol;
     
-	/* check rightward arc */
-	if(thiscol!=nncol-1){
-	  if(thisrow==0 || thisrow==nnrow-1
-	     || regions[thisrow-1][thiscol]!=regions[thisrow][thiscol]){
-	    if(!(thisrow==prevrow && thiscol+1==prevcol)){
-	      tileflows[thisrow][thiscol]-=nflow;
-	      nextcol++;
-	    }
-	  }
-	}
+        /* check rightward arc */
+        if(thiscol!=nncol-1){
+          if(thisrow==0 || thisrow==nnrow-1
+             || regions[thisrow-1][thiscol]!=regions[thisrow][thiscol]){
+            if(!(thisrow==prevrow && thiscol+1==prevcol)){
+              tileflows[thisrow][thiscol]-=nflow;
+              nextcol++;
+            }
+          }
+        }
 
-	/* check downward arc */
-	if(thisrow!=nnrow-1){
-	  if(thiscol==0 || thiscol==nncol-1
-	     || regions[thisrow][thiscol]!=regions[thisrow][thiscol-1]){
-	    if(!(thisrow+1==prevrow && thiscol==prevcol)){
-	      tileflows[nnrow+thisrow][thiscol]-=nflow;
-	      nextrow++;
-	    }
-	  }
-	}
+        /* check downward arc */
+        if(thisrow!=nnrow-1){
+          if(thiscol==0 || thiscol==nncol-1
+             || regions[thisrow][thiscol]!=regions[thisrow][thiscol-1]){
+            if(!(thisrow+1==prevrow && thiscol==prevcol)){
+              tileflows[nnrow+thisrow][thiscol]-=nflow;
+              nextrow++;
+            }
+          }
+        }
     
-	/* check leftward arc */
-	if(thiscol!=0){
-	  if(thisrow==0 || thisrow==nnrow-1
-	     || regions[thisrow][thiscol-1]!=regions[thisrow-1][thiscol-1]){
-	    if(!(thisrow==prevrow && thiscol-1==prevcol)){
-	      tileflows[thisrow][thiscol-1]+=nflow;
-	      nextcol--;
-	    }
-	  }
-	}
+        /* check leftward arc */
+        if(thiscol!=0){
+          if(thisrow==0 || thisrow==nnrow-1
+             || regions[thisrow][thiscol-1]!=regions[thisrow-1][thiscol-1]){
+            if(!(thisrow==prevrow && thiscol-1==prevcol)){
+              tileflows[thisrow][thiscol-1]+=nflow;
+              nextcol--;
+            }
+          }
+        }
 
-	/* check upward arc */
-	if(thisrow!=0){
-	  if(thiscol==0 || thiscol==nncol-1
-	     || regions[thisrow-1][thiscol-1]!=regions[thisrow-1][thiscol]){
-	    if(!(thisrow-1==prevrow && thiscol==prevcol)){
-	      tileflows[nnrow+thisrow-1][thiscol]+=nflow;
-	      nextrow--;
-	    }
-	  }
-	}
+        /* check upward arc */
+        if(thisrow!=0){
+          if(thiscol==0 || thiscol==nncol-1
+             || regions[thisrow-1][thiscol-1]!=regions[thisrow-1][thiscol]){
+            if(!(thisrow-1==prevrow && thiscol==prevcol)){
+              tileflows[nnrow+thisrow-1][thiscol]+=nflow;
+              nextrow--;
+            }
+          }
+        }
       }   
     }
   }

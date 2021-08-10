@@ -258,289 +258,289 @@ int ProcessArgs(int argc, char *argv[], infileT *infiles, outfileT *outfiles,
     if(argv[i][0]=='-'){   
       if(strlen(argv[i])==1){
         fflush(NULL);
-	fprintf(sp0,"invalid command line argument -\n");
-	exit(ABNORMAL_EXIT);
+        fprintf(sp0,"invalid command line argument -\n");
+        exit(ABNORMAL_EXIT);
       }else if(argv[i][1]!='-'){
-	for(j=1;j<strlen(argv[i]);j++){
-	  if(argv[i][j]=='h'){
-	    fprintf(sp1,OPTIONSHELPFULL);
-	    exit(ABNORMAL_EXIT);
-	  }else if(argv[i][j]=='u'){
-	    params->unwrapped=TRUE;
-	  }else if(argv[i][j]=='t'){
-	    params->costmode=TOPO;
-	  }else if(argv[i][j]=='d'){
-	    params->costmode=DEFO;
-	  }else if(argv[i][j]=='s'){
-	    params->costmode=SMOOTH;
-	    params->defomax=0.0;
-	  }else if(argv[i][j]=='q'){
-	    params->eval=TRUE;
-	    params->unwrapped=TRUE;
-	  }else if(argv[i][j]=='C'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      
-	      /* parse argument as configuration line */
-	      ParseConfigLine(argv[i],"command line",0,
+        for(j=1;j<strlen(argv[i]);j++){
+          if(argv[i][j]=='h'){
+            fprintf(sp1,OPTIONSHELPFULL);
+            exit(ABNORMAL_EXIT);
+          }else if(argv[i][j]=='u'){
+            params->unwrapped=TRUE;
+          }else if(argv[i][j]=='t'){
+            params->costmode=TOPO;
+          }else if(argv[i][j]=='d'){
+            params->costmode=DEFO;
+          }else if(argv[i][j]=='s'){
+            params->costmode=SMOOTH;
+            params->defomax=0.0;
+          }else if(argv[i][j]=='q'){
+            params->eval=TRUE;
+            params->unwrapped=TRUE;
+          }else if(argv[i][j]=='C'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              
+              /* parse argument as configuration line */
+              ParseConfigLine(argv[i],"command line",0,
                               infiles,outfiles,linelenptr,params);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='f'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      
-	      /* read user-supplied configuration file */
-	      ReadConfigFile(argv[i],infiles,outfiles,linelenptr,params);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='o'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(outfiles->outfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='c'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(infiles->corrfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='m'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(infiles->magfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='M'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(infiles->bytemaskfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='a'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(infiles->ampfile,argv[i],MAXSTRLEN);
-	      params->amplitude=TRUE;
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='A'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(infiles->ampfile,argv[i],MAXSTRLEN);
-	      params->amplitude=FALSE;
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='e'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(infiles->estfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='w'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(infiles->weightfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='g'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(outfiles->conncompfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='G'){
-	    params->regrowconncomps=TRUE;
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(outfiles->conncompfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='b'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      if(StringToDouble(argv[i],&(params->bperp)) || !(params->bperp)){
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='f'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              
+              /* read user-supplied configuration file */
+              ReadConfigFile(argv[i],infiles,outfiles,linelenptr,params);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='o'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(outfiles->outfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='c'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(infiles->corrfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='m'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(infiles->magfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='M'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(infiles->bytemaskfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='a'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(infiles->ampfile,argv[i],MAXSTRLEN);
+              params->amplitude=TRUE;
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='A'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(infiles->ampfile,argv[i],MAXSTRLEN);
+              params->amplitude=FALSE;
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='e'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(infiles->estfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='w'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(infiles->weightfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='g'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(outfiles->conncompfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='G'){
+            params->regrowconncomps=TRUE;
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(outfiles->conncompfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='b'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              if(StringToDouble(argv[i],&(params->bperp)) || !(params->bperp)){
                 fflush(NULL);
-		fprintf(sp0,"option -%c requires non-zero decimal argument\n",
-			argv[i-1][j]);
-		exit(ABNORMAL_EXIT);
-	      }
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='p'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      if(StringToDouble(argv[i],&(params->p))){
+                fprintf(sp0,"option -%c requires non-zero decimal argument\n",
+                        argv[i-1][j]);
+                exit(ABNORMAL_EXIT);
+              }
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='p'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              if(StringToDouble(argv[i],&(params->p))){
                 fflush(NULL);
-		fprintf(sp0,"option -%c requires decimal argument\n",
-			argv[i-1][j]);
-		exit(ABNORMAL_EXIT);
-	      }
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else if(argv[i][j]=='i'){
-	    params->initonly=TRUE;
-	  }else if(argv[i][j]=='S'){
-	    params->onetilereopt=TRUE;
-	  }else if(argv[i][j]=='k'){
-	    params->rmtmptile=FALSE;
-	    params->rmtileinit=FALSE;
-	  }else if(argv[i][j]=='n'){
-	    params->costmode=NOSTATCOSTS;
-	  }else if(argv[i][j]=='v'){
-	    params->verbose=TRUE;
-	  }else if(argv[i][j]=='l'){
-	    if(++i<argc && j==strlen(argv[i-1])-1){
-	      StrNCopy(outfiles->logfile,argv[i],MAXSTRLEN);
-	      break;
-	    }else{
-	      noarg_exit=TRUE;
-	    }
-	  }else{
+                fprintf(sp0,"option -%c requires decimal argument\n",
+                        argv[i-1][j]);
+                exit(ABNORMAL_EXIT);
+              }
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else if(argv[i][j]=='i'){
+            params->initonly=TRUE;
+          }else if(argv[i][j]=='S'){
+            params->onetilereopt=TRUE;
+          }else if(argv[i][j]=='k'){
+            params->rmtmptile=FALSE;
+            params->rmtileinit=FALSE;
+          }else if(argv[i][j]=='n'){
+            params->costmode=NOSTATCOSTS;
+          }else if(argv[i][j]=='v'){
+            params->verbose=TRUE;
+          }else if(argv[i][j]=='l'){
+            if(++i<argc && j==strlen(argv[i-1])-1){
+              StrNCopy(outfiles->logfile,argv[i],MAXSTRLEN);
+              break;
+            }else{
+              noarg_exit=TRUE;
+            }
+          }else{
             fflush(NULL);
-	    fprintf(sp0,"unrecognized option -%c\n",argv[i][j]);
-	    exit(ABNORMAL_EXIT);
-	  }
-	  if(noarg_exit){
+            fprintf(sp0,"unrecognized option -%c\n",argv[i][j]);
+            exit(ABNORMAL_EXIT);
+          }
+          if(noarg_exit){
             fflush(NULL);
-	    fprintf(sp0,"option -%c requires an argument\n",argv[i-1][j]);
-	    exit(ABNORMAL_EXIT);
-	  }
-	}
+            fprintf(sp0,"option -%c requires an argument\n",argv[i-1][j]);
+            exit(ABNORMAL_EXIT);
+          }
+        }
       }else{
-	/* argument is a "--" option */
-	if(!strcmp(argv[i],"--costinfile")){
-	  if(++i<argc){
-	    StrNCopy(infiles->costinfile,argv[i],MAXSTRLEN);
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--costoutfile")){
-	  if(++i<argc){
-	    StrNCopy(outfiles->costoutfile,argv[i],MAXSTRLEN);
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--debug") || !strcmp(argv[i],"--dumpall")){
-	  params->dumpall=TRUE;
-	}else if(!strcmp(argv[i],"--mst")){
-	  params->initmethod=MSTINIT;
-	}else if(!strcmp(argv[i],"--mcf")){
-	  params->initmethod=MCFINIT;
-	}else if(!strcmp(argv[i],"--aa")){
-	  if(i+2<argc){
-	    StrNCopy(infiles->ampfile,argv[++i],MAXSTRLEN);
-	    StrNCopy(infiles->ampfile2,argv[++i],MAXSTRLEN);
-	    infiles->ampfileformat=FLOAT_DATA;
-	    params->amplitude=TRUE;
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--AA")){
-	  if(++i+1<argc){
-	    StrNCopy(infiles->ampfile,argv[i++],MAXSTRLEN);
-	    StrNCopy(infiles->ampfile2,argv[i],MAXSTRLEN);
-	    infiles->ampfileformat=FLOAT_DATA;
-	    params->amplitude=FALSE;
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--tile")){
-	  if(++i+3<argc){
-	    if(StringToLong(argv[i++],&(params->ntilerow))
-	       || StringToLong(argv[i++],&(params->ntilecol))
-	       || StringToLong(argv[i++],&(params->rowovrlp))
-	       || StringToLong(argv[i],&(params->colovrlp))){
+        /* argument is a "--" option */
+        if(!strcmp(argv[i],"--costinfile")){
+          if(++i<argc){
+            StrNCopy(infiles->costinfile,argv[i],MAXSTRLEN);
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--costoutfile")){
+          if(++i<argc){
+            StrNCopy(outfiles->costoutfile,argv[i],MAXSTRLEN);
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--debug") || !strcmp(argv[i],"--dumpall")){
+          params->dumpall=TRUE;
+        }else if(!strcmp(argv[i],"--mst")){
+          params->initmethod=MSTINIT;
+        }else if(!strcmp(argv[i],"--mcf")){
+          params->initmethod=MCFINIT;
+        }else if(!strcmp(argv[i],"--aa")){
+          if(i+2<argc){
+            StrNCopy(infiles->ampfile,argv[++i],MAXSTRLEN);
+            StrNCopy(infiles->ampfile2,argv[++i],MAXSTRLEN);
+            infiles->ampfileformat=FLOAT_DATA;
+            params->amplitude=TRUE;
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--AA")){
+          if(++i+1<argc){
+            StrNCopy(infiles->ampfile,argv[i++],MAXSTRLEN);
+            StrNCopy(infiles->ampfile2,argv[i],MAXSTRLEN);
+            infiles->ampfileformat=FLOAT_DATA;
+            params->amplitude=FALSE;
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--tile")){
+          if(++i+3<argc){
+            if(StringToLong(argv[i++],&(params->ntilerow))
+               || StringToLong(argv[i++],&(params->ntilecol))
+               || StringToLong(argv[i++],&(params->rowovrlp))
+               || StringToLong(argv[i],&(params->colovrlp))){
               fflush(NULL);
-	      fprintf(sp0,"option %s requires four integer arguments\n",
-		      argv[i-4]);
-	      exit(ABNORMAL_EXIT);
-	    }
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--piece")){
-	  if(++i+3<argc){
-	    if(StringToLong(argv[i++],&(params->piecefirstrow))
-	       || StringToLong(argv[i++],&(params->piecefirstcol))
-	       || StringToLong(argv[i++],&(params->piecenrow))
-	       || StringToLong(argv[i],&(params->piecencol))){
+              fprintf(sp0,"option %s requires four integer arguments\n",
+                      argv[i-4]);
+              exit(ABNORMAL_EXIT);
+            }
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--piece")){
+          if(++i+3<argc){
+            if(StringToLong(argv[i++],&(params->piecefirstrow))
+               || StringToLong(argv[i++],&(params->piecefirstcol))
+               || StringToLong(argv[i++],&(params->piecenrow))
+               || StringToLong(argv[i],&(params->piecencol))){
               fflush(NULL);
-	      fprintf(sp0,"option %s requires four integer arguments\n",
-		      argv[i-4]);
-	      exit(ABNORMAL_EXIT);
-	    }
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--nproc")){
-	  if(++i<argc){
-	    if(StringToLong(argv[i],&(params->nthreads))){
+              fprintf(sp0,"option %s requires four integer arguments\n",
+                      argv[i-4]);
+              exit(ABNORMAL_EXIT);
+            }
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--nproc")){
+          if(++i<argc){
+            if(StringToLong(argv[i],&(params->nthreads))){
               fflush(NULL);
-	      fprintf(sp0,"option %s requires an integer arguemnt\n",
-		      argv[i-1]);
-	      exit(ABNORMAL_EXIT);
-	    }
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--tiledir")){
-	  if(++i<argc){
-	    StrNCopy(params->tiledir,argv[i],MAXSTRLEN);
-	  }else{
-	    noarg_exit=TRUE;
-	  }
-	}else if(!strcmp(argv[i],"--assemble")){
-	  params->assembleonly=TRUE;
-	}else if(!strcmp(argv[i],"--copyright") || !strcmp(argv[i],"--info")){
-	  fprintf(sp1,COPYRIGHT);
-	  exit(ABNORMAL_EXIT);	  
-	}else if(!strcmp(argv[i],"--help")){
+              fprintf(sp0,"option %s requires an integer arguemnt\n",
+                      argv[i-1]);
+              exit(ABNORMAL_EXIT);
+            }
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--tiledir")){
+          if(++i<argc){
+            StrNCopy(params->tiledir,argv[i],MAXSTRLEN);
+          }else{
+            noarg_exit=TRUE;
+          }
+        }else if(!strcmp(argv[i],"--assemble")){
+          params->assembleonly=TRUE;
+        }else if(!strcmp(argv[i],"--copyright") || !strcmp(argv[i],"--info")){
+          fprintf(sp1,COPYRIGHT);
+          exit(ABNORMAL_EXIT);    
+        }else if(!strcmp(argv[i],"--help")){
           fflush(NULL);
-	  fprintf(sp1,OPTIONSHELPFULL);
-	  exit(ABNORMAL_EXIT);	  
-	}else{
+          fprintf(sp1,OPTIONSHELPFULL);
+          exit(ABNORMAL_EXIT);    
+        }else{
           fflush(NULL);
-	  fprintf(sp0,"unrecognized option %s\n",argv[i]);
-	  exit(ABNORMAL_EXIT);
-	}
-	if(noarg_exit){
+          fprintf(sp0,"unrecognized option %s\n",argv[i]);
+          exit(ABNORMAL_EXIT);
+        }
+        if(noarg_exit){
           fflush(NULL);
-	  fprintf(sp0,"incorrect number of arguments for option %s\n",
-		  argv[i-1]);
-	  exit(ABNORMAL_EXIT);
-	}
+          fprintf(sp0,"incorrect number of arguments for option %s\n",
+                  argv[i-1]);
+          exit(ABNORMAL_EXIT);
+        }
       }
     }else{                                
       /* argument is not an option */
       if(!strlen(infiles->infile)){
         StrNCopy(infiles->infile,argv[i],MAXSTRLEN);
       }else if(*linelenptr==0){
-	if(StringToLong(argv[i],linelenptr) || *linelenptr<=0){
+        if(StringToLong(argv[i],linelenptr) || *linelenptr<=0){
           fflush(NULL);
-	  fprintf(sp0,"line length must be positive integer\n");
-	  exit(ABNORMAL_EXIT);
-	}	  
+          fprintf(sp0,"line length must be positive integer\n");
+          exit(ABNORMAL_EXIT);
+        }         
       }else{
         fflush(NULL);
         fprintf(sp0,"multiple input files: %s and %s\n",
-		infiles->infile,argv[i]);
-	exit(ABNORMAL_EXIT);
+                infiles->infile,argv[i]);
+        exit(ABNORMAL_EXIT);
       }
     }
   } /* end for loop over arguments */
@@ -549,7 +549,7 @@ int ProcessArgs(int argc, char *argv[], infileT *infiles, outfileT *outfiles,
   if(!strlen(infiles->infile) || !(*linelenptr)){
     fflush(NULL);
     fprintf(sp0,"not enough input arguments.  type %s -h for help\n",
-	    PROGRAMNAME);
+            PROGRAMNAME);
     exit(ABNORMAL_EXIT);
   }
 
@@ -854,7 +854,7 @@ int CheckParams(infileT *infiles, outfileT *outfiles,
   if(params->kperpdpsi<=0 || params->kpardpsi<=0){
     fflush(NULL);
     fprintf(sp0,
-	  "averaging window sizes kperpdpsi and kpardpsi must be positive\n");
+          "averaging window sizes kperpdpsi and kpardpsi must be positive\n");
     exit(ABNORMAL_EXIT);
   }
   if(params->threshold<=0){
@@ -921,14 +921,14 @@ int CheckParams(infileT *infiles, outfileT *outfiles,
   }
   if(params->maxnflowcycles==USEMAXCYCLEFRACTION){
     params->maxnflowcycles=LRound(params->maxcyclefraction
-				   *nlines/(double )params->ntilerow
-				   *linelen/(double )params->ntilecol);
+                                   *nlines/(double )params->ntilerow
+                                   *linelen/(double )params->ntilecol);
   }
   if(params->initmaxflow==AUTOCALCSTATMAX 
      && !(params->ntilerow==1 && params->ntilecol==1)){
     fflush(NULL);
     fprintf(sp0,"initial maximum flow cannot be calculated automatically in "
-	    "tile mode\n");
+            "tile mode\n");
     exit(ABNORMAL_EXIT);
   }
 #ifdef NO_CS2
@@ -975,9 +975,9 @@ int CheckParams(infileT *infiles, outfileT *outfiles,
   }
   if(params->ntilerow>1 || params->ntilecol>1){
     ni=ceil((nlines+(params->ntilerow-1)*params->rowovrlp)
-	    /(double )params->ntilerow);
+            /(double )params->ntilerow);
     nj=ceil((linelen+(params->ntilecol-1)*params->colovrlp)
-	    /(double )params->ntilecol);
+            /(double )params->ntilecol);
     if(params->ntilerow+params->rowovrlp > nlines 
        || params->ntilecol+params->colovrlp > linelen
        || params->ntilerow*params->ntilerow > nlines
@@ -988,7 +988,7 @@ int CheckParams(infileT *infiles, outfileT *outfiles,
     }
     if(params->minregionsize 
        > ((nlines-(params->ntilerow-1)*(ni-params->rowovrlp))
-	  *(linelen-(params->ntilecol-1)*(nj-params->colovrlp)))){
+          *(linelen-(params->ntilecol-1)*(nj-params->colovrlp)))){
       fflush(NULL);
       fprintf(sp0,"minimum region size too large for given tile parameters\n");
       exit(ABNORMAL_EXIT);
@@ -1011,21 +1011,21 @@ int CheckParams(infileT *infiles, outfileT *outfiles,
     if(params->initonly){
       fflush(NULL);
       fprintf(sp0,
-	      "initialize-only mode and tile mode are mutually exclusive\n");
+              "initialize-only mode and tile mode are mutually exclusive\n");
       exit(ABNORMAL_EXIT);
     }
     if(params->assembleonly){
       n=strlen(params->tiledir);
       while(--n>0 && params->tiledir[n]=='/'){
-	params->tiledir[n]='\0';
+        params->tiledir[n]='\0';
       }
       if(!strlen(params->tiledir)){
         fflush(NULL);
-	fprintf(sp0,"tile directory name must be specified\n");
-	exit(ABNORMAL_EXIT);
+        fprintf(sp0,"tile directory name must be specified\n");
+        exit(ABNORMAL_EXIT);
       }
       if(!strcmp(params->tiledir,"/")){
-	StrNCopy(params->tiledir,"",MAXSTRLEN);
+        StrNCopy(params->tiledir,"",MAXSTRLEN);
       }
       params->rmtmptile=FALSE;     /* cowardly avoid removing tile dir input */
     }
@@ -1074,7 +1074,7 @@ int CheckParams(infileT *infiles, outfileT *outfiles,
   }else if(params->nthreads>MAXTHREADS){
     fflush(NULL);
     fprintf(sp0,"number of processors exceeds precomplied limit of %d\n",
-	    MAXTHREADS);
+            MAXTHREADS);
     exit(ABNORMAL_EXIT);
   }
 
@@ -1131,13 +1131,13 @@ int CheckParams(infileT *infiles, outfileT *outfiles,
     if(params->initonly){
       fflush(NULL);
       fprintf(sp0,"WARNING: connected component mask cannot be generated "
-	      "in initialize-only mode\n         mask will not be output\n");
+              "in initialize-only mode\n         mask will not be output\n");
       StrNCopy(outfiles->conncompfile,"",MAXSTRLEN);
     }
     if(params->costmode==NOSTATCOSTS){
       fflush(NULL);
       fprintf(sp0,"WARNING: connected component mask cannot be generated "
-	      "without statistical costs\n         mask will not be output\n");
+              "without statistical costs\n         mask will not be output\n");
       StrNCopy(outfiles->conncompfile,"",MAXSTRLEN);
     }
   }
@@ -1196,7 +1196,7 @@ int ReadConfigFile(char *conffile, infileT *infiles, outfileT *outfiles,
     if(strlen(buf)>=MAXLINELEN-1){
       fflush(NULL);
       fprintf(sp0,"line %ld in file %s exceeds maximum line length\n",
-	      nlines,conffile);
+              nlines,conffile);
       exit(ABNORMAL_EXIT);
     }
 
@@ -1213,14 +1213,14 @@ int ReadConfigFile(char *conffile, infileT *infiles, outfileT *outfiles,
   fclose(fp);
   if(nparams>1){
     fprintf(sp1,"%ld parameters input from file %s (%ld lines total)\n",
-	    nparams,conffile,nlines);
+            nparams,conffile,nlines);
   }else{
     if(nlines>1){
       fprintf(sp1,"%ld parameter input from file %s (%ld lines total)\n",
-	      nparams,conffile,nlines);
+              nparams,conffile,nlines);
     }else{
       fprintf(sp1,"%ld parameter input from file %s (%ld line total)\n",
-	      nparams,conffile,nlines);
+              nparams,conffile,nlines);
     }
   }
 
@@ -1292,7 +1292,7 @@ int ParseConfigLine(char *buf, char *conffile, long nlines,
         fflush(NULL);
         fprintf(sp0,"cannot specify both amplitude and power\n");
         exit(ABNORMAL_EXIT);
-      }	
+      } 
       StrNCopy(infiles->ampfile,str2,MAXSTRLEN);
       params->amplitude=FALSE;
     }else if(!strcmp(str1,"PWRFILE2")){
@@ -1300,7 +1300,7 @@ int ParseConfigLine(char *buf, char *conffile, long nlines,
         fflush(NULL);
         fprintf(sp0,"cannot specify both amplitude and power\n");
         exit(ABNORMAL_EXIT);
-      }	
+      } 
       StrNCopy(infiles->ampfile2,str2,MAXSTRLEN);
       params->amplitude=FALSE;
       infiles->ampfileformat=FLOAT_DATA;
@@ -1539,7 +1539,7 @@ int ParseConfigLine(char *buf, char *conffile, long nlines,
     }else if(!strcmp(str1,"TILEEDGEWEIGHT")){
       badparam=StringToDouble(str2,&(params->tileedgeweight));
     }else if(!strcmp(str1,"SCNDRYARCFLOWMAX")){
-      badparam=StringToLong(str2,&(params->scndryarcflowmax));	
+      badparam=StringToLong(str2,&(params->scndryarcflowmax));  
     }else if(!strcmp(str1,"TILEDIR")){
       StrNCopy(params->tiledir,str2,MAXSTRLEN);
     }else if(!strcmp(str1,"ASSEMBLEONLY")){
@@ -1779,17 +1779,17 @@ int WriteConfigLogFile(int argc, char *argv[], infileT *infiles,
     LogStringParam(fp,"WEIGHTFILE",infiles->weightfile);
     if(params->amplitude){
       if(strlen(infiles->ampfile2)){
-	LogStringParam(fp,"AMPFILE1",infiles->ampfile);
-	LogStringParam(fp,"AMPFILE2",infiles->ampfile2);
+        LogStringParam(fp,"AMPFILE1",infiles->ampfile);
+        LogStringParam(fp,"AMPFILE2",infiles->ampfile2);
       }else{
-	LogStringParam(fp,"AMPFILE",infiles->ampfile);
+        LogStringParam(fp,"AMPFILE",infiles->ampfile);
       }
     }else{
       if(strlen(infiles->ampfile2)){
-	LogStringParam(fp,"PWRFILE1",infiles->ampfile);
-	LogStringParam(fp,"PWRFILE2",infiles->ampfile2);
+        LogStringParam(fp,"PWRFILE1",infiles->ampfile);
+        LogStringParam(fp,"PWRFILE2",infiles->ampfile2);
       }else{
-	LogStringParam(fp,"PWRFILE",infiles->ampfile);
+        LogStringParam(fp,"PWRFILE",infiles->ampfile);
       }
     }
     LogStringParam(fp,"MAGFILE",infiles->magfile);
@@ -1831,7 +1831,7 @@ int WriteConfigLogFile(int argc, char *argv[], infileT *infiles,
     /* SAR and geometry parameters */
     fprintf(fp,"\n# SAR and Geometry Parameters\n");
     fprintf(fp,"ALTITUDE  %.8f\n",
-	    params->orbitradius-params->earthradius);
+            params->orbitradius-params->earthradius);
     fprintf(fp,"# ORBITRADIUS  %.8f\n",params->orbitradius);
     fprintf(fp,"EARTHRADIUS  %.8f\n",params->earthradius);
     if(params->bperp){
@@ -1839,7 +1839,7 @@ int WriteConfigLogFile(int argc, char *argv[], infileT *infiles,
     }else{
       fprintf(fp,"BASELINE %.8f\n",params->baseline);
       fprintf(fp,"BASELINEANGLE_DEG %.8f\n",
-	      params->baselineangle*(180.0/PI));
+              params->baselineangle*(180.0/PI));
     }
     if(params->transmitmode==PINGPONG){
       fprintf(fp,"TRANSMITMODE  REPEATPASS\n");
@@ -2106,7 +2106,7 @@ long GetNLines(infileT *infiles, long linelen, paramT *params){
   if(filesize % (datasize*linelen)){
     fflush(NULL);
     fprintf(sp0,"extra data in file %s (bad linelength?)\n",
-	    infiles->infile);
+            infiles->infile);
     exit(ABNORMAL_EXIT);
   }
   return(filesize/(datasize*linelen));               /* implicit floor */
@@ -2128,13 +2128,13 @@ int WriteOutputFile(float **mag, float **unwrappedphase, char *outfile,
     WriteAltSampFile(mag,unwrappedphase,outfile,nrow,ncol);
   }else if(outfiles->outfileformat==FLOAT_DATA){
     Write2DArray((void **)unwrappedphase,outfile,
-		 nrow,ncol,sizeof(float));
+                 nrow,ncol,sizeof(float));
   }else{
     fflush(NULL);
     fprintf(sp0,"WARNING: Illegal format specified for output file\n");
     fprintf(sp0,"         using default floating-point format\n");
     Write2DArray((void **)unwrappedphase,outfile,
-		 nrow,ncol,sizeof(float));
+                 nrow,ncol,sizeof(float));
   }
   return(0);
 }
@@ -2162,12 +2162,12 @@ FILE *OpenOutputFile(char *outfile, char *realoutfile){
     if((fp=fopen(dumpfile,"w"))!=NULL){
       fflush(NULL);
       fprintf(sp0,"WARNING: Can't write to file %s.  Dumping to file %s\n",
-	     outfile,dumpfile);
+             outfile,dumpfile);
       StrNCopy(realoutfile,dumpfile,MAXSTRLEN);
     }else{
       fflush(NULL);
       fprintf(sp0,"Unable to write to file %s or dump to file %s\nAbort\n",
-	     outfile,dumpfile);
+             outfile,dumpfile);
       exit(ABNORMAL_EXIT);
     }
   }else{
@@ -2199,7 +2199,7 @@ int WriteAltLineFile(float **mag, float **phase, char *outfile,
        || fwrite(phase[row],sizeof(float),ncol,fp)!=ncol){
       fflush(NULL);
       fprintf(sp0,"Error while writing to file %s (device full?)\nAbort\n",
-	      realoutfile);
+              realoutfile);
       exit(ABNORMAL_EXIT);
     }
   }
@@ -2236,7 +2236,7 @@ int WriteAltSampFile(float **arr1, float **arr2, char *outfile,
     if(fwrite(outline,sizeof(float),2*ncol,fp)!=2*ncol){
       fflush(NULL);
       fprintf(sp0,"Error while writing to file %s (device full?)\nAbort\n",
-	      realoutfile);
+              realoutfile);
       exit(ABNORMAL_EXIT);
     }
   }
@@ -2266,7 +2266,7 @@ int Write2DArray(void **array, char *filename, long nrow, long ncol,
     if(fwrite(array[row],size,ncol,fp)!=ncol){
       fflush(NULL);
       fprintf(sp0,"Error while writing to file %s (device full?)\nAbort\n",
-	      realoutfile);
+              realoutfile);
       exit(ABNORMAL_EXIT);
     }
   }
@@ -2286,7 +2286,7 @@ int Write2DArray(void **array, char *filename, long nrow, long ncol,
  * of ncol elements, followed by nrow rows of ncol-1 elements each.
  */
 int Write2DRowColArray(void **array, char *filename, long nrow, 
-			long ncol, size_t size){
+                        long ncol, size_t size){
 
   int row;
   FILE *fp;
@@ -2297,7 +2297,7 @@ int Write2DRowColArray(void **array, char *filename, long nrow,
     if(fwrite(array[row],size,ncol,fp)!=ncol){
       fflush(NULL);
       fprintf(sp0,"Error while writing to file %s (device full?)\nAbort\n",
-	      realoutfile);
+              realoutfile);
       exit(ABNORMAL_EXIT);
     }
   }
@@ -2305,7 +2305,7 @@ int Write2DRowColArray(void **array, char *filename, long nrow,
     if(fwrite(array[row],size,ncol-1,fp)!=ncol-1){
       fflush(NULL);
       fprintf(sp0,"Error while writing to file %s (device full?)\nAbort\n",
-	      realoutfile);
+              realoutfile);
       exit(ABNORMAL_EXIT);
     }
   }
@@ -2356,16 +2356,16 @@ int ReadInputFile(infileT *infiles, float ***magptr, float ***wrappedphaseptr,
     fprintf(sp1,"Reading wrapped phase from file %s\n",infiles->infile);
     if(infiles->infileformat==COMPLEX_DATA){
       ReadComplexFile(&mag,&wrappedphase,infiles->infile,
-		      linelen,nlines,tileparams);
+                      linelen,nlines,tileparams);
     }else if(infiles->infileformat==ALT_LINE_DATA){
       ReadAltLineFile(&mag,&wrappedphase,infiles->infile,
-		      linelen,nlines,tileparams);
+                      linelen,nlines,tileparams);
     }else if(infiles->infileformat==ALT_SAMPLE_DATA){
       ReadAltSampFile(&mag,&wrappedphase,infiles->infile,
-		      linelen,nlines,tileparams);
+                      linelen,nlines,tileparams);
     }else if(infiles->infileformat==FLOAT_DATA){
       Read2DArray((void ***)&wrappedphase,infiles->infile,linelen,nlines,
-		  tileparams,sizeof(float *),sizeof(float));
+                  tileparams,sizeof(float *),sizeof(float));
     }else{
       fflush(NULL);
       fprintf(sp0,"illegal input file format specification\n");
@@ -2397,13 +2397,13 @@ int ReadInputFile(infileT *infiles, float ***magptr, float ***wrappedphaseptr,
     fprintf(sp1,"Reading unwrapped phase from file %s\n",infiles->infile);
     if(infiles->unwrappedinfileformat==ALT_LINE_DATA){
       ReadAltLineFile(&mag,&unwrappedphase,infiles->infile,
-		      linelen,nlines,tileparams);
+                      linelen,nlines,tileparams);
     }else if(infiles->unwrappedinfileformat==ALT_SAMPLE_DATA){
       ReadAltSampFile(&mag,&unwrappedphase,infiles->infile,
-			   linelen,nlines,tileparams);
+                           linelen,nlines,tileparams);
     }else if(infiles->unwrappedinfileformat==FLOAT_DATA){
       Read2DArray((void ***)&unwrappedphase,infiles->infile,linelen,nlines,
-		  tileparams,sizeof(float *),sizeof(float));
+                  tileparams,sizeof(float *),sizeof(float));
     }else{
       fflush(NULL);
       fprintf(sp0,"Illegal input file format specification\nAbort\n");
@@ -2448,7 +2448,7 @@ int ReadInputFile(infileT *infiles, float ***magptr, float ***wrappedphaseptr,
     mag=(float **)Get2DMem(nrow,ncol,sizeof(float *),sizeof(float));
     for(row=0;row<nrow;row++){
       for(col=0;col<ncol;col++){
-	mag[row][col]=1.0;
+        mag[row][col]=1.0;
       }
     }
   }
@@ -2478,19 +2478,19 @@ int ReadMagnitude(float **mag, infileT *infiles, long linelen, long nlines,
   dummy=NULL;
   if(strlen(infiles->magfile)){
     fprintf(sp1,"Reading interferogram magnitude from file %s\n",
-	    infiles->magfile);
+            infiles->magfile);
     if(infiles->magfileformat==FLOAT_DATA){
       Read2DArray((void ***)&mag,infiles->magfile,linelen,nlines,tileparams,
-		  sizeof(float *),sizeof(float));
+                  sizeof(float *),sizeof(float));
     }else if(infiles->magfileformat==COMPLEX_DATA){
       ReadComplexFile(&mag,&dummy,infiles->magfile,linelen,nlines,
-		      tileparams);
+                      tileparams);
     }else if(infiles->magfileformat==ALT_LINE_DATA){
       ReadAltLineFile(&mag,&dummy,infiles->magfile,linelen,nlines,
-		      tileparams);
+                      tileparams);
     }else if(infiles->magfileformat==ALT_SAMPLE_DATA){
       ReadAltSampFile(&mag,&dummy,infiles->magfile,linelen,nlines,
-		      tileparams);
+                      tileparams);
     }
   }
   if(dummy!=NULL){
@@ -2520,7 +2520,7 @@ int ReadByteMask(float **mag, infileT *infiles, long linelen, long nlines,
   if(strlen(infiles->bytemaskfile)){
     fprintf(sp1,"Reading byte mask from file %s\n",infiles->bytemaskfile);
     Read2DArray((void ***)&bytemask,infiles->bytemaskfile,linelen,nlines,
-		tileparams,sizeof(signed char *),sizeof(signed char));
+                tileparams,sizeof(signed char *),sizeof(signed char));
   }
     
   /* loop over rows and columns and zero out magnitude where mask is zero */
@@ -2530,11 +2530,11 @@ int ReadByteMask(float **mag, infileT *infiles, long linelen, long nlines,
       fullrow=tileparams->firstrow+row;
       fullcol=tileparams->firstcol+col;
       if((bytemask!=NULL && bytemask[row][col]==0)
-	 || fullrow<params->edgemasktop
-	 || fullcol<params->edgemaskleft
-	 || fullrow>=nlines-params->edgemaskbot
-	 || fullcol>=linelen-params->edgemaskright){
-	mag[row][col]=0;
+         || fullrow<params->edgemasktop
+         || fullcol<params->edgemaskleft
+         || fullrow>=nlines-params->edgemaskbot
+         || fullcol>=linelen-params->edgemaskright){
+        mag[row][col]=0;
       }
     }
   }
@@ -2569,20 +2569,20 @@ int ReadUnwrappedEstimateFile(float ***unwrappedestptr, infileT *infiles,
 
   /* read data */
   fprintf(sp1,"Reading coarse unwrapped estimate from file %s\n",
-	  infiles->estfile);
+          infiles->estfile);
   if(infiles->estfileformat==ALT_LINE_DATA){
     ReadAltLineFilePhase(unwrappedestptr,infiles->estfile,
-			 linelen,nlines,tileparams);
+                         linelen,nlines,tileparams);
   }else if(infiles->estfileformat==FLOAT_DATA){
     Read2DArray((void ***)unwrappedestptr,infiles->estfile,linelen,nlines,
-		tileparams,sizeof(float *),sizeof(float));
+                tileparams,sizeof(float *),sizeof(float));
   }else if(infiles->estfileformat==ALT_SAMPLE_DATA){
     ReadAltSampFile(&dummy,unwrappedestptr,infiles->estfile,
-		    linelen,nlines,tileparams);
+                    linelen,nlines,tileparams);
   }else{
     fflush(NULL);
     fprintf(sp0,"Illegal file format specification for file %s\nAbort\n",
-	    infiles->estfile);
+            infiles->estfile);
   }
   if(dummy!=NULL){
     Free2DArray((void **)dummy,nrow);
@@ -2622,24 +2622,24 @@ int ReadWeightsFile(short ***weightsptr,char *weightfile,
   if(strlen(weightfile)){
     fprintf(sp1,"Reading weights from file %s\n",weightfile);
     Read2DRowColFile((void ***)weightsptr,weightfile,linelen,nlines,
-		     tileparams,sizeof(short));
+                     tileparams,sizeof(short));
     rowweight=*weightsptr;
     colweight=&(*weightsptr)[nrow-1];
     printwarning=FALSE;
     for(row=0;row<nrow-1;row++){
       for(col=0;col<ncol;col++){
-	if(rowweight[row][col]<0){
-	  rowweight[row][col]=0;
-	  printwarning=TRUE;
-	}
+        if(rowweight[row][col]<0){
+          rowweight[row][col]=0;
+          printwarning=TRUE;
+        }
       }
     }
     for(row=0;row<nrow;row++){
       for(col=0;col<ncol-1;col++){
-	if(colweight[row][col]<0){
-	  colweight[row][col]=0;
-	  printwarning=TRUE;
-	}
+        if(colweight[row][col]<0){
+          colweight[row][col]=0;
+          printwarning=TRUE;
+        }
       }
     }
     if(printwarning){
@@ -2649,7 +2649,7 @@ int ReadWeightsFile(short ***weightsptr,char *weightfile,
   }else{
     fprintf(sp1,"No weight file specified.  Assuming uniform weights\n");
     *weightsptr=(short **)Get2DRowColMem(nrow,ncol,
-					 sizeof(short *),sizeof(short));
+                                         sizeof(short *),sizeof(short));
     rowweight=*weightsptr;
     colweight=&(*weightsptr)[nrow-1];
     Set2DShortArray(rowweight,nrow-1,ncol,DEF_WEIGHT);
@@ -2688,16 +2688,16 @@ int ReadIntensity(float ***pwrptr, float ***pwr1ptr, float ***pwr2ptr,
 
     /* data is given in two separate files */
     fprintf(sp1,"Reading brightness data from files %s and %s\n",
-	    infiles->ampfile,infiles->ampfile2);
+            infiles->ampfile,infiles->ampfile2);
     if(infiles->ampfileformat==FLOAT_DATA){
       Read2DArray((void ***)&pwr1,infiles->ampfile,linelen,nlines,tileparams,
-		  sizeof(float *),sizeof(float));
+                  sizeof(float *),sizeof(float));
       Read2DArray((void ***)&pwr2,infiles->ampfile2,linelen,nlines,tileparams,
-		  sizeof(float *),sizeof(float));
+                  sizeof(float *),sizeof(float));
     }else{
       fflush(NULL);
       fprintf(sp0,"Illegal file formats specified for files %s, %s\nAbort\n",
-	      infiles->ampfile,infiles->ampfile2);
+              infiles->ampfile,infiles->ampfile2);
       exit(ABNORMAL_EXIT);
     }
 
@@ -2707,19 +2707,19 @@ int ReadIntensity(float ***pwrptr, float ***pwr1ptr, float ***pwr2ptr,
     fprintf(sp1,"Reading brightness data from file %s\n",infiles->ampfile);
     if(infiles->ampfileformat==ALT_SAMPLE_DATA){
       ReadAltSampFile(&pwr1,&pwr2,infiles->ampfile,linelen,nlines,
-		      tileparams);
+                      tileparams);
     }else if(infiles->ampfileformat==ALT_LINE_DATA){
       ReadAltLineFile(&pwr1,&pwr2,infiles->ampfile,linelen,nlines,
-		      tileparams);
+                      tileparams);
     }else if(infiles->ampfileformat==FLOAT_DATA){
       Read2DArray((void ***)&pwr,infiles->ampfile,linelen,nlines,tileparams,
-		  sizeof(float *),sizeof(float));
+                  sizeof(float *),sizeof(float));
       pwr1=NULL;
       pwr2=NULL;
     }else{
       fflush(NULL);
       fprintf(sp0,"Illegal file format specified for file %s\nAbort\n",
-	      infiles->ampfile);
+              infiles->ampfile);
       exit(ABNORMAL_EXIT);
     }
   }
@@ -2744,12 +2744,12 @@ int ReadIntensity(float ***pwrptr, float ***pwr1ptr, float ***pwr2ptr,
   if(params->amplitude){
     for(row=0;row<nrow;row++){
       for(col=0;col<ncol;col++){
-	if(pwr1!=NULL && pwr2!=NULL){
-	  pwr1[row][col]*=pwr1[row][col];
-	  pwr2[row][col]*=pwr2[row][col];
-	}else{
-	  pwr[row][col]*=pwr[row][col];
-	}
+        if(pwr1!=NULL && pwr2!=NULL){
+          pwr1[row][col]*=pwr1[row][col];
+          pwr2[row][col]*=pwr2[row][col];
+        }else{
+          pwr[row][col]*=pwr[row][col];
+        }
       }
     }
   }
@@ -2761,7 +2761,7 @@ int ReadIntensity(float ***pwrptr, float ***pwr1ptr, float ***pwr2ptr,
     }
     for(row=0;row<nrow;row++){
       for(col=0;col<ncol;col++){
-	pwr[row][col]=(pwr1[row][col]+pwr2[row][col])/2.0;
+        pwr[row][col]=(pwr1[row][col]+pwr2[row][col])/2.0;
       }
     }
   }
@@ -2801,11 +2801,11 @@ int ReadCorrelation(float ***corrptr, infileT *infiles,
     ReadAltLineFilePhase(&corr,infiles->corrfile,linelen,nlines,tileparams);
   }else if(infiles->corrfileformat==FLOAT_DATA){
     Read2DArray((void ***)&corr,infiles->corrfile,linelen,nlines,tileparams,
-		sizeof(float *),sizeof(float));
+                sizeof(float *),sizeof(float));
   }else{
     fflush(NULL);
     fprintf(sp0,"Illegal file format specified for file %s\nAbort\n",
-	    infiles->corrfile);
+            infiles->corrfile);
     exit(ABNORMAL_EXIT);
   }
 
@@ -2848,7 +2848,7 @@ int ReadAltLineFile(float ***mag, float ***phase, char *alfile,
   if(filesize!=(2*nlines*linelen*sizeof(float))){
     fflush(NULL);
     fprintf(sp0,"File %s wrong size (%ldx%ld array expected)\nAbort\n",
-	    alfile,nlines,linelen);
+            alfile,nlines,linelen);
     exit(ABNORMAL_EXIT);
   }
   fseek(fp,0,SEEK_SET);                 
@@ -2865,7 +2865,7 @@ int ReadAltLineFile(float ***mag, float ***phase, char *alfile,
   
   /* read the data */
   fseek(fp,(tileparams->firstrow*2*linelen+tileparams->firstcol)
-	*sizeof(float),SEEK_CUR);
+        *sizeof(float),SEEK_CUR);
   padlen=(linelen-ncol)*sizeof(float);
   for(row=0; row<nrow; row++){
     if(fread((*mag)[row],sizeof(float),ncol,fp)!=ncol){
@@ -2899,7 +2899,7 @@ int ReadAltLineFile(float ***mag, float ***phase, char *alfile,
  * data. 
  */
 int ReadAltLineFilePhase(float ***phase, char *alfile, 
-			  long linelen, long nlines, tileparamT *tileparams){
+                          long linelen, long nlines, tileparamT *tileparams){
 
   FILE *fp;
   long filesize,row,nrow,ncol,padlen;
@@ -2917,7 +2917,7 @@ int ReadAltLineFilePhase(float ***phase, char *alfile,
   if(filesize!=(2*nlines*linelen*sizeof(float))){
     fflush(NULL);
     fprintf(sp0,"File %s wrong size (%ldx%ld array expected)\nAbort\n",
-	    alfile,nlines,linelen);
+            alfile,nlines,linelen);
     exit(ABNORMAL_EXIT);
   }
   fseek(fp,0,SEEK_SET);                 
@@ -2931,7 +2931,7 @@ int ReadAltLineFilePhase(float ***phase, char *alfile,
   
   /* read the phase data */
   fseek(fp,(tileparams->firstrow*2*linelen+linelen
-	    +tileparams->firstcol)*sizeof(float),SEEK_CUR);
+            +tileparams->firstcol)*sizeof(float),SEEK_CUR);
   padlen=(2*linelen-ncol)*sizeof(float);
   for(row=0; row<nrow; row++){
     if(fread((*phase)[row],sizeof(float),ncol,fp)!=ncol){
@@ -2975,7 +2975,7 @@ int ReadComplexFile(float ***mag, float ***phase, char *rifile,
   if(filesize!=(2*nlines*linelen*sizeof(float))){
     fflush(NULL);
     fprintf(sp0,"File %s wrong size (%ldx%ld array expected)\nAbort\n",
-	    rifile,nlines,linelen);
+            rifile,nlines,linelen);
     exit(ABNORMAL_EXIT);
   }
   fseek(fp,0,SEEK_SET);                 
@@ -2993,7 +2993,7 @@ int ReadComplexFile(float ***mag, float ***phase, char *rifile,
 
   /* read the data and convert to magnitude and phase */
   fseek(fp,(tileparams->firstrow*linelen+tileparams->firstcol)
-	*2*sizeof(float),SEEK_CUR);
+        *2*sizeof(float),SEEK_CUR);
   padlen=(linelen-ncol)*2*sizeof(float);
   for(row=0; row<nrow; row++){
     if(fread(inpline,sizeof(float),2*ncol,fp)!=2*ncol){
@@ -3003,12 +3003,12 @@ int ReadComplexFile(float ***mag, float ***phase, char *rifile,
     }
     for(col=0; col<ncol; col++){
       (*mag)[row][col]=sqrt(inpline[2*col]*inpline[2*col]
-			    +inpline[2*col+1]*inpline[2*col+1]);
+                            +inpline[2*col+1]*inpline[2*col+1]);
       if(inpline[2*col+1]==0 && inpline[2*col]==0){
-	(*phase)[row][col]=0;
+        (*phase)[row][col]=0;
       }else if(!IsFinite((*phase)[row][col]=atan2(inpline[2*col+1],
-						  inpline[2*col]))){
-	(*phase)[row][col]=0;
+                                                  inpline[2*col]))){
+        (*phase)[row][col]=0;
       }else if((*phase)[row][col]<0){
         (*phase)[row][col]+=TWOPI;
       }else if((*phase)[row][col]>=TWOPI){
@@ -3050,7 +3050,7 @@ int Read2DArray(void ***arr, char *infile, long linelen, long nlines,
   if(filesize!=(nlines*linelen*elsize)){
     fflush(NULL);
     fprintf(sp0,"File %s wrong size (%ldx%ld array expected)\nAbort\n",
-	    infile,nlines,linelen);
+            infile,nlines,linelen);
     exit(ABNORMAL_EXIT);
   }
   fseek(fp,0,SEEK_SET);                 
@@ -3064,7 +3064,7 @@ int Read2DArray(void ***arr, char *infile, long linelen, long nlines,
 
   /* read the data */
   fseek(fp,(linelen*tileparams->firstrow+tileparams->firstcol)
-	*elsize,SEEK_CUR);
+        *elsize,SEEK_CUR);
   padlen=(linelen-ncol)*elsize;
   for(row=0; row<nrow; row++){
     if(fread((*arr)[row],elsize,ncol,fp)!=ncol){
@@ -3109,7 +3109,7 @@ int ReadAltSampFile(float ***arr1, float ***arr2, char *infile,
   if(filesize!=(2*nlines*linelen*sizeof(float))){
     fflush(NULL);
     fprintf(sp0,"File %s wrong size (%ldx%ld array expected)\nAbort\n",
-	    infile,nlines,linelen);
+            infile,nlines,linelen);
     exit(ABNORMAL_EXIT);
   }
   fseek(fp,0,SEEK_SET);                 
@@ -3127,7 +3127,7 @@ int ReadAltSampFile(float ***arr1, float ***arr2, char *infile,
 
   /* read the data */
   fseek(fp,(tileparams->firstrow*linelen+tileparams->firstcol)
-	*2*sizeof(float),SEEK_CUR);
+        *2*sizeof(float),SEEK_CUR);
   padlen=(linelen-ncol)*2*sizeof(float);
   for(row=0; row<nrow; row++){
     if(fread(inpline,sizeof(float),2*ncol,fp)!=2*ncol){
@@ -3180,7 +3180,7 @@ int Read2DRowColFile(void ***arr, char *filename, long linelen, long nlines,
   if(2*linelen*nlines-nlines-linelen != nel || (filelen % size)){
     fflush(NULL);
     fprintf(sp0,"File %s wrong size (%ld elements expected)\nAbort\n",
-	    filename,2*linelen*nlines-nlines-linelen);
+            filename,2*linelen*nlines-nlines-linelen);
     exit(ABNORMAL_EXIT);
   }
 
@@ -3193,7 +3193,7 @@ int Read2DRowColFile(void ***arr, char *filename, long linelen, long nlines,
 
   /* read arrays */
   fseek(fp,(linelen*tileparams->firstrow+tileparams->firstcol)
-	*size,SEEK_SET);
+        *size,SEEK_SET);
   padlen=(linelen-ncol)*size;
   for(row=0; row<nrow-1; row++){
     if(fread((*arr)[row],size,ncol,fp)!=ncol){
@@ -3204,7 +3204,7 @@ int Read2DRowColFile(void ***arr, char *filename, long linelen, long nlines,
     fseek(fp,padlen,SEEK_CUR);
   }
   fseek(fp,(linelen*(nlines-1)+(linelen-1)*tileparams->firstrow
-	    +tileparams->firstcol)*size,SEEK_SET);
+            +tileparams->firstcol)*size,SEEK_SET);
   for(row=nrow-1; row<2*nrow-1; row++){
     if(fread((*arr)[row],size,ncol-1,fp)!=ncol-1){
       fflush(NULL);
@@ -3252,7 +3252,7 @@ int Read2DRowColFileRows(void ***arr, char *filename, long linelen,
   if(2*linelen*nlines-nlines-linelen != nel || (filelen % size)){
     fflush(NULL);
     fprintf(sp0,"File %s wrong size (%ld elements expected)\nAbort\n",
-	    filename,2*linelen*nlines-nlines-linelen);
+            filename,2*linelen*nlines-nlines-linelen);
     exit(ABNORMAL_EXIT);
   }
 
@@ -3265,7 +3265,7 @@ int Read2DRowColFileRows(void ***arr, char *filename, long linelen,
 
   /* read arrays */
   fseek(fp,(linelen*tileparams->firstrow+tileparams->firstcol)
-	*size,SEEK_SET);
+        *size,SEEK_SET);
   padlen=(linelen-ncol)*size;
   for(row=0; row<nrow; row++){
     if(fread((*arr)[row],size,ncol,fp)!=ncol){
@@ -3406,7 +3406,7 @@ int ChildResetStreamPointers(pid_t pid, long tilerow, long tilecol,
     exit(ABNORMAL_EXIT);
   }
   fprintf(logfp,"%s (pid %ld): unwrapping tile at row %ld, column %ld\n\n",
-	  PROGRAMNAME,(long )pid,tilerow,tilecol);
+          PROGRAMNAME,(long )pid,tilerow,tilecol);
   if(getcwd(cwd,MAXSTRLEN)!=NULL){
     fprintf(logfp,"Current working directory is %s\n",cwd);
   }
@@ -3462,7 +3462,7 @@ int DumpIncrCostFiles(incrcostT **incrcosts, long iincrcostfile,
   sprintf(tempstr,".%ld_%ld",iincrcostfile,nflow);
   strncat(incrcostfile,tempstr,MAXSTRLEN-strlen(incrcostfile)-1);
   Write2DRowColArray((void **)tempcosts,incrcostfile,
-		     nrow,ncol,sizeof(short));
+                     nrow,ncol,sizeof(short));
   for(row=0;row<2*nrow-1;row++){
     if(row<nrow-1){
       maxcol=ncol;
@@ -3477,7 +3477,7 @@ int DumpIncrCostFiles(incrcostT **incrcosts, long iincrcostfile,
   sprintf(tempstr,".%ld_%ld",iincrcostfile,nflow);
   strncat(incrcostfile,tempstr,MAXSTRLEN-strlen(incrcostfile)-1);
   Write2DRowColArray((void **)tempcosts,incrcostfile,
-		     nrow,ncol,sizeof(short));
+                     nrow,ncol,sizeof(short));
 
   /* free memory */
   Free2DArray((void **)tempcosts,2*nrow-1);

@@ -64,6 +64,6 @@ typedef /* bucket */
    struct bucket_st
 {
    node             *p_first;         /* 1st node with positive excess 
-				         or simply 1st node in the buket */
+                                         or simply 1st node in the buket */
 } bucket;
 

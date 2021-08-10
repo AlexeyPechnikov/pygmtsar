@@ -14,7 +14,7 @@
 /**********************/
 
 #define PROGRAMNAME          "snaphu"
-#define VERSION              "2.0.1"
+#define VERSION              "2.0.4"
 #define BUGREPORTEMAIL       "snaphu@gmail.com"
 #ifdef PI
 #undef PI
@@ -757,15 +757,15 @@ int AssembleTiles(outfileT *outfiles, paramT *params,
 int SetGridNetworkFunctionPointers(void);
 int SetNonGridNetworkFunctionPointers(void);
 long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground, 
-	       nodeT *source, candidateT **candidatelistptr, 
-	       candidateT **candidatebagptr, long *candidatelistsizeptr,
-	       long *candidatebagsizeptr, bucketT *bkts, short **flows, 
-	       void **costs, incrcostT **incrcosts, nodeT ***apexes, 
-	       signed char **iscandidate, long ngroundarcs, long nflow, 
-	       float **mag, float **wrappedphase, char *outfile, 
-	       long nnoderow, int *nnodesperrow, long narcrow, 
-	       int *narcsperrow, long nrow, long ncol,
-	       outfileT *outfiles, long nconnected, paramT *params);
+               nodeT *source, candidateT **candidatelistptr, 
+               candidateT **candidatebagptr, long *candidatelistsizeptr,
+               long *candidatebagsizeptr, bucketT *bkts, short **flows, 
+               void **costs, incrcostT **incrcosts, nodeT ***apexes, 
+               signed char **iscandidate, long ngroundarcs, long nflow, 
+               float **mag, float **wrappedphase, char *outfile, 
+               long nnoderow, int *nnodesperrow, long narcrow, 
+               int *narcsperrow, long nrow, long ncol,
+               outfileT *outfiles, long nconnected, paramT *params);
 int InitNetwork(short **flows, long *ngroundarcsptr, long *ncycleptr, 
                 long *nflowdoneptr, long *mostflowptr, long *nflowptr, 
                 long *candidatebagsizeptr, candidateT **candidatebagptr, 
@@ -795,13 +795,13 @@ long SelectSources(nodeT **nodes, nodeT *ground, long nflow,
                    long nrow, long ncol, paramT *params,
                    nodeT ***sourcelistptr, long **nconnectedarrptr);
 long ReCalcCost(void **costs, incrcostT **incrcosts, long flow, 
-		long arcrow, long arccol, long nflow, long nrow, 
-		paramT *params);
+                long arcrow, long arccol, long nflow, long nrow, 
+                paramT *params);
 int SetupIncrFlowCosts(void **costs, incrcostT **incrcosts, short **flows,
                        long nflow, long nrow, long narcrow, 
                        int *narcsperrow, paramT *params);
 totalcostT EvaluateTotalCost(void **costs, short **flows, long nrow, long ncol,
-			     int *narcsperrow,paramT *params);
+                             int *narcsperrow,paramT *params);
 int MSTInitFlows(float **wrappedphase, short ***flowsptr, 
                  short **mstcosts, long nrow, long ncol, 
                  nodeT ***nodes, nodeT *ground, long maxflow);
@@ -853,29 +853,29 @@ void CalcCostNonGrid(void **costs, long flow, long arcrow, long arccol,
                      long nflow, long nrow, paramT *params, 
                      long *poscostptr, long *negcostptr);
 long EvalCostTopo(void **costs, short **flows, long arcrow, long arccol,
-		  long nrow, paramT *params);
+                  long nrow, paramT *params);
 long EvalCostDefo(void **costs, short **flows, long arcrow, long arccol,
-		  long nrow, paramT *params);
+                  long nrow, paramT *params);
 long EvalCostSmooth(void **costs, short **flows, long arcrow, long arccol,
-		    long nrow, paramT *params);
+                    long nrow, paramT *params);
 long EvalCostL0(void **costs, short **flows, long arcrow, long arccol,
-		long nrow, paramT *params);
+                long nrow, paramT *params);
 long EvalCostL1(void **costs, short **flows, long arcrow, long arccol,
-		long nrow, paramT *params);
+                long nrow, paramT *params);
 long EvalCostL2(void **costs, short **flows, long arcrow, long arccol,
-		long nrow, paramT *params);
+                long nrow, paramT *params);
 long EvalCostLP(void **costs, short **flows, long arcrow, long arccol,
-		long nrow, paramT *params);
+                long nrow, paramT *params);
 long EvalCostL0BiDir(void **costs, short **flows, long arcrow, long arccol,
-		     long nrow, paramT *params);
+                     long nrow, paramT *params);
 long EvalCostL1BiDir(void **costs, short **flows, long arcrow, long arccol,
-		     long nrow, paramT *params);
+                     long nrow, paramT *params);
 long EvalCostL2BiDir(void **costs, short **flows, long arcrow, long arccol,
-		     long nrow, paramT *params);
+                     long nrow, paramT *params);
 long EvalCostLPBiDir(void **costs, short **flows, long arcrow, long arccol,
-		     long nrow, paramT *params);
+                     long nrow, paramT *params);
 long EvalCostNonGrid(void **costs, short **flows, long arcrow, long arccol, 
-		     long nrow, paramT *params);
+                     long nrow, paramT *params);
 
 
 /* functions in snaphu_util.c */
@@ -894,7 +894,7 @@ int CalcFlow(float **phase, short ***flowsptr, long nrow, long ncol);
 int IntegratePhase(float **psi, float **phi, short **flows,
                    long nrow, long ncol);
 float **ExtractFlow(float **unwrappedphase, short ***flowsptr, 
-		    long nrow, long ncol);
+                    long nrow, long ncol);
 int FlipPhaseArraySign(float **arr, paramT *params, long nrow, long ncol);
 int FlipFlowArraySign(short **arr, paramT *params, long nrow, long ncol);
 void **Get2DMem(int nrow, int ncol, int psize, size_t size);
@@ -978,7 +978,7 @@ int ReadComplexFile(float ***mag, float ***phase, char *rifile,
 int Read2DArray(void ***arr, char *infile, long linelen, long nlines, 
                 tileparamT *tileparams, size_t elptrsize, size_t elsize);
 int ReadAltSampFile(float ***arr1, float ***arr2, char *infile,
-		     long linelen, long nlines, tileparamT *tileparams);
+                     long linelen, long nlines, tileparamT *tileparams);
 int Read2DRowColFile(void ***arr, char *filename, long linelen, long nlines, 
                      tileparamT *tileparams, size_t size);
 int Read2DRowColFileRows(void ***arr, char *filename, long linelen, 
@@ -998,7 +998,7 @@ int SetTileInitOutfile(char *outfile, long pid);
 /* functions in snaphu_cs2.c  */
 
 void SolveCS2(signed char **residue, short **mstcosts, long nrow, long ncol, 
-	      long cs2scalefactor, short ***flowsptr);
+              long cs2scalefactor, short ***flowsptr);
 
 
 

@@ -84,17 +84,17 @@ static
 int CandidateCompare(const void *c1, const void *c2);
 static
 nodeT *NeighborNodeGrid(nodeT *node1, long arcnum, long *upperarcnumptr,
-			nodeT **nodes, nodeT *ground, long *arcrowptr, 
-			long *arccolptr, long *arcdirptr, long nrow, 
-			long ncol, boundaryT *boundary, nodesuppT **nodesupp);
+                        nodeT **nodes, nodeT *ground, long *arcrowptr, 
+                        long *arccolptr, long *arcdirptr, long nrow, 
+                        long ncol, boundaryT *boundary, nodesuppT **nodesupp);
 static inline
 long GetArcNumLims(long fromrow, long *upperarcnumptr,
                    long ngroundarcs, boundaryT *boundary);
 static
 nodeT *NeighborNodeNonGrid(nodeT *node1, long arcnum, long *upperarcnumptr,
-			   nodeT **nodes, nodeT *ground, long *arcrowptr, 
-			   long *arccolptr, long *arcdirptr, long nrow, 
-			   long ncol, boundaryT *boundary,
+                           nodeT **nodes, nodeT *ground, long *arcrowptr, 
+                           long *arccolptr, long *arcdirptr, long nrow, 
+                           long ncol, boundaryT *boundary,
                            nodesuppT **nodesupp);
 static
 void GetArcGrid(nodeT *from, nodeT *to, long *arcrow, long *arccol, 
@@ -114,14 +114,14 @@ void NonDegenUpdateChildren(nodeT *startnode, nodeT *lastnode,
                             long nrow, long ncol, paramT *params);
 static
 long PruneTree(nodeT *source, nodeT **nodes, nodeT *ground, boundaryT *boundary,
-	       nodesuppT **nodesupp, incrcostT **incrcosts, 
-	       short **flows, long ngroundarcs, long prunecostthresh,
+               nodesuppT **nodesupp, incrcostT **incrcosts, 
+               short **flows, long ngroundarcs, long prunecostthresh,
                long nrow, long ncol);
 static
 int CheckLeaf(nodeT *node1, nodeT **nodes, nodeT *ground, boundaryT *boundary,
-	      nodesuppT **nodesupp, incrcostT **incrcosts, 
-	      short **flows, long ngroundarcs, long nrow, long ncol, 
-	      long prunecostthresh);
+              nodesuppT **nodesupp, incrcostT **incrcosts, 
+              short **flows, long ngroundarcs, long nrow, long ncol, 
+              long prunecostthresh);
 static
 int InitBuckets(bucketT *bkts, nodeT *source, long nbuckets);
 static
@@ -132,19 +132,19 @@ nodeT *SelectConnNodeSource(nodeT **nodes, nodeT *ground, long ngroundarcs,
                             paramT *params, nodeT *start, long *nconnectedptr);
 static
 short GetCost(incrcostT **incrcosts, long arcrow, long arccol, 
-	      long arcdir);
+              long arcdir);
 static
 void SolveMST(nodeT **nodes, nodeT *source, nodeT *ground, 
-	      bucketT *bkts, short **mstcosts, signed char **residue, 
-	      signed char **arcstatus, long nrow, long ncol);
+              bucketT *bkts, short **mstcosts, signed char **residue, 
+              signed char **arcstatus, long nrow, long ncol);
 static
 long DischargeTree(nodeT *source, short **mstcosts, short **flows,
-		   signed char **residue, signed char **arcstatus, 
-		   nodeT **nodes, nodeT *ground, long nrow, long ncol);
+                   signed char **residue, signed char **arcstatus, 
+                   nodeT **nodes, nodeT *ground, long nrow, long ncol);
 static
 signed char ClipFlow(signed char **residue, short **flows, 
-		     short **mstcosts, long nrow, long ncol, 
-		     long maxflow);
+                     short **mstcosts, long nrow, long ncol, 
+                     long maxflow);
 
 
 
@@ -179,15 +179,15 @@ int SetNonGridNetworkFunctionPointers(void){
  * Solves the nonlinear network optimization problem.
  */
 long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
-	       nodeT *source, candidateT **candidatelistptr, 
-	       candidateT **candidatebagptr, long *candidatelistsizeptr,
-	       long *candidatebagsizeptr, bucketT *bkts, short **flows, 
-	       void **costs, incrcostT **incrcosts, nodeT ***apexes, 
-	       signed char **iscandidate, long ngroundarcs, long nflow, 
-	       float **mag, float **wrappedphase, char *outfile, 
-	       long nnoderow, int *nnodesperrow, long narcrow, 
-	       int *narcsperrow, long nrow, long ncol,
-	       outfileT *outfiles, long nconnected, paramT *params){
+               nodeT *source, candidateT **candidatelistptr, 
+               candidateT **candidatebagptr, long *candidatelistsizeptr,
+               long *candidatebagsizeptr, bucketT *bkts, short **flows, 
+               void **costs, incrcostT **incrcosts, nodeT ***apexes, 
+               signed char **iscandidate, long ngroundarcs, long nflow, 
+               float **mag, float **wrappedphase, char *outfile, 
+               long nnoderow, int *nnodesperrow, long narcrow, 
+               int *narcsperrow, long nrow, long ncol,
+               outfileT *outfiles, long nconnected, paramT *params){
 
   long i, row, col, arcrow, arccol, arcdir, arcnum, upperarcnum;
   long arcrow1, arccol1, arcdir1, arcrow2, arccol2, arcdir2;
@@ -258,7 +258,7 @@ long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
   nmajorprune=params->nmajorprune;
   prunecostthresh=params->prunecostthresh;;
   fprintf(sp3,"Treesize: %-10ld Pivots: %-11ld Improvements: %-11ld",
-	  treesize,ipivots,inondegen);
+          treesize,ipivots,inondegen);
 
   /* loop over each entering node (note, source already on tree) */
   while(treesize<nconnected){
@@ -284,30 +284,30 @@ long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
       from=to;
       arcnum=GetArcNumLims(from->row,&upperarcnum,ngroundarcs,boundary);
       while(arcnum<upperarcnum){
-	
-	/* get row, col indices and distance of next node */
-	to=NeighborNode(from,++arcnum,&upperarcnum,nodes,ground,
-			&arcrow,&arccol,&arcdir,nrow,ncol,boundary,nodesupp);
-	
-	/* if to node is on tree */
-	if(to->group>0){
-	  if(to!=from->pred){
-	    cycleapex=FindApex(from,to);
-	    apexes[arcrow][arccol]=cycleapex;
-	    CheckArcReducedCost(from,to,cycleapex,arcrow,arccol,arcdir,
-				&candidatebag,&candidatebagnext,
-				&candidatebagsize,incrcosts,iscandidate,
-				params);
-	  }else{
-	    apexes[arcrow][arccol]=NULL;
-	  }
+        
+        /* get row, col indices and distance of next node */
+        to=NeighborNode(from,++arcnum,&upperarcnum,nodes,ground,
+                        &arcrow,&arccol,&arcdir,nrow,ncol,boundary,nodesupp);
+        
+        /* if to node is on tree */
+        if(to->group>0){
+          if(to!=from->pred){
+            cycleapex=FindApex(from,to);
+            apexes[arcrow][arccol]=cycleapex;
+            CheckArcReducedCost(from,to,cycleapex,arcrow,arccol,arcdir,
+                                &candidatebag,&candidatebagnext,
+                                &candidatebagsize,incrcosts,iscandidate,
+                                params);
+          }else{
+            apexes[arcrow][arccol]=NULL;
+          }
 
-	}else if(to->group!=PRUNED && to->group!=MASKED){
+        }else if(to->group!=PRUNED && to->group!=MASKED){
 
-	  /* if to is not on tree, update outcost and add to bucket */
-	  AddNewNode(from,to,arcdir,bkts,nflow,incrcosts,arcrow,arccol,params);
-	  
-	}
+          /* if to is not on tree, update outcost and add to bucket */
+          AddNewNode(from,to,arcdir,bkts,nflow,incrcosts,arcrow,arccol,params);
+          
+        }
       }
       nnewnodes++;
       treesize++;
@@ -322,26 +322,26 @@ long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
       /* signal handler disabled for all but primary (grid) networks */
       if(dumpresults_global){
         fflush(NULL);
-	fprintf(sp0,"\n\nDumping current solution to file %s\n",
-		outfile);
-	if(requestedstop_global){
-	  Free2DArray((void **)costs,2*nrow-1);
-	}
-	unwrappedphase=(float **)Get2DMem(nrow,ncol,sizeof(float *),
-					  sizeof(float));
-	IntegratePhase(wrappedphase,unwrappedphase,flows,nrow,ncol);
-	FlipPhaseArraySign(unwrappedphase,params,nrow,ncol);	
-	WriteOutputFile(mag,unwrappedphase,outfiles->outfile,outfiles,
-			nrow,ncol);  
-	if(requestedstop_global){
+        fprintf(sp0,"\n\nDumping current solution to file %s\n",
+                outfile);
+        if(requestedstop_global){
+          Free2DArray((void **)costs,2*nrow-1);
+        }
+        unwrappedphase=(float **)Get2DMem(nrow,ncol,sizeof(float *),
+                                          sizeof(float));
+        IntegratePhase(wrappedphase,unwrappedphase,flows,nrow,ncol);
+        FlipPhaseArraySign(unwrappedphase,params,nrow,ncol);    
+        WriteOutputFile(mag,unwrappedphase,outfiles->outfile,outfiles,
+                        nrow,ncol);  
+        if(requestedstop_global){
           fflush(NULL);
-	  fprintf(sp0,"Program exiting\n");
-	  exit(ABNORMAL_EXIT);
-	}
-	Free2DArray((void **)unwrappedphase,nrow);
-	dumpresults_global=FALSE;
+          fprintf(sp0,"Program exiting\n");
+          exit(ABNORMAL_EXIT);
+        }
+        Free2DArray((void **)unwrappedphase,nrow);
+        dumpresults_global=FALSE;
         fflush(NULL);
-	fprintf(sp0,"\n\nProgram continuing\n");
+        fprintf(sp0,"\n\nProgram continuing\n");
       }
 
       /* swap candidate bag and candidate list pointers and sizes */
@@ -356,15 +356,15 @@ long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
 
       /* sort candidate list by violation, with augmenting arcs always first */
       qsort((void *)candidatelist,candidatelistlen,sizeof(candidateT),
-	    CandidateCompare);
+            CandidateCompare);
 
       /* set all arc directions to be plus/minus 1 */
       for(i=0;i<candidatelistlen;i++){
-	if(candidatelist[i].arcdir>1){
-	  candidatelist[i].arcdir=1;
-	}else if(candidatelist[i].arcdir<-1){
-	  candidatelist[i].arcdir=-1;
-	}
+        if(candidatelist[i].arcdir>1){
+          candidatelist[i].arcdir=1;
+        }else if(candidatelist[i].arcdir<-1){
+          candidatelist[i].arcdir=-1;
+        }
       }      
 
       /* this doesn't seem to make it any faster, so just do all of them */
@@ -373,519 +373,519 @@ long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
       /*
       maxcandidates=MAXCANDIDATES;
       if(maxcandidates>candidatelistlen){
-	ncandidates=candidatelistlen;
+        ncandidates=candidatelistlen;
       }else{
-	ncandidates=maxcandidates;
+        ncandidates=maxcandidates;
       }
       */
 
       /* now pivot for each arc in the candidate list */
       for(i=0;i<candidatelistlen;i++){
 
-	/* get arc info */
-	from=candidatelist[i].from;
-	to=candidatelist[i].to;
-	arcdir=candidatelist[i].arcdir;
-	arcrow=candidatelist[i].arcrow;
-	arccol=candidatelist[i].arccol;
+        /* get arc info */
+        from=candidatelist[i].from;
+        to=candidatelist[i].to;
+        arcdir=candidatelist[i].arcdir;
+        arcrow=candidatelist[i].arcrow;
+        arccol=candidatelist[i].arccol;
 
-	/* unset iscandidate */
-	iscandidate[arcrow][arccol]=FALSE;
+        /* unset iscandidate */
+        iscandidate[arcrow][arccol]=FALSE;
 
-	/* make sure the next arc still has a negative violation */
-	outcostto=from->outcost+
-	  GetCost(incrcosts,arcrow,arccol,arcdir);
-	cyclecost=outcostto + to->incost 
-	  -apexes[arcrow][arccol]->outcost
-	  -apexes[arcrow][arccol]->incost;
+        /* make sure the next arc still has a negative violation */
+        outcostto=from->outcost+
+          GetCost(incrcosts,arcrow,arccol,arcdir);
+        cyclecost=outcostto + to->incost 
+          -apexes[arcrow][arccol]->outcost
+          -apexes[arcrow][arccol]->incost;
 
-	/* if violation no longer negative, check reverse arc */
-	if(!((outcostto < to->outcost) || (cyclecost < 0))){
-	  from=to;
-	  to=candidatelist[i].from;
-	  arcdir=-arcdir;
-	  outcostto=from->outcost+
-	    GetCost(incrcosts,arcrow,arccol,arcdir);
-	  cyclecost=outcostto + to->incost 
-	    -apexes[arcrow][arccol]->outcost
-	    -apexes[arcrow][arccol]->incost;
-	}
+        /* if violation no longer negative, check reverse arc */
+        if(!((outcostto < to->outcost) || (cyclecost < 0))){
+          from=to;
+          to=candidatelist[i].from;
+          arcdir=-arcdir;
+          outcostto=from->outcost+
+            GetCost(incrcosts,arcrow,arccol,arcdir);
+          cyclecost=outcostto + to->incost 
+            -apexes[arcrow][arccol]->outcost
+            -apexes[arcrow][arccol]->incost;
+        }
 
-	/* see if the cycle is negative (see if there is a violation) */
-	if((outcostto < to->outcost) || (cyclecost < 0)){
+        /* see if the cycle is negative (see if there is a violation) */
+        if((outcostto < to->outcost) || (cyclecost < 0)){
 
-	  /* make sure the group counter hasn't gotten too big */
-	  if(++groupcounter>MAXGROUPBASE){
-	    for(row=0;row<nnoderow;row++){
-	      for(col=0;col<nnodesperrow[row];col++){
-		if(nodes[row][col].group>0){
-		  nodes[row][col].group=1;
-		}
-	      }
-	    }
-	    if(ground!=NULL && ground->group>0){
-	      ground->group=1;
-	    }
+          /* make sure the group counter hasn't gotten too big */
+          if(++groupcounter>MAXGROUPBASE){
+            for(row=0;row<nnoderow;row++){
+              for(col=0;col<nnodesperrow[row];col++){
+                if(nodes[row][col].group>0){
+                  nodes[row][col].group=1;
+                }
+              }
+            }
+            if(ground!=NULL && ground->group>0){
+              ground->group=1;
+            }
             if(boundary->node->group>0){
               boundary->node->group=1;
             }
-	    groupcounter=2;
-	  }
+            groupcounter=2;
+          }
 
-	  /* if augmenting cycle (nondegenerate pivot) */
-	  if(cyclecost<0){
+          /* if augmenting cycle (nondegenerate pivot) */
+          if(cyclecost<0){
 
-	    /* augment flow along cycle and select leaving arc */
-	    /* if we are augmenting non-zero flow, any arc with zero flow */
-	    /* after the augmentation is a blocking arc */
-	    while(TRUE){
-	      fromside=TRUE;
-	      node1=from;
-	      node2=to;
-	      leavingchild=NULL;
-	      flows[arcrow][arccol]+=arcdir*nflow;
-	      ReCalcCost(costs,incrcosts,flows[arcrow][arccol],arcrow,arccol,
-			 nflow,nrow,params);
-	      violation=GetCost(incrcosts,arcrow,arccol,arcdir);
-	      if(node1->level > node2->level){
-		while(node1->level != node2->level){
-		  GetArc(node1->pred,node1,&arcrow1,&arccol1,&arcdir1,
-			 nrow,ncol,nodes,nodesupp);
-		  flows[arcrow1][arccol1]+=(arcdir1*nflow);
-		  ReCalcCost(costs,incrcosts,flows[arcrow1][arccol1],
-			     arcrow1,arccol1,nflow,nrow,params);
-		  if(leavingchild==NULL 
-		     && !flows[arcrow1][arccol1]){
-		    leavingchild=node1;
-		  }
-		  violation+=GetCost(incrcosts,arcrow1,arccol1,arcdir1);
-		  node1->group=groupcounter+1;
-		  node1=node1->pred;
-		}
-	      }else{
-		while(node1->level != node2->level){
-		  GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,
-			 nrow,ncol,nodes,nodesupp);
-		  flows[arcrow2][arccol2]-=(arcdir2*nflow);
-		  ReCalcCost(costs,incrcosts,flows[arcrow2][arccol2],
-			     arcrow2,arccol2,nflow,nrow,params);
-		  if(!flows[arcrow2][arccol2]){
-		    leavingchild=node2;
-		    fromside=FALSE;
-		  }
-		  violation+=GetCost(incrcosts,arcrow2,arccol2,-arcdir2);
-		  node2->group=groupcounter;
-		  node2=node2->pred;
-		}
-	      }
-	      while(node1!=node2){
-		GetArc(node1->pred,node1,&arcrow1,&arccol1,&arcdir1,nrow,ncol,
-		       nodes,nodesupp);
-		GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,nrow,ncol,
-		       nodes,nodesupp);
-		flows[arcrow1][arccol1]+=(arcdir1*nflow);
-		flows[arcrow2][arccol2]-=(arcdir2*nflow);
-		ReCalcCost(costs,incrcosts,flows[arcrow1][arccol1],
-			   arcrow1,arccol1,nflow,nrow,params);
-		ReCalcCost(costs,incrcosts,flows[arcrow2][arccol2],
-			   arcrow2,arccol2,nflow,nrow,params);
-		violation+=(GetCost(incrcosts,arcrow1,arccol1,arcdir1)
-			    +GetCost(incrcosts,arcrow2,arccol2,-arcdir2));
-		if(!flows[arcrow2][arccol2]){
-		  leavingchild=node2;
-		  fromside=FALSE;
-		}else if(leavingchild==NULL 
-			 && !flows[arcrow1][arccol1]){
-		  leavingchild=node1;
-		}
-		node1->group=groupcounter+1;
-		node2->group=groupcounter;
-		node1=node1->pred;
-		node2=node2->pred;
-	      }
-	      if(violation>=0){
-		break;
-	      }
-	    }
-	    inondegen++;
+            /* augment flow along cycle and select leaving arc */
+            /* if we are augmenting non-zero flow, any arc with zero flow */
+            /* after the augmentation is a blocking arc */
+            while(TRUE){
+              fromside=TRUE;
+              node1=from;
+              node2=to;
+              leavingchild=NULL;
+              flows[arcrow][arccol]+=arcdir*nflow;
+              ReCalcCost(costs,incrcosts,flows[arcrow][arccol],arcrow,arccol,
+                         nflow,nrow,params);
+              violation=GetCost(incrcosts,arcrow,arccol,arcdir);
+              if(node1->level > node2->level){
+                while(node1->level != node2->level){
+                  GetArc(node1->pred,node1,&arcrow1,&arccol1,&arcdir1,
+                         nrow,ncol,nodes,nodesupp);
+                  flows[arcrow1][arccol1]+=(arcdir1*nflow);
+                  ReCalcCost(costs,incrcosts,flows[arcrow1][arccol1],
+                             arcrow1,arccol1,nflow,nrow,params);
+                  if(leavingchild==NULL 
+                     && !flows[arcrow1][arccol1]){
+                    leavingchild=node1;
+                  }
+                  violation+=GetCost(incrcosts,arcrow1,arccol1,arcdir1);
+                  node1->group=groupcounter+1;
+                  node1=node1->pred;
+                }
+              }else{
+                while(node1->level != node2->level){
+                  GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,
+                         nrow,ncol,nodes,nodesupp);
+                  flows[arcrow2][arccol2]-=(arcdir2*nflow);
+                  ReCalcCost(costs,incrcosts,flows[arcrow2][arccol2],
+                             arcrow2,arccol2,nflow,nrow,params);
+                  if(!flows[arcrow2][arccol2]){
+                    leavingchild=node2;
+                    fromside=FALSE;
+                  }
+                  violation+=GetCost(incrcosts,arcrow2,arccol2,-arcdir2);
+                  node2->group=groupcounter;
+                  node2=node2->pred;
+                }
+              }
+              while(node1!=node2){
+                GetArc(node1->pred,node1,&arcrow1,&arccol1,&arcdir1,nrow,ncol,
+                       nodes,nodesupp);
+                GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,nrow,ncol,
+                       nodes,nodesupp);
+                flows[arcrow1][arccol1]+=(arcdir1*nflow);
+                flows[arcrow2][arccol2]-=(arcdir2*nflow);
+                ReCalcCost(costs,incrcosts,flows[arcrow1][arccol1],
+                           arcrow1,arccol1,nflow,nrow,params);
+                ReCalcCost(costs,incrcosts,flows[arcrow2][arccol2],
+                           arcrow2,arccol2,nflow,nrow,params);
+                violation+=(GetCost(incrcosts,arcrow1,arccol1,arcdir1)
+                            +GetCost(incrcosts,arcrow2,arccol2,-arcdir2));
+                if(!flows[arcrow2][arccol2]){
+                  leavingchild=node2;
+                  fromside=FALSE;
+                }else if(leavingchild==NULL 
+                         && !flows[arcrow1][arccol1]){
+                  leavingchild=node1;
+                }
+                node1->group=groupcounter+1;
+                node2->group=groupcounter;
+                node1=node1->pred;
+                node2=node2->pred;
+              }
+              if(violation>=0){
+                break;
+              }
+            }
+            inondegen++;
 
-	  }else{
+          }else{
 
-	    /* We are not augmenting flow, but just updating potentials. */
-	    /* Arcs with zero flow are implicitly directed upwards to */
-	    /* maintain a strongly feasible spanning tree, so arcs with zero */
-	    /* flow on the path between to node and apex are blocking arcs. */
-	    /* Leaving arc is last one whose child's new outcost is less */
-	    /* than its old outcost.  Such an arc must exist, or else */
-	    /* we'd be augmenting flow on a negative cycle. */
-	    
-	    /* trace the cycle and select leaving arc */
-	    fromside=FALSE;
-	    node1=from;
-	    node2=to;
-	    leavingchild=NULL;
-	    if(node1->level > node2->level){
-	      while(node1->level != node2->level){
-		node1->group=groupcounter+1;
-		node1=node1->pred;
-	      }
-	    }else{
-	      while(node1->level != node2->level){
-		if(outcostto < node2->outcost){
-		  leavingchild=node2;
-		  GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,
-			 nrow,ncol,nodes,nodesupp);
-		  outcostto+=GetCost(incrcosts,arcrow2,arccol2,-arcdir2);
-		}else{
-		  outcostto=VERYFAR;
-		}
-		node2->group=groupcounter;
-		node2=node2->pred;
-	      }
-	    }
-	    while(node1!=node2){
-	      if(outcostto < node2->outcost){
-		leavingchild=node2;
-		GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,nrow,ncol,
-		       nodes,nodesupp);
-		outcostto+=GetCost(incrcosts,arcrow2,arccol2,-arcdir2);
-	      }else{
-		outcostto=VERYFAR;
-	      }
-	      node1->group=groupcounter+1;
-	      node2->group=groupcounter;
-	      node1=node1->pred;
-	      node2=node2->pred;
-	    }
-	  }
-	  cycleapex=node1;
+            /* We are not augmenting flow, but just updating potentials. */
+            /* Arcs with zero flow are implicitly directed upwards to */
+            /* maintain a strongly feasible spanning tree, so arcs with zero */
+            /* flow on the path between to node and apex are blocking arcs. */
+            /* Leaving arc is last one whose child's new outcost is less */
+            /* than its old outcost.  Such an arc must exist, or else */
+            /* we'd be augmenting flow on a negative cycle. */
+            
+            /* trace the cycle and select leaving arc */
+            fromside=FALSE;
+            node1=from;
+            node2=to;
+            leavingchild=NULL;
+            if(node1->level > node2->level){
+              while(node1->level != node2->level){
+                node1->group=groupcounter+1;
+                node1=node1->pred;
+              }
+            }else{
+              while(node1->level != node2->level){
+                if(outcostto < node2->outcost){
+                  leavingchild=node2;
+                  GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,
+                         nrow,ncol,nodes,nodesupp);
+                  outcostto+=GetCost(incrcosts,arcrow2,arccol2,-arcdir2);
+                }else{
+                  outcostto=VERYFAR;
+                }
+                node2->group=groupcounter;
+                node2=node2->pred;
+              }
+            }
+            while(node1!=node2){
+              if(outcostto < node2->outcost){
+                leavingchild=node2;
+                GetArc(node2->pred,node2,&arcrow2,&arccol2,&arcdir2,nrow,ncol,
+                       nodes,nodesupp);
+                outcostto+=GetCost(incrcosts,arcrow2,arccol2,-arcdir2);
+              }else{
+                outcostto=VERYFAR;
+              }
+              node1->group=groupcounter+1;
+              node2->group=groupcounter;
+              node1=node1->pred;
+              node2=node2->pred;
+            }
+          }
+          cycleapex=node1;
 
           /* set leaving parent */ 
           if(leavingchild==NULL){
-	    fromside=TRUE;
-	    leavingparent=from;
-	  }else{
-	    leavingparent=leavingchild->pred;
-	  }
+            fromside=TRUE;
+            leavingparent=from;
+          }else{
+            leavingparent=leavingchild->pred;
+          }
 
           /* swap from and to if leaving arc is on the from side */
-	  if(fromside){
-	    groupcounter++;
-	    fromgroup=groupcounter-1;
-	    tempnode1=from;
-	    from=to;
-	    to=tempnode1;
-	  }else{
-	    fromgroup=groupcounter+1;
-	  }
+          if(fromside){
+            groupcounter++;
+            fromgroup=groupcounter-1;
+            tempnode1=from;
+            from=to;
+            to=tempnode1;
+          }else{
+            fromgroup=groupcounter+1;
+          }
 
-	  /* if augmenting pivot */
-	  if(cyclecost<0){
+          /* if augmenting pivot */
+          if(cyclecost<0){
 
-	    /* find first child of apex on either cycle path */
-	    firstfromnode=NULL;
-	    firsttonode=NULL;
+            /* find first child of apex on either cycle path */
+            firstfromnode=NULL;
+            firsttonode=NULL;
             arcnum=GetArcNumLims(cycleapex->row,&upperarcnum,
                                  ngroundarcs,boundary);
-	    while(arcnum<upperarcnum){
-	      tempnode1=NeighborNode(cycleapex,++arcnum,&upperarcnum,nodes,
-				     ground,&arcrow,&arccol,&arcdir,nrow,ncol,
-				     boundary,nodesupp);
-	      if(tempnode1->group==groupcounter
-		 && apexes[arcrow][arccol]==NULL){
-		firsttonode=tempnode1;
-		if(firstfromnode!=NULL){
-		  break;
-		}
-	      }else if(tempnode1->group==fromgroup 
-		       && apexes[arcrow][arccol]==NULL){
-		firstfromnode=tempnode1;
-		if(firsttonode!=NULL){
-		  break;
-		}
-	      }
-	    }
+            while(arcnum<upperarcnum){
+              tempnode1=NeighborNode(cycleapex,++arcnum,&upperarcnum,nodes,
+                                     ground,&arcrow,&arccol,&arcdir,nrow,ncol,
+                                     boundary,nodesupp);
+              if(tempnode1->group==groupcounter
+                 && apexes[arcrow][arccol]==NULL){
+                firsttonode=tempnode1;
+                if(firstfromnode!=NULL){
+                  break;
+                }
+              }else if(tempnode1->group==fromgroup 
+                       && apexes[arcrow][arccol]==NULL){
+                firstfromnode=tempnode1;
+                if(firsttonode!=NULL){
+                  break;
+                }
+              }
+            }
 
-	    /* update potentials, mark stationary parts of tree */
-	    cycleapex->group=groupcounter+2;
-	    if(firsttonode!=NULL){
-	      NonDegenUpdateChildren(cycleapex,leavingparent,firsttonode,0,
-				     ngroundarcs,nflow,nodes,nodesupp,ground,
-				     boundary,apexes,incrcosts,nrow,ncol,
+            /* update potentials, mark stationary parts of tree */
+            cycleapex->group=groupcounter+2;
+            if(firsttonode!=NULL){
+              NonDegenUpdateChildren(cycleapex,leavingparent,firsttonode,0,
+                                     ngroundarcs,nflow,nodes,nodesupp,ground,
+                                     boundary,apexes,incrcosts,nrow,ncol,
                                      params); 
-	    }
-	    if(firstfromnode!=NULL){
-	      NonDegenUpdateChildren(cycleapex,from,firstfromnode,1,
-				     ngroundarcs,nflow,nodes,nodesupp,ground,
-				     boundary,apexes,incrcosts,nrow,ncol,
+            }
+            if(firstfromnode!=NULL){
+              NonDegenUpdateChildren(cycleapex,from,firstfromnode,1,
+                                     ngroundarcs,nflow,nodes,nodesupp,ground,
+                                     boundary,apexes,incrcosts,nrow,ncol,
                                      params);
-	    }
-	    groupcounter=from->group;
-	    apexlistbase=cycleapex->group;
+            }
+            groupcounter=from->group;
+            apexlistbase=cycleapex->group;
 
-	    /* children of cycleapex are not marked, so we set fromgroup */
-	    /*   equal to cycleapex group for use with apex updates below */
-	    /* all other children of cycle will be in apexlist if we had an */
-	    /*   augmenting pivot, so fromgroup only important for cycleapex */
-	    fromgroup=cycleapex->group;
+            /* children of cycleapex are not marked, so we set fromgroup */
+            /*   equal to cycleapex group for use with apex updates below */
+            /* all other children of cycle will be in apexlist if we had an */
+            /*   augmenting pivot, so fromgroup only important for cycleapex */
+            fromgroup=cycleapex->group;
 
-	  }else{
+          }else{
 
-	    /* set this stuff for use with apex updates below */
-	    cycleapex->group=fromgroup;
-	    groupcounter+=2;
-	    apexlistbase=groupcounter+1;
-	  }
+            /* set this stuff for use with apex updates below */
+            cycleapex->group=fromgroup;
+            groupcounter+=2;
+            apexlistbase=groupcounter+1;
+          }
 
-	  /* remount subtree at new mount point */
-	  if(leavingchild==NULL){
-	    
-	    skipthread=to;
+          /* remount subtree at new mount point */
+          if(leavingchild==NULL){
+            
+            skipthread=to;
 
-	  }else{
+          }else{
 
-	    root=from;
-	    oldmntpt=to;
+            root=from;
+            oldmntpt=to;
 
-	    /* for each node on the path from to node to leaving child */
-	    while(oldmntpt!=leavingparent){
+            /* for each node on the path from to node to leaving child */
+            while(oldmntpt!=leavingparent){
 
-	      /* remount the subtree at the new mount point */
-	      mntpt=root;
-	      root=oldmntpt;
-	      oldmntpt=root->pred;
-	      root->pred=mntpt;
-	      GetArc(mntpt,root,&arcrow,&arccol,&arcdir,nrow,ncol,
+              /* remount the subtree at the new mount point */
+              mntpt=root;
+              root=oldmntpt;
+              oldmntpt=root->pred;
+              root->pred=mntpt;
+              GetArc(mntpt,root,&arcrow,&arccol,&arcdir,nrow,ncol,
                      nodes,nodesupp);
-	      
-	      /* calculate differences for updating potentials and levels */
-	      dlevel=mntpt->level-root->level+1;
-	      doutcost=mntpt->outcost - root->outcost 
-		+ GetCost(incrcosts,arcrow,arccol,arcdir);
-	      dincost=mntpt->incost - root->incost 
-		+ GetCost(incrcosts,arcrow,arccol,-arcdir);
+              
+              /* calculate differences for updating potentials and levels */
+              dlevel=mntpt->level-root->level+1;
+              doutcost=mntpt->outcost - root->outcost 
+                + GetCost(incrcosts,arcrow,arccol,arcdir);
+              dincost=mntpt->incost - root->incost 
+                + GetCost(incrcosts,arcrow,arccol,-arcdir);
 
-	      /* update all children */
-	      /* group of each remounted tree used to reset apexes below */
-	      node1=root;
-	      startlevel=root->level;
-	      groupcounter++;
-	      while(TRUE){
-		
-		/* update the level, potentials, and group of the node */
-		node1->level+=dlevel;
-		node1->outcost+=doutcost;
-		node1->incost+=dincost;
-		node1->group=groupcounter;
+              /* update all children */
+              /* group of each remounted tree used to reset apexes below */
+              node1=root;
+              startlevel=root->level;
+              groupcounter++;
+              while(TRUE){
                 
-		/* break when node1 is no longer descendent of the root */
-		if(node1->next->level <= startlevel){
-		  break;
-		}
-		node1=node1->next;
-	      }
+                /* update the level, potentials, and group of the node */
+                node1->level+=dlevel;
+                node1->outcost+=doutcost;
+                node1->incost+=dincost;
+                node1->group=groupcounter;
+                
+                /* break when node1 is no longer descendent of the root */
+                if(node1->next->level <= startlevel){
+                  break;
+                }
+                node1=node1->next;
+              }
 
-	      /* update threads */
-	      root->prev->next=node1->next;
-	      node1->next->prev=root->prev;
-	      node1->next=mntpt->next;  
-	      mntpt->next->prev=node1;
-	      mntpt->next=root;       
-	      root->prev=mntpt;
+              /* update threads */
+              root->prev->next=node1->next;
+              node1->next->prev=root->prev;
+              node1->next=mntpt->next;  
+              mntpt->next->prev=node1;
+              mntpt->next=root;       
+              root->prev=mntpt;
 
-	    }
-	    skipthread=node1->next;
+            }
+            skipthread=node1->next;
 
-	    /* reset apex pointers for entering and leaving arcs */
-	    GetArc(from,to,&arcrow,&arccol,&arcdir,nrow,ncol,nodes,nodesupp);
-	    apexes[arcrow][arccol]=NULL;
-	    GetArc(leavingparent,leavingchild,&arcrow,&arccol,
-		   &arcdir,nrow,ncol,nodes,nodesupp);
-	    apexes[arcrow][arccol]=cycleapex;
+            /* reset apex pointers for entering and leaving arcs */
+            GetArc(from,to,&arcrow,&arccol,&arcdir,nrow,ncol,nodes,nodesupp);
+            apexes[arcrow][arccol]=NULL;
+            GetArc(leavingparent,leavingchild,&arcrow,&arccol,
+                   &arcdir,nrow,ncol,nodes,nodesupp);
+            apexes[arcrow][arccol]=cycleapex;
 
-	    /* make sure we have enough memory for the apex list */
-	    if(groupcounter-apexlistbase+1>apexlistlen){
-	      apexlistlen=1.5*(groupcounter-apexlistbase+1); 
-	      apexlist=ReAlloc(apexlist,apexlistlen*sizeof(nodeT *));
-	    }
+            /* make sure we have enough memory for the apex list */
+            if(groupcounter-apexlistbase+1>apexlistlen){
+              apexlistlen=1.5*(groupcounter-apexlistbase+1); 
+              apexlist=ReAlloc(apexlist,apexlistlen*sizeof(nodeT *));
+            }
         
-	    /* set the apex list */
+            /* set the apex list */
             /* the apex list is a look up table of apex node pointers indexed */
             /*   by the group number relative to a base group value */
-	    node2=leavingchild;
-	    for(group1=groupcounter;group1>=apexlistbase;group1--){
-	      apexlist[group1-apexlistbase]=node2;
-	      node2=node2->pred;
-	    }
+            node2=leavingchild;
+            for(group1=groupcounter;group1>=apexlistbase;group1--){
+              apexlist[group1-apexlistbase]=node2;
+              node2=node2->pred;
+            }
         
-	    /* reset apex pointers on remounted tree */
-	    /* only nodes which are in different groups need new apexes */
-	    node1=to;
-	    startlevel=to->level;
-	    while(TRUE){
-	      
-	      /* loop over outgoing arcs */
+            /* reset apex pointers on remounted tree */
+            /* only nodes which are in different groups need new apexes */
+            node1=to;
+            startlevel=to->level;
+            while(TRUE){
+              
+              /* loop over outgoing arcs */
               arcnum=GetArcNumLims(node1->row,&upperarcnum,
                                    ngroundarcs,boundary);
-	      while(arcnum<upperarcnum){
-		node2=NeighborNode(node1,++arcnum,&upperarcnum,nodes,ground,
-				   &arcrow,&arccol,&arcdir,nrow,ncol,
+              while(arcnum<upperarcnum){
+                node2=NeighborNode(node1,++arcnum,&upperarcnum,nodes,ground,
+                                   &arcrow,&arccol,&arcdir,nrow,ncol,
                                    boundary,nodesupp);
                 
-		/* if node2 on tree */
-		if(node2->group>0){
+                /* if node2 on tree */
+                if(node2->group>0){
 
-		
-		  /* if node2 is either not part of remounted tree or */
-		  /*   it is higher on remounted tree than node1, */
-		  /*   and arc isn't already on tree */
-		  if(node2->group < node1->group 
-		     && apexes[arcrow][arccol]!=NULL){
+                
+                  /* if node2 is either not part of remounted tree or */
+                  /*   it is higher on remounted tree than node1, */
+                  /*   and arc isn't already on tree */
+                  if(node2->group < node1->group 
+                     && apexes[arcrow][arccol]!=NULL){
 
-		    /* if new apex in apexlist */
-		    /* node2 on remounted tree, if nonaugmenting pivot */
-		    if(node2->group >= apexlistbase){
-		      
-		      apexes[arcrow][arccol]=apexlist[node2->group
-						     -apexlistbase];
-		      
-		    }else{
-			
-		      /* if old apex below level of cycleapex, */
-		      /*   node2 is on "to" node's side of tree */
-		      /* implicitly, if old apex above cycleapex, */
-		      /*   we do nothing since apex won't change */
-		      if(apexes[arcrow][arccol]->level > cycleapex->level){
-		      
-			/* since new apex not in apexlist (tested above), */
-			/* node2 above leaving arc so new apex is cycleapex */
-			apexes[arcrow][arccol]=cycleapex;
-			
-		      }else{
+                    /* if new apex in apexlist */
+                    /* node2 on remounted tree, if nonaugmenting pivot */
+                    if(node2->group >= apexlistbase){
+                      
+                      apexes[arcrow][arccol]=apexlist[node2->group
+                                                     -apexlistbase];
+                      
+                    }else{
+                        
+                      /* if old apex below level of cycleapex, */
+                      /*   node2 is on "to" node's side of tree */
+                      /* implicitly, if old apex above cycleapex, */
+                      /*   we do nothing since apex won't change */
+                      if(apexes[arcrow][arccol]->level > cycleapex->level){
+                      
+                        /* since new apex not in apexlist (tested above), */
+                        /* node2 above leaving arc so new apex is cycleapex */
+                        apexes[arcrow][arccol]=cycleapex;
+                        
+                      }else{
 
-			/* node2 not on "to" side of tree */
-			/* if old apex is cycleapex, node2 is on "from" side */
-			if(apexes[arcrow][arccol]==cycleapex){
+                        /* node2 not on "to" side of tree */
+                        /* if old apex is cycleapex, node2 is on "from" side */
+                        if(apexes[arcrow][arccol]==cycleapex){
 
-			  /* new apex will be on cycle, so trace node2->pred */
-			  /*   until we hit a node with group==fromgroup */
-			  tempnode2=node2;
-			  while(tempnode2->group != fromgroup){
-			    tempnode2=tempnode2->pred;
-			  }
+                          /* new apex will be on cycle, so trace node2->pred */
+                          /*   until we hit a node with group==fromgroup */
+                          tempnode2=node2;
+                          while(tempnode2->group != fromgroup){
+                            tempnode2=tempnode2->pred;
+                          }
                           apexes[arcrow][arccol]=tempnode2;
 
-			}
-		      }
-		    }
+                        }
+                      }
+                    }
 
-		    /* check outgoing arcs for negative reduced costs */
+                    /* check outgoing arcs for negative reduced costs */
                     CheckArcReducedCost(node1,node2,apexes[arcrow][arccol],
-					arcrow,arccol,arcdir,&candidatebag,
-					&candidatebagnext,&candidatebagsize,
-					incrcosts,iscandidate,params);
+                                        arcrow,arccol,arcdir,&candidatebag,
+                                        &candidatebagnext,&candidatebagsize,
+                                        incrcosts,iscandidate,params);
 
-		  } /* end if node2 below node1 and arc not on tree */
+                  } /* end if node2 below node1 and arc not on tree */
 
-		}else if(node2->group!=PRUNED && node2->group!=MASKED){
+                }else if(node2->group!=PRUNED && node2->group!=MASKED){
 
-		  /* node2 is not on tree, so put it in correct bucket */
-		  AddNewNode(node1,node2,arcdir,bkts,nflow,incrcosts,
-			     arcrow,arccol,params);
+                  /* node2 is not on tree, so put it in correct bucket */
+                  AddNewNode(node1,node2,arcdir,bkts,nflow,incrcosts,
+                             arcrow,arccol,params);
 
-		} /* end if node2 on tree */
-	      } /* end loop over node1 outgoing arcs */
+                } /* end if node2 on tree */
+              } /* end loop over node1 outgoing arcs */
 
 
-	      /* move to next node in thread, break if we left the subtree */
-	      node1=node1->next;
-	      if(node1->level <= startlevel){
-		break;
-	      }
-	    }
-	  } /* end if leavingchild!=NULL */
+              /* move to next node in thread, break if we left the subtree */
+              node1=node1->next;
+              if(node1->level <= startlevel){
+                break;
+              }
+            }
+          } /* end if leavingchild!=NULL */
 
-	  /* if we had an augmenting cycle */
-	  /* we need to check outarcs from descendents of any cycle node */
-	  /* (except apex, since apex potentials don't change) */
-	  if(cyclecost<0){
-	    
-	    /* check descendents of cycle children of apex */
-	    while(TRUE){
-	      
-	      /* firstfromnode, firsttonode may have changed */
-	      if(firstfromnode!=NULL && firstfromnode->pred==cycleapex){
-		node1=firstfromnode;
-		firstfromnode=NULL;
-	      }else if(firsttonode!=NULL && firsttonode->pred==cycleapex){
-		node1=firsttonode;
-		firsttonode=NULL;
-	      }else{
-		break;
-	      }
-	      startlevel=node1->level;
+          /* if we had an augmenting cycle */
+          /* we need to check outarcs from descendents of any cycle node */
+          /* (except apex, since apex potentials don't change) */
+          if(cyclecost<0){
+            
+            /* check descendents of cycle children of apex */
+            while(TRUE){
+              
+              /* firstfromnode, firsttonode may have changed */
+              if(firstfromnode!=NULL && firstfromnode->pred==cycleapex){
+                node1=firstfromnode;
+                firstfromnode=NULL;
+              }else if(firsttonode!=NULL && firsttonode->pred==cycleapex){
+                node1=firsttonode;
+                firsttonode=NULL;
+              }else{
+                break;
+              }
+              startlevel=node1->level;
 
-	      /* loop over all descendents */
-	      while(TRUE){
-	      
-		/* loop over outgoing arcs */
-		arcnum=GetArcNumLims(node1->row,&upperarcnum,
+              /* loop over all descendents */
+              while(TRUE){
+              
+                /* loop over outgoing arcs */
+                arcnum=GetArcNumLims(node1->row,&upperarcnum,
                                      ngroundarcs,boundary);
-		while(arcnum<upperarcnum){
-		  node2=NeighborNode(node1,++arcnum,&upperarcnum,nodes,ground,
-				     &arcrow,&arccol,&arcdir,nrow,ncol,
-				     boundary,nodesupp);
+                while(arcnum<upperarcnum){
+                  node2=NeighborNode(node1,++arcnum,&upperarcnum,nodes,ground,
+                                     &arcrow,&arccol,&arcdir,nrow,ncol,
+                                     boundary,nodesupp);
 
-		  /* check for outcost updates or negative reduced costs */
-		  if(node2->group>0){
-		    if(apexes[arcrow][arccol]!=NULL 
-		       && (node2->group!=node1->group 
-			   || node1->group==apexlistbase)){
-		      CheckArcReducedCost(node1,node2,apexes[arcrow][arccol],
-					  arcrow,arccol,arcdir,&candidatebag,
-					  &candidatebagnext,&candidatebagsize,
-					  incrcosts,iscandidate,params);
-		    }
-		  }else if(node2->group!=PRUNED && node2->group!=MASKED){
-		    AddNewNode(node1,node2,arcdir,bkts,nflow,incrcosts,
-			       arcrow,arccol,params);
-		  }			
-		}
-		
-		/* move to next node in thread, break if left the subtree */
-		/*   but skip the remounted tree, since we checked it above */
-		node1=node1->next;
-		if(node1==to){
-		  node1=skipthread;
-		}
-		if(node1->level <= startlevel){
-		  break;
-		}
-	      }
-	    }
-	  }
-	  ipivots++;
-	} /* end if cyclecost<0 || outcostto<to->outcost */
+                  /* check for outcost updates or negative reduced costs */
+                  if(node2->group>0){
+                    if(apexes[arcrow][arccol]!=NULL 
+                       && (node2->group!=node1->group 
+                           || node1->group==apexlistbase)){
+                      CheckArcReducedCost(node1,node2,apexes[arcrow][arccol],
+                                          arcrow,arccol,arcdir,&candidatebag,
+                                          &candidatebagnext,&candidatebagsize,
+                                          incrcosts,iscandidate,params);
+                    }
+                  }else if(node2->group!=PRUNED && node2->group!=MASKED){
+                    AddNewNode(node1,node2,arcdir,bkts,nflow,incrcosts,
+                               arcrow,arccol,params);
+                  }                     
+                }
+                
+                /* move to next node in thread, break if left the subtree */
+                /*   but skip the remounted tree, since we checked it above */
+                node1=node1->next;
+                if(node1==to){
+                  node1=skipthread;
+                }
+                if(node1->level <= startlevel){
+                  break;
+                }
+              }
+            }
+          }
+          ipivots++;
+        } /* end if cyclecost<0 || outcostto<to->outcost */
       } /* end of for loop over candidates in list */
 
       /* this is needed only if we don't process all candidates above */
       /* copy remaining candidates into candidatebag */
       /*
       while(candidatebagnext+(candidatelistlen-ncandidates)>candidatebagsize){
-	candidatebagsize+=CANDIDATEBAGSTEP;
-	candidatebag=ReAlloc(candidatebag,candidatebagsize*sizeof(candidateT));
+        candidatebagsize+=CANDIDATEBAGSTEP;
+        candidatebag=ReAlloc(candidatebag,candidatebagsize*sizeof(candidateT));
       }
       for(i=ncandidates;i<candidatelistlen;i++){
-	candidatebag[candidatebagnext++]=candidatelist[i];
+        candidatebag[candidatebagnext++]=candidatelist[i];
       }
       */
 
       /* display status */
       fprintf(sp3,"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
-	      "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
-	      "\b\b\b\b\b\b"
-	      "Treesize: %-10ld Pivots: %-11ld Improvements: %-11ld",
-	      treesize,ipivots,inondegen);
+              "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
+              "\b\b\b\b\b\b"
+              "Treesize: %-10ld Pivots: %-11ld Improvements: %-11ld",
+              treesize,ipivots,inondegen);
       fflush(sp3);
 
     } /* end of while loop on candidatebagnext */    
@@ -893,7 +893,7 @@ long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
     /* prune tree by removing unneeded leaf nodes */
     if(!((++nmajor) % nmajorprune)){
       npruned+=PruneTree(source,nodes,ground,boundary,nodesupp,incrcosts,flows,
-			 ngroundarcs,prunecostthresh,nrow,ncol);
+                         ngroundarcs,prunecostthresh,nrow,ncol);
     }
     
   } /* end while treesize<number of total nodes */
@@ -931,10 +931,10 @@ long TreeSolve(nodeT **nodes, nodesuppT **nodesupp, nodeT *ground,
   
   /* clean up: set pointers for outputs */
   fprintf(sp3,"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
-	  "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
-	  "\b\b\b\b\b\b"
-	  "Treesize: %-10ld Pivots: %-11ld Improvements: %-11ld\n",
-	  treesize,ipivots,inondegen);
+          "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
+          "\b\b\b\b\b\b"
+          "Treesize: %-10ld Pivots: %-11ld Improvements: %-11ld\n",
+          treesize,ipivots,inondegen);
   fflush(sp3);
   *candidatelistptr=candidatelist;
   *candidatebagptr=candidatebag;
@@ -974,26 +974,26 @@ void AddNewNode(nodeT *from, nodeT *to, long arcdir, bucketT *bkts,
   if(newoutcost<to->outcost || to->pred==from){
     if(to->group==INBUCKET){      /* if to is already in a bucket */
       if(to->outcost<bkts->maxind){
-	if(to->outcost>bkts->minind){
-	  BucketRemove(to,to->outcost,bkts);
-	}else{
-	  BucketRemove(to,bkts->minind,bkts);
-	}
+        if(to->outcost>bkts->minind){
+          BucketRemove(to,to->outcost,bkts);
+        }else{
+          BucketRemove(to,bkts->minind,bkts);
+        }
       }else{
-	BucketRemove(to,bkts->maxind,bkts);
+        BucketRemove(to,bkts->maxind,bkts);
       }
     }      
     to->outcost=newoutcost;
     to->pred=from;
     if(newoutcost<bkts->maxind){
       if(newoutcost>bkts->minind){
-	BucketInsert(to,newoutcost,bkts);
-	if(newoutcost<bkts->curr){
-	  bkts->curr=newoutcost;
-	}
+        BucketInsert(to,newoutcost,bkts);
+        if(newoutcost<bkts->curr){
+          bkts->curr=newoutcost;
+        }
       }else{
-	BucketInsert(to,bkts->minind,bkts);
-	bkts->curr=bkts->minind;
+        BucketInsert(to,bkts->minind,bkts);
+        bkts->curr=bkts->minind;
       }
     }else{
       BucketInsert(to,bkts->maxind,bkts);
@@ -1046,13 +1046,13 @@ void CheckArcReducedCost(nodeT *from, nodeT *to, nodeT *apex,
     }else{
       violation=fwdarcdist+from->outcost-to->outcost;
       if(violation>=0){
-	violation=revarcdist+to->outcost-from->outcost;
-	if(violation<0){
-	  arcdir=-arcdir;
-	  temp=from;
-	  from=to;
-	  to=temp;
-	}
+        violation=revarcdist+to->outcost-from->outcost;
+        if(violation<0){
+          arcdir=-arcdir;
+          temp=from;
+          from=to;
+          to=temp;
+        }
       }
     }
   }
@@ -1062,7 +1062,7 @@ void CheckArcReducedCost(nodeT *from, nodeT *to, nodeT *apex,
     if((*candidatebagnextptr)>=(*candidatebagsizeptr)){
       (*candidatebagsizeptr)+=CANDIDATEBAGSTEP;
       (*candidatebagptr)=ReAlloc(*candidatebagptr,
-				 (*candidatebagsizeptr)*sizeof(candidateT));
+                                 (*candidatebagsizeptr)*sizeof(candidateT));
     }
     (*candidatebagptr)[*candidatebagnextptr].violation=violation;
     (*candidatebagptr)[*candidatebagnextptr].from=from;
@@ -1751,10 +1751,10 @@ int DischargeBoundary(nodeT **nodes, nodeT *ground,
       if(row<nrow-1){
         if(iscandidate[row][col]){
           if(col>0){
-            nodes[row][col].outcost=0;
+            nodes[row][col-1].outcost=0;
           }
           if(col<ncol-1){
-            nodes[row][col+1].outcost=0;
+            nodes[row][col].outcost=0;
           }
         }
         iscandidate[row][col]=FALSE;
@@ -1762,10 +1762,10 @@ int DischargeBoundary(nodeT **nodes, nodeT *ground,
       if(col<ncol-1){
         if(iscandidate[row+nrow-1][col]){
           if(row>0){
-            nodes[row][col].outcost=0;
+            nodes[row-1][col].outcost=0;
           }
           if(row<nrow-1){
-            nodes[row+1][col].outcost=0;
+            nodes[row][col].outcost=0;
           }
         }
         iscandidate[row+nrow-1][col]=FALSE;
@@ -1812,7 +1812,7 @@ int InitTree(nodeT *source, nodeT **nodes,
     
     /* get node reached by outgoing arc */
     to=NeighborNode(source,++arcnum,&upperarcnum,nodes,ground,
-		    &arcrow,&arccol,&arcdir,nrow,ncol,boundary,nodesupp);
+                    &arcrow,&arccol,&arcdir,nrow,ncol,boundary,nodesupp);
 
     /* add to node to bucket */
     if(to->group!=PRUNED && to->group!=MASKED){
@@ -1922,9 +1922,9 @@ long GetArcNumLims(long fromrow, long *upperarcnumptr,
  */
 static
 nodeT *NeighborNodeGrid(nodeT *node1, long arcnum, long *upperarcnumptr,
-			nodeT **nodes, nodeT *ground, long *arcrowptr, 
-			long *arccolptr, long *arcdirptr, long nrow, 
-			long ncol, boundaryT *boundary, nodesuppT **nodesupp){
+                        nodeT **nodes, nodeT *ground, long *arcrowptr, 
+                        long *arccolptr, long *arcdirptr, long nrow, 
+                        long ncol, boundaryT *boundary, nodesuppT **nodesupp){
   long row, col;
   nodeT *neighbor;
 
@@ -2031,9 +2031,9 @@ nodeT *NeighborNodeGrid(nodeT *node1, long arcnum, long *upperarcnumptr,
  */
 static
 nodeT *NeighborNodeNonGrid(nodeT *node1, long arcnum, long *upperarcnumptr,
-			   nodeT **nodes, nodeT *ground, long *arcrowptr, 
-			   long *arccolptr, long *arcdirptr, long nrow, 
-			   long ncol, boundaryT *boundary,
+                           nodeT **nodes, nodeT *ground, long *arcrowptr, 
+                           long *arccolptr, long *arcdirptr, long nrow, 
+                           long ncol, boundaryT *boundary,
                            nodesuppT **nodesupp){
 
   long tilenum, nodenum;
@@ -2095,7 +2095,7 @@ void GetArcGrid(nodeT *from, nodeT *to, long *arcrow, long *arccol,
     *arccol=fromcol;
     *arcdir=-1;
   }else if(fromrow==BOUNDARYROW){ /* arc from boundary pointer */  
-    if(tocol<ncol-1 && nodes[torow][tocol+1].group==BOUNDARYPTR){
+    if(tocol<ncol-2 && nodes[torow][tocol+1].group==BOUNDARYPTR){
       *arcrow=torow;
       *arccol=tocol+1;
       *arcdir=-1;
@@ -2103,7 +2103,7 @@ void GetArcGrid(nodeT *from, nodeT *to, long *arcrow, long *arccol,
       *arcrow=torow;
       *arccol=tocol;
       *arcdir=1;
-    }else if(torow<nrow-1 && nodes[torow+1][tocol].group==BOUNDARYPTR){
+    }else if(torow<nrow-2 && nodes[torow+1][tocol].group==BOUNDARYPTR){
       *arcrow=torow+1+nrow-1;
       *arccol=tocol;
       *arcdir=-1;
@@ -2113,7 +2113,7 @@ void GetArcGrid(nodeT *from, nodeT *to, long *arcrow, long *arccol,
       *arcdir=1;
     }
   }else if(torow==BOUNDARYROW){   /* arc to boundary pointer */
-    if(fromcol<ncol-1 && nodes[fromrow][fromcol+1].group==BOUNDARYPTR){
+    if(fromcol<ncol-2 && nodes[fromrow][fromcol+1].group==BOUNDARYPTR){
       *arcrow=fromrow;
       *arccol=fromcol+1;
       *arcdir=1;
@@ -2121,7 +2121,7 @@ void GetArcGrid(nodeT *from, nodeT *to, long *arcrow, long *arccol,
       *arcrow=fromrow;
       *arccol=fromcol;
       *arcdir=-1;
-    }else if(fromrow<nrow-1 && nodes[fromrow+1][fromcol].group==BOUNDARYPTR){
+    }else if(fromrow<nrow-2 && nodes[fromrow+1][fromcol].group==BOUNDARYPTR){
       *arcrow=fromrow+1+nrow-1;
       *arccol=fromcol;
       *arcdir=1;
@@ -2275,8 +2275,8 @@ void NonDegenUpdateChildren(nodeT *startnode, nodeT *lastnode,
  */
 static
 long PruneTree(nodeT *source, nodeT **nodes, nodeT *ground, boundaryT *boundary,
-	       nodesuppT **nodesupp, incrcostT **incrcosts, 
-	       short **flows, long ngroundarcs, long prunecostthresh,
+               nodesuppT **nodesupp, incrcostT **incrcosts, 
+               short **flows, long ngroundarcs, long prunecostthresh,
                long nrow, long ncol){
 
   long npruned;
@@ -2291,7 +2291,7 @@ long PruneTree(nodeT *source, nodeT **nodes, nodeT *ground, boundaryT *boundary,
     
     /* see if current node is a leaf that should be pruned */
     if(CheckLeaf(node1,nodes,ground,boundary,nodesupp,incrcosts,flows,
-		 ngroundarcs,nrow,ncol,prunecostthresh)){
+                 ngroundarcs,nrow,ncol,prunecostthresh)){
 
       /* remove the current node from the tree */
       node1->prev->next=node1->next;
@@ -2302,9 +2302,9 @@ long PruneTree(nodeT *source, nodeT **nodes, nodeT *ground, boundaryT *boundary,
       /* see if last node checked was current node's parent */
       /*   if so, it may need pruning since its child has been pruned */
       if(node1->prev->level < node1->level){
-	node1=node1->prev;
+        node1=node1->prev;
       }else{
-	node1=node1->next;
+        node1=node1->next;
       }
 
     }else{
@@ -2333,9 +2333,9 @@ long PruneTree(nodeT *source, nodeT **nodes, nodeT *ground, boundaryT *boundary,
  */
 static
 int CheckLeaf(nodeT *node1, nodeT **nodes, nodeT *ground, boundaryT *boundary,
-	      nodesuppT **nodesupp, incrcostT **incrcosts, 
-	      short **flows, long ngroundarcs, long nrow, long ncol, 
-	      long prunecostthresh){
+              nodesuppT **nodesupp, incrcostT **incrcosts, 
+              short **flows, long ngroundarcs, long nrow, long ncol, 
+              long prunecostthresh){
 
   long arcnum, upperarcnum, arcrow, arccol, arcdir;
   nodeT *node2;
@@ -2350,7 +2350,7 @@ int CheckLeaf(nodeT *node1, nodeT **nodes, nodeT *ground, boundaryT *boundary,
   arcnum=GetArcNumLims(node1->row,&upperarcnum,ngroundarcs,boundary);
   while(arcnum<upperarcnum){
     node2=NeighborNode(node1,++arcnum,&upperarcnum,nodes,ground,
-		       &arcrow,&arccol,&arcdir,nrow,ncol,boundary,nodesupp);
+                       &arcrow,&arccol,&arcdir,nrow,ncol,boundary,nodesupp);
 
     /* current node should not be pruned if adjacent node */
     /*   has not been added to tree yet */
@@ -2428,24 +2428,24 @@ int InitNetwork(short **flows, long *ngroundarcsptr, long *ncycleptr,
       *ngroundarcsptr=2*(nrow+ncol-2)-2;
     }
     *iscandidateptr=(signed char **)Get2DRowColMem(nrow,ncol,
-						   sizeof(signed char *),
-						   sizeof(signed char));
+                                                   sizeof(signed char *),
+                                                   sizeof(signed char));
     *apexesptr=(nodeT ***)Get2DRowColMem(nrow,ncol,sizeof(nodeT **),
-					 sizeof(nodeT *));
+                                         sizeof(nodeT *));
   }
 
   /* set up buckets for TreeSolve (MSTInitFlows() has local set of buckets) */
   *bktsptr=MAlloc(sizeof(bucketT));
   if(ground!=NULL){
     (*bktsptr)->minind=-LRound((params->maxcost+1)*(nrow+ncol)
-			       *NEGBUCKETFRACTION);
+                               *NEGBUCKETFRACTION);
     (*bktsptr)->maxind=LRound((params->maxcost+1)*(nrow+ncol)
-			      *POSBUCKETFRACTION);
+                              *POSBUCKETFRACTION);
   }else{
     (*bktsptr)->minind=-LRound((params->maxcost+1)*(nrow)
-			       *NEGBUCKETFRACTION);
+                               *NEGBUCKETFRACTION);
     (*bktsptr)->maxind=LRound((params->maxcost+1)*(nrow)
-			      *POSBUCKETFRACTION);
+                              *POSBUCKETFRACTION);
   }
   (*bktsptr)->size=(*bktsptr)->maxind-(*bktsptr)->minind+1;
   (*bktsptr)->bucketbase=(nodeT **)MAlloc((*bktsptr)->size*sizeof(nodeT *));
@@ -2458,7 +2458,7 @@ int InitNetwork(short **flows, long *ngroundarcsptr, long *ncycleptr,
   *iincrcostfileptr=0;
   if(ground!=NULL){
     (*incrcostsptr)=(incrcostT **)Get2DRowColMem(nrow,ncol,sizeof(incrcostT *),
-						 sizeof(incrcostT));
+                                                 sizeof(incrcostT));
   }
 
   /* set number of nodes and arcs per row */
@@ -2504,8 +2504,8 @@ long SetupTreeSolveNetwork(nodeT **nodes, nodeT *ground, nodeT ***apexes,
   for(row=0;row<nnoderow;row++){
     for(col=0;col<nnodesperrow[row];col++){
       if(nodes[row][col].group!=MASKED){
-	nodes[row][col].group=0;
-	nnodes++;
+        nodes[row][col].group=0;
+        nnodes++;
       }
       nodes[row][col].incost=VERYFAR;
       nodes[row][col].outcost=VERYFAR;
@@ -2562,7 +2562,7 @@ signed char CheckMagMasking(float **mag, long nrow, long ncol){
   for(row=0;row<nrow;row++){
     for(col=0;col<ncol;col++){
       if(mag[row][col]>0){
-	return(0);
+        return(0);
       }
     }
   }
@@ -2585,10 +2585,10 @@ int MaskNodes(long nrow, long ncol, nodeT **nodes, nodeT *ground,
   for(row=0;row<nrow-1;row++){
     for(col=0;col<ncol-1;col++){
       if(mag[row][col] || mag[row][col+1]
-	 || mag[row+1][col] || mag[row+1][col+1]){
-	nodes[row][col].group=0;
+         || mag[row+1][col] || mag[row+1][col+1]){
+        nodes[row][col].group=0;
       }else{
-	nodes[row][col].group=MASKED;
+        nodes[row][col].group=MASKED;
       }
     }
   }
@@ -2604,8 +2604,8 @@ int MaskNodes(long nrow, long ncol, nodeT **nodes, nodeT *ground,
   if(ground->group==MASKED){
     for(col=0;col<ncol;col++){
       if(mag[0][col] || mag[nrow-1][col]){
-	ground->group=0;
-	break;
+        ground->group=0;
+        break;
       }
     }
   }
@@ -2632,7 +2632,7 @@ long MaxNonMaskFlow(short **flows, float **mag, long nrow, long ncol){
     for(col=0;col<ncol;col++){
       flowvalue=labs((long )flows[row][col]);
       if(flowvalue>mostflow && mag[row][col]>0 && mag[row+1][col]>0){
-	mostflow=flowvalue;
+        mostflow=flowvalue;
       }
     }
   }
@@ -2640,8 +2640,8 @@ long MaxNonMaskFlow(short **flows, float **mag, long nrow, long ncol){
     for(col=0;col<ncol-1;col++){
       flowvalue=labs((long )flows[row][col]);
       if(flowvalue>mostflow 
-	 && mag[row-nrow+1][col]>0 && mag[row-nrow+1][col+1]>0){
-	  mostflow=flowvalue;
+         && mag[row-nrow+1][col]>0 && mag[row-nrow+1][col+1]>0){
+          mostflow=flowvalue;
       }
     }
   }
@@ -2794,7 +2794,7 @@ nodeT *ClosestNode(bucketT *bkts){
 
     /* see if we got to the last bucket */
     if((bkts->curr)>(bkts->maxind)){
-	return(NULL);
+        return(NULL);
     }
 
     /* see if we found a nonempty bucket; if so, return it */
@@ -2803,7 +2803,7 @@ nodeT *ClosestNode(bucketT *bkts){
       node->group=ONTREE;
       bkts->bucket[bkts->curr]=node->next;
       if((node->next)!=NULL){
-	node->next->prev=NULL;
+        node->next->prev=NULL;
       }
       return(node);
     }
@@ -2838,12 +2838,12 @@ nodeT *ClosestNodeCircular(bucketT *bkts){
     /* see if we got to the last bucket */
     if((bkts->curr+bkts->minind)>(bkts->maxind)){
       if(bkts->wrapped){
-	bkts->wrapped=FALSE;
-	bkts->curr=0;
-	bkts->minind+=bkts->size;
-	bkts->maxind+=bkts->size;
+        bkts->wrapped=FALSE;
+        bkts->curr=0;
+        bkts->minind+=bkts->size;
+        bkts->maxind+=bkts->size;
       }else{
-	return(NULL);
+        return(NULL);
       }
     }
 
@@ -2853,7 +2853,7 @@ nodeT *ClosestNodeCircular(bucketT *bkts){
       node->group=ONTREE;
       bkts->bucket[bkts->curr]=node->next;
       if((node->next)!=NULL){
-	node->next->prev=NULL;
+        node->next->prev=NULL;
       }
       return(node);
     }
@@ -2892,8 +2892,8 @@ nodeT *MinOutCostNode(bucketT *bkts){
     minoutcost=node1->outcost;
     while(node2!=NULL){
       if(node2->outcost<minoutcost){
-	minoutcost=node2->outcost;
-	node1=node2;
+        minoutcost=node2->outcost;
+        node1=node2;
       }
       node2=node2->next;
     }
@@ -3128,7 +3128,7 @@ nodeT *SelectConnNodeSource(nodeT **nodes, nodeT *ground, long ngroundarcs,
  */
 static
 short GetCost(incrcostT **incrcosts, long arcrow, long arccol, 
-	      long arcdir){
+              long arcdir){
 
   /* look up cost and return it for the appropriate arc direction */
   /* we may want add a check here for clipped incremental costs */
@@ -3145,14 +3145,14 @@ short GetCost(incrcostT **incrcosts, long arcrow, long arccol,
  * Updates the incremental cost for an arc.
  */
 long ReCalcCost(void **costs, incrcostT **incrcosts, long flow, 
-		long arcrow, long arccol, long nflow, long nrow, 
-		paramT *params){
+                long arcrow, long arccol, long nflow, long nrow, 
+                paramT *params){
 
   long poscost, negcost, iclipped;
 
   /* calculate new positive and negative nflow costs, as long ints */
   CalcCost(costs,flow,arcrow,arccol,nflow,nrow,params,
-	   &poscost,&negcost);
+           &poscost,&negcost);
 
   /* clip costs to short int */
   iclipped=0;
@@ -3206,7 +3206,7 @@ int SetupIncrFlowCosts(void **costs, incrcostT **incrcosts, short **flows,
 
       /* calculate new positive and negative nflow costs, as long ints */
       iclipped+=ReCalcCost(costs,incrcosts,flows[arcrow][arccol],
-			   arcrow,arccol,nflow,nrow,params);
+                           arcrow,arccol,nflow,nrow,params);
     }
   }
 
@@ -3219,7 +3219,7 @@ int SetupIncrFlowCosts(void **costs, incrcostT **incrcosts, short **flows,
     }
     fflush(NULL);
     fprintf(sp0,"%ld incremental cost%s clipped to avoid overflow (%.3f%%)\n",
-	    iclipped,pl,((double )iclipped)/(2*narcs));
+            iclipped,pl,((double )iclipped)/(2*narcs));
   }
 
   /* done */
@@ -3235,7 +3235,7 @@ int SetupIncrFlowCosts(void **costs, incrcostT **incrcosts, short **flows,
  * ncol=0 for nongrid mode (secondary network).
  */
 totalcostT EvaluateTotalCost(void **costs, short **flows, long nrow, long ncol,
-			     int *narcsperrow,paramT *params){
+                             int *narcsperrow,paramT *params){
 
   totalcostT rowcost, totalcost;
   long row, col, maxrow, maxcol;
@@ -3251,9 +3251,9 @@ totalcostT EvaluateTotalCost(void **costs, short **flows, long nrow, long ncol,
     rowcost=0;
     if(ncol){
       if(row<nrow-1){
-	maxcol=ncol;
+        maxcol=ncol;
       }else{
-	maxcol=ncol-1;
+        maxcol=ncol-1;
       }
     }else{
       maxcol=narcsperrow[row];
@@ -3301,8 +3301,8 @@ int MSTInitFlows(float **wrappedphase, short ***flowsptr,
     }
     for(col=0;col<i;col++){
       if(mstcosts[row][col]>maxcost 
-	 && !((row==nrow-1 || 2*nrow-2) && (col==0 || col==ncol-2))){
-	maxcost=mstcosts[row][col];
+         && !((row==nrow-1 || 2*nrow-2) && (col==0 || col==ncol-2))){
+        maxcost=mstcosts[row][col];
       }
     }
   }
@@ -3314,17 +3314,17 @@ int MSTInitFlows(float **wrappedphase, short ***flowsptr,
   bkts->maxind=bkts->size-1;
   bkts->bucket=bkts->bucketbase;
   arcstatus=(signed char **)Get2DRowColMem(nrow,ncol,sizeof(signed char *),
-					   sizeof(signed char));
+                                           sizeof(signed char));
 
   /* calculate phase residues (integer numbers of cycles) */
   fprintf(sp1,"Initializing flows with MST algorithm\n");
   residue=(signed char **)Get2DMem(nrow-1,ncol-1,sizeof(signed char *),
-				   sizeof(signed char));
+                                   sizeof(signed char));
   CycleResidue(wrappedphase,residue,nrow,ncol);
 
   /* get memory for flow arrays */
   (*flowsptr)=(short **)Get2DRowColZeroMem(nrow,ncol,
-					   sizeof(short *),sizeof(short));
+                                           sizeof(short *),sizeof(short));
   flows=*flowsptr;
 
   /* loop until no flows exceed the maximum flow */
@@ -3335,9 +3335,9 @@ int MSTInitFlows(float **wrappedphase, short ***flowsptr,
     source=NULL;
     for(row=0;row<nrow-1 && source==NULL;row++){
       for(col=0;col<ncol-1 && source==NULL;col++){
-	if(residue[row][col]){
-	  source=&(*nodesptr)[row][col];
-	}
+        if(residue[row][col]){
+          source=&(*nodesptr)[row][col];
+        }
       }
     }
     if(source==NULL){
@@ -3351,11 +3351,11 @@ int MSTInitFlows(float **wrappedphase, short ***flowsptr,
     
     /* solve the mst problem */
     SolveMST(*nodesptr,source,ground,bkts,mstcosts,residue,arcstatus,
-	     nrow,ncol);
+             nrow,ncol);
     
     /* find flows on minimum tree (only one feasible flow exists) */
     DischargeTree(source,mstcosts,flows,residue,arcstatus,
-		  *nodesptr,ground,nrow,ncol);
+                  *nodesptr,ground,nrow,ncol);
     
     /* do pushes to clip the flows and make saturated arcs ineligible */
     /* break out of loop if there is no flow greater than the limit */
@@ -3388,8 +3388,8 @@ int MSTInitFlows(float **wrappedphase, short ***flowsptr,
  */
 static
 void SolveMST(nodeT **nodes, nodeT *source, nodeT *ground, 
-	      bucketT *bkts, short **mstcosts, signed char **residue, 
-	      signed char **arcstatus, long nrow, long ncol){
+              bucketT *bkts, short **mstcosts, signed char **residue, 
+              signed char **arcstatus, long nrow, long ncol){
 
   nodeT *from, *to, *pathfrom, *pathto;
   nodesuppT **nodesupp;
@@ -3442,27 +3442,27 @@ void SolveMST(nodeT **nodes, nodeT *source, nodeT *ground,
       /* go back and make arcstatus -1 along path */
       while(TRUE){
 
-	/* give to node zero distance label */
-	pathto->outcost=0;
+        /* give to node zero distance label */
+        pathto->outcost=0;
 
-	/* get arc indices for arc between pathfrom and pathto */
-	GetArc(pathfrom,pathto,&arcrow,&arccol,&arcdir,nrow,ncol,
+        /* get arc indices for arc between pathfrom and pathto */
+        GetArc(pathfrom,pathto,&arcrow,&arccol,&arcdir,nrow,ncol,
                nodes,nodesupp);
-	
-	/* set arc status to -1 to mark arc on tree */
-	arcstatus[arcrow][arccol]=-1;
-	
-	/* stop when we get to a residue */
-	pathfromrow=pathfrom->row;
-	pathfromcol=pathfrom->col;
-	if((pathfromrow!=GROUNDROW && residue[pathfromrow][pathfromcol])
-	   || (pathfromrow==GROUNDROW && groundcharge)){
-	  break;
-	}
-	
-	/* move up to previous node pair in path */
-	pathto=pathfrom;
-	pathfrom=pathfrom->pred;
+        
+        /* set arc status to -1 to mark arc on tree */
+        arcstatus[arcrow][arccol]=-1;
+        
+        /* stop when we get to a residue */
+        pathfromrow=pathfrom->row;
+        pathfromcol=pathfrom->col;
+        if((pathfromrow!=GROUNDROW && residue[pathfromrow][pathfromcol])
+           || (pathfromrow==GROUNDROW && groundcharge)){
+          break;
+        }
+        
+        /* move up to previous node pair in path */
+        pathto=pathfrom;
+        pathfrom=pathfrom->pred;
 
       } /* end while loop marking costs on path */
       
@@ -3483,37 +3483,37 @@ void SolveMST(nodeT **nodes, nodeT *source, nodeT *ground,
 
       /* get cost of arc to new node (if arc on tree, cost is 0) */
       if(arcstatus[arcrow][arccol]<0){
-	arcdist=0;
+        arcdist=0;
       }else if((arcdist=mstcosts[arcrow][arccol])==LARGESHORT){
-	arcdist=VERYFAR;
+        arcdist=VERYFAR;
       }
 
       /* compare distance of new nodes to temp labels */
       if((newdist=fromdist+arcdist)<(to->outcost)){
 
-	/* if to node is already in a bucket, remove it */
-	if(to->group==INBUCKET){
-	  if(to->outcost<bkts->maxind){
-	    BucketRemove(to,to->outcost,bkts);
-	  }else{
-	    BucketRemove(to,bkts->maxind,bkts);
-	  }
-	}
-		
-	/* update to node */
-	to->outcost=newdist;
-	to->pred=from;
+        /* if to node is already in a bucket, remove it */
+        if(to->group==INBUCKET){
+          if(to->outcost<bkts->maxind){
+            BucketRemove(to,to->outcost,bkts);
+          }else{
+            BucketRemove(to,bkts->maxind,bkts);
+          }
+        }
+                
+        /* update to node */
+        to->outcost=newdist;
+        to->pred=from;
 
-	/* insert to node into appropriate bucket */
-	if(newdist<bkts->maxind){
-	  BucketInsert(to,newdist,bkts);
-	  if(newdist<bkts->curr){
-	    bkts->curr=newdist;
-	  }
-	}else{
-	  BucketInsert(to,bkts->maxind,bkts);
-	}
-	
+        /* insert to node into appropriate bucket */
+        if(newdist<bkts->maxind){
+          BucketInsert(to,newdist,bkts);
+          if(newdist<bkts->curr){
+            bkts->curr=newdist;
+          }
+        }else{
+          BucketInsert(to,bkts->maxind,bkts);
+        }
+        
       } /* end if newdist < old dist */
       
     } /* end loop over outgoing arcs */
@@ -3532,8 +3532,8 @@ void SolveMST(nodeT **nodes, nodeT *source, nodeT *ground,
  */
 static
 long DischargeTree(nodeT *source, short **mstcosts, short **flows,
-		   signed char **residue, signed char **arcstatus, 
-		   nodeT **nodes, nodeT *ground, long nrow, long ncol){
+                   signed char **residue, signed char **arcstatus, 
+                   nodeT **nodes, nodeT *ground, long nrow, long ncol){
 
   long row, col, todir, arcrow, arccol, arcdir;
   long arcnum, upperarcnum, ngroundarcs;
@@ -3567,25 +3567,25 @@ long DischargeTree(nodeT *source, short **mstcosts, short **flows,
 
       /* get row, col indices and distance of next node */
       to=NeighborNode(from,++arcnum,&upperarcnum,nodes,ground,
-		      &arcrow,&arccol,&arcdir,nrow,ncol,NULL,nodesupp);
+                      &arcrow,&arccol,&arcdir,nrow,ncol,NULL,nodesupp);
       
       /* see if the arc is on the tree and if it has been followed yet */
       if(arcstatus[arcrow][arccol]==-1){
 
-	/* arc has not yet been followed: move down the tree */
-	nextnode=to;
-	row=arcrow;
-	col=arccol;
-	break;
+        /* arc has not yet been followed: move down the tree */
+        nextnode=to;
+        row=arcrow;
+        col=arccol;
+        break;
 
       }else if(arcstatus[arcrow][arccol]==-2){
 
-	/* arc has already been followed and leads back up the tree: */
-	/* save it, but keep looking for downwards arc */
-	nextnode=to;
-	row=arcrow;
-	col=arccol;
-	todir=arcdir;
+        /* arc has already been followed and leads back up the tree: */
+        /* save it, but keep looking for downwards arc */
+        nextnode=to;
+        row=arcrow;
+        col=arccol;
+        todir=arcdir;
 
       }
     }
@@ -3621,8 +3621,8 @@ long DischargeTree(nodeT *source, short **mstcosts, short **flows,
  */
 static
 signed char ClipFlow(signed char **residue, short **flows, 
-		     short **mstcosts, long nrow, long ncol, 
-		     long maxflow){
+                     short **mstcosts, long nrow, long ncol, 
+                     long maxflow){
 
   long row, col, cliplimit, maxcol, excess, tempcharge, sign;
   long mostflow, maxcost;
@@ -3653,7 +3653,7 @@ signed char ClipFlow(signed char **residue, short **flows,
     }
     for(col=0;col<maxcol;col++){
       if(mstcosts[row][col]>maxcost && mstcosts[row][col]<LARGESHORT){
-	maxcost=mstcosts[row][col];
+        maxcost=mstcosts[row][col];
       }
     }
   }
@@ -3675,54 +3675,54 @@ signed char ClipFlow(signed char **residue, short **flows,
     }
     for(col=0;col<maxcol;col++){
       if(labs(flows[row][col])>cliplimit){
-	if(flows[row][col]>0){
-	  sign=1;
-	  excess=flows[row][col]-cliplimit;
-	}else{
-	  sign=-1;
-	  excess=flows[row][col]+cliplimit;
-	}
-	if(row<nrow-1){
-	  if(col!=0){
-	    tempcharge=residue[row][col-1]+excess;
-	    if(tempcharge>MAXRES || tempcharge<MINRES){
+        if(flows[row][col]>0){
+          sign=1;
+          excess=flows[row][col]-cliplimit;
+        }else{
+          sign=-1;
+          excess=flows[row][col]+cliplimit;
+        }
+        if(row<nrow-1){
+          if(col!=0){
+            tempcharge=residue[row][col-1]+excess;
+            if(tempcharge>MAXRES || tempcharge<MINRES){
               fflush(NULL);
-	      fprintf(sp0,"Overflow of residue data type\nAbort\n");
-	      exit(ABNORMAL_EXIT);
-	    }
-	    residue[row][col-1]=tempcharge;
-	  }
-	  if(col!=ncol-1){
-	    tempcharge=residue[row][col]-excess;
-	    if(tempcharge<MINRES || tempcharge>MAXRES){
+              fprintf(sp0,"Overflow of residue data type\nAbort\n");
+              exit(ABNORMAL_EXIT);
+            }
+            residue[row][col-1]=tempcharge;
+          }
+          if(col!=ncol-1){
+            tempcharge=residue[row][col]-excess;
+            if(tempcharge<MINRES || tempcharge>MAXRES){
               fflush(NULL);
-	      fprintf(sp0,"Overflow of residue data type\nAbort\n");
-	      exit(ABNORMAL_EXIT);
-	    }
-	    residue[row][col]=tempcharge;
-	  }
-	}else{
-	  if(row!=nrow-1){
-	    tempcharge=residue[row-nrow][col]+excess;
-	    if(tempcharge>MAXRES || tempcharge<MINRES){
+              fprintf(sp0,"Overflow of residue data type\nAbort\n");
+              exit(ABNORMAL_EXIT);
+            }
+            residue[row][col]=tempcharge;
+          }
+        }else{
+          if(row!=nrow-1){
+            tempcharge=residue[row-nrow][col]+excess;
+            if(tempcharge>MAXRES || tempcharge<MINRES){
               fflush(NULL);
-	      fprintf(sp0,"Overflow of residue data type\nAbort\n");
-	      exit(ABNORMAL_EXIT);
-	    }
-	    residue[row-nrow][col]=tempcharge;
-	  }
-	  if(row!=2*nrow-2){
-	    tempcharge=residue[row-nrow+1][col]-excess;
-	    if(tempcharge<MINRES || tempcharge>MAXRES){
+              fprintf(sp0,"Overflow of residue data type\nAbort\n");
+              exit(ABNORMAL_EXIT);
+            }
+            residue[row-nrow][col]=tempcharge;
+          }
+          if(row!=2*nrow-2){
+            tempcharge=residue[row-nrow+1][col]-excess;
+            if(tempcharge<MINRES || tempcharge>MAXRES){
               fflush(NULL);
-	      fprintf(sp0,"Overflow of residue data type\nAbort\n");
-	      exit(ABNORMAL_EXIT);
-	    }
-	    residue[row-nrow+1][col]=tempcharge;
-	  }
-	}
-	flows[row][col]=sign*cliplimit;
-	mstcosts[row][col]=maxcost;
+              fprintf(sp0,"Overflow of residue data type\nAbort\n");
+              exit(ABNORMAL_EXIT);
+            }
+            residue[row-nrow+1][col]=tempcharge;
+          }
+        }
+        flows[row][col]=sign*cliplimit;
+        mstcosts[row][col]=maxcost;
       }
     }
   }
@@ -3750,7 +3750,7 @@ int MCFInitFlows(float **wrappedphase, short ***flowsptr, short **mstcosts,
   /* calculate phase residues (integer numbers of cycles) */
   fprintf(sp1,"Initializing flows with MCF algorithm\n");
   residue=(signed char **)Get2DMem(nrow-1,ncol-1,sizeof(signed char *),
-				   sizeof(signed char));
+                                   sizeof(signed char));
   CycleResidue(wrappedphase,residue,nrow,ncol);
 
   /* run the solver (memory freed within solver) */

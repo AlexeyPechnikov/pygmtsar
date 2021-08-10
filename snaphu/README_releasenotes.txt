@@ -1,3 +1,33 @@
+Notable changes in v2.0.4 since v2.0.3:
+---------------------------------------
+
+* Fixed logic error that would sometimes cause crash in MCF solver
+  when flow went from ground node to lower right corner node.
+
+* Untabify source files (whitespace changes only)
+
+
+Notable changes in v2.0.3 since v2.0.2:
+---------------------------------------
+
+* Fixed limit-checking error that would sometimes cause segmentation fault when
+  width of masked area was only one pixel at right or bottom edges.
+  
+
+Notable changes in v2.0.2 since v2.0.1:
+---------------------------------------
+
+* Fixed indexing error that would sometimes cause segmentation fault when
+  discharging boundary of masked region.
+  
+
+Notable changes in v2.0.1 since v2.0.0:
+---------------------------------------
+
+* Bug fixes affecting externally generated costs read from a file and
+  handling of zero-cost primary and secondary arcs.
+  
+
 Notable changes in v2.0 since v1.4.2:
 -------------------------------------
 
@@ -22,12 +52,13 @@ Notable changes in v2.0 since v1.4.2:
   will not generally be reliable; often it will be whatever value is
   left from the initialization.
 
-  The user can indicate masking by setting the magnitude of a pixel to
-  zero in the input file or by specifying a separate binary mask via
-  the new -M option or the new BYTEMASKFILE keyword.  See the comments
-  in the template configuration file for the BYTEMASKFILE keyword for
-  a full description of the file format.  A fixed number of pixels at
-  each edge of the input file can also be masked via the EDGEMASKTOP,
+  The user can indicate masking by setting the magnitudes of the
+  complex values of pixels to be masked to zero in the input file or
+  by specifying a separate binary mask via the new -M option or the
+  new BYTEMASKFILE keyword.  See the comments in the template
+  configuration file for the BYTEMASKFILE keyword for a full
+  description of the file format.  A fixed number of pixels at each
+  edge of the input file can also be masked via the EDGEMASKTOP,
   EDGEMASKBOT, EDGEMASKLEFT, and EDGEMASKRIGHT keywords.
 
   If masked pixels separate regions of unmasked pixels, the unwrapped
@@ -97,7 +128,7 @@ Notable changes in v2.0 since v1.4.2:
   This code has not been well tested and users are advised to use this
   code with only the lowest of expectations.
 
-* The SOURCEMODE keyword and associated functionality has been removed
+* The SOURCEMODE keyword and associated functionality have been removed
   due to changes in the source selection algorithm to allow the
   unwrapping of multiple regions that are disconnected by masked
   pixels.
