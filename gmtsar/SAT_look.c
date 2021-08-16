@@ -75,9 +75,10 @@ char *USAGE = " \n Usage: "
               "             inputfile    -  lon, lat, elevation [ASCII] \n"
               "             outputfile   -  lon, lat, elevation look_E look_N look_U "
               "[ASCII default] \n"
-              "             -bos or -bod -  binary single or double precision output \n"
-              " \n"
-              " example: SAT_look master.PRM < topo.llt > topo.lltn    \n";
+              "             -bos or -bod -  binary single or double precision output \n\n"
+              "  example: SAT_look master.PRM < topo.llt > topo.lltn    \n\n"
+              "  Note that the output elevation is the one above reference radius "
+              "specified in the PRM file\n";
 
 void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
 void hermite_c(double *, double *, double *, int, int, double, double *, int *);
