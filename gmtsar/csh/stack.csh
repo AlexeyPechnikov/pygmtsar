@@ -86,3 +86,28 @@ mv tmp.grd $outstd
 
 # clean up 
 rm sum.grd sum2.grd
+
+#
+#  plot the results
+#
+foreach fname ($outmean $outstd)
+    if ("$fname" == "$outmean") then
+        set label = "Mean of Image Stack"
+    else
+        set label = "Std. Dev. of Image Stack"
+    endif
+    set name = `basename $fname .grd`
+    gmt grdgradient $name.grd -Nt.9 -A0. -G$name.grad.grd
+    set tmp = `gmt grdinfo -C -L2 $name.grd`
+    set limitU = `echo $tmp | awk '{printf("%5.1f", $7)}'`
+    set limitL = `echo $tmp | awk '{printf("%5.1f", $6)}'`
+    set std = `echo $tmp | awk '{printf("%5.1f", $13)}'`
+    gmt makecpt -Cseis -I -Z -T"$limitL"/"$limitU"/0.1 -D > $name.cpt
+    set boundR = `gmt grdinfo $name.grd -C | awk '{print ($3-$2)/4}'`
+    set boundA = `gmt grdinfo $name.grd -C | awk '{print ($5-$4)/4}'`
+    gmt grdimage $name.grd -I$name.grad.grd -C$name.cpt -JX6.5i -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > $name.ps
+    gmt psscale -R$name.grd -J -DJTC+w5/0.2+h+e -C$name.cpt -Bxaf+l"$label" -By -O >> $name.ps
+    gmt psconvert -Tf -P -A -Z $name.ps
+    echo "Mean of stack map: $name.pdf"
+    rm $name.cpt $name.grad.grd
+end
