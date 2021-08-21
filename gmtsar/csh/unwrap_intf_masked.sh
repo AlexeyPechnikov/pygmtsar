@@ -17,6 +17,6 @@ else
     jumps="${GMTSAR_DEFOMAX}"
 fi
 
-ln -s ../mask_def.grd .
+ln -f -s ../mask_def.grd .
 snaphu_interp.csh "$thr" "$jumps"
 cd ..
