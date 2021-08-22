@@ -17,6 +17,12 @@ else
     jumps="${GMTSAR_DEFOMAX}"
 fi
 
-ln -f -s ../mask_def.grd .
+# make symlink to file in directory above if it is not exists
+# for linked directories we need to copy the mask to here before
+if [ ! -f mask_def.grd ]
+then
+    ln -f -s ../mask_def.grd .
+fi
+echo snaphu_interp.csh "$thr" "$jumps"
 snaphu_interp.csh "$thr" "$jumps"
 cd ..
