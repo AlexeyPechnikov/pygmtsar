@@ -44,7 +44,7 @@ endif
 #
 # create landmask
 #
-if (-e landmask_ra.grd) then
+if (-f landmask_ra.grd) then
   if ($#argv == 3 ) then 
     gmt grdsample landmask_ra.grd -R$3 `gmt grdinfo -I phase_patch.grd` -Glandmask_ra_patch.grd
   else 
@@ -55,7 +55,7 @@ endif
 #
 # user defined mask 
 #
-if (-e mask_def.grd) then
+if (-f mask_def.grd) then
   if ($#argv == 3 ) then
     gmt grdcut mask_def.grd -R$3 -Gmask_def_patch.grd
   else
@@ -108,14 +108,14 @@ gmt grdmath tmp.grd mask2_patch.grd MUL = tmp.grd
 #endif
 #
 # landmask
-if (-e landmask_ra.grd) then
+if (-f landmask_ra.grd) then
   gmt grdmath unwrap.grd landmask_ra_patch.grd MUL = tmp.grd $V
   mv tmp.grd unwrap.grd
 endif
 #
 # user defined mask
 #
-if (-e mask_def.grd) then
+if (-f mask_def.grd) then
   gmt grdmath unwrap.grd mask_def_patch.grd MUL = tmp.grd $V
   mv tmp.grd unwrap.grd
 endif

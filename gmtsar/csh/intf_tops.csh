@@ -23,6 +23,9 @@
     echo "  outputs:"
     echo "    to ./intf_all"
     echo ""
+    echo "  Note: remember to remove intf_all before running a new round of processing, otherwise"
+    echo "    the results may get placed into the subfolders"
+    echo ""
     exit 1
   endif
 
