@@ -20,6 +20,6 @@ fi
 
 gdal_fillnodata.py -md "$radius" "${input}" "${output}.tif"
 gmt grdreformat "${output}.tif" "${output}"
-bounds=$(gmt grdinfo -C "${input}" | cut -s -f2,3,4,5 | awk 'BEGIN{OFS = "/"}{print ($1,$2,$3,$4)}')
+bounds=$(gmt grdinfo -C "${input}" | awk 'BEGIN{OFS = "/"}{print ($2,$3,$4,$5)}')
 gmt grdedit "${output}" -R"$bounds" -T
 rm -f "${output}.tif"
