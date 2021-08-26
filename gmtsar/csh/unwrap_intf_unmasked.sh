@@ -3,11 +3,11 @@
 set -e
 
 cd "$1"
-if [ -z "${GMTSAR_THRESHOLD_SNAPHU_UNMASKED}" ]
+if [ -z "${GMTSAR_THRESHOLD_SNAPHU}" ]
 then
     thr=0.10
 else
-    thr="${GMTSAR_THRESHOLD_SNAPHU_UNMASKED}"
+    thr="${GMTSAR_THRESHOLD_SNAPHU}"
 fi
 if [ -z "${GMTSAR_DEFOMAX}" ]
 then
