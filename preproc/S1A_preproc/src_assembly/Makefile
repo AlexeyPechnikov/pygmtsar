@@ -11,5 +11,8 @@ all:	assemble_tops
 install:
 	$(INSTALL) assemble_tops $(bindir)
 
+uninstall:
+	rm -f $(bindir)/assemble_tops
+
 clean:
 	rm -f *.o assemble_tops tags core

@@ -54,7 +54,7 @@ install:	all
 
 uninstall:
 		cd $(bindir); rm -f $(PROGS)
-		cd csh; ls *.csh > /tmp/t.lis
+		cd csh; ls *.csh *.sh *.py > /tmp/t.lis
 		cd $(bindir); rm -f `cat /tmp/t.lis`
 		rm -f /tmp/t.lis
 

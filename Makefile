@@ -74,11 +74,18 @@ install-orbits:
 		echo "Unable to obtain $(ORBITS_URL) - Perhaps you have neither curl nor wget installed?";  \
 	fi
 
-uninstall:
-	for d in $(DIRS) $(PREPROCESSORS); do \
+uninstall:  uninstall-main uninstall-preproc
+
+uninstall-main:
+	for d in $(DIRS); do \
 		(cd $$d; $(MAKE) uninstall); \
 	done
 	rm -rf $(sharedir)
+
+uninstall-preproc:
+	for d in $(PREPROCESSORS); do \
+		(cd preproc/$${d}_preproc; $(MAKE) uninstall); \
+	done
 
 clean:
 	for d in $(DIRS); do \

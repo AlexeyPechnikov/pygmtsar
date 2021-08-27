@@ -11,5 +11,8 @@ all:	spectral_diversity
 install:
 	$(INSTALL) spectral_diversity $(bindir)
 
+uninstall:
+	rm -f $(bindir)/spectral_diversity
+
 clean:
 	rm -f *.o spectral_diversity tags core

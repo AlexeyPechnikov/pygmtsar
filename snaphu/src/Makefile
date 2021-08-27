@@ -42,7 +42,7 @@ install-man:
 		cp $(SNAPHUMAN) $(MANDIR)/man1
 
 uninstall:
-		cd $(bindir); rm -f $(PROGS)
+		cd $(bindir); rm $(PROGS)
 
 spotless::	clean
 

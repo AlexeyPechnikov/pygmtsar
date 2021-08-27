@@ -14,6 +14,10 @@ all:	stitch_tops merge_swath
 install:
 	$(INSTALL) stitch_tops $(bindir)
 	$(INSTALL) merge_swath $(bindir)
+	
+uninstall:
+	rm -f $(bindir)/stitch_tops
+	rm -f $(bindir)/merge_swath
 
 clean:
 	rm -f *.o stitch_tops merge_swath tags core
