@@ -143,6 +143,9 @@ endif
 if ($SAT == "S1_TOPS") then
   echo "range_dec = 8"
   echo "azimuth_dec = 2"
+else if ($SAT == "ALOS2_SCAN") then
+  echo "range_dec = 4"
+  echo "azimuth_dec = 8"
 endif
 echo "#"
 echo "# make ionospheric phase corrections using split spectrum method"

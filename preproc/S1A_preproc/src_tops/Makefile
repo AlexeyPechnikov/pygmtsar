@@ -15,5 +15,9 @@ install:
 	$(INSTALL) make_s1a_tops $(bindir)
 	$(INSTALL) make_s1a_tops_6par $(bindir)
 
+uninstall:
+	rm -f $(bindir)/make_s1a_tops
+	rm -f $(bindir)/make_s1a_tops_6par
+
 clean:
 	rm -f *.o make_s1a_tops make_s1a_tops_6par tags core

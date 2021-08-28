@@ -36,6 +36,11 @@ install:
 	$(INSTALL) envisat_dump_data $(bindir)
 	$(INSTALL) envisat_dump_header $(bindir)
 
+uninstall:
+	rm -f $(bindir)/envisat_dump_data
+	rm -f $(bindir)/envisat_dump_header
+	rm -f $(bindir)/$(PROG)
+
 clean:
 	rm -f $(OBJS) envi_slc_decode envisat_dump_data envisat_dump_header tags core
 	(cd epr_api-2.3/src/; make clean)
