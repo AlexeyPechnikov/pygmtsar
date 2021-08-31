@@ -11,7 +11,7 @@ export GMTSAR_AZIMUTH_DECIMATION=1
 # set to number of cycles to allow phase jumps
 export GMTSAR_DEFOMAX=0
 # threshold for well correlated not masked areas (default 0.10)
-export GMTSAR_THRESHOLD_SNAPHU=0.125
+export GMTSAR_THRESHOLD_SNAPHU=0.12
 
 ##########################################################################################
 # Set local variables
@@ -56,16 +56,16 @@ fi
 # Start GMTSAR processing
 ##########################################################################################
 rm -f GMTSAR.log
-./GMTSAR0.setup.sh                 "$WORKDIR" "$DEM"                                          2>&1 | tee -a GMTSAR.log
-./GMTSAR1.data_orbit.sh            "$WORKDIR" "$ORBIT" "$DATADIR" "$DATAPATTERN"              2>&1 | tee -a GMTSAR.log
-./GMTSAR2.pins_orbit.sh            "$WORKDIR" "$ORBIT"  $PINS                                 2>&1 | tee -a GMTSAR.log
-./GMTSAR3.baseline_orbit_swaths.sh "$WORKDIR" "$ORBIT" "$SUBSWATHS"                           2>&1 | tee -a GMTSAR.log
-./GMTSAR4.master_orbit_swaths.sh   "$WORKDIR" "$ORBIT" "$SUBSWATHS" "$MASTERDATE"             2>&1 | tee -a GMTSAR.log
-./GMTSAR5.pairs_orbit_swaths.sh    "$WORKDIR" "$ORBIT" "$SUBSWATHS" "$BASEDAYS" "$BASEMETERS" 2>&1 | tee -a GMTSAR.log
-./GMTSAR6.run_orbit_swaths.sh      "$WORKDIR" "$ORBIT" "$SUBSWATHS"                           2>&1 | tee -a GMTSAR.log
-./GMTSAR7.merge_orbit_swaths.sh    "$WORKDIR" "$ORBIT" "$SUBSWATHS"                           2>&1 | tee -a GMTSAR.log
-./GMTSAR8.unwrap_orbit.sh          "$WORKDIR" "$ORBIT" "$USEMASK" "$USELANDMASK"              2>&1 | tee -a GMTSAR.log
-./GMTSAR9.sbas_orbit.sh            "$WORKDIR" "$ORBIT" "$SBASOPTS"                            2>&1 | tee -a GMTSAR.log
+GMTSAR0.setup.sh                 "$WORKDIR" "$DEM"                                          2>&1 | tee -a GMTSAR.log
+GMTSAR1.data_orbit.sh            "$WORKDIR" "$ORBIT" "$DATADIR" "$DATAPATTERN"              2>&1 | tee -a GMTSAR.log
+GMTSAR2.pins_orbit.sh            "$WORKDIR" "$ORBIT"  $PINS                                 2>&1 | tee -a GMTSAR.log
+GMTSAR3.baseline_orbit_swaths.sh "$WORKDIR" "$ORBIT" "$SUBSWATHS"                           2>&1 | tee -a GMTSAR.log
+GMTSAR4.master_orbit_swaths.sh   "$WORKDIR" "$ORBIT" "$SUBSWATHS" "$MASTERDATE"             2>&1 | tee -a GMTSAR.log
+GMTSAR5.pairs_orbit_swaths.sh    "$WORKDIR" "$ORBIT" "$SUBSWATHS" "$BASEDAYS" "$BASEMETERS" 2>&1 | tee -a GMTSAR.log
+GMTSAR6.run_orbit_swaths.sh      "$WORKDIR" "$ORBIT" "$SUBSWATHS"                           2>&1 | tee -a GMTSAR.log
+GMTSAR7.merge_orbit_swaths.sh    "$WORKDIR" "$ORBIT" "$SUBSWATHS"                           2>&1 | tee -a GMTSAR.log
+GMTSAR8.unwrap_orbit.sh          "$WORKDIR" "$ORBIT" "$USEMASK" "$USELANDMASK"              2>&1 | tee -a GMTSAR.log
+GMTSAR9.sbas_orbit.sh            "$WORKDIR" "$ORBIT" "$SBASOPTS"                            2>&1 | tee -a GMTSAR.log
 ##########################################################################################
 # End GMTSAR processing
 # see /mnt/GMTSAR/asc/SBAS for disp_*_ll.grd and vel_ll.grd & vel_ll.kml & vel_ll.png

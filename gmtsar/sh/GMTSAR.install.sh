@@ -1,6 +1,14 @@
 #!/bin/sh
+# see https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use the script first to prepare the linux system and GMTSAR.setup.sh next
 set -e
+
+ORBITS=/usr/local/orbits
+GMTSAR=/usr/local/GMTSAR
+GIT=https://github.com/mobigroup/gmtsar
+BRANCH=master
+#GIT=https://github.com/gmtsar/gmtsar
+#BRANCH=6.1
 
 # prepare system
 apt install -y locales
@@ -35,30 +43,32 @@ apt install -y python3-pip gdal-bin python-gdal python3-netcdf4 python3-scipy bc
 # for my additional Python-coded utilities
 python3 -m pip install xarray numpy scipy --upgrade
 
-mkdir -p /usr/local/orbits
-cd /usr/local/orbits
+mkdir -p "$ORBITS"
+cd "$ORBITS"
 #wget --content-disposition https://hu.berlin/s1-orbits
 #tar -xzvf S1-Orbits.tar.gz
 
-cd /usr/local
+
+cd $(dirname "$GMTSAR")
 # drop previous installation if needed
 rm -fr GMTSAR
-#git clone --branch 6.1 https://github.com/gmtsar/gmtsar GMTSAR
-git clone --branch master https://github.com/mobigroup/gmtsar GMTSAR
+git clone --branch "$BRANCH" "$GIT" GMTSAR
 cd GMTSAR
 autoconf
-./configure --with-orbits-dir=/usr/local/orbits
+./configure --with-orbits-dir="$ORBITS"
 make
 make install
 
 # replace original binary tool by Pythonic one
-mv /usr/local/GMTSAR/bin/nearest_grid /usr/local/GMTSAR/bin/nearest_grid.orig
-mv /usr/local/GMTSAR/bin/nearest_grid.py /usr/local/GMTSAR/bin/nearest_grid
+mv "${GMTSAR}/bin/nearest_grid"          "${GMTSAR}/bin/nearest_grid.orig"
+mv "${GMTSAR}/gmtsar/py/nearest_grid.py" "${GMTSAR}/bin/nearest_grid"
+# install additional scripts from the repo
+find "${GMTSAR}/gmtsar/sh" -name '*.sh' -print0 | xargs -0 -I {} -n 1 ln -f -s "{}" "${GMTSAR}/bin/"
 
 # configure binaries path
 cat << EOF >> ~/.bashrc
 
-export GMTSAR=/usr/local/GMTSAR
+export GMTSAR="${GMTSAR}"
 export PATH=\$GMTSAR/bin:"\$PATH"
 
 EOF
@@ -66,9 +76,6 @@ EOF
 # to download Sentinel-1 orbit files and SRTM 30m and 90m DEM
 python3 -m pip install sentineleof elevation
 eio selfcheck
-# https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
-# see page 10
-#echo "alias wgetasf='echo NOTICE: Call to wgetasf shell alias for orbit files download. Use command eof --path . instead'" >> ~/.bashrc
 
 # for GMTSAR CSH scripts
 touch ~/.cshrc
