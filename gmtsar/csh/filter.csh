@@ -131,14 +131,15 @@ errormessage:
 # conv 1 1 $filter5 real_tmp.grd yt.grd=bf
 # conv $idec $jdec $filter2 xt.grd=bf xreal.grd
 # conv $idec $jdec $filter2 yt.grd=bf yreal.grd
-# rm real_tmp.grd 
 # rm xt.grd yt.grd
 # conv 1 1 $filter4 imag_tmp.grd xt.grd=bf
 # conv 1 1 $filter5 imag_tmp.grd yt.grd=bf
 # conv $idec $jdec $filter2 xt.grd=bf ximag.grd
 # conv $idec $jdec $filter2 yt.grd=bf yimag.grd
-# rm imag_tmp.grd 
 # rm xt.grd yt.grd
+
+rm real_tmp.grd imag_tmp.grd
+
 #
 # form amplitude image
 #
