@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See page 16 "Run All Interferograms" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use after GMTSAR.run_orbit.sh and GMTSAR.unwrap_orbit.sh next
 # ./GMTSAR.merge_orbit.sh /home/jupyter/GMTSAR asc F2 1
@@ -44,6 +45,8 @@ done
 # Linking vs merging for a single subswath only
 if [ "${swaths}" = "2" ]
 then
+    echo "Linking single subswath ${swaths} to merging directory"
+
     # we do not need to perform merging here because only one subswath just linked as is
     cat intflist | xargs -I {} -n 1 ln -s "../${swath}/intf_all/{}" .
 

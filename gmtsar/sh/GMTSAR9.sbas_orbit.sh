@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See page 24 "Running Short BAseline Subset (SBAS) Analysis" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use after GMTSAR.unwrap_orbit.sh and ... next
 # ./GMTSAR.sbas_orbit.sh /mnt/GMTSAR asc

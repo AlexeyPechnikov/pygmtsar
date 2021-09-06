@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # python3 -m pip install install xarray numpy scipy --upgrade
 import pytest
 

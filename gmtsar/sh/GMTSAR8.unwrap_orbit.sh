@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See page 18 "Run All Interferograms" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use after GMTSAR.merge_orbit.sh and GMTSAR.sbas_orbit.sh next
 # ./GMTSAR.unwrap_orbit.sh /mnt/GMTSAR asc

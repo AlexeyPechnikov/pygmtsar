@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See "Aligning Secondary Images to Reference Image" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # check this command for F1 to find the right parameters first, see pages 14-15
 # select_pairs.csh baseline_table.dat 40 120

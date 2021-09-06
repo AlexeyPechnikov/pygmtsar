@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See "Adjusting Region of Interest" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use after GMTSAR.data_orbit.sh and GMTSAR.baseline_orbit.sh next
 # ./GMTSAR.pins_orbit.sh /home/jupyter/GMTSAR asc 48.1 37.9 48.0 38.15

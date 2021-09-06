@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # see https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use the script first to prepare the linux system and GMTSAR.setup.sh next
 set -e

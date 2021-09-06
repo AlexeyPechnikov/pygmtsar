@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See "Aligning Secondary Images to Reference Image" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use after GMTSAR.baseline_orbit.sh and GMTSAR.pairs_orbit.sh next
 # ./GMTSAR.master_orbit.sh /home/jupyter/GMTSAR asc F2 20210402

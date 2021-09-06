@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See "General Setup" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # use after GMTSAR.install.sh and GMTSAR.data_orbit.sh next
 # ./GMTSAR.setup.sh /home/jupyter/GMTSAR /home/jupyter/DEM/dem.grd

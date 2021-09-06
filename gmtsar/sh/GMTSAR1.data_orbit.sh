@@ -1,4 +1,5 @@
 #!/bin/sh
+# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # See "Data Selection and Download for Region of Interest" in https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # Supported as zipped Sentinel-1 SLC products (.zip) as unpacked ones (.SAFE)
 # use after GMTSAR.setup.sh as
