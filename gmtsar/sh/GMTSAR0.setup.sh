@@ -47,11 +47,19 @@ do
 #            echo "Set the landmask to be 1 (GMTSAR_LANDMASK=${GMTSAR_LANDMASK})"
 #            sed -i -s "s/^switch_land.*\$/switch_land = 1/g"                            batch_tops.config
 #        fi
-        # dec_factor is ignoring, see https://github.com/gmtsar/gmtsar/issues/192
-        echo "Set the decimation to be 2 for images with smaller file size (GMTSAR_DECIMATION=${GMTSAR_DECIMATION})"
-        sed -i -s "s/^dec_factor.*\$/dec_factor = 2/g"                                  batch_tops.config
-        sed -i -s "s/^range_dec.*\$/range_dec = ${GMTSAR_RANGE_DECIMATION}/g"           batch_tops.config
-        sed -i -s "s/^azimuth_dec.*\$/azimuth_dec = ${GMTSAR_AZIMUTH_DECIMATION}/g"     batch_tops.config
+        # see https://github.com/gmtsar/gmtsar/issues/192
+        if [ -n "$GMTSAR_RANGE_DECIMATION" -a -n "$GMTSAR_AZIMUTH_DECIMATION"]
+        then
+            echo "Set the decimation to be 2 for images with smaller file size"
+            sed -i -s "s/^dec_factor.*\$/dec_factor = 2/g"                              batch_tops.config
+            sed -i -s "s/^range_dec.*\$/range_dec = ${GMTSAR_RANGE_DECIMATION}/g"       batch_tops.config
+            sed -i -s "s/^azimuth_dec.*\$/azimuth_dec = ${GMTSAR_AZIMUTH_DECIMATION}/g" batch_tops.config
+        else
+            echo "Set the decimation to be 1 if you want higher resolution images"
+            sed -i -s "s/^dec_factor.*\$/dec_factor = 1/g"                              batch_tops.config
+            sed -i -s "s/^range_dec.*\$/range_dec = 1/g"                                batch_tops.config
+            sed -i -s "s/^azimuth_dec.*\$/azimuth_dec = 1/g"                            batch_tops.config
+        fi
         sed -i -s "s/^threshold_snaphu.*\$/threshold_snaphu = 0/g"                      batch_tops.config
         if [ -z "${GMTSAR_DEFOMAX}" ]
         then
