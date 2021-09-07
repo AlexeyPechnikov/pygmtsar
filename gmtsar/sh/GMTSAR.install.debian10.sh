@@ -44,7 +44,7 @@ apt install -y parallel
 # for python tools and sbas command line arguments calculation
 apt install -y python3-pip gdal-bin python-gdal python3-netcdf4 python3-scipy bc
 # for my additional Python-coded utilities
-python3 -m pip install xarray numpy scipy --upgrade
+python3 -m pip install xarray numpy scipy pytest --upgrade
 
 mkdir -p "$ORBITS"
 cd "$ORBITS"
