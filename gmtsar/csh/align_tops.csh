@@ -86,7 +86,8 @@ echo $spre
     set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
     calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
     cat tmp2 >> $spre".PRM"
-    rm tmp tmp2#
+    rm tmp tmp2
+    #
     #  2) do a geometric back projection to determine the alignment parameters
     #
     #  Filter and downsample the topography to 12 seconds or about 360 m
