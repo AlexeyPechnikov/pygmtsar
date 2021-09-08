@@ -23,7 +23,8 @@ do
     cd "$orbit"
     mkdir -p data orbit reframed topo SBAS merge
     cd topo
-    cp "$demfile" dem.grd
+    #cp "$demfile" dem.grd
+    gdal_translate -of NetCDF -ot Float32 -co FORMAT=NC4C -co COMPRESS=DEFLATE -co ZLEVEL=3 -a_nodata nan "$demfile" dem.grd
     cd ..
     cd merge
     ln -f -s ../topo/dem.grd .
@@ -52,7 +53,7 @@ do
 #            sed -i -s "s/^switch_land.*\$/switch_land = 1/g"                            batch_tops.config
 #        fi
         # see https://github.com/gmtsar/gmtsar/issues/192
-        if [ -n "$rdec" -a -n "$adec"]
+        if [ -n "$rdec" -a -n "$adec" ]
         then
             echo "Set the decimation to be 2 for images with smaller file size"
             sed -i -s "s/^dec_factor.*\$/dec_factor = 2/g"                              batch_tops.config
