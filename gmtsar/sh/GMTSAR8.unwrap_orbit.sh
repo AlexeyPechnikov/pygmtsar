@@ -52,20 +52,7 @@ else
     gmt grd2cpt mask_def.grd -T= -Z -Cjet > mask_def_ll.cpt
     grd2kml.csh mask_def_ll mask_def_ll.cpt
     # notify user via Telegram
-    if [ -n "$TELEGRAM_TOKEN" ]
-    then
-        # define values range of velocity map
-        json='[{"type":"document","media":"'attach://mask.png'"},{"type":"document","media":"'attach://mask.kml'","caption":"${CAPTION}"}]'
-        json=$(echo "$json" | sed -s "s|\${CAPTION}|GMTSAR8 on ${TELEGRAM_SENDER}: Unwrap Mask|")
-        curl \
-            -F "chat_id=${TELEGRAM_CHAT_ID}" \
-            -F media="$json" \
-            -F "mask.png=@mask_def_ll.png" \
-            -F "mask.kml=@mask_def_ll.kml" \
-            -H "Content-Type:multipart/form-data" \
-            "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMediaGroup"
-    fi
-
+    telegram_sendmediagroup.sh "Unwrap Mask" mask_def_ll.png mask_def_ll.kml
     unwrap_parallel.csh unwrap_intf_masked.sh intflist "$CPU_CORES"
 fi
 
@@ -81,11 +68,4 @@ cmd="${cmd} -pointsize 3 -geometry 300x300>+4+3 -density 600 -quality 90 unwrap_
 $cmd
 
 # notify user via Telegram
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F caption="GMTSAR8 on ${TELEGRAM_SENDER}: unwrapped phase images grid" \
-        -F document="@unwrap_grid.pdf" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-fi
+telegram_senddocument.sh "Unwrapped phase images grid" unwrap_grid.pdf

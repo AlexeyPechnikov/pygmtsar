@@ -29,17 +29,9 @@ do
         select_pairs.csh baseline_table.dat "$days" "$meters"
 
         # notify user via Telegram
-        if [ -n "$TELEGRAM_TOKEN" ]
-        then
-            # paired baseline plot placed in subswath directory
-            ps2pdf baseline.ps baseline.pdf
-            curl \
-                -F "chat_id=${TELEGRAM_CHAT_ID}" \
-                -F caption="GMTSAR5 on ${TELEGRAM_SENDER}: Baseline pairs for ${days} days and ${meters} meters for ${swath}" \
-                -F document='@baseline.pdf' \
-                https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument
-        fi
-
+        # paired baseline plot placed in subswath directory
+        ps2pdf baseline.ps baseline.pdf
+        telegram_senddocument.sh "Baseline pairs for ${days} days and ${meters} meters for ${swath}" baseline.pdf
         cd ..
     else
         # copy and edit the intf.in file to ensure it refers to the F2 and F3 directories respectively (instead of F1)

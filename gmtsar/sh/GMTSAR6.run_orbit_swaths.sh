@@ -45,14 +45,6 @@ do
     $cmd
 
     # notify user via Telegram
-    if [ -n "$TELEGRAM_TOKEN" ]
-    then
-        curl \
-            -F "chat_id=${TELEGRAM_CHAT_ID}" \
-            -F caption="GMTSAR6 on ${TELEGRAM_SENDER}: filtered phase images grid for ${swath}" \
-            -F document="@phasefilt_grid.pdf" \
-            "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-    fi
-
+    telegram_senddocument.sh "Filtered phase images grid for ${swath}" phasefilt_grid.pdf
     cd ..
 done

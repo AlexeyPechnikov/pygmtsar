@@ -6,15 +6,9 @@
 ##########################################################################################
 #export TELEGRAM_CHAT_ID=
 #export TELEGRAM_TOKEN=
-export TELEGRAM_SENDER=$(hostname)
-
-# recommended range decimation to be 8, azimuth decimation to be 2 (use 4/1, 8/2, 16/4))
-export GMTSAR_RANGE_DECIMATION=4
-export GMTSAR_AZIMUTH_DECIMATION=1
-# set to number of cycles to allow phase jumps
-export GMTSAR_DEFOMAX=0
+export TELEGRAM_SENDER="GMTSAR on $(hostname)"
 # threshold for well correlated not masked areas (default 0.10)
-export GMTSAR_THRESHOLD_SNAPHU=0.12
+export GMTSAR_THRESHOLD_SNAPHU=0.10
 
 ##########################################################################################
 # Set local variables
@@ -27,6 +21,13 @@ WORKDIR=/mnt/GMTSAR
 DEM=/data/srtm3_egm96.grd
 ORBIT=asc
 SUBSWATHS=F2
+# recommended range decimation to be 8, azimuth decimation to be 2 (use 4/1, 8/2, 16/4))
+RDEC=8
+ADEC=2
+# set to number of cycles to allow phase jumps
+DEFOMAX=0
+# filter wavelength, m
+WLENGTH=400
 # https://github.com/gmtsar/gmtsar/issues/180
 # does not work asc 48.1 37.9 48.0 38.15
 # large area - ok asc 48.2 37.8 47.9 38.2
@@ -47,19 +48,12 @@ USELANDMASK=1
 SBASOPTS="-atm 0 -smooth 5.0"
 
 # notify user via Telegram
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F caption="GMTSAR on ${TELEGRAM_SENDER}: Start" \
-        -F document="@$0" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-fi
+telegram_senddocument.sh Start "$0"
 ##########################################################################################
 # Start GMTSAR processing
 ##########################################################################################
 rm -f GMTSAR.log
-GMTSAR0.setup.sh                 "$WORKDIR" "$DEM"                                          2>&1 | tee -a GMTSAR.log
+GMTSAR0.setup.sh                 "$WORKDIR" "$DEM"   "$RDEC" "$ADEC" "$DEFOMAX" "$WLENGTH"  2>&1 | tee -a GMTSAR.log
 GMTSAR1.data_orbit.sh            "$WORKDIR" "$ORBIT" "$DATADIR" "$DATAPATTERN"              2>&1 | tee -a GMTSAR.log
 GMTSAR2.pins_orbit.sh            "$WORKDIR" "$ORBIT"  $PINS                                 2>&1 | tee -a GMTSAR.log
 GMTSAR3.baseline_orbit_swaths.sh "$WORKDIR" "$ORBIT" "$SUBSWATHS"                           2>&1 | tee -a GMTSAR.log
@@ -74,11 +68,4 @@ GMTSAR9.sbas_orbit.sh            "$WORKDIR" "$ORBIT" "$SBASOPTS"                
 # see /mnt/GMTSAR/asc/SBAS for disp_*_ll.grd and vel_ll.grd & vel_ll.kml & vel_ll.png
 ##########################################################################################
 # notify user via Telegram
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F caption="GMTSAR on ${TELEGRAM_SENDER}: End" \
-        -F document="@GMTSAR.log" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-fi
+telegram_senddocument.sh End GMTSAR.log

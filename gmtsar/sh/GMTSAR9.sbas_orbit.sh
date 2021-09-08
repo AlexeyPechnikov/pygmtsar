@@ -95,13 +95,7 @@ cmd="sbas intf.tab scene.tab "$N" "$S" "$xdim" "$ydim" -range "$rng" -incidence 
 echo "$cmd"
 
 # notify user via Telegram
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F text="GMTSAR9 on ${TELEGRAM_SENDER}: $cmd" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage"
-fi
+telegram_sendmessage.sh "$cmd"
 
 # run the SBAS processing
 sbas intf.tab scene.tab "$N" "$S" "$xdim" "$ydim" -range "$rng" -incidence "$incidence" -wavelength "$wavelength" -rms -dem ${opts}
@@ -114,18 +108,7 @@ grd2kml.csh vel_ll vel_ll.cpt
 # attention: proj_ra2ll.csh does not work in parallel mode due to temporary files with the same names
 find . -name 'disp_???????.grd' | sed -E 's|(.*).grd|\1.grd \1_ll.grd|' | xargs -n 2 -P 1 proj_ra2ll.csh trans.dat
 
+# define values range of velocity map
+range=$(gmt grdinfo vel_ll.grd | grep z_min | sed -E 's/.*z_min: ([-\.0-9]{6}).*z_max: ([-\.0-9]{6}).*/\[\1,\2\]/')
 # notify user via Telegram
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    # define values range of velocity map
-    range=$(gmt grdinfo vel_ll.grd | grep z_min | sed -E 's/.*z_min: ([-\.0-9]{6}).*z_max: ([-\.0-9]{6}).*/\[\1,\2\]/')
-    json='[{"type":"document","media":"'attach://velocity.png'"},{"type":"document","media":"'attach://velocity.kml'","caption":"${CAPTION}"}]'
-    json=$(echo "$json" | sed -s "s|\${CAPTION}|GMTSAR9 on ${TELEGRAM_SENDER}: Velocity Map, ${range} mm/year|")
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F media="$json" \
-        -F "velocity.png=@vel_ll.png" \
-        -F "velocity.kml=@vel_ll.kml" \
-        -H "Content-Type:multipart/form-data" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMediaGroup"
-fi
+telegram_sendmediagroup.sh "Velocity Map, ${range} mm/year" vel_ll.png vel_ll.kml

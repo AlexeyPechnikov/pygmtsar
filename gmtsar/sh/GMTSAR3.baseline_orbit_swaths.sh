@@ -38,17 +38,10 @@ do
 done
 
 # notify user via Telegram
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    # goto last visited subswath
-    # dotted baseline plot placed in subswath/raw directory
-    cd "${swath}/raw"
-    ps2pdf baseline.ps baseline.pdf
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F caption="GMTSAR3 on ${TELEGRAM_SENDER}: Baseline plot for ${swath}" \
-        -F document='@baseline.pdf' \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-    # return
-    cd ../..
-fi
+# goto last visited subswath
+# dotted baseline plot placed in subswath/raw directory
+cd "${swath}/raw"
+ps2pdf baseline.ps baseline.pdf
+telegram_senddocument.sh "Baseline plot for ${swath}" baseline.pdf
+# return
+cd ../..

@@ -112,27 +112,9 @@ ls ???????_???????/corr.grd > corr.grd_list
 stack.csh corr.grd_list 1 corr_stack.grd std.grd
 # see corr_stack.pdf std.pdf
 
-# notify user via Telegram
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F caption="GMTSAR8 on ${TELEGRAM_SENDER}: Mean Correlation Stack for subswaths ${swathlist}" \
-        -F document="@corr_stack.pdf" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F caption="GMTSAR8 on ${TELEGRAM_SENDER}: Std. Dev. Correlation Stack for subswaths ${swathlist}" \
-        -F document="@std.pdf" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-fi
 proj_ra2ll.csh trans.dat corr_stack.grd corr_stack_ll.grd
 proj_ra2ll.csh trans.dat std.grd std_ll.grd
-if [ -n "$TELEGRAM_TOKEN" ]
-then
-    curl \
-        -F "chat_id=${TELEGRAM_CHAT_ID}" \
-        -F caption="GMTSAR8 on ${TELEGRAM_SENDER}: Mean Correlation Stack Grid for subswaths ${swathlist}" \
-        -F document="@corr_stack_ll.grd" \
-        "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument"
-fi
+
+# notify user via Telegram
+telegram_senddocument.sh "Mean Correlation Stack Grid for subswaths ${swathlist}" corr_stack_ll.grd
+telegram_senddocument.sh "Std. Dev. Correlation Stack for subswaths ${swathlist}" std_ll.grd
