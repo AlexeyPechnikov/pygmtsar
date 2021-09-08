@@ -18,8 +18,15 @@ do
     echo "Prepare ${orbit}/${swath}/raw directory"
     cd "${swath}/raw"
     # Link the data and orbit files that belong to this subswath
-    ln -f -s ../../data/F*/*.SAFE/*/*iw${num}*vv*xml .
-    ln -f -s ../../data/F*/*.SAFE/*/*iw${num}*vv*tiff .
+    if [ $(find ../../data -name 'F????_F????' -type d) ]
+        echo "Found pinned data files"
+        ln -f -s ../../data/F????_F????/*.SAFE/*/*iw${num}*vv*xml .
+        ln -f -s ../../data/F????_F????/*.SAFE/*/*iw${num}*vv*tiff .
+    else
+        echo "Found original data files"
+        ln -f -s ../../data/*.SAFE/*/*iw${num}*vv*xml .
+        ln -f -s ../../data/*.SAFE/*/*iw${num}*vv*tiff .
+    fi
     ln -f -s ../../data/*EOF .
     ln -f -s ../topo/dem.grd .
     # prepare data.in where the data file names (no suffix) and orbit file names organized

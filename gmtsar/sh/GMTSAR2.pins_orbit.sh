@@ -15,13 +15,20 @@ lat2="$6"
 
 cd "$workdir"
 cd "$2"
-cd reframed
 
+if [ "$#" -le 2 ]
+then
+    echo "No pins defined, drop possible previous results only"
+    find data -name 'F????_F????' -type d -exec rm -fr {} \;
+    rm -f reframed/pins.ll
+    exit
+fi
+
+cd reframed
 cat << EOF > pins.ll
 $lon1 $lat1
 $lon2 $lat2
 EOF
-
 # return
 cd ..
 
