@@ -19,6 +19,7 @@ do
     cd "${swath}/raw"
     # Link the data and orbit files that belong to this subswath
     if [ $(find ../../data -name 'F????_F????' -type d) ]
+    then
         echo "Found pinned data files"
         ln -f -s ../../data/F????_F????/*.SAFE/*/*iw${num}*vv*xml .
         ln -f -s ../../data/F????_F????/*.SAFE/*/*iw${num}*vv*tiff .
