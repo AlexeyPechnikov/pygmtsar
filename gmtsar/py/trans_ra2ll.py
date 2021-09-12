@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-# Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
+# Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 # python3 -m pip install install xarray numpy scipy --upgrade
-import pytest
+# trans_ra2ll - Transform trans.dat from Radar to Geographic Coordinates
+#import pytest
 
-def trans_ra2ll(in_trans_datafile, in_dem_gridfile, out_matrix_gridfile):
+def trans_ra2ll_matrix(in_trans_datafile, in_dem_gridfile, out_matrix_gridfile):
     from scipy.spatial import cKDTree
     import xarray as xr
     import numpy as np
@@ -48,7 +49,7 @@ def main():
     in_dem_gridfile = sys.argv[2]
     out_matrix_gridfile = sys.argv[3]
     # calculate
-    trans_ra2ll(in_trans_datafile, in_dem_gridfile, out_matrix_gridfile)
+    trans_ra2ll_matrix(in_trans_datafile, in_dem_gridfile, out_matrix_gridfile)
 
 if __name__ == "__main__":
     # execute only if run as a script
