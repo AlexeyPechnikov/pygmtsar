@@ -66,12 +66,12 @@ do
             sed -i -s "s/^azimuth_dec.*\$/azimuth_dec = 1/g"                            batch_tops.config
         fi
         sed -i -s "s/^threshold_snaphu.*\$/threshold_snaphu = 0/g"                      batch_tops.config
-        if [ -z "${GMTSAR_DEFOMAX}" ]
+        if [ -z "${defomax}" ]
         then
-            echo "Set defo_max = 0 - used for smooth unwrapped phase such as interseismic deformation (GMTSAR_DEFOMAX=${GMTSAR_DEFOMAX})"
+            echo "Set defo_max = 0 - used for smooth unwrapped phase such as interseismic deformation, no phase jumps"
             sed -i -s "s/^defomax.*\$/defomax = 0/g"                                    batch_tops.config
         else
-            echo "Set defo_max = ${GMTSAR_DEFOMAX} - will allow a phase jump of ${GMTSAR_DEFOMAX} cycles (GMTSAR_DEFOMAX=${GMTSAR_DEFOMAX})"
+            echo "Set defo_max = ${defomax} - will allow a phase jump, cycles"
             sed -i -s "s/^defomax.*\$/defomax = ${GMTSAR_DEFOMAX}/g"                    batch_tops.config
         fi
         sed -i -s "s/^threshold_geocode.*\$/threshold_geocode = 0/g"                    batch_tops.config
