@@ -121,9 +121,9 @@ void read_all_ldr(struct PRM *r, struct SAT_ORB *orb, int nfiles) {
 
 	for (i = 0; i < nfiles; i++) {
 		if (i == 0)
-			printf("......master LED file %s \n", r[0].led_file);
+			fprintf(stderr, "......master LED file %s \n", r[0].led_file);
 		if (i != 0)
-			printf(".........aligned LED file %s \n", r[i].led_file);
+			fprintf(stderr, ".........aligned LED file %s \n", r[i].led_file);
 
 		/* open each ldrfile and read into structure r */
 		if ((ldrfile = fopen(r[i].led_file, "r")) == NULL)
@@ -481,12 +481,12 @@ void baseline_parse_command_line(char **argv, int *nfiles, int *input_flag) {
 
 	if (strncmp(argv[1], "-input", 6) != 0) {
 
-		printf("using command line\n");
+		printf(stderr, "using command line\n");
 		*nfiles = 2;
 	}
 	else {
 
-		printf("using input file \n");
+		printf(stderr, "using input file \n");
 		*input_flag = 1;
 
 		if ((inputfile = fopen(argv[2], "r")) == NULL)
