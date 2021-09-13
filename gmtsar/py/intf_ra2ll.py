@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 # python3 -m pip install install xarray numpy scipy --upgrade
-# intf_ra2ll - Transform Interferogram from Radar to Geographic Coordinates
+# intf_ra2ll - Transform Matrix for Interferogram from Radar to Geographic Coordinates
 #import pytest
 
 #intf_ll = intf_ra2ll(phasefilts, intf_ra2ll_matrix)
@@ -28,7 +28,7 @@ def intf_ra2ll(images, matrix_ra2ll):
         )
     return imgs_ll
 
-def intf_ra2ll_matrix(in_trans_datafile, in_trans_gridfile, in_intf_ra_grid, out_matrix_gridfile):
+def intf_ra2ll_matrix(in_trans_datafile, in_trans_gridfile, in_intf_ra_grid):
     from scipy.spatial import cKDTree
     import xarray as xr
     import numpy as np
@@ -55,11 +55,9 @@ def intf_ra2ll_matrix(in_trans_datafile, in_trans_gridfile, in_intf_ra_grid, out
     # produce the same output array
     intf_ra2ll = xr.zeros_like(trans_ra2ll).rename('intf_ra2ll')
     intf_ra2ll.values = np.where(trans_ra2ll>=0, intf2trans[trans_ra2ll], -1)
-
-    compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
     # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
-    intf_ra2ll.attrs['node_offset'] = np.int32(1)
-    intf_ra2ll.to_netcdf(out_matrix_gridfile, encoding={'intf_ra2ll': compression})
+    intf_ra2ll.attrs['node_offset'] = 1
+    return intf_ra2ll
 
 def main():
     import sys
@@ -72,8 +70,12 @@ def main():
     in_trans_gridfile = sys.argv[2]
     in_intf_ra_grid = sys.argv[3]
     out_matrix_gridfile = sys.argv[4]
+
     # calculate
-    intf_ra2ll_matrix(in_trans_datafile, in_trans_gridfile, in_intf_ra_grid, out_matrix_gridfile)
+    intf_ra2ll = intf_ra2ll_matrix(in_trans_datafile, in_trans_gridfile, in_intf_ra_grid)
+    # save to NetCDF file
+    compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
+    intf_ra2ll.to_netcdf(out_matrix_gridfile, encoding={'intf_ra2ll': compression})
 
 if __name__ == "__main__":
     # execute only if run as a script

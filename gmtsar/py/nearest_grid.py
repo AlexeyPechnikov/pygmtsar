@@ -3,16 +3,16 @@
 # python3 -m pip install install xarray numpy scipy --upgrade
 import pytest
 
-def nearest_grid(in_grid, out_grid, search_radius=300):
+def nearest_grid(in_grid_filename,  search_radius=300):
     from scipy.spatial import cKDTree
     import xarray as xr
     import numpy as np
 
-    in0 = xr.open_dataarray(in_grid)
-    ys, xs = np.meshgrid(range(in0.shape[1]), range(in0.shape[0]))
+    in_grid = xr.open_dataarray(in_grid_filename)
+    ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
     ys = ys.reshape(-1)
     xs = xs.reshape(-1)
-    zs = in0.values.reshape(-1)
+    zs = in_grid.values.reshape(-1)
     mask = np.where(~np.isnan(zs))
     # on regular source grid some options should be redefined for better performance
     tree = cKDTree(np.column_stack((ys[mask],xs[mask])), compact_nodes=False, balanced_tree=False)
@@ -21,12 +21,11 @@ def nearest_grid(in_grid, out_grid, search_radius=300):
     # replace not available indexes by zero (see distance_upper_bound)
     fakeinds = np.where(~np.isinf(d), inds, 0)
     # produce the same output array as dataset to be able to add global attributes
-    out1 = xr.zeros_like(in0).to_dataset()
-    out1['z'].values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in0.shape)
-    compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
+    out_grid = xr.zeros_like(in_grid).to_dataset()
+    out_grid['z'].values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
     # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
-    out1.attrs['node_offset'] = np.int32(1)
-    out1.to_netcdf(out_grid, encoding={'z': compression})
+    out_grid.attrs['node_offset'] = 1
+    return out_grid
 
 def main():
     import sys
@@ -35,21 +34,24 @@ def main():
         print (f"Usage: {sys.argv[0]} input.grd output.grd [search_radius_pixels]")
         exit(0)
 
-    in_grid = sys.argv[1]
-    out_grid = sys.argv[2]
+    in_grid_filename = sys.argv[1]
+    out_grid_filename = sys.argv[2]
     if len(sys.argv) == 4:
         search_radius = float(sys.argv[3])
-        nearest_grid(in_grid, out_grid, search_radius)
+        out_grid = nearest_grid(in_grid_filename, search_radius)
     else:
-        nearest_grid(in_grid, out_grid)
+        out_grid = nearest_grid(in_grid_filename)
     #print ("in_grid", in_grid, "out_grid", out_grid, "search_radius", search_radius)
+    # save to NetCDF file
+    compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
+    out_grid.to_netcdf(out_grid_filename, encoding={'z': compression})
 
 def test_main():
     import subprocess
     import os
 
-    in_grid = '../testdata/nearest_grid.grd'
-    out_grid = '../testdata/_pytest.nearest_grid.grd'
+    in_grid_filename = '../testdata/nearest_grid.grd'
+    out_grid_filename = '../testdata/_pytest.nearest_grid.grd'
 
     output = """\
 : Title: z
@@ -65,12 +67,16 @@ def test_main():
 : mean: -66.259027874 stdev: 30.5838879722 rms: 72.976933393
 : format: netCDF-4 chunk_size: 128,128 shuffle: on deflation_level: 3
 """
-    assert os.path.exists(in_grid)
-    nearest_grid(in_grid, out_grid)
-    result = subprocess.run(['gmt', 'grdinfo', '-L2', out_grid], stdout=subprocess.PIPE)
-    result = result.stdout.decode('utf-8').replace(out_grid,'')
+    assert os.path.exists(in_grid_filename)
+    out_grid = nearest_grid(in_grid_filename)
+    # save to NetCDF file
+    compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
+    out_grid.to_netcdf(out_grid_filename, encoding={'z': compression})
+    # check the NetCDF file
+    result = subprocess.run(['gmt', 'grdinfo', '-L2', out_grid_filename], stdout=subprocess.PIPE)
+    result = result.stdout.decode('utf-8').replace(out_grid_filename,'')
     assert result == output
-    os.remove(out_grid)
+    os.remove(out_grid_filename)
 
 if __name__ == "__main__":
     # execute only if run as a script

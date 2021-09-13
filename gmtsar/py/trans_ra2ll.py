@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 # python3 -m pip install install xarray numpy scipy --upgrade
-# trans_ra2ll - Transform trans.dat from Radar to Geographic Coordinates
+# trans_ra2ll - Transform Matrix for trans.dat from Radar to Geographic Coordinates
 #import pytest
 
-def trans_ra2ll_matrix(in_trans_datafile, in_dem_gridfile, out_matrix_gridfile):
+def trans_ra2ll_matrix(in_trans_datafile, in_dem_gridfile):
     from scipy.spatial import cKDTree
     import xarray as xr
     import numpy as np
@@ -33,10 +33,9 @@ def trans_ra2ll_matrix(in_trans_datafile, in_dem_gridfile, out_matrix_gridfile):
     # produce the same output array as dataset to be able to add global attributes
     trans_ra2ll = xr.zeros_like(dem).rename('trans_ra2ll')
     trans_ra2ll.values = np.where(~np.isinf(d), inds, -1).reshape(dem.shape)
-    compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
     # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
-    trans_ra2ll.attrs['node_offset'] = np.int32(1)
-    trans_ra2ll.to_netcdf(out_matrix_gridfile, encoding={'trans_ra2ll': compression})
+    trans_ra2ll.attrs['node_offset'] = 1
+    return trans_ra2ll
 
 def main():
     import sys
@@ -49,7 +48,10 @@ def main():
     in_dem_gridfile = sys.argv[2]
     out_matrix_gridfile = sys.argv[3]
     # calculate
-    trans_ra2ll_matrix(in_trans_datafile, in_dem_gridfile, out_matrix_gridfile)
+    trans_ra2ll = trans_ra2ll_matrix(in_trans_datafile, in_dem_gridfile)
+    # save to NetCDF file
+    compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
+    trans_ra2ll.to_netcdf(out_matrix_gridfile, encoding={'trans_ra2ll': compression})
 
 if __name__ == "__main__":
     # execute only if run as a script
