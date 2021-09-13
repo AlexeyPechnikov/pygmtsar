@@ -48,7 +48,7 @@ all:		$(PROGS)
 install:	all
 		$(INSTALL) -d $(bindir)
 		$(INSTALL) $(PROGS) $(bindir)
-		ls csh/*.csh csh/*.sh csh/*.py > /tmp/t.lis
+		ls csh/*.csh csh/*.sh csh/*.py py/*.py sh/*.sh > /tmp/t.lis
 		$(INSTALL) `cat /tmp/t.lis` $(bindir)
 		rm -f /tmp/t.lis
 
