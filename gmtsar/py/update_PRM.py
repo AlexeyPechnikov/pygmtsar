@@ -7,11 +7,13 @@
 class PRM:
     @staticmethod
     def from_list(prm_list):
+        from io import StringIO
         prm = StringIO('\n'.join(prm_list))
         return PRM._from_io(prm)
 
     @staticmethod
     def from_str(prm_string):
+        from io import StringIO
         prm = StringIO(prm_string)
         return PRM._from_io(prm)
 
@@ -100,7 +102,7 @@ class PRM:
                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                      cwd=cwd, encoding='utf8')
         stdout_data = p.communicate(input=self.to_str())[0]
-        return stdout_data
+        return PRM.from_str(stdout_data)
 
 def main():
     import sys
@@ -132,4 +134,7 @@ prm1.set(prm2).update()
 (prm1 + prm2).to_file('S1_20150403_ALL_F1.PRM')
 
 (prm1).get('nrows')
+
+prm = PRM.from_file(...)
+prm.set(prm.calc_dop_orb(0,0)).update()
 """
