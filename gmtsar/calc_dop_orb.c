@@ -6,7 +6,7 @@
 #include "gmtsar.h"
 #include "orbit.h"
 
-void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
+void read_orb(FILE *, struct SAT_ORB *);
 void ldr_orbit(struct SAT_ORB *, struct PRM *);
 void calc_dop(struct PRM *);
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
 	if (ldrfile == NULL)
 		die("can't open ", prm->led_file);
 	orb = (struct SAT_ORB *)malloc(sizeof(struct SAT_ORB));
-	read_orb(ldrfile, prm, orb);
+	read_orb(ldrfile, orb);
 
 	/*  get the orbit parameters */
 	ldr_orbit(orb, prm);

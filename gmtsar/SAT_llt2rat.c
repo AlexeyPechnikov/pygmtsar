@@ -76,7 +76,7 @@ char *USAGE = " \n Usage: "
 
 int npad = 8000;
 
-void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
+void read_orb(FILE *, struct SAT_ORB *);
 void set_prm_defaults(struct PRM *);
 void hermite_c(double *, double *, double *, int, int, double, double *, int *);
 void set_prm_defaults(struct PRM *);
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
 
 	/* initialize the prm file   */
 
-    null_sio_struct(&prm);
+	null_sio_struct(&prm);
 	set_prm_defaults(&prm);
 	get_sio_struct(fprm1, &prm);
 
@@ -156,20 +156,8 @@ int main(int argc, char **argv) {
 	if (ldrfile == NULL)
 		die("can't open ", prm.led_file);
 	orb = (struct SAT_ORB *)malloc(sizeof(struct SAT_ORB));
-	read_orb(ldrfile, &prm, orb);
+	read_orb(ldrfile, orb);
 
-	/* update the rng_samp_rate in PRM file   */
-
-	if ((fprm1 = fopen(argv[1], "r")) == NULL) {
-		fprintf(stderr, "couldn't open master.PRM \n");
-		exit(-1);
-	}
-	while (fscanf(fprm1, "%s = %s \n", name, value) != EOF) {
-		if (strcmp(name, "rng_samp_rate") == 0) {
-			get_double(name, "rng_samp_rate", value, &rsr);
-		}
-	}
-	prm.fs = rsr;
 	dr = 0.5 * SOL / prm.fs;
 	r0 = -10.;
 	rf = prm.num_rng_bins + 10.;
