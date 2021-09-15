@@ -95,14 +95,118 @@ class PRM:
         return out
 
     def calc_dop_orb(self, earth_radius='0', doppler_centroid='0'):
+        """
+        Usage: calc_dop_orb  file.PRM  added.PRM  earth_radius  [doppler_centroid]
+            file.PRM     - input name of PRM file 
+            new.PRM      - output additional parameters to add to the PRM file 
+            earth_radius - input set earth radius, 0 calculates radius 
+            [doppler_centroid] - no parameter calculates doppler 
+            [doppler_centroid] - use value (e.g. 0.0) to force doppler 
+        """
         import subprocess
         import os
-        cwd = os.path.dirname(self.filename) if self.filename is not None else ''
+        cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(['calc_dop_orb', '/dev/stdin', '/dev/stdout', str(earth_radius), str(doppler_centroid)],
-                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                     cwd=cwd, encoding='utf8')
-        stdout_data = p.communicate(input=self.to_str())[0]
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             cwd=cwd, encoding='utf8')
+        stdout_data, stderr_data = p.communicate(input=self.to_str())
+        #print ('stdout_data', stdout_data)
+        print (stderr_data)
         return PRM.from_str(stdout_data)
+
+    def SAT_baseline(self, other):
+        """
+        SAT_baseline
+
+        Usage: (two modes)
+        
+        mode 1:
+
+            SAT_baseline PRM_master PRM_master
+
+            This is used to compute height information
+            (writes out height information for appending to PRM file)
+
+        mode 2:
+
+            SAT_baseline PRM_master PRM_aligned 
+
+            PRM_master     PRM file for reference image
+            PRM_aligned        PRM file of secondary image
+            Please make sure the orbit file data is in PRM 
+            Program runs through repeat orbit to find nearest point 
+            to the start, center and end on the reference orbit
+            (writes out parameters for appending to PRM file)
+        """
+        import os
+        import subprocess
+
+        if not isinstance(other, PRM):
+            raise Exception('Argument should be PRM class instance')
+
+        pipe1 = os.pipe()
+        os.write(pipe1[1], bytearray(self.to_str(), 'utf8'))
+        os.close(pipe1[1])
+        #print ('descriptor 1', str(pipe1[0]))
+
+        pipe2 = os.pipe()
+        os.write(pipe2[1], bytearray(other.to_str(), 'utf8'))
+        os.close(pipe2[1])
+        #print ('descriptor 2', str(pipe2[0]))
+
+        argv = ['SAT_baseline', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}']
+        cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
+        p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
+                             cwd=cwd, encoding='utf8')
+        stdout_data, stderr_data = p.communicate()
+        #print ('stdout_data', stdout_data)
+        print (stderr_data)
+        return PRM.from_str(stdout_data)
+
+    def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, *args):
+        """
+         Usage: SAT_llt2rat master.PRM prec [-bo[s|d]] < inputfile > outputfile  
+
+             master.PRM   -  parameter file for master image and points to LED orbit file 
+             precise      -  (0) standard back geocoding, (1) - polynomial refinenent (slower) 
+             inputfile    -  lon, lat, elevation [ASCII] 
+             outputfile   -  range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
+             -bos or -bod -  binary single or double precision output 
+        """
+        import numpy as np
+        from io import StringIO
+        import os
+        import subprocess
+
+        if coords is not None and fromfile is None:
+            lon, lat, elevation = coords
+            data=f'{lon} {lat} {elevation}'
+        elif coords is None and fromfile is not None:
+            with open(fromfile, 'r') as f:
+                data = f.read()
+        else:
+            raise Exception('Should be defined data source as coordinates triplet (coords) or as file (fromfile)')
+
+        pipe = os.pipe()
+        os.write(pipe[1], bytearray(self.to_str(), 'utf8'))
+        os.close(pipe[1])
+        #print ('descriptor', str(pipe[0]))
+
+        argv = ['SAT_llt2rat', f'/dev/fd/{pipe[0]}', str(precise), *args]
+        cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
+        p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, pass_fds=[pipe[0]],
+                             cwd=cwd, encoding='utf8')
+        stdout_data, stderr_data = p.communicate(input=data)
+        #print ('stdout_data', stdout_data)
+        print (stderr_data)
+        
+        if tofile is not None:
+            with open(tofile, 'w') as f:
+                f.write(stdout_data)
+        else:
+            return np.genfromtxt(StringIO(stdout_data), delimiter=' ')
 
 def main():
     import sys
