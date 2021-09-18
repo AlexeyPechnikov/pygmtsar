@@ -111,39 +111,39 @@ class PRM:
         elif isinstance(prm, pd.DataFrame):
             _prm = prm.reset_index()
         else:
-            _prm = prm.PRM.reset_index()
-        self.PRM = _prm[['name', 'value']].drop_duplicates(keep='last', inplace=False).set_index('name')\
+            _prm = prm.df.reset_index()
+        self.df = _prm[['name', 'value']].drop_duplicates(keep='last', inplace=False).set_index('name')\
             .applymap(lambda val : pd.to_numeric(val,errors='ignore'))
         self.filename = None
 
     def __eq__(self, other):
-        return isinstance(self, PRM) and self.PRM == other.PRM
+        return isinstance(self, PRM) and self.df == other.df
 
     def __str__(self):
         return self.to_str()
 
     def __repr__(self):
         if self.filename:
-            return 'Object %s (%s) %d items\n%r' % (self.__class__.__name__, self.filename, len(self.PRM), self.PRM)
+            return 'Object %s (%s) %d items\n%r' % (self.__class__.__name__, self.filename, len(self.df), self.df)
         else:
-            return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.PRM), self.PRM)
+            return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
     # use 'g' format for Python and numpy float values
     def set(self, prm=None, gformat=False, **kwargs):
         import numpy as np
 
         if isinstance(prm, PRM):
-            for (key, value) in prm.PRM.itertuples():
-                self.PRM.loc[key] = value
+            for (key, value) in prm.df.itertuples():
+                self.df.loc[key] = value
         elif prm is not None:
             raise Exception('Arguments is not a PRM object')
         for key, value in kwargs.items():
-            self.PRM.loc[key] = float(format(value, 'g')) if gformat and type(value) \
+            self.df.loc[key] = float(format(value, 'g')) if gformat and type(value) \
                 in [float, np.float16, np.float32, np.float64, np.float128] else value
         return self
 
     def to_dataframe(self):
-        return self.PRM
+        return self.df
 
     def to_file(self, prm):
         self._to_io(prm)
@@ -235,24 +235,24 @@ class PRM:
         return self._to_io()
 
     def _to_io(self, output=None):
-        return self.PRM.reset_index().astype(str).apply(lambda row: (' = ').join(row), axis=1)\
+        return self.df.reset_index().astype(str).apply(lambda row: (' = ').join(row), axis=1)\
             .to_csv(output, header=None, index=None)
 
     def sel(self, *args):
-        return PRM(self.PRM.loc[[*args]])
+        return PRM(self.df.loc[[*args]])
 
     def __add__(self, other):
         import pandas as pd
         if isinstance(other, PRM):
-            prm = pd.concat([self.PRM, other.PRM])
+            prm = pd.concat([self.df, other.df])
             # drop duplicates
             prm = prm.groupby(prm.index).last()
         else:
-            prm = self.PRM + other
+            prm = self.df + other
         return PRM(prm)
 
     def get(self, *args):
-        out = [self.PRM.loc[[key]].iloc[0].values[0] for key in args]
+        out = [self.df.loc[[key]].iloc[0].values[0] for key in args]
         if len(out) == 1:
             return out[0]
         return out
@@ -492,24 +492,25 @@ class PRM:
 
         return prm
 
-	def diff(self, other, gformat=True):
-		"""
-		Compare to other dataframe and return difference
-		"""
-		import pandas as pd
+    def diff(self, other, gformat=True):
+        """
+        Compare to other dataframe and return difference
+        """
+        import pandas as pd
+        import numpy as np
 
-		if not isinstance(other, PRM):
-			raise Exception('Argument should be PRM class instance')
-	
-		df1 = self.PRM.copy()
-		df2 = other.PRM.copy()
-	
-		if gformat:
-			fmt = lambda v: format(v, 'g') if type(v) in [float, np.float16, np.float32, np.float64, np.float128] else v
-			df1['value'] = [fmt(value) for value in df1['value']]
-			df2['value'] = [fmt(value) for value in df2['value']]
+        if not isinstance(other, PRM):
+            raise Exception('Argument should be PRM class instance')
+    
+        df1 = self.df.copy()
+        df2 = other.df.copy()
+    
+        if gformat:
+            fmt = lambda v: format(v, 'g') if type(v) in [float, np.float16, np.float32, np.float64, np.float128] else v
+            df1['value'] = [fmt(value) for value in df1['value']]
+            df2['value'] = [fmt(value) for value in df2['value']]
 
-		return pd.concat([df1, df2]).drop_duplicates(keep=False)
+        return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
 def main():
     import sys
