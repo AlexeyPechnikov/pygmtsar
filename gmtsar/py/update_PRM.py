@@ -492,17 +492,24 @@ class PRM:
 
         return prm
 
-    def diff(self, other):
-        """
-        Compare to other dataframe and return difference
-        """
-        import pandas as pd
-        
-        if not isinstance(other, PRM):
-            raise Exception('Argument should be PRM class instance')
-        
-        return pd.concat([self.PRM, other.PRM]).drop_duplicates(keep=False)
-        
+	def diff(self, other, gformat=True):
+		"""
+		Compare to other dataframe and return difference
+		"""
+		import pandas as pd
+
+		if not isinstance(other, PRM):
+			raise Exception('Argument should be PRM class instance')
+	
+		df1 = self.PRM.copy()
+		df2 = other.PRM.copy()
+	
+		if gformat:
+			fmt = lambda v: format(v, 'g') if type(v) in [float, np.float16, np.float32, np.float64, np.float128] else v
+			df1['value'] = [fmt(value) for value in df1['value']]
+			df2['value'] = [fmt(value) for value in df2['value']]
+
+		return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
 def main():
     import sys
