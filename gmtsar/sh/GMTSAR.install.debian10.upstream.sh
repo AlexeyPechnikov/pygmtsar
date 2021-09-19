@@ -1,17 +1,15 @@
 #!/bin/sh
 # Alexey Pechnikov, Aug, 2021, https://github.com/mobigroup/gmtsar
 # see https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
-# the script install GMTSAR from my repository and add plus replaces some tools
+# the script install GMTSAR from upstream repository and does not add or replace any tools
 # use the script first to prepare the linux system and GMTSAR.setup.sh next
 # check init lag at /var/log/daemon.log (/var/log/syslog on Ubuntu)
 set -e
 
 ORBITS=/usr/local/orbits
 GMTSAR=/usr/local/GMTSAR
-GIT=https://github.com/mobigroup/gmtsar
-BRANCH=master
-#GIT=https://github.com/gmtsar/gmtsar
-#BRANCH=6.1
+GIT=https://github.com/gmtsar/gmtsar
+BRANCH=6.1
 
 # prepare system
 apt update
@@ -53,7 +51,6 @@ cd "$ORBITS"
 #wget --content-disposition https://hu.berlin/s1-orbits
 #tar -xzvf S1-Orbits.tar.gz
 
-
 cd $(dirname "$GMTSAR")
 # drop previous installation if needed
 rm -fr GMTSAR
@@ -63,12 +60,6 @@ autoconf
 ./configure --with-orbits-dir="$ORBITS"
 make
 make install
-
-# replace original binary tool by Pythonic one
-mv "${GMTSAR}/bin/nearest_grid"          "${GMTSAR}/bin/nearest_grid.orig"
-mv "${GMTSAR}/gmtsar/py/nearest_grid.py" "${GMTSAR}/bin/nearest_grid"
-# install additional scripts from the repo
-find "${GMTSAR}/gmtsar/sh" -name '*.sh' -print0 | xargs -0 -I {} -n 1 ln -f -s "{}" "${GMTSAR}/bin/"
 
 # configure binaries path
 cat << EOF >> /root/.bashrc
