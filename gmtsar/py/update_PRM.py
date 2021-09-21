@@ -25,7 +25,7 @@ class PRM:
 
         if rank not in [1,2,3]:
             raise Exception('Number of model parameters "rank" should be 1, 2, or 3')
-    
+
         #see gmt_stat.c
         def gmtstat_f_q (chisq1, nu1, chisq2, nu2):
             import scipy.special as sc
@@ -51,10 +51,10 @@ class PRM:
             xy = np.expand_dims(x,1)
         elif rank == 3:
             xy = np.stack([x,y]).transpose()
-    
+
         # create linear regression object
         mlr = LinearRegression()
-    
+
         chisqs = []
         coeffs = []
         while True:
@@ -70,7 +70,7 @@ class PRM:
             # Go back to previous model only if previous chisq < current chisq
             if len(chisqs)==1 or chisqs[-2] > chisqs[-1]:
                 coeffs = [mlr.intercept_, *mlr.coef_]
-        
+
             #print ('chisq', chisq, 'significant', sig)
             if sig < sig_threshold:
                 break
@@ -160,13 +160,13 @@ class PRM:
         """
         import shutil
         import os
-    
+
         if self.filename is None:
             raise Exception('PRM is not created from file, use to_file() method instead')
-    
+
         if debug:
             print ('Debug mode: only print expected operations but do not perform the actual job')
-    
+
         # rename linked files
         if name is not None:
             # define current files directory
@@ -174,7 +174,7 @@ class PRM:
             # define new files basename
             basename = os.path.splitext(name)[0]
             shortname = os.path.split(basename)[-1]
-    
+
             # rename PRM file
             if not safe:
                 print (f'Remove old PRM file {self.filename} and save new one {name}')
@@ -184,7 +184,7 @@ class PRM:
                 print (f'Safe mode: remain old PRM file {self.filename} and save new one {name}')
             # will be saved later
             self.filename = name
-        
+
             input_file0 = os.path.join(dirname0, os.path.split(self.get('input_file'))[-1])
             input_ext = os.path.splitext(input_file0)[1]
             input_file = basename + input_ext
@@ -224,11 +224,11 @@ class PRM:
                     print (f'Safe mode: copy LED_file {led_file0} -> {led_file}')
                     if not debug:
                         shutil.copy2(led_file0, led_file)
-    
+
         if debug:
             return self
             #.sel('input_file','SLC_file','led_file')
-    
+
         return self.to_file(self.filename)
 
     def to_str(self):
@@ -286,7 +286,7 @@ class PRM:
         SAT_baseline
 
         Usage: (two modes)
-        
+
         mode 1:
 
             SAT_baseline PRM_master PRM_master
@@ -331,49 +331,85 @@ class PRM:
         print (stderr_data)
         return PRM.from_str(stdout_data)
 
-    def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, *args):
-        """
-         Usage: SAT_llt2rat master.PRM prec [-bo[s|d]] < inputfile > outputfile  
+    """
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1)
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1, mode='-bos')
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1, mode='-bod')
 
-             master.PRM   -  parameter file for master image and points to LED orbit file 
-             precise      -  (0) standard back geocoding, (1) - polynomial refinenent (slower) 
-             inputfile    -  lon, lat, elevation [ASCII] 
-             outputfile   -  range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
-             -bos or -bod -  binary single or double precision output 
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], tofile='out.dat', precise=1)
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], tofile='outs.dat', precise=1, mode='-bos')
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], tofile='outd.dat', precise=1, mode='-bod')
+
+    coords = prm.SAT_llt2rat(dem_data[:10], precise=1)
+    [format(v, '.6f') for v in coords]
+    """
+    def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, mode=None):
+        """
+         Usage: SAT_llt2rat master.PRM prec [-bo[s|d]] < inputfile > outputfile
+
+             master.PRM   -  parameter file for master image and points to LED orbit file.
+             precise      -  (0) standard back geocoding, (1) - polynomial refinenent (slower).
+             inputfile    -  lon, lat, elevation [ASCII].
+             outputfile   -  range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default].
+             -bos or -bod -  binary single or double precision output.
         """
         import numpy as np
-        from io import StringIO
+        from io import StringIO, BytesIO
         import os
         import subprocess
 
+        if mode is not None and not mode in ['-bos','-bod']:
+            raise Exception('Supports only text (by default) and -bod/-bos for binary double and single precision output')
+
         if coords is not None and fromfile is None:
-            lon, lat, elevation = coords
-            data=f'{lon} {lat} {elevation}'
+            #lon, lat, elevation = coords
+            #data=f'{lon} {lat} {elevation}'
+            buffer = BytesIO()
+            # to produce the same result as original command returns
+            # gmt grd2xyz --FORMAT_FLOAT_OUT=%lf topo/dem.grd -s
+            np.savetxt(buffer, coords, delimiter=' ', fmt='%.6f')
+            stdin_data = buffer.getvalue()
         elif coords is None and fromfile is not None:
-            with open(fromfile, 'r') as f:
-                data = f.read()
+            with open(fromfile, 'rb') as f:
+                stdin_data = f.read()
         else:
             raise Exception('Should be defined data source as coordinates triplet (coords) or as file (fromfile)')
 
+        # TBD: use np.array_split() and [x for x in a if x.size > 0] for chunking processing
         pipe = os.pipe()
-        os.write(pipe[1], bytearray(self.to_str(), 'utf8'))
+        os.write(pipe[1], bytearray(self.to_str(), 'ascii'))
         os.close(pipe[1])
         #print ('descriptor', str(pipe[0]))
 
-        argv = ['SAT_llt2rat', f'/dev/fd/{pipe[0]}', str(precise), *args]
+        argv = ['SAT_llt2rat', f'/dev/fd/{pipe[0]}', str(precise)]
+        # set binary format mode
+        if mode is not None:
+            argv.append(mode)
+        #print (argv)
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe[0]],
-                             cwd=cwd, encoding='utf8')
-        stdout_data, stderr_data = p.communicate(input=data)
-        #print ('stdout_data', stdout_data)
-        print (stderr_data)
-        
+                             cwd=cwd, bufsize=10*1000*1000)
+        stdout_data, stderr_data = p.communicate(input=stdin_data)
+
+        stderr_data = stderr_data.decode('ascii')
+        if stderr_data.startswith('interpolation point outside of data constraints'):
+            print ('Error: SAT_llt2rat processing stopped due to invalid coordinates for one of input points')
+            return None
+        if stderr_data is not None and len(stderr_data):
+            print (stderr_data)
+
         if tofile is not None:
-            with open(tofile, 'w') as f:
+            with open(tofile, 'wb') as f:
                 f.write(stdout_data)
         else:
-            return np.genfromtxt(StringIO(stdout_data), delimiter=' ')
+            if mode == '-bos':
+                out = (np.frombuffer(stdout_data, dtype=np.dtype(np.float32)))
+            if mode == '-bod':
+                out = (np.frombuffer(stdout_data, dtype=np.dtype(np.float64)))
+            else:
+                out = np.fromstring(stdout_data, dtype=float, sep=' ')
+            return out if out.size==5 else out.reshape(-1,5)
 
     def resamp(self, alignedPRM, alignedSLC_tofile, interp):
         """
@@ -383,7 +419,7 @@ class PRM:
         new_aligned.PRM    - PRM for aligned aligned image
         new_aligned.SLC    - SLC for aligned aligned image
         interp             - interpolation method: 1-nearest; 2-bilinear; 3-biquadratic; 4-bisinc
-        
+
         master  = PRM.from_file('master.PRM')
         aligned = PRM.from_file('aligned.PRM')
         master.resamp(aligned,'new_aligned.SLC',interp).to_file('new_aligned.PRM')
@@ -419,13 +455,13 @@ class PRM:
 
         # print errors and notifications
         print (stderr_data.decode('utf8'))
-        
+
         # save big SLC binary file
         with open(alignedSLC_tofile, 'wb') as f:
             f.write(stdout_data)
-        
+
         # PRM file should be small text
-        data = os.read(pipe2[0],int(10e6)).decode('utf8')        
+        data = os.read(pipe2[0],int(10e6)).decode('utf8')
         return PRM.from_str(data)
 
     # PRM.fitoffset(3, 3, offset_dat)
@@ -434,15 +470,15 @@ class PRM:
     def fitoffset(rank_rng, rank_azi, matrix=None, matrix_fromfile=None, SNR=20):
         import numpy as np
         import math
-    
+
         """
         Usage: fitoffset.csh npar_rng npar_azi xcorr.dat [SNR]
-  
+ 
             rank_rng    - number of parameters to fit in range 
             rank_azi    - number of parameters to fit in azimuth 
             matrix      - files of range and azimuth offset estimates 
             SNR         - optional SNR cutoff (default 20)
-  
+ 
         Example: fitoffset.csh 3 3 freq_xcorr.dat 
         """
         if (matrix is None and matrix_fromfile is None) or (matrix is not None and matrix_fromfile is not None):
@@ -453,17 +489,17 @@ class PRM:
         #  first extract the range and azimuth data
         rng = matrix[np.where(matrix[:,4]>SNR)][:,[0,2,1]]
         azi = matrix[np.where(matrix[:,4]>SNR)][:,[0,2,3]]
-    
+
         # make sure there are enough points remaining
         if rng.shape[0] < 8:
             raise Exception(f'FAILED - not enough points to estimate parameters, try lower SNR ({rng.shape[0]} < 8)')
-    
+
         rng_coef = PRM.GMT_trend2d(rng, rank_rng)
         azi_coef = PRM.GMT_trend2d(azi, rank_azi)
-    
+
         # range and azimuth data ranges
         scale_coef = [np.min(rng[:,0]), np.max(rng[:,0]), np.min(rng[:,1]), np.max(rng[:,1])]
-    
+
         rng_coef += scale_coef
         azi_coef += scale_coef
         #print ('rng_coef, rng_coef)
@@ -476,7 +512,7 @@ class PRM:
         ashift = azi_coef[0] - azi_coef[1]*(azi_coef[4]+azi_coef[3])/(azi_coef[4]-azi_coef[3]) \
             - azi_coef[2]*(azi_coef[6]+azi_coef[5])/(azi_coef[6]-azi_coef[5])
         #print ('rshift', rshift, 'ashift', ashift)
-    
+
         # note: Python x % y expression and nympy results are different to C, use math function
         # use 'g' format for float values as in original GMTSAR codes to easy compare results
         prm = PRM().set(gformat=True,
@@ -492,6 +528,46 @@ class PRM:
 
         return prm
 
+    # create replacement for trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
+    def topo_ra(self, dem, trans_dat_tofile=None, topo_ra_tofile=None):
+        import numpy as np
+        import xarray as xr
+        from scipy.interpolate import griddata
+
+        XMAX, yvalid, num_patch = self.get('num_rng_bins', 'num_valid_az', 'num_patches')
+        YMAX = yvalid * num_patch
+        #print ('XMAX', XMAX, 'YMAX', YMAX)
+        # as defined in dem2topo_ra.csh for Sentinel-1
+        azi_dec = 2
+        rng_dec = 2
+        print (f'Range and azimuth decimation: {rng_dec}/{azi_dec}')
+
+        # use center pixel GMT registration mode 
+        rngs = np.arange(1,XMAX+1,2)
+        azis = np.arange(1,YMAX+1,2)
+        grid_r, grid_a = np.meshgrid(rngs, azis)
+        #print ('grid_r', grid_r.shape)
+
+        # create replacement for trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
+        lats, lons, z = xr.broadcast(dem.lat, dem.lon, dem)
+        dem_data = np.column_stack([lons.values.ravel(), lats.values.ravel(), z.values.ravel()])
+        #print ('dem_data', dem_data.shape)
+        if trans_dat_tofile is not None:
+            self.SAT_llt2rat(dem_data, tofile=trans_dat_tofile, precise=1, mode='-bod')
+            coords = np.fromfile(trans_dat_tofile, dtype=np.float64).reshape([-1,5])
+        else:
+            coords = self.SAT_llt2rat(dem_data, precise=1, mode='-bod')
+
+        grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method='linear')
+        topo = xr.DataArray(np.flipud(grid), coords={'y': azis, 'x': rngs}, name='z')
+
+        if topo_ra_tofile is not None:
+            # save to NetCDF file
+            compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
+            topo.to_netcdf(topo_ra_tofile, encoding={'z': compression})
+
+        return topo
+
     def diff(self, other, gformat=True):
         """
         Compare to other dataframe and return difference
@@ -501,10 +577,10 @@ class PRM:
 
         if not isinstance(other, PRM):
             raise Exception('Argument should be PRM class instance')
-    
+
         df1 = self.df.copy()
         df2 = other.df.copy()
-    
+
         if gformat:
             fmt = lambda v: format(v, 'g') if type(v) in [float, np.float16, np.float32, np.float64, np.float128] else v
             df1['value'] = [fmt(value) for value in df1['value']]
