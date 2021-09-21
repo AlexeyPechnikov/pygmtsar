@@ -56,7 +56,8 @@
 char *USAGE = "phasediff [GMTSAR] - Compute phase difference of two images\n\n"
               "\nUsage: "
               "phasediff ref.PRM rep.PRM [-topo topo_ra.grd] [-model "
-              "modelphase.grd]\n (topo_ra and model in GMT grd format)\n";
+              "modelphase.grd] [-imag imag.grd] [-real real.grd]\n"
+              "(topo_ra and model in GMT grd format)\n";
 
 /*--------------------------------------------------------------*/
 void calc_drho(int xdim, double *range, double *topo, double avet, double re, double height, double B, double alpha, double Bx,
@@ -161,7 +162,8 @@ void fix_prm_params(struct PRM *p, char *s) {
 /*--------------------------------------------------------------*/
 /* read topo_ra and model files if provided			*/
 /* must be in GMT binary grd format					*/
-void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *topoflag, struct PRM *mp, int *modelflag) {
+void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *topoflag, struct PRM *mp, int *modelflag,
+			char *imag_filename, char *real_filename) {
 	int i;
 	struct GMT_GRID *M = NULL, *T = NULL; /* Grid structures containing ->header and ->data */
 
@@ -191,6 +193,14 @@ void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *t
 			i++;
 			GMT_Destroy_Data(API, &M);
 		}
+
+		if (strncmp(argv[i], "-imag", strlen("-imag")) == 0) {
+			snprintf(imag_filename, 128, "%s=bf", argv[i + 1]);
+		}
+
+		if (strncmp(argv[i], "-real", strlen("-real")) == 0) {
+			snprintf(real_filename, 128, "%s=bf", argv[i + 1]);
+		}
 	}
 }
 
@@ -216,6 +226,8 @@ int main(int argc, char **argv) {
 	double ys, test, inc[2], wesn[4];
 	double xdect, ydect, xdecm, ydecm, rdumt;
 	FILE *SLCfile1 = NULL, *SLCfile2 = NULL;
+	char imag_filename[128] = "imag.grd=bf";
+	char real_filename[128] = "real.grd=bf";
 	fcomplex *intfp = NULL, *iptr1 = NULL, *iptr2 = NULL, pshif;
 	struct PRM p1, p2, tp, mp;
 	void *API = NULL;                       /* GMT control structure */
@@ -246,7 +258,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "near range: %lf %lf \n", p1.near_range, p2.near_range);
 
 	if (argc > 3)
-		read_optional_args(API, argc, argv, &tp, &topoflag, &mp, &modelflag);
+		read_optional_args(API, argc, argv, &tp, &topoflag, &mp, &modelflag, imag_filename, real_filename);
 
 	if (debug)
 		print_prm_params(p1, p2);
@@ -563,11 +575,11 @@ else {
 		}
 	}
 
-	if (GMT_Write_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, "real.grd=bf", RE)) {
-		die("Failed to update real.grd grid header", "");
+	if (GMT_Write_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, real_filename, RE)) {
+		die("Failed to update real.grd grid header", real_filename);
 	}
-	if (GMT_Write_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, "imag.grd=bf", IM)) {
-		die("Failed to update imag.grd grid header", "");
+	if (GMT_Write_Data(API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_GRID_ALL, NULL, imag_filename, IM)) {
+		die("Failed to update imag.grd grid header", imag_filename);
 	}
 
 	if (GMT_Destroy_Session(API))

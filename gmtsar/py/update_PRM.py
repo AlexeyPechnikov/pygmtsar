@@ -595,11 +595,11 @@ class PRM:
     # TODO: add topo_ra argument processing
     # two binary files real.grd and imag.grd will be created
     # TBD: update phasediff tool to allow output files basename argument
-    def phasediff(self, other, topo_ra_fromfile=None, topo_ra=None):
+    def phasediff(self, other, topo_ra_fromfile, imag_tofile, real_tofile):
         """
         phasediff [GMTSAR] - Compute phase difference of two images
 
-        Usage: phasediff ref.PRM rep.PRM [-topo topo_ra.grd] [-model modelphase.grd]
+        Usage: phasediff ref.PRM rep.PRM [-topo topo_ra.grd] [-model modelphase.grd] [-imag imag.grd] [-real real.grd]
             (topo_ra and model in GMT grd format)
         """
         import os
@@ -618,11 +618,11 @@ class PRM:
         os.close(pipe2[1])
         #print ('descriptor 2', str(pipe2[0]))
 
-        argv = ['phasediff', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}']
+        argv = ['phasediff', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}', '-imag', imag_tofile, '-real', real_tofile]
         if topo_ra_fromfile is not None:
             argv.append('-topo')
             argv.append(topo_ra_fromfile)
-        #print ('argv', argv)
+        print ('argv', argv)
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
