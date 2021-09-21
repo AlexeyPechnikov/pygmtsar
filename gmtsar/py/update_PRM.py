@@ -281,7 +281,7 @@ class PRM:
         else:
             return prm
 
-    def SAT_baseline(self, other):
+    def SAT_baseline(self, other, inplace=False):
         """
         SAT_baseline
 
@@ -309,7 +309,7 @@ class PRM:
         import subprocess
 
         if not isinstance(other, PRM):
-            raise Exception('Argument should be PRM class instance')
+            raise Exception('Argument "other" should be PRM class instance')
 
         pipe1 = os.pipe()
         os.write(pipe1[1], bytearray(self.to_str(), 'utf8'))
@@ -329,7 +329,11 @@ class PRM:
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
         print (stderr_data)
-        return PRM.from_str(stdout_data)
+        prm = PRM.from_str(stdout_data)
+        if inplace:
+            return self.set(prm)
+        else:
+            return prm
 
     """
     coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1)
@@ -587,6 +591,46 @@ class PRM:
             df2['value'] = [fmt(value) for value in df2['value']]
 
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
+
+    # TODO: add topo_ra argument processing
+    # two binary files real.grd and imag.grd will be created
+    # TBD: update phasediff tool to allow output files basename argument
+    def phasediff(self, other, topo_ra_fromfile=None, topo_ra=None):
+        """
+        phasediff [GMTSAR] - Compute phase difference of two images
+
+        Usage: phasediff ref.PRM rep.PRM [-topo topo_ra.grd] [-model modelphase.grd]
+            (topo_ra and model in GMT grd format)
+        """
+        import os
+        import subprocess
+
+        if not isinstance(other, PRM):
+            raise Exception('Argument "other" should be PRM class instance')
+
+        pipe1 = os.pipe()
+        os.write(pipe1[1], bytearray(self.to_str(), 'utf8'))
+        os.close(pipe1[1])
+        #print ('descriptor 1', str(pipe1[0]))
+
+        pipe2 = os.pipe()
+        os.write(pipe2[1], bytearray(other.to_str(), 'utf8'))
+        os.close(pipe2[1])
+        #print ('descriptor 2', str(pipe2[0]))
+
+        argv = ['phasediff', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}']
+        if topo_ra_fromfile is not None:
+            argv.append('-topo')
+            argv.append(topo_ra_fromfile)
+        #print ('argv', argv)
+        cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
+        p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
+                             cwd=cwd, encoding='utf8')
+        stdout_data, stderr_data = p.communicate()
+        #print ('stdout_data', stdout_data)
+        print (stderr_data)
+        return
 
 def main():
     import sys
