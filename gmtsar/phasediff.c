@@ -195,11 +195,11 @@ void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *t
 		}
 
 		if (strncmp(argv[i], "-imag", strlen("-imag")) == 0) {
-			snprintf(imag_filename, 128, "%s=bf", argv[i + 1]);
+			snprintf(imag_filename, 128, "%s", argv[i + 1]);
 		}
 
 		if (strncmp(argv[i], "-real", strlen("-real")) == 0) {
-			snprintf(real_filename, 128, "%s=bf", argv[i + 1]);
+			snprintf(real_filename, 128, "%s", argv[i + 1]);
 		}
 	}
 }
