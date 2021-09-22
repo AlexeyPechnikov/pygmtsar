@@ -23,7 +23,7 @@ int strasign(char *, char *, int, int);
 int strlocate(char *, int, int);
 
 char *USAGE = "\n\nUsage: make_gaussian_filter name_of_PRM_file RNG_DEC "
-              "AZI_DEC WAVELENGTH(m)\n"
+              "AZI_DEC WAVELENGTH(m) [output_filename]\n"
               "\nExample: make_gaussian_filter "
               "IMG-HH-ALPSRP211830620-H1.0__A.PRM 2 4 200\n"
               "\nOutput: gauss_200\n";
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 	double c_speed = 299792458.0;
 	double sig_azi, sig_rng, a, rng, cost, cosa;
 	double g[50][50];
-	char out_name[100] = "gauss_";
+	char out_name[128] = "gauss_";
 
 	if (argc < 4)
 		die(USAGE, "");
@@ -92,6 +92,8 @@ int main(int argc, char **argv) {
 		n_rng = n_rng + 1;
 
 	strcat(out_name, argv[4]);
+	if (argc > 5)
+		snprintf(out_name, 128, "%s", argv[5]);
 
 	if ((fid = fopen(out_name, "w")) == NULL)
 		die("Couldn't open file: \n", out_name);
