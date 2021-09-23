@@ -97,9 +97,14 @@ class SBAS:
             f.write(line+'\n'+lines+'\n')
         return self
 
-    def geoloc(self, date):
+    def geoloc(self, date=None):
         import pandas as pd
         import xmltodict
+
+        if date is None:
+            if self.master is None:
+                raise Exception('Set master image or define argument date')
+            date = self.master
 
         filename = self.df.loc[date,'metapath']
         with open(filename) as fd:
@@ -118,12 +123,27 @@ class SBAS:
         if geoloc is False:
             return dem
         
-        geoloc = self.geoloc(self.master)
+        geoloc = self.geoloc()
         ymin, ymax = geoloc.latitude.min(), geoloc.latitude.max()
         #print ('ymin, ymax', ymin, ymax)
         xmin, xmax = geoloc.longitude.min(), geoloc.longitude.max()
         #print ('xmin, xmax', xmin, xmax)
         return dem.sel(lat=slice(ymin, ymax), lon=slice(xmin,xmax))
+
+    # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
+    def get_topo_llt(self, degrees, geoloc=True):
+        import xarray as xr
+        import numpy as np
+
+        dem_area = self.get_dem(geoloc=geoloc)
+        ny = int(np.round(degrees/dem_area.lat.diff('lat')[0]))
+        nx = int(np.round(degrees/dem_area.lon.diff('lon')[0]))
+        #print ('DEM decimation','ny', ny, 'nx', nx)
+        dem_area = dem_area.coarsen({'lat': ny, 'lon': nx}, boundary='pad').median()
+
+        lats, lons, z = xr.broadcast(dem_area.lat, dem_area.lon, dem_area)
+        topo_llt = np.column_stack([lons.values.ravel(), lats.values.ravel(), z.values.ravel()])
+        return topo_llt
 
     def to_dataframe(self):
         return self.df
@@ -132,7 +152,7 @@ class SBAS:
         import os
         import subprocess
 
-        if date is None:
+        if date is None or date == self.master:
             df = self.get_master()
         else:
             df = self.df.loc[[date]]
@@ -154,7 +174,7 @@ class SBAS:
         import os
         import subprocess
 
-        if date is None:
+        if date is None or date == self.master:
             date = self.master
             # for master image mode should be 1
             mode = 1
@@ -185,6 +205,39 @@ class SBAS:
         self.ext_orb_s1a(basedir, stem, date)
     
         return
+
+    def preproc(self, basedir, date=None):
+        import os
+        from PRM import PRM
+
+        # for master image
+        if date is None or date == self.master:
+            master_line = list(self.get_master().itertuples())[0]
+            #print (master_line)
+
+            path_stem = os.path.join(basedir, master_line.stem)
+            path_multistem = os.path.join(basedir, master_line.multistem)
+
+            # generate prms and leds
+            self.make_s1a_tops(basedir)
+
+            PRM.from_file(path_stem + '.PRM')\
+                .set(input_file = path_multistem + '.raw')\
+                .update(path_multistem + '.PRM', safe=True)
+
+            self.ext_orb_s1a(basedir, master_line.multistem)
+
+            # recalculate after ext_orb_s1a
+            earth_radius = PRM.from_file(path_multistem + '.PRM')\
+                .calc_dop_orb(inplace=True).update().get('earth_radius')
+
+            return PRM().set(earth_radius=earth_radius, stem=master_line.stem, multistem=master_line.multistem)
+
+        # TODO: aligning for secondary images
+
+    def baseline_table(self, days, meters):
+        return
+
 
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df
