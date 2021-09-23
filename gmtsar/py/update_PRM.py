@@ -765,7 +765,7 @@ class PRM:
         import subprocess
 
         if corrfilt_tofile is None and alpha<0:
-            raise Exception('For argument alpha<0 shoukd be defined argument corrfilt_tofile')    
+            raise Exception('For argument alpha<0 shoukd be defined argument corrfilt_tofile')
 
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         # -v - only args after verbose (if set) will be echoed
@@ -784,6 +784,118 @@ class PRM:
         if len(stderr_data) > 0:
             print (stderr_data.decode('ascii'))
         return
+
+    def intf(self, other, basedir, basename=None, wavelength=200, psize=32):
+        import os
+        import numpy as np
+        import xarray as xr
+        from scipy import signal
+
+        # constant from GMTSAR code
+        thresh = 5.e-21
+
+        # options to save as NetCDF file
+        compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
+
+        if not isinstance(other, PRM):
+            raise Exception('Argument "other" should be PRM class instance')
+
+        # define basename from two PRM names
+        if basename is None:
+            date1 = os.path.basename(self.filename)[3:11]
+            date2 = os.path.basename(other.filename)[3:11]
+            basename = f'{date1}_{date2}_'
+
+        # make full file name
+        fullname = lambda name: os.path.join(basedir,basename + name)
+
+        #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
+        fill_3x3 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/fill.3x3', skip_header=1)
+
+        filename_gauss5x5 = os.path.join(os.environ['GMTSAR'],'share','gmtsar','filters','gauss5x5')
+        gauss_dec, gauss_string = self.make_gaussian_filter(2, 1, wavelength=wavelength)
+        #print (gauss_matrix_astext)
+
+        # for topo_ra use relative path from PRM files directory
+        # use imag.grd=bf for GMT native, C-binary format
+        self.phasediff(other, topo_ra_fromfile='topo/topo_ra.grd',
+                       imag_tofile=fullname('imag.grd=bf'),
+                       real_tofile=fullname('real.grd=bf'))
+
+        # making amplitudes
+        self.conv(1, 2, filter_file = filename_gauss5x5,
+                  output_file=fullname('amp1_tmp.grd=bf'))
+        self.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                  input_file=fullname('amp1_tmp.grd=bf'),
+                  output_file=fullname('amp1.grd'))
+
+        other.conv(1, 2, filter_file = filename_gauss5x5,
+                   output_file=fullname('amp2_tmp.grd=bf'))
+        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                   input_file=fullname('amp2_tmp.grd=bf'),
+                   output_file=fullname('amp2.grd'))
+
+        # filtering interferogram
+        self.conv(1, 2, filter_file=filename_gauss5x5,
+                  input_file=fullname('real.grd=bf'),
+                  output_file=fullname('real_tmp.grd=bf'))
+        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                   input_file=fullname('real_tmp.grd=bf'),
+                   output_file=fullname('realfilt.grd'))
+        self.conv(1, 2, filter_file=filename_gauss5x5,
+                  input_file=fullname('imag.grd=bf'),
+                  output_file=fullname('imag_tmp.grd=bf'))
+        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                   input_file=fullname('imag_tmp.grd=bf'),
+                   output_file=fullname('imagfilt.grd'))
+
+        # filtering phase
+        self.phasefilt(imag_fromfile=fullname('imagfilt.grd'),
+                       real_fromfile=fullname('realfilt.grd'),
+                       amp1_fromfile=fullname('amp1.grd'),
+                       amp2_fromfile=fullname('amp2.grd'),
+                       phasefilt_tofile=fullname('phasefilt_phase.grd'),
+                       corrfilt_tofile=fullname('phasefilt_corr.grd'),
+                       psize=psize)
+
+        # Python post-processing
+        realfilt = xr.open_dataarray(fullname('realfilt.grd'))
+        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'))
+        amp = xr.ufuncs.sqrt(realfilt**2 + imagfilt**2)
+
+        amp1 = xr.open_dataarray(fullname('amp1.grd'))
+        amp2 = xr.open_dataarray(fullname('amp2.grd'))
+
+        # making correlation
+        tmp = amp1 * amp2
+        mask = xr.where(tmp >= thresh, 1, np.nan)
+        tmp2 = ((amp/xr.ufuncs.sqrt(tmp)) * mask)
+        tmp2.values = np.flipud(tmp2.values)
+        conv = signal.convolve2d(tmp2, fill_3x3/fill_3x3.sum(), mode='same', boundary='symm')
+        corr = xr.DataArray(conv, {'y': tmp2.y, 'x': tmp2.x}, name='z')
+        corr.to_netcdf(fullname('corr.grd'), encoding={'z': compression})
+
+        # making phase
+        phase = xr.ufuncs.arctan2(imagfilt, realfilt) * mask
+        phase.values = np.flipud(phase.values)
+        phase.to_netcdf(fullname('phase.grd'), encoding={'z': compression})
+
+        # make the Werner/Goldstein filtered phase
+        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'))
+        phasefilt = phasefilt_phase * mask
+        phasefilt.values = np.flipud(phasefilt.values)
+        phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
+
+        # TODO: some cleanup
+        for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
+                     'real.grd', 'real_tmp.grd', 'realfilt.grd',
+                     'imag.grd', 'imag_tmp.grd', 'imagfilt.grd',
+                     'phasefilt_phase.grd', 'phasefilt_corr.grd']:
+            filename = fullname(name)
+            #if os.path.exists(filename):
+            os.remove(filename)
+
+        return fullname('')
 
 def main():
     import sys
