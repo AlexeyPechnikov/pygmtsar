@@ -753,7 +753,7 @@ class PRM:
              or applies modified Goldstein adaptive filter to phase [output: filtphase.grd, corrfilt.grd]
             -imag [required] GMT format file of imaginary component
             -real [required] GMT format file of real component
-            -alpha 	exponent for filter - usually between 0.0 and 1.5 (0.0 should not filter).
+            -alpha  exponent for filter - usually between 0.0 and 1.5 (0.0 should not filter).
                     default: 0.5 [Goldstein filter] (anything above 1.0 may be excessive)
                     alpha < 0 will set alpha = (1 - coherence) [modified Goldstein]
             -psize patch size for filtering. Must be power of two.
@@ -811,10 +811,13 @@ class PRM:
 
         #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
         fill_3x3 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/fill.3x3', skip_header=1)
-
         filename_gauss5x5 = os.path.join(os.environ['GMTSAR'],'share','gmtsar','filters','gauss5x5')
         gauss_dec, gauss_string = self.make_gaussian_filter(2, 1, wavelength=wavelength)
         #print (gauss_matrix_astext)
+
+        # prepare PRMs for the calculation below
+        other.set(self.SAT_baseline(other, tail=9))
+        self.set(self.SAT_baseline(self).sel('SC_height','SC_height_start','SC_height_end'))
 
         # for topo_ra use relative path from PRM files directory
         # use imag.grd=bf for GMT native, C-binary format
