@@ -19,7 +19,7 @@ class SBAS:
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
-    def __init__(self, dirname, master=None):
+    def __init__(self, datadir, dem_filename):
         import os
         from glob import glob
         import pandas as pd
@@ -27,19 +27,21 @@ class SBAS:
         from dateutil.relativedelta import relativedelta
         oneday = relativedelta(days=1)
 
-        # set master image
-        self.master = master
+        self.dem_filename = os.path.relpath(dem_filename,'.')
+        #print ('dem_filename', self.dem_filename)
 
-        #print ('__init__')
-        orbits = glob(os.path.join(dirname, 'S1_*.EOF'), recursive=True)
+        # master image
+        self.master = None
+
+        orbits = glob(os.path.join(datadir, 'S1?*.EOF'), recursive=True)
         orbits = pd.DataFrame(orbits, columns=['orbitpath'])
         orbits['orbitfile'] = [os.path.split(file)[-1] for file in orbits['orbitpath']]
         orbits['orbitname'] = [os.path.splitext(name)[0] for name in orbits['orbitfile']]
         orbits['date1'] = [name.split('_')[-2][1:9] for name in orbits['orbitname']]
         orbits['date2'] = [name.split('_')[-1][:8] for name in orbits['orbitname']]
         #print (orbits)
-    
-        metas = glob(os.path.join(dirname, 's1-iw*.xml'), recursive=True)
+
+        metas = glob(os.path.join(datadir, 's1?-iw*.xml'), recursive=True)
         metas = pd.DataFrame(metas, columns=['metapath'])
         metas['metafile'] = [os.path.split(file)[-1] for file in metas['metapath']]
         metas['filename'] = [os.path.splitext(file)[0] for file in metas['metafile']]
@@ -56,16 +58,20 @@ class SBAS:
         metas['stem'] = [f'S1_{date.strftime("%Y%m%d_%H%M%S")}_F1' for date in dates]
         metas['multistem'] = [f'S1_{date.strftime("%Y%m%d")}_ALL_F1' for date in dates]
 
-        datas = glob(os.path.join(dirname, 's1-iw*.tiff'), recursive=True)
+        datas = glob(os.path.join(datadir, 's1?-iw*.tiff'), recursive=True)
         datas = pd.DataFrame(datas, columns=['datapath'])
         datas['datafile'] = [os.path.split(file)[-1] for file in datas['datapath']]
         datas['filename'] = [os.path.splitext(file)[0] for file in datas['datafile']]
         #print (datas)
-    
+
         self.df = pd.merge(metas, orbits,  how='left', left_on=['date1','date2'], right_on = ['date1','date2'])
         self.df = pd.merge(self.df, datas,  how='left', left_on=['filename'], right_on = ['filename']).set_index('date')
         del self.df['date1']
         del self.df['date2']
+
+    def set_master(self, master):
+        self.master = master
+        return self
 
     def get_master(self):
         if self.master is None:
@@ -91,35 +97,94 @@ class SBAS:
             f.write(line+'\n'+lines+'\n')
         return self
 
-    def set_master(self, master):
-        self.master = master
-        return self
+    def geoloc(self, date):
+        import pandas as pd
+        import xmltodict
 
-    def init(self, output_directory, topo_filename):
-        """
-        Initialize directory for processing
-        """
+        filename = self.df.loc[date,'metapath']
+        with open(filename) as fd:
+            doc = xmltodict.parse(fd.read())
+        #doc['geolocationGrid']
+        geoloc = doc['product']['geolocationGrid']['geolocationGridPointList']
+        # check data consistency
+        assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
+        geoloc_df = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
+        return geoloc_df
+        
+    def get_dem(self, geoloc=False):
+        import xarray as xr
+        
+        dem = xr.open_dataarray(self.dem_filename)
+        if geoloc is False:
+            return dem
+        
+        geoloc = self.geoloc(self.master)
+        ymin, ymax = geoloc.latitude.min(), geoloc.latitude.max()
+        #print ('ymin, ymax', ymin, ymax)
+        xmin, xmax = geoloc.longitude.min(), geoloc.longitude.max()
+        #print ('xmin, xmax', xmin, xmax)
+        return dem.sel(lat=slice(ymin, ymax), lon=slice(xmin,xmax))
+
+    def to_dataframe(self):
+        return self.df
+
+    def ext_orb_s1a(self, basedir, stem, date=None):
         import os
-        import shutil
+        import subprocess
 
-        shutil.rmtree(output_directory, ignore_errors=True)
-        os.makedirs(output_directory, exist_ok=True)
+        if date is None:
+            df = self.get_master()
+        else:
+            df = self.df.loc[[date]]
 
-        metas     = list(self.df['metapath'].values)
-        datas = list(self.df['datapath'].values)
-        orbits    = list(self.df['orbitpath'].values)
-        for file in metas + datas + orbits:
-            path = os.path.join(output_directory, os.path.split(file)[-1])
-            print (f'{file} -> {path}')
-            os.symlink(os.path.relpath(file,output_directory), path)
+        orbit = os.path.relpath(df['orbitpath'][0], basedir)
+        #stem = df['stem'][0]
+    
+        argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
+        print ('argv', argv)
+        p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=basedir)
+        stderr_data = p.communicate()[1]
+        if len(stderr_data) > 0:
+            print (stderr_data.decode('ascii'))
+        return
+    
+    # produce LED and PRM in basedir
+    # when date=None work on master image
+    def make_s1a_tops(self, basedir, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None):
+        import os
+        import subprocess
 
-        path = os.path.join(output_directory, 'dem.grd')
-        os.symlink(os.path.relpath(topo_filename,output_directory), path)
-
-        return self
-
-
-
+        if date is None:
+            date = self.master
+            # for master image mode should be 1
+            mode = 1
+        df = self.df.loc[[date]]
+    
+        xmlfile = os.path.relpath(df['metapath'][0], basedir)
+        datafile = os.path.relpath(df['datapath'][0], basedir)
+        #orbit = os.path.relpath(df['orbitfile'][0], basedir)
+        stem = df['stem'][0]
+        #mmaster = df['multistem'][0]
+        #print (file, orbit, master)
+    
+        # generate prms and leds
+        #!cd raw && make_s1a_tops {file}.xml {file}.tiff {master} 1
+        #!cd raw && ext_orb_s1a {master}.PRM {orbit} {master}
+    
+        argv = ['make_s1a_tops', xmlfile, datafile, stem, str(mode)]
+        if rshift_fromfile is not None:
+            argv.append(rshift_fromfile)
+        if ashift_fromfile is not None:
+            argv.append(ashift_fromfile)
+        print ('argv', argv)
+        p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=basedir)
+        stderr_data = p.communicate()[1]
+        if len(stderr_data) > 0:
+            print (stderr_data.decode('ascii'))
+    
+        self.ext_orb_s1a(basedir, stem, date)
+    
+        return
 
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df
