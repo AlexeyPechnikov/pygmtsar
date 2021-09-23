@@ -631,7 +631,9 @@ class PRM:
         #print ('descriptor 2', str(pipe2[0]))
 
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
-        argv = ['phasediff', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}', '-imag', imag_tofile, '-real', real_tofile]
+        argv = ['phasediff', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}',
+                '-imag', os.path.relpath(imag_tofile, cwd),
+                '-real', os.path.relpath(real_tofile, cwd)]
         if topo_ra_fromfile is not None:
             argv.append('-topo')
             argv.append(os.path.relpath(topo_ra_fromfile,cwd))
@@ -674,9 +676,9 @@ class PRM:
         print (stdout_data)
 
         data = os.read(pipe1[0],int(10e6)).decode('ascii')
-        return [np.fromstring(stdout_data, dtype=int, sep=' '), data[1:]]
+        return [np.fromstring(stdout_data, dtype=int, sep=' '), data]
 
-
+    # the command line tool supports only GMT binary format input (=bf) while NetCDF output is possible too
     def conv(self, idec, jdec, output_file, filter_file=None, filter_string=None, input_file=None):
         """
         conv [GMTSAR] - 2-D image convolution
@@ -720,7 +722,7 @@ class PRM:
             fds.append(pipe2[0])
             #print ('descriptor 2', str(pipe2[0]))
         else:
-            input_filter_filename = filter_file
+            input_filter_filename = os.path.relpath(filter_file, cwd)
 
         if output_file is None:
             output_filename = '/dev/stdout'
@@ -738,6 +740,50 @@ class PRM:
             print (stderr_data.decode('ascii'))
         return
 
+    # actually, -alpha command line argument is useless
+    # if amp files are defined set alpha = -1 to denote coherence-based alpha
+    def phasefilt(self, imag_fromfile, real_fromfile, amp1_fromfile, amp2_fromfile,
+                  phasefilt_tofile, corrfilt_tofile, psize=32):
+        """
+        phasefilt [GMTSAR] - Apply adaptive non-linear phase filter
+
+        USAGE:
+            phasefilt -imag imag.grd -real real.grd [-alpha alpha][-psize size][-amp1 amp1.grd -amp2 amp2.grd][-diff][-v]
+             applies Goldstein adaptive filter to phase [output: filtphase.grd]
+             or applies modified Goldstein adaptive filter to phase [output: filtphase.grd, corrfilt.grd]
+            -imag [required] GMT format file of imaginary component
+            -real [required] GMT format file of real component
+            -alpha 	exponent for filter - usually between 0.0 and 1.5 (0.0 should not filter).
+                    default: 0.5 [Goldstein filter] (anything above 1.0 may be excessive)
+                    alpha < 0 will set alpha = (1 - coherence) [modified Goldstein]
+            -psize patch size for filtering. Must be power of two.
+                    default: 32
+            -amp1 GMT format file of amplitude image of image 1. Needed (and applies) modified filter.
+            -amp2 GMT format file of amplitude image of image 2. Needed (and applies) modified filter.
+        """
+        import os
+        import subprocess
+
+        if corrfilt_tofile is None and alpha<0:
+            raise Exception('For argument alpha<0 shoukd be defined argument corrfilt_tofile')    
+
+        cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
+        # -v - only args after verbose (if set) will be echoed
+        argv = ['phasefilt',
+                '-imag', os.path.relpath(imag_fromfile, cwd),
+                '-real', os.path.relpath(real_fromfile, cwd),
+                '-amp1', os.path.relpath(amp1_fromfile, cwd),
+                '-amp2', os.path.relpath(amp2_fromfile, cwd),
+                '-phasefilt', os.path.relpath(phasefilt_tofile, cwd),
+                '-corrfilt', os.path.relpath(corrfilt_tofile, cwd),
+                '-psize', str(psize)]
+        #print ('argv', argv)
+
+        p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=cwd)
+        stderr_data = p.communicate()[1]
+        if len(stderr_data) > 0:
+            print (stderr_data.decode('ascii'))
+        return
 
 def main():
     import sys
