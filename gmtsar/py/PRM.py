@@ -200,40 +200,38 @@ class PRM:
             input_file0 = os.path.join(dirname0, os.path.split(self.get('input_file'))[-1])
             input_ext = os.path.splitext(input_file0)[1]
             input_file = basename + input_ext
-            print (f'PRM change input_file attribute {input_file0} -> {input_file}')
+            #print (f'PRM change input_file attribute {input_file0} -> {input_file}')
             self.set(input_file = f'{shortname}{input_ext}')
             if os.path.isfile(input_file0) and not input_file == input_file0:
                 if not safe:
-                    print (f'Rename input_file {input_file0} -> {input_file}')
+                    #print (f'Rename input_file {input_file0} -> {input_file}')
                     if not debug:
                         os.rename(input_file0, input_file)
                 else:
-                    print (f'Safe mode: copy input_file {input_file0} -> {input_file}')
+                    #print (f'Safe mode: copy input_file {input_file0} -> {input_file}')
                     if not debug:
                         shutil.copy2(input_file0, input_file, follow_symlinks=True)
 
             SLC_file0 = os.path.join(dirname0, os.path.split(self.get('SLC_file'))[-1])
             SLC_file = basename + '.SLC'
-            #print ('SLC_file', SLC_file)
-            print (f'PRM change SLC_file attribute {SLC_file0} -> {SLC_file}')
+            #print (f'PRM change SLC_file attribute {SLC_file0} -> {SLC_file}')
             self.set(SLC_file = f'{shortname}.SLC')
             if os.path.isfile(SLC_file0) and not SLC_file == SLC_file0:
-                print (f'Rename SLC_file {SLC_file0} -> {SLC_file}')
+                #print (f'Rename SLC_file {SLC_file0} -> {SLC_file}')
                 if not debug:
                     os.rename(SLC_file0, SLC_file)
 
             led_file0 = os.path.join(dirname0, os.path.split(self.get('led_file'))[-1])
             led_file = basename + '.LED'
-            #print ('led_file', led_file)
-            print (f'PRM change LED_file attribute {led_file0} -> {led_file}')
+            #print (f'PRM change LED_file attribute {led_file0} -> {led_file}')
             self.set(led_file = f'{shortname}.LED')
             if os.path.isfile(led_file0) and not led_file == led_file0:
                 if not safe:
-                    print (f'Rename LED_file {led_file0} -> {led_file}')
+                    #print (f'Rename LED_file {led_file0} -> {led_file}')
                     if not debug:
                         os.rename(led_file0, led_file)
                 else:
-                    print (f'Safe mode: copy LED_file {led_file0} -> {led_file}')
+                    #print (f'Safe mode: copy LED_file {led_file0} -> {led_file}')
                     if not debug:
                         shutil.copy2(led_file0, led_file)
 
