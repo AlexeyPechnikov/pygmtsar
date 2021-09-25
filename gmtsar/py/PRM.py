@@ -192,8 +192,8 @@ class PRM:
                 print (f'Remove old PRM file {self.filename} and save new one {name}')
                 if not debug:
                     os.remove(self.filename)
-            else:
-                print (f'Safe mode: remain old PRM file {self.filename} and save new one {name}')
+            #else:
+            #    print (f'Safe mode: remain old PRM file {self.filename} and save new one {name}')
             # will be saved later
             self.filename = name
 
@@ -284,7 +284,8 @@ class PRM:
                              cwd=cwd, encoding='ascii')
         stdout_data, stderr_data = p.communicate(input=self.to_str())
         #print ('stdout_data', stdout_data)
-        print (stderr_data)
+        if len(stderr_data) > 0:
+            print (stderr_data)
         prm = PRM.from_str(stdout_data)
         if inplace:
             return self.set(prm)
@@ -468,7 +469,8 @@ class PRM:
         stdout_data, stderr_data = p.communicate(input=bytearray(self.to_str(), 'ascii'))
 
         # print errors and notifications
-        print (stderr_data.decode('ascii'))
+        if len(stderr_data) > 0:
+            print (stderr_data.decode('ascii'))
 
         # save big SLC binary file
         with open(alignedSLC_tofile, 'wb') as f:
@@ -547,6 +549,7 @@ class PRM:
         import numpy as np
         import xarray as xr
         from scipy.interpolate import griddata
+        from scipy.ndimage.filters import gaussian_filter
 
         XMAX, yvalid, num_patch = self.get('num_rng_bins', 'num_valid_az', 'num_patches')
         YMAX = yvalid * num_patch
@@ -573,6 +576,10 @@ class PRM:
         #    coords = self.SAT_llt2rat(dem_data, precise=1, mode='-bod')
 
         grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method)
+        
+        # remove subpixel noise
+        grid = gaussian_filter(grid, 0.5, mode='constant', cval=0)
+        
         topo = xr.DataArray(np.flipud(grid), coords={'y': azis, 'x': rngs}, name='z')
 
         #if topo_ra_tofile is not None:
@@ -641,7 +648,8 @@ class PRM:
                              cwd=cwd, encoding='ascii')
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
-        print (stderr_data)
+        if len(stderr_data) > 0:
+            print (stderr_data)
         return
 
     # Usage: make_gaussian_filter name_of_PRM_file RNG_DEC AZI_DEC WAVELENGTH(m)
@@ -671,7 +679,7 @@ class PRM:
         stdout_data, stderr_data = p.communicate(self.to_str())
         if len(stderr_data) > 0:
             print (stderr_data)
-        print (stdout_data)
+            print (stdout_data)
 
         data = os.read(pipe1[0],int(10e6)).decode('ascii')
         return [np.fromstring(stdout_data, dtype=int, sep=' '), data]
@@ -897,7 +905,7 @@ class PRM:
                      'phasefilt_phase.grd', 'phasefilt_corr.grd']:
             filename = fullname(name)
             #if os.path.exists(filename):
-            os.remove(filename)
+            #os.remove(filename)
 
         return fullname('')
 
