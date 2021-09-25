@@ -309,7 +309,7 @@ class SBAS:
                 tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1)[1]
                 # bursts look equal to rounded result int(np.round(...))
                 tmp_da = int(tmp_as - tmp_am)
-                print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
+                #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
 
             # in case the images are offset by more than a burst, shift the super-master's PRM again
             # so SAT_llt2rat gives precise estimate
@@ -420,23 +420,30 @@ class SBAS:
         import os
         import subprocess
     
+        # save to NetCDF grid
+        compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
+    
         if conf is None:
             conf = self.PRM().snaphu_config(defomax=0)
-    
+
         basename = os.path.join(self.basedir, f'{date1}_{date2}_').replace('-','')
         #print ('basename', basename)
+
+        # invalid pixels
+        mask = xr.open_dataarray(basename + 'mask.grd')
     
         phase = xr.open_dataarray(basename + 'phasefilt.grd')
         phase_in = basename + 'unwrap.phase'
         np.flipud(phase.where(~np.isnan(phase),0).values).tofile(phase_in)
 
         corr = xr.open_dataarray(basename + 'corr.grd')
-        corr = corr.where(corr>=threshold)
+        # mask invalid pixels on correlation matrix
+        corr = (corr*mask).where(corr>=threshold)
         corr_in = basename + 'unwrap.corr'
         np.flipud(corr.where(~np.isnan(corr),0).values).tofile(corr_in)
 
         unwrap_out = basename + 'unwrap.out'
-        
+
         argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
                 '-f', '/dev/stdin', '-o', unwrap_out, '-d']
         #print ('argv', argv)
@@ -452,15 +459,13 @@ class SBAS:
         # read results
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
         #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(mask.shape)
-        # save to NetCDF grid
-        compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
         unwrap = xr.DataArray(np.flipud(values), phase.coords, name='z')
-        unwrap.to_netcdf(basename + 'unwrap.grd', encoding={'z': compression})
-    
+        # mask invalid pixels on unwrapped results
+        (mask*unwrap).to_netcdf(basename + 'unwrap.grd', encoding={'z': compression})
+
         for tmp_file in [phase_in, corr_in, unwrap_out]:
             #print ('tmp_file', tmp_file)
             os.remove(tmp_file)
-
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df
 #filelist.get_master()
