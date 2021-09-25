@@ -887,6 +887,9 @@ class PRM:
         phasefilt.values = np.flipud(phasefilt.values)
         phasefilt.astype(np.float32).to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
 
+        mask.values = np.flipud(mask.values)
+        mask.astype(np.float32).to_netcdf(fullname('mask.grd'), encoding={'z': compression})
+
         # TODO: some cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
                      'real.grd', 'real_tmp.grd', 'realfilt.grd',
