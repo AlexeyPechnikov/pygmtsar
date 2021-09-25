@@ -868,6 +868,7 @@ class PRM:
                        psize=psize)
 
         # Python post-processing
+        # we need to flip vertically results from the command line tools
         realfilt = xr.open_dataarray(fullname('realfilt.grd'))
         imagfilt = xr.open_dataarray(fullname('imagfilt.grd'))
         amp = xr.ufuncs.sqrt(realfilt**2 + imagfilt**2)
@@ -879,35 +880,35 @@ class PRM:
         tmp = amp1 * amp2
         mask = xr.where(tmp >= thresh, 1, np.nan)
         tmp2 = ((amp/xr.ufuncs.sqrt(tmp)) * mask)
-        tmp2.values = np.flipud(tmp2.values)
         conv = signal.convolve2d(tmp2, fill_3x3/fill_3x3.sum(), mode='same', boundary='symm')
-        corr = xr.DataArray(conv, {'y': tmp2.y, 'x': tmp2.x}, name='z')
-        corr.astype(np.float32).to_netcdf(fullname('corr.grd'), encoding={'z': compression})
+        corr = xr.DataArray(np.flipud(conv).astype(np.float32), {'y': tmp2.y, 'x': tmp2.x}, name='z')
+        corr.to_netcdf(fullname('corr.grd'), encoding={'z': compression})
 
         # making phase
         phase = xr.ufuncs.arctan2(imagfilt, realfilt) * mask
-        phase.values = np.flipud(phase.values)
-        phase.astype(np.float32).to_netcdf(fullname('phase.grd'), encoding={'z': compression})
+        phase = xr.DataArray(np.flipud(phase).astype(np.float32), {'y': phase.y, 'x': phase.x}, name='z')
+        phase.to_netcdf(fullname('phase.grd'), encoding={'z': compression})
 
         # make the Werner/Goldstein filtered phase
         phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'))
         phasefilt = phasefilt_phase * mask
-        phasefilt.values = np.flipud(phasefilt.values)
-        phasefilt.astype(np.float32).to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
+        phasefilt = xr.DataArray(np.flipud(phasefilt).astype(np.float32), {'y': phase.y, 'x': phase.x}, name='z')
+        phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
 
-        mask.values = np.flipud(mask.values)
-        mask.astype(np.float32).to_netcdf(fullname('mask.grd'), encoding={'z': compression})
+        mask = xr.DataArray(np.flipud(mask).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
+        mask.to_netcdf(fullname('mask.grd'), encoding={'z': compression})
 
-        # TODO: some cleanup
+        # cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
                      'real.grd', 'real_tmp.grd', 'realfilt.grd',
                      'imag.grd', 'imag_tmp.grd', 'imagfilt.grd',
                      'phasefilt_phase.grd', 'phasefilt_corr.grd']:
             filename = fullname(name)
-            #if os.path.exists(filename):
-            #os.remove(filename)
+            if not os.path.exists(filename):
+                continue
+            os.remove(filename)
 
-        return fullname('')
+        return
 
     # TODO: use PRM parameters to define config parameters
     def snaphu_config(self, defomax):

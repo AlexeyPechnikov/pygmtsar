@@ -389,8 +389,7 @@ class SBAS:
         prm_ref = self.PRM(date1)
         prm_rep = self.PRM(date2)
 
-        basename = prm_ref.intf(prm_rep, basedir=self.basedir, wavelength=wavelength, psize=psize)
-        return basename
+        prm_ref.intf(prm_rep, basedir=self.basedir, wavelength=wavelength, psize=psize)
 
     def baseline_table(self, days, meters):
         return
@@ -414,7 +413,7 @@ class SBAS:
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
-    def unwrap(self, date1, date2, threshold=0.1, conf=None):
+    def unwrap(self, date1, date2, threshold=0.1, conf=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
@@ -429,18 +428,18 @@ class SBAS:
         basename = os.path.join(self.basedir, f'{date1}_{date2}_').replace('-','')
         #print ('basename', basename)
 
-        # invalid pixels
+        # invalid pixels mask
         mask = xr.open_dataarray(basename + 'mask.grd')
     
         phase = xr.open_dataarray(basename + 'phasefilt.grd')
         phase_in = basename + 'unwrap.phase'
-        np.flipud(phase.where(~np.isnan(phase),0).values).tofile(phase_in)
+        phase.where(~np.isnan(phase),0).values.tofile(phase_in)
 
         corr = xr.open_dataarray(basename + 'corr.grd')
         # mask invalid pixels on correlation matrix
         corr = (corr*mask).where(corr>=threshold)
         corr_in = basename + 'unwrap.corr'
-        np.flipud(corr.where(~np.isnan(corr),0).values).tofile(corr_in)
+        corr.where(~np.isnan(corr),0).values.tofile(corr_in)
 
         unwrap_out = basename + 'unwrap.out'
 
@@ -451,21 +450,23 @@ class SBAS:
                              stderr=subprocess.PIPE,
                              encoding='ascii', bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=conf)
-        if len(stdout_data) > 0:
-            print (stdout_data)
         if len(stderr_data) > 0:
             print (stderr_data)
+
+        if len(stderr_data) > 0 or debug:
+            print (stdout_data)
 
         # read results
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
         #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(mask.shape)
-        unwrap = xr.DataArray(np.flipud(values), phase.coords, name='z')
+        unwrap = xr.DataArray(values, phase.coords, name='z')
         # mask invalid pixels on unwrapped results
         (mask*unwrap).to_netcdf(basename + 'unwrap.grd', encoding={'z': compression})
 
         for tmp_file in [phase_in, corr_in, unwrap_out]:
             #print ('tmp_file', tmp_file)
             os.remove(tmp_file)
+
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df
 #filelist.get_master()
