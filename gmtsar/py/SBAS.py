@@ -156,7 +156,7 @@ class SBAS:
         azis = np.arange(4/2, amax+4/2, 4)
         grid_r, grid_a = np.meshgrid(rngs, azis)
 
-        grid = griddata((xyz[:,0], xyz[:,1]), xyz[:,2], (grid_r, grid_a), method='cubic')
+        grid = griddata((xyz[:,0], xyz[:,1]), xyz[:,2], (grid_r, grid_a), method='linear')
         da = xr.DataArray(np.flipud(grid), coords={'y': azis, 'x': rngs}, name='z')
         return da
 
@@ -214,17 +214,17 @@ class SBAS:
     
         return
 
-    def preproc(self, date=None, master=None, degrees=12.0/3600):
+    def preproc(self, date=None, degrees=12.0/3600):
         import xarray as xr
         import numpy as np
         import os
         from PRM import PRM
 
+        master_line = list(self.get_master().itertuples())[0]
+        #print (master_line)
+
         if date is None or date == self.master:
             # for master image
-            master_line = list(self.get_master().itertuples())[0]
-            #print (master_line)
-
             path_stem = os.path.join(self.basedir, master_line.stem)
             path_multistem = os.path.join(self.basedir, master_line.multistem)
 
@@ -241,12 +241,17 @@ class SBAS:
             earth_radius = PRM.from_file(path_multistem + '.PRM')\
                 .calc_dop_orb(inplace=True).update().get('earth_radius')
 
-            return PRM().set(earth_radius=earth_radius, stem=master_line.stem, multistem=master_line.multistem)
+            # TODO: remove
+            #return PRM().set(earth_radius=earth_radius, stem=master_line.stem, multistem=master_line.multistem)
         else:
-            # aligning for secondary image
+            # define master image parameters
+            master = self.PRM().sel('earth_radius').set(stem=master_line.stem, multistem=master_line.multistem)
             
+            # TODO: remove the check
             if not isinstance(master, PRM):
-                raise Exception('Arguments master is not a PRM object')
+                raise Exception('master is not a PRM object')
+
+            # aligning for secondary image
 
             # prepare coarse DEM for alignment
             # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
@@ -254,7 +259,7 @@ class SBAS:
             #topo_llt.shape
 
             line = list(self.get_aligned(date).itertuples())[0]
-            print (line)
+            #print (line)
 
             # define relative filenames for PRM
             stem_prm    = os.path.join(self.basedir, line.stem + '.PRM')
@@ -364,22 +369,95 @@ class SBAS:
             PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True).update()
 
     def intf(self, date1, date2, wavelength=400, psize=32):
-        import os
         from PRM import PRM
-    
-        line1 = self.get_aligned(date1)
-        filename1 = os.path.join(self.basedir, line1.multistem[0]+'.PRM')
-        line2 = self.get_aligned(date2)
-        filename2 = os.path.join(self.basedir, line2.multistem[0]+'.PRM')
-    
-        prm_ref = PRM.from_file(filename1)
-        prm_rep = PRM.from_file(filename2)
+        import os
+
+        prm_ref = self.PRM(date1)
+        prm_rep = self.PRM(date2)
 
         basename = prm_ref.intf(prm_rep, basedir=self.basedir, wavelength=wavelength, psize=psize)
         return basename
 
     def baseline_table(self, days, meters):
         return
+
+    def PRM(self, date=None, multi=True):
+        from PRM import PRM
+        import os
+
+        if date is None or date == self.master:
+            line = self.get_master()
+        else:
+            line = self.get_aligned(date)
+        #print (line)
+        if multi:
+            stem = line.multistem[0]
+        else:
+            stem = line.stem[0]
+        filename = os.path.join(self.basedir, f'{stem}.PRM')
+        #print (filename)
+        return PRM.from_file(filename)
+
+    def topo_ra(self, method='cubic'):
+        import xarray as xr
+        import os
+
+        trans_dat_file = os.path.join(self.basedir, 'trans.dat')
+        topo_ra_file = os.path.join(self.basedir, 'topo_ra.grd')
+
+        self.PRM().topo_ra(self.get_dem(geoloc=True),
+                           trans_dat_tofile=trans_dat_file,
+                           topo_ra_tofile=topo_ra_file,
+                           method=method)
+
+    # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
+    # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
+    def unwrap(self, date1, date2, threshold=0.1, conf=None):
+        import xarray as xr
+        import numpy as np
+        import os
+        import subprocess
+    
+        if conf is None:
+            conf = self.PRM().snaphu_config(defomax=0)
+    
+        basename = os.path.join(self.basedir, f'{date1}_{date2}_').replace('-','')
+        #print ('basename', basename)
+    
+        phase = xr.open_dataarray(basename + 'phasefilt.grd')
+        phase_in = basename + 'unwrap.phase'
+        np.flipud(phase.where(~np.isnan(phase),0).values).tofile(phase_in)
+
+        corr = xr.open_dataarray(basename + 'corr.grd')
+        corr = corr.where(corr>=threshold)
+        corr_in = basename + 'unwrap.corr'
+        np.flipud(corr.where(~np.isnan(corr),0).values).tofile(corr_in)
+
+        unwrap_out = basename + 'unwrap.out'
+        
+        argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
+                '-f', '/dev/stdin', '-o', unwrap_out, '-d']
+        #print ('argv', argv)
+        p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             encoding='ascii', bufsize=10*1000*1000)
+        stdout_data, stderr_data = p.communicate(input=conf)
+        if len(stdout_data) > 0:
+            print (stdout_data)
+        if len(stderr_data) > 0:
+            print (stderr_data)
+
+        # read results
+        values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
+        #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(mask.shape)
+        # save to NetCDF grid
+        compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
+        unwrap = xr.DataArray(np.flipud(values), phase.coords, name='z')
+        unwrap.to_netcdf(basename + 'unwrap.grd', encoding={'z': compression})
+    
+        for tmp_file in [phase_in, corr_in, unwrap_out]:
+            #print ('tmp_file', tmp_file)
+            os.remove(tmp_file)
 
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df
