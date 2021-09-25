@@ -115,7 +115,9 @@ class SBAS:
         geoloc_df = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
         return geoloc_df
     
-    def get_dem(self, geoloc=False, buffer_degrees = 0):
+    # buffer required to get correct (binary) results from SAT_llt2rat tool
+    # minimum buffer size: 8 arc seconds for 90 m DEM
+    def get_dem(self, geoloc=False, buffer_degrees = 12./3600):
         import xarray as xr
                 
         dem = xr.open_dataarray(self.dem_filename)
@@ -129,6 +131,18 @@ class SBAS:
         #print ('xmin, xmax', xmin, xmax)
         return dem.sel(lat=slice(ymin-buffer_degrees, ymax+buffer_degrees),
                        lon=slice(xmin-buffer_degrees, xmax+buffer_degrees))
+
+    def topo_ra(self, method='cubic'):
+        import xarray as xr
+        import os
+
+        trans_dat_file = os.path.join(self.basedir, 'trans.dat')
+        topo_ra_file = os.path.join(self.basedir, 'topo_ra.grd')
+
+        self.PRM().topo_ra(self.get_dem(geoloc=True),
+                           trans_dat_tofile=trans_dat_file,
+                           topo_ra_tofile=topo_ra_file,
+                           method=method)
 
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
     def get_topo_llt(self, degrees, geoloc=True):
@@ -397,18 +411,6 @@ class SBAS:
         filename = os.path.join(self.basedir, f'{stem}.PRM')
         #print (filename)
         return PRM.from_file(filename)
-
-    def topo_ra(self, method='cubic'):
-        import xarray as xr
-        import os
-
-        trans_dat_file = os.path.join(self.basedir, 'trans.dat')
-        topo_ra_file = os.path.join(self.basedir, 'topo_ra.grd')
-
-        self.PRM().topo_ra(self.get_dem(geoloc=True),
-                           trans_dat_tofile=trans_dat_file,
-                           topo_ra_tofile=topo_ra_file,
-                           method=method)
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
