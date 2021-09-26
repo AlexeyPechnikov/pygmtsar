@@ -46,7 +46,7 @@ class SBAS:
         fakeinds = np.where(~np.isinf(d), inds, 0)
         # produce the same output array as dataset to be able to add global attributes
         values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
-        out_grid = xr.DataArray(values, coords=in_grid.coords)
+        out_grid = xr.DataArray(values, coords=in_grid.coords, name='z')
         return out_grid
 
     def __repr__(self):
@@ -181,6 +181,9 @@ class SBAS:
 
         trans_dat_file = os.path.join(self.basedir, 'trans.dat')
         topo_ra_file = os.path.join(self.basedir, 'topo_ra.grd')
+
+        if os.path.exists(topo_ra_file):
+            os.remove(topo_ra_file)
 
         self.PRM().topo_ra(self.get_dem(geoloc=True),
                            trans_dat_tofile=trans_dat_file,
@@ -505,7 +508,7 @@ class SBAS:
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
-    def unwrap(self, pair, threshold=0.1, conf=None, debug=False):
+    def unwrap(self, pair, threshold=0.1, conf=None, func=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
@@ -554,13 +557,19 @@ class SBAS:
         # read results
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
         #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(mask.shape)
-        unwrap = xr.DataArray(values, phase.coords, name='z')
         # mask invalid pixels on unwrapped results
-        (mask*unwrap).to_netcdf(basename + 'unwrap.grd', encoding={'z': compression})
+        unwrap = mask * xr.DataArray(values, phase.coords, name='z')
+        # apply user-defined function for post-processing
+        if func is not None:
+            unwrap = func(corr, unwrap)
+        if os.path.exists(basename + 'unwrap.grd'):
+            os.remove(basename + 'unwrap.grd')
+        unwrap.to_netcdf(basename + 'unwrap.grd', encoding={'z': compression})
 
         for tmp_file in [phase_in, corr_in, unwrap_out]:
             #print ('tmp_file', tmp_file)
-            os.remove(tmp_file)
+            if os.path.exists(tmp_file):
+                os.remove(tmp_file)
 
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df

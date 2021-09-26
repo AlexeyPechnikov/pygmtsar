@@ -885,6 +885,8 @@ class PRM:
         corr = xr.DataArray(np.flipud(conv).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
         if func is not None:
             corr = func(corr)
+        if os.path.exists(fullname('corr.grd')):
+            os.remove(fullname('corr.grd'))
         corr.to_netcdf(fullname('corr.grd'), encoding={'z': compression})
 
         # making phase
@@ -892,6 +894,8 @@ class PRM:
         phase = xr.DataArray(np.flipud(phase).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
         if func is not None:
             phase = func(phase)
+        if os.path.exists(fullname('phase.grd')):
+            os.remove(fullname('phase.grd'))
         phase.to_netcdf(fullname('phase.grd'), encoding={'z': compression})
 
         # make the Werner/Goldstein filtered phase
@@ -900,11 +904,15 @@ class PRM:
         phasefilt = xr.DataArray(np.flipud(phasefilt).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
         if func is not None:
             phasefilt = func(phasefilt)
+        if os.path.exists(fullname('phasefilt.grd')):
+            os.remove(fullname('phasefilt.grd'))
         phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
 
         mask = xr.DataArray(np.flipud(mask).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
         if func is not None:
             mask = func(mask)
+        if os.path.exists(fullname('mask.grd')):
+            os.remove(fullname('mask.grd'))
         mask.to_netcdf(fullname('mask.grd'), encoding={'z': compression})
 
         # cleanup
