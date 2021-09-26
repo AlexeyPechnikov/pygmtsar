@@ -5,6 +5,49 @@
 #import pytest
 
 class SBAS:
+    import contextlib
+    @staticmethod
+    @contextlib.contextmanager
+    def tqdm_joblib(tqdm_object):
+        import joblib
+        """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+        class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+            def __call__(self, *args, **kwargs):
+                tqdm_object.update(n=self.batch_size)
+                return super().__call__(*args, **kwargs)
+
+        old_batch_callback = joblib.parallel.BatchCompletionCallBack
+        joblib.parallel.BatchCompletionCallBack = TqdmBatchCompletionCallback
+        try:
+            yield tqdm_object
+        finally:
+            joblib.parallel.BatchCompletionCallBack = old_batch_callback
+            tqdm_object.close()
+
+    @staticmethod
+    def nearest_grid(in_grid,  search_radius_pixels=300):
+        from scipy.spatial import cKDTree
+        import xarray as xr
+        import numpy as np
+
+        ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
+        ys = ys.reshape(-1)
+        xs = xs.reshape(-1)
+        zs = in_grid.values.reshape(-1)
+        mask = np.where(~np.isnan(zs))
+        # on regular source grid some options should be redefined for better performance
+        tree = cKDTree(np.column_stack((ys[mask],xs[mask])), compact_nodes=False, balanced_tree=False)
+        # use distance_limit
+        d, inds = tree.query(np.column_stack((ys,xs)), k = 1, distance_upper_bound=search_radius_pixels, workers=8)
+        # replace not available indexes by zero (see distance_upper_bound)
+        fakeinds = np.where(~np.isinf(d), inds, 0)
+        # produce the same output array as dataset to be able to add global attributes
+        values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
+        out_grid = xr.DataArray(values, coords=in_grid.coords)
+        return out_grid
 
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
@@ -160,7 +203,7 @@ class SBAS:
         topo_llt = np.column_stack([lons.values.ravel(), lats.values.ravel(), z.values.ravel()])
         return topo_llt
 
-    def offset2shift(self, xyz, rmax, amax):
+    def offset2shift(self, xyz, rmax, amax, method='linear'):
         import xarray as xr
         import numpy as np
         from scipy.interpolate import griddata
@@ -170,14 +213,14 @@ class SBAS:
         azis = np.arange(4/2, amax+4/2, 4)
         grid_r, grid_a = np.meshgrid(rngs, azis)
 
-        grid = griddata((xyz[:,0], xyz[:,1]), xyz[:,2], (grid_r, grid_a), method='linear')
+        grid = griddata((xyz[:,0], xyz[:,1]), xyz[:,2], (grid_r, grid_a), method=method)
         da = xr.DataArray(np.flipud(grid), coords={'y': azis, 'x': rngs}, name='z')
         return da
 
     def to_dataframe(self):
         return self.df
 
-    def ext_orb_s1a(self, stem, date=None):
+    def ext_orb_s1a(self, stem, date=None, debug=False):
         import os
         import subprocess
 
@@ -190,15 +233,18 @@ class SBAS:
     
         argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
         #print ('argv', argv)
-        p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=self.basedir)
-        stderr_data = p.communicate()[1]
-        if len(stderr_data) > 0:
-            print (stderr_data.decode('ascii'))
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        stdout_data, stderr_data = p.communicate()
+        if len(stderr_data) > 0 and debug:
+            print ('ext_orb_s1a', stderr_data.decode('ascii'))
+        if len(stdout_data) > 0 and debug:
+            print ('ext_orb_s1a', stdout_data.decode('ascii'))
+
         return
     
     # produce LED and PRM in basedir
     # when date=None work on master image
-    def make_s1a_tops(self, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None):
+    def make_s1a_tops(self, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
         import os
         import subprocess
 
@@ -219,16 +265,18 @@ class SBAS:
         if ashift_fromfile is not None:
             argv.append(ashift_fromfile)
         #print ('argv', argv)
-        p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=self.basedir)
-        stderr_data = p.communicate()[1]
-        if len(stderr_data) > 0:
-            print (stderr_data.decode('ascii'))
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        stdout_data, stderr_data = p.communicate()
+        if len(stderr_data) > 0 and debug:
+            print ('make_s1a_tops', stderr_data.decode('ascii'))
+        if len(stdout_data) > 0 and debug:
+            print ('make_s1a_tops', stdout_data.decode('ascii'))
     
-        self.ext_orb_s1a(stem, date)
+        self.ext_orb_s1a(stem, date, debug=debug)
     
         return
 
-    def preproc(self, date=None, degrees=12.0/3600):
+    def preproc(self, date=None, degrees=12.0/3600, debug=False):
         import xarray as xr
         import numpy as np
         import os
@@ -243,13 +291,13 @@ class SBAS:
             path_multistem = os.path.join(self.basedir, master_line.multistem)
 
             # generate prms and leds
-            self.make_s1a_tops()
+            self.make_s1a_tops(debug=debug)
 
             PRM.from_file(path_stem + '.PRM')\
                 .set(input_file = path_multistem + '.raw')\
                 .update(path_multistem + '.PRM', safe=True)
 
-            self.ext_orb_s1a(master_line.multistem)
+            self.ext_orb_s1a(master_line.multistem, debug=debug)
 
             # recalculate after ext_orb_s1a
             earth_radius = PRM.from_file(path_multistem + '.PRM')\
@@ -260,10 +308,6 @@ class SBAS:
         else:
             # define master image parameters
             master = self.PRM().sel('earth_radius').set(stem=master_line.stem, multistem=master_line.multistem)
-            
-            # TODO: remove the check
-            if not isinstance(master, PRM):
-                raise Exception('master is not a PRM object')
 
             # aligning for secondary image
 
@@ -285,7 +329,7 @@ class SBAS:
             tmp_da = 0
     
             # generate prms and leds
-            self.make_s1a_tops(date)
+            self.make_s1a_tops(date, debug=debug)
 
             # compute the time difference between first frame and the rest frames
             t1, prf = PRM.from_file(stem_prm).get('clock_start', 'PRF')
@@ -302,11 +346,11 @@ class SBAS:
             # compute whether there are any image offset
             if tmp_da == 0:
                 # tmp_prm defined above from {master}.PRM
-                prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True)
-                prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True).update()
-                lontie,lattie = prm1.SAT_baseline(prm2).get('lon_tie_point', 'lat_tie_point')
-                tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1)[1]
-                tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1)[1]
+                prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+                prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug).update()
+                lontie,lattie = prm1.SAT_baseline(prm2, debug=debug).get('lon_tie_point', 'lat_tie_point')
+                tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
+                tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
                 # bursts look equal to rounded result int(np.round(...))
                 tmp_da = int(tmp_as - tmp_am)
                 #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
@@ -315,10 +359,10 @@ class SBAS:
             # so SAT_llt2rat gives precise estimate
             if abs(tmp_da) < 1000:
                 # tmp.PRM defined above from {master}.PRM
-                prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True)
-                tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1)
-                prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True)
-                tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1)
+                prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+                tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
+                prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+                tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
             else:
                 raise Exception('TODO: Modifying master PRM by $tmp_da lines...')
 
@@ -353,7 +397,8 @@ class SBAS:
             # note: it removes calc_dop_orb parameters from PRM file
             self.make_s1a_tops(date=line.Index, mode=1,
                                rshift_fromfile=f'{line.stem}_r.grd',
-                               ashift_fromfile=f'{line.stem}_a.grd')
+                               ashift_fromfile=f'{line.stem}_a.grd',
+                               debug=debug)
 
             # need to update shift parameter so stitch_tops will know how to stitch
             PRM.from_file(stem_prm).set(PRM.fitoffset(3, 3, offset_dat)).update()
@@ -366,7 +411,7 @@ class SBAS:
                 .set(input_file = f'{line.multistem}.raw')\
                 .update(mstem_prm, safe=True)
 
-            self.ext_orb_s1a(line.multistem, date=line.Index, )
+            self.ext_orb_s1a(line.multistem, date=line.Index, debug=debug)
 
             # Restoring $tmp_da lines shift to the image... 
             PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
@@ -375,21 +420,45 @@ class SBAS:
             prm1 = PRM.from_file(mmaster_prm)
             prm1.resamp(PRM.from_file(mstem_prm),
                         alignedSLC_tofile=mstem_prm[:-4]+'.SLC',
-                        interp=1
+                        interp=1, debug=debug
             ).to_file(mstem_prm)
 
             PRM.from_file(mstem_prm).set(PRM.fitoffset(3, 3, par_tmp)).update()
 
-            PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True).update()
+            PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True, debug=debug).update()
 
-    def intf(self, date1, date2, wavelength=400, psize=32):
+    def preproc_parallel(self, dates=None, **kwargs):
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+    
+        if dates is None:
+            if self.master is None:
+                raise Exception('Set master image or define argument dates')
+            dates = list(self.get_aligned().index)
+
+        with self.tqdm_joblib(notebook.tqdm(desc="Aligning", total=len(dates))) as progress_bar:
+            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.preproc)(date, **kwargs) for date in dates)
+
+    def intf(self, pair, **kwargs):
         from PRM import PRM
         import os
+
+        # extract dates from pair
+        date1, date2 = pair
 
         prm_ref = self.PRM(date1)
         prm_rep = self.PRM(date2)
 
-        prm_ref.intf(prm_rep, basedir=self.basedir, wavelength=wavelength, psize=psize)
+        prm_ref.intf(prm_rep, basedir=self.basedir, **kwargs)
+
+    def intf_parallel(self, pairs, **kwargs):
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+
+        with self.tqdm_joblib(notebook.tqdm(desc="Interferograms", total=len(pairs))) as progress_bar:
+            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
 
     def baseline_table(self, days, meters):
         return
@@ -411,19 +480,30 @@ class SBAS:
         #print (filename)
         return PRM.from_file(filename)
 
+    def unwrap_parallel(self, pairs, **kwargs):
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+
+        with self.tqdm_joblib(notebook.tqdm(desc="Unwrapping", total=len(pairs))) as progress_bar:
+            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.unwrap)(pair, **kwargs) for pair in pairs)
+
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
-    def unwrap(self, date1, date2, threshold=0.1, conf=None, debug=False):
+    def unwrap(self, pair, threshold=0.1, conf=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
         import subprocess
-    
+
         # save to NetCDF grid
         compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
     
         if conf is None:
             conf = self.PRM().snaphu_config(defomax=0)
+
+        # extract dates from pair
+        date1, date2 = pair
 
         basename = os.path.join(self.basedir, f'{date1}_{date2}_').replace('-','')
         #print ('basename', basename)
@@ -450,11 +530,11 @@ class SBAS:
                              stderr=subprocess.PIPE,
                              encoding='ascii', bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=conf)
-        if len(stderr_data) > 0:
-            print (stderr_data)
+        if len(stderr_data) > 0 and debug:
+            print ('snaphu', stderr_data)
 
-        if len(stderr_data) > 0 or debug:
-            print (stdout_data)
+        if debug:
+            print ('snaphu', stdout_data)
 
         # read results
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
