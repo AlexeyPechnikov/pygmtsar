@@ -267,7 +267,7 @@ class PRM:
             return out[0]
         return out
 
-    def calc_dop_orb(self, earth_radius=0, doppler_centroid=0, inplace=False):
+    def calc_dop_orb(self, earth_radius=0, doppler_centroid=0, inplace=False, debug=False):
         """
         Usage: calc_dop_orb  file.PRM  added.PRM  earth_radius  [doppler_centroid]
             file.PRM     - input name of PRM file 
@@ -284,15 +284,15 @@ class PRM:
                              cwd=cwd, encoding='ascii')
         stdout_data, stderr_data = p.communicate(input=self.to_str())
         #print ('stdout_data', stdout_data)
-        if len(stderr_data) > 0:
-            print (stderr_data)
+        if len(stderr_data) > 0 and debug:
+            print ('calc_dop_orb', stderr_data)
         prm = PRM.from_str(stdout_data)
         if inplace:
             return self.set(prm)
         else:
             return prm
 
-    def SAT_baseline(self, other, tail=None):
+    def SAT_baseline(self, other, tail=None, debug=False):
         """
         SAT_baseline
 
@@ -339,7 +339,8 @@ class PRM:
                              cwd=cwd, encoding='ascii')
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
-        print (stderr_data)
+        if len(stderr_data) > 0 and debug:
+            print ('SAT_baseline', stderr_data)
         prm = PRM.from_str(stdout_data)
         # replacement for SAT_baseline $1 $2 | tail -n9
         if tail is not None:
@@ -358,7 +359,7 @@ class PRM:
     coords = prm.SAT_llt2rat(dem_data[:10], precise=1)
     [format(v, '.6f') for v in coords]
     """
-    def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, mode=None):
+    def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, mode=None, debug=False):
         """
          Usage: SAT_llt2rat master.PRM prec [-bo[s|d]] < inputfile > outputfile
 
@@ -411,8 +412,8 @@ class PRM:
         if stderr_data.startswith('interpolation point outside of data constraints'):
             print ('Error: SAT_llt2rat processing stopped due to invalid coordinates for one of input points')
             return None
-        if stderr_data is not None and len(stderr_data):
-            print (stderr_data)
+        if stderr_data is not None and len(stderr_data) and debug:
+            print ('SAT_llt2rat', stderr_data)
 
         if tofile is not None:
             with open(tofile, 'wb') as f:
@@ -426,7 +427,7 @@ class PRM:
                 out = np.fromstring(stdout_data, dtype=float, sep=' ')
             return out if out.size==5 else out.reshape(-1,5)
 
-    def resamp(self, alignedPRM, alignedSLC_tofile, interp):
+    def resamp(self, alignedPRM, alignedSLC_tofile, interp, debug=False):
         """
         Usage: resamp master.PRM aligned.PRM new_aligned.PRM new_aligned.SLC interp
         master.PRM         - PRM for master imagea
@@ -469,8 +470,8 @@ class PRM:
         stdout_data, stderr_data = p.communicate(input=bytearray(self.to_str(), 'ascii'))
 
         # print errors and notifications
-        if len(stderr_data) > 0:
-            print (stderr_data.decode('ascii'))
+        if len(stderr_data) > 0 and debug:
+            print ('resamp', stderr_data.decode('ascii'))
 
         # save big SLC binary file
         with open(alignedSLC_tofile, 'wb') as f:
@@ -612,7 +613,7 @@ class PRM:
     # TODO: add topo_ra argument processing
     # two binary files real.grd and imag.grd will be created
     # TBD: update phasediff tool to allow output files basename argument
-    def phasediff(self, other, topo_ra_fromfile, imag_tofile, real_tofile):
+    def phasediff(self, other, topo_ra_fromfile, imag_tofile, real_tofile, debug=False):
         """
         phasediff [GMTSAR] - Compute phase difference of two images
 
@@ -648,13 +649,13 @@ class PRM:
                              cwd=cwd, encoding='ascii')
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
-        if len(stderr_data) > 0:
-            print (stderr_data)
+        if len(stderr_data) > 0 and debug:
+            print ('phasediff', stderr_data)
         return
 
     # Usage: make_gaussian_filter name_of_PRM_file RNG_DEC AZI_DEC WAVELENGTH(m)
     # make_gaussian_filter S1_20150121_ALL_F1.PRM 2 1 400
-    def make_gaussian_filter(self, range_dec, azi_dec, wavelength=200):
+    def make_gaussian_filter(self, range_dec, azi_dec, wavelength=200, debug=False):
         """
         make_gaussian_filter
 
@@ -677,15 +678,15 @@ class PRM:
                              stderr=subprocess.PIPE, pass_fds=[pipe1[1]],
                              cwd=cwd, encoding='ascii')
         stdout_data, stderr_data = p.communicate(self.to_str())
-        if len(stderr_data) > 0:
-            print (stderr_data)
-            print (stdout_data)
+        if len(stderr_data) > 0 and debug:
+            print ('make_gaussian_filter', stderr_data)
+            print ('make_gaussian_filter', stdout_data)
 
         data = os.read(pipe1[0],int(10e6)).decode('ascii')
         return [np.fromstring(stdout_data, dtype=int, sep=' '), data]
 
     # the command line tool supports only GMT binary format input (=bf) while NetCDF output is possible too
-    def conv(self, idec, jdec, output_file, filter_file=None, filter_string=None, input_file=None):
+    def conv(self, idec, jdec, output_file, filter_file=None, filter_string=None, input_file=None, debug=False):
         """
         conv [GMTSAR] - 2-D image convolution
 
@@ -742,14 +743,14 @@ class PRM:
                              cwd=cwd)
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', len(stdout_data))
-        if len(stderr_data) > 0:
-            print (stderr_data.decode('ascii'))
+        if len(stderr_data) > 0 and debug:
+            print ('conv', stderr_data.decode('ascii'))
         return
 
     # actually, -alpha command line argument is useless
     # if amp files are defined set alpha = -1 to denote coherence-based alpha
     def phasefilt(self, imag_fromfile, real_fromfile, amp1_fromfile, amp2_fromfile,
-                  phasefilt_tofile, corrfilt_tofile, psize=32):
+                  phasefilt_tofile, corrfilt_tofile, psize=32, debug=False):
         """
         phasefilt [GMTSAR] - Apply adaptive non-linear phase filter
 
@@ -787,11 +788,11 @@ class PRM:
 
         p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=cwd)
         stderr_data = p.communicate()[1]
-        if len(stderr_data) > 0:
-            print (stderr_data.decode('ascii'))
+        if len(stderr_data) > 0 and debug:
+            print ('phasefilt', stderr_data.decode('ascii'))
         return
 
-    def intf(self, other, basedir, basename=None, wavelength=200, psize=32):
+    def intf(self, other, basedir, basename=None, wavelength=200, psize=32, func=None):
         import os
         import numpy as np
         import xarray as xr
@@ -881,21 +882,29 @@ class PRM:
         mask = xr.where(tmp >= thresh, 1, np.nan)
         tmp2 = ((amp/xr.ufuncs.sqrt(tmp)) * mask)
         conv = signal.convolve2d(tmp2, fill_3x3/fill_3x3.sum(), mode='same', boundary='symm')
-        corr = xr.DataArray(np.flipud(conv).astype(np.float32), {'y': tmp2.y, 'x': tmp2.x}, name='z')
+        corr = xr.DataArray(np.flipud(conv).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
+        if func is not None:
+            corr = func(corr)
         corr.to_netcdf(fullname('corr.grd'), encoding={'z': compression})
 
         # making phase
         phase = xr.ufuncs.arctan2(imagfilt, realfilt) * mask
-        phase = xr.DataArray(np.flipud(phase).astype(np.float32), {'y': phase.y, 'x': phase.x}, name='z')
+        phase = xr.DataArray(np.flipud(phase).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
+        if func is not None:
+            phase = func(phase)
         phase.to_netcdf(fullname('phase.grd'), encoding={'z': compression})
 
         # make the Werner/Goldstein filtered phase
         phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'))
         phasefilt = phasefilt_phase * mask
-        phasefilt = xr.DataArray(np.flipud(phasefilt).astype(np.float32), {'y': phase.y, 'x': phase.x}, name='z')
+        phasefilt = xr.DataArray(np.flipud(phasefilt).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
+        if func is not None:
+            phasefilt = func(phasefilt)
         phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
 
         mask = xr.DataArray(np.flipud(mask).astype(np.float32), {'y': mask.y, 'x': mask.x}, name='z')
+        if func is not None:
+            mask = func(mask)
         mask.to_netcdf(fullname('mask.grd'), encoding={'z': compression})
 
         # cleanup
