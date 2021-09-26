@@ -276,158 +276,169 @@ class SBAS:
     
         return
 
-    def preproc(self, date=None, degrees=12.0/3600, debug=False):
+    # aligning for master image
+    def stack_ref(self, debug=False):
         import xarray as xr
         import numpy as np
         import os
         from PRM import PRM
 
+        if self.master is None:
+            raise Exception('Set master image first')
+                
         master_line = list(self.get_master().itertuples())[0]
         #print (master_line)
 
-        if date is None or date == self.master:
-            # for master image
-            path_stem = os.path.join(self.basedir, master_line.stem)
-            path_multistem = os.path.join(self.basedir, master_line.multistem)
+        # for master image
+        path_stem = os.path.join(self.basedir, master_line.stem)
+        path_multistem = os.path.join(self.basedir, master_line.multistem)
 
-            # generate prms and leds
-            self.make_s1a_tops(debug=debug)
+        # generate prms and leds
+        self.make_s1a_tops(debug=debug)
 
-            PRM.from_file(path_stem + '.PRM')\
-                .set(input_file = path_multistem + '.raw')\
-                .update(path_multistem + '.PRM', safe=True)
+        PRM.from_file(path_stem + '.PRM')\
+            .set(input_file = path_multistem + '.raw')\
+            .update(path_multistem + '.PRM', safe=True)
 
-            self.ext_orb_s1a(master_line.multistem, debug=debug)
+        self.ext_orb_s1a(master_line.multistem, debug=debug)
 
-            # recalculate after ext_orb_s1a
-            earth_radius = PRM.from_file(path_multistem + '.PRM')\
-                .calc_dop_orb(inplace=True).update().get('earth_radius')
+        # recalculate after ext_orb_s1a
+        earth_radius = PRM.from_file(path_multistem + '.PRM')\
+            .calc_dop_orb(inplace=True).update().get('earth_radius')
 
-            # TODO: remove
-            #return PRM().set(earth_radius=earth_radius, stem=master_line.stem, multistem=master_line.multistem)
+    # aligning for secondary image
+    def stack_rep(self, date=None, degrees=12.0/3600, debug=False):
+        import xarray as xr
+        import numpy as np
+        import os
+        from PRM import PRM
+
+        if self.master is None:
+            raise Exception('Set master image first')
+
+        master_line = list(self.get_master().itertuples())[0]
+        #print (master_line)
+
+        # define master image parameters
+        master = self.PRM().sel('earth_radius').set(stem=master_line.stem, multistem=master_line.multistem)
+
+        # prepare coarse DEM for alignment
+        # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
+        topo_llt = self.get_topo_llt(degrees=degrees)
+        #topo_llt.shape
+
+        line = list(self.get_aligned(date).itertuples())[0]
+        #print (line)
+
+        # define relative filenames for PRM
+        stem_prm    = os.path.join(self.basedir, line.stem + '.PRM')
+        mstem_prm   = os.path.join(self.basedir, line.multistem + '.PRM')
+        master_prm  = os.path.join(self.basedir, master.get("stem") + '.PRM')
+        mmaster_prm = os.path.join(self.basedir, master.get("multistem") + '.PRM')
+
+        # TODO: define 1st image for line, in the example we have no more
+        tmp_da = 0
+
+        # generate prms and leds
+        self.make_s1a_tops(date, debug=debug)
+
+        # compute the time difference between first frame and the rest frames
+        t1, prf = PRM.from_file(stem_prm).get('clock_start', 'PRF')
+        t2      = PRM.from_file(stem_prm).get('clock_start')
+        nl = int((t2 - t1)*prf*86400.0+0.2)
+        #echo "Shifting the master PRM by $nl lines..."
+
+        # Shifting the master PRM by $nl lines...
+        # shift the super-masters PRM based on $nl so SAT_llt2rat gives precise estimate
+        prm1 = PRM.from_file(master_prm)
+        prm1.set(prm1.sel('clock_start' ,'clock_stop', 'SC_clock_start', 'SC_clock_stop') + nl/prf/86400.0)
+        tmp_prm = prm1
+
+        # compute whether there are any image offset
+        if tmp_da == 0:
+            # tmp_prm defined above from {master}.PRM
+            prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+            prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug).update()
+            lontie,lattie = prm1.SAT_baseline(prm2, debug=debug).get('lon_tie_point', 'lat_tie_point')
+            tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
+            tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
+            # bursts look equal to rounded result int(np.round(...))
+            tmp_da = int(tmp_as - tmp_am)
+            #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
+
+        # in case the images are offset by more than a burst, shift the super-master's PRM again
+        # so SAT_llt2rat gives precise estimate
+        if abs(tmp_da) < 1000:
+            # tmp.PRM defined above from {master}.PRM
+            prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+            tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
+            prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+            tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
         else:
-            # define master image parameters
-            master = self.PRM().sel('earth_radius').set(stem=master_line.stem, multistem=master_line.multistem)
+            raise Exception('TODO: Modifying master PRM by $tmp_da lines...')
 
-            # aligning for secondary image
+        # echo get r, dr, a, da, SNR table to be used by fitoffset.csh
+        offset_dat0 = np.hstack([tmpm_dat, tmp1_dat])
+        func = lambda row: [row[0],row[5]-row[0],row[1],row[6]-row[1],100]
+        offset_dat = np.apply_along_axis(func, 1, offset_dat0)
 
-            # prepare coarse DEM for alignment
-            # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
-            topo_llt = self.get_topo_llt(degrees=degrees)
-            #topo_llt.shape
+        # define radar coordinates extent
+        rmax, amax = PRM.from_file(stem_prm).get('num_rng_bins','num_lines')
 
-            line = list(self.get_aligned(date).itertuples())[0]
-            #print (line)
+        # prepare the offset parameters for the stitched image
+        # set the exact borders in radar coordinates
+        par_tmp = offset_dat[(offset_dat[:,0]>0) & (offset_dat[:,0]<rmax) & (offset_dat[:,2]>0) & (offset_dat[:,2]<amax)]
+        par_tmp[:,2] += nl
+        if abs(tmp_da) >= 1000:
+            par_tmp[:,2] -= tmp_da
+            par_tmp[:,3] += tmp_da
 
-            # define relative filenames for PRM
-            stem_prm    = os.path.join(self.basedir, line.stem + '.PRM')
-            mstem_prm   = os.path.join(self.basedir, line.multistem + '.PRM')
-            master_prm  = os.path.join(self.basedir, master.get("stem") + '.PRM')
-            mmaster_prm = os.path.join(self.basedir, master.get("multistem") + '.PRM')
+        # prepare the rshift and ashift look up table to be used by make_s1a_tops
+        # use tmp_dat instead of offset_dat
+        r_xyz = offset_dat[:,[0,2,1]]
+        a_xyz = offset_dat[:,[0,2,3]]
 
-            # TODO: define 1st image for line, in the example we have no more
-            tmp_da = 0
-    
-            # generate prms and leds
-            self.make_s1a_tops(date, debug=debug)
+        r_grd = self.offset2shift(r_xyz, rmax, amax)
+        r_grd.to_netcdf(stem_prm[:-4]+'_r.grd')
 
-            # compute the time difference between first frame and the rest frames
-            t1, prf = PRM.from_file(stem_prm).get('clock_start', 'PRF')
-            t2      = PRM.from_file(stem_prm).get('clock_start')
-            nl = int((t2 - t1)*prf*86400.0+0.2)
-            #echo "Shifting the master PRM by $nl lines..."
+        a_grd = self.offset2shift(a_xyz, rmax, amax)
+        a_grd.to_netcdf(stem_prm[:-4]+'_a.grd')
 
-            # Shifting the master PRM by $nl lines...
-            # shift the super-masters PRM based on $nl so SAT_llt2rat gives precise estimate
-            prm1 = PRM.from_file(master_prm)
-            prm1.set(prm1.sel('clock_start' ,'clock_stop', 'SC_clock_start', 'SC_clock_stop') + nl/prf/86400.0)
-            tmp_prm = prm1
-    
-            # compute whether there are any image offset
-            if tmp_da == 0:
-                # tmp_prm defined above from {master}.PRM
-                prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
-                prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug).update()
-                lontie,lattie = prm1.SAT_baseline(prm2, debug=debug).get('lon_tie_point', 'lat_tie_point')
-                tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
-                tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
-                # bursts look equal to rounded result int(np.round(...))
-                tmp_da = int(tmp_as - tmp_am)
-                #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
+        # generate the image with point-by-point shifts
+        # note: it removes calc_dop_orb parameters from PRM file
+        self.make_s1a_tops(date=line.Index, mode=1,
+                           rshift_fromfile=f'{line.stem}_r.grd',
+                           ashift_fromfile=f'{line.stem}_a.grd',
+                           debug=debug)
 
-            # in case the images are offset by more than a burst, shift the super-master's PRM again
-            # so SAT_llt2rat gives precise estimate
-            if abs(tmp_da) < 1000:
-                # tmp.PRM defined above from {master}.PRM
-                prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
-                tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
-                prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
-                tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
-            else:
-                raise Exception('TODO: Modifying master PRM by $tmp_da lines...')
+        # need to update shift parameter so stitch_tops will know how to stitch
+        PRM.from_file(stem_prm).set(PRM.fitoffset(3, 3, offset_dat)).update()
 
-            # echo get r, dr, a, da, SNR table to be used by fitoffset.csh
-            offset_dat0 = np.hstack([tmpm_dat, tmp1_dat])
-            func = lambda row: [row[0],row[5]-row[0],row[1],row[6]-row[1],100]
-            offset_dat = np.apply_along_axis(func, 1, offset_dat0)
+        # echo stitch images together and get the precise orbit
+        # use stitch_tops tmp.stitchlist $stem to merge images
 
-            # define radar coordinates extent
-            rmax, amax = PRM.from_file(stem_prm).get('num_rng_bins','num_lines')
-    
-            # prepare the offset parameters for the stitched image
-            # set the exact borders in radar coordinates
-            par_tmp = offset_dat[(offset_dat[:,0]>0) & (offset_dat[:,0]<rmax) & (offset_dat[:,2]>0) & (offset_dat[:,2]<amax)]
-            par_tmp[:,2] += nl
-            if abs(tmp_da) >= 1000:
-                par_tmp[:,2] -= tmp_da
-                par_tmp[:,3] += tmp_da
+        # the raw file does not exist but it works
+        PRM.from_file(stem_prm)\
+            .set(input_file = f'{line.multistem}.raw')\
+            .update(mstem_prm, safe=True)
 
-            # prepare the rshift and ashift look up table to be used by make_s1a_tops
-            # use tmp_dat instead of offset_dat
-            r_xyz = offset_dat[:,[0,2,1]]
-            a_xyz = offset_dat[:,[0,2,3]]
+        self.ext_orb_s1a(line.multistem, date=line.Index, debug=debug)
 
-            r_grd = self.offset2shift(r_xyz, rmax, amax)
-            r_grd.to_netcdf(stem_prm[:-4]+'_r.grd')
-    
-            a_grd = self.offset2shift(a_xyz, rmax, amax)
-            a_grd.to_netcdf(stem_prm[:-4]+'_a.grd')
-    
-            # generate the image with point-by-point shifts
-            # note: it removes calc_dop_orb parameters from PRM file
-            self.make_s1a_tops(date=line.Index, mode=1,
-                               rshift_fromfile=f'{line.stem}_r.grd',
-                               ashift_fromfile=f'{line.stem}_a.grd',
-                               debug=debug)
+        # Restoring $tmp_da lines shift to the image... 
+        PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
 
-            # need to update shift parameter so stitch_tops will know how to stitch
-            PRM.from_file(stem_prm).set(PRM.fitoffset(3, 3, offset_dat)).update()
+        # that is safe to rewrite source files
+        prm1 = PRM.from_file(mmaster_prm)
+        prm1.resamp(PRM.from_file(mstem_prm),
+                    alignedSLC_tofile=mstem_prm[:-4]+'.SLC',
+                    interp=1, debug=debug
+        ).to_file(mstem_prm)
 
-            # echo stitch images together and get the precise orbit
-            # use stitch_tops tmp.stitchlist $stem to merge images
+        PRM.from_file(mstem_prm).set(PRM.fitoffset(3, 3, par_tmp)).update()
 
-            # the raw file does not exist but it works
-            PRM.from_file(stem_prm)\
-                .set(input_file = f'{line.multistem}.raw')\
-                .update(mstem_prm, safe=True)
+        PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True, debug=debug).update()
 
-            self.ext_orb_s1a(line.multistem, date=line.Index, debug=debug)
-
-            # Restoring $tmp_da lines shift to the image... 
-            PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
-
-            # that is safe to rewrite source files
-            prm1 = PRM.from_file(mmaster_prm)
-            prm1.resamp(PRM.from_file(mstem_prm),
-                        alignedSLC_tofile=mstem_prm[:-4]+'.SLC',
-                        interp=1, debug=debug
-            ).to_file(mstem_prm)
-
-            PRM.from_file(mstem_prm).set(PRM.fitoffset(3, 3, par_tmp)).update()
-
-            PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True, debug=debug).update()
-
-    def preproc_parallel(self, dates=None, **kwargs):
+    def stack_parallel(self, dates=None, **kwargs):
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
@@ -437,8 +448,12 @@ class SBAS:
                 raise Exception('Set master image or define argument dates')
             dates = list(self.get_aligned().index)
 
+        # prepare master image
+        self.stack_ref()
+
+        # prepare secondary images
         with self.tqdm_joblib(notebook.tqdm(desc="Aligning", total=len(dates))) as progress_bar:
-            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.preproc)(date, **kwargs) for date in dates)
+            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.stack_rep)(date, **kwargs) for date in dates)
 
     def intf(self, pair, **kwargs):
         from PRM import PRM
