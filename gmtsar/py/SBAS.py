@@ -572,7 +572,6 @@ class SBAS:
         with self.tqdm_joblib(notebook.tqdm(desc="Unwrapping", total=len(pairs))) as progress_bar:
             joblib.Parallel(n_jobs=-1)(joblib.delayed(self.unwrap)(pair, **kwargs) for pair in pairs)
 
-
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     def unwrap(self, pair, threshold=0.1, conf=None, func=None, debug=False):
@@ -637,6 +636,13 @@ class SBAS:
             #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
                 os.remove(tmp_file)
+
+    #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
+    def los_displacement_mm(self, unwraps):
+        # constant is negative to make LOS = -1 * range change
+        # constant is (1000 mm) / (4 * pi)
+        scale = -79.58 * self.PRM().get('radar_wavelength')
+        return scale*unwraps
 
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df
