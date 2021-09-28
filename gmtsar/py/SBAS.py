@@ -458,7 +458,7 @@ class SBAS:
         with self.tqdm_joblib(notebook.tqdm(desc="Aligning", total=len(dates))) as progress_bar:
             joblib.Parallel(n_jobs=-1)(joblib.delayed(self.stack_rep)(date, **kwargs) for date in dates)
 
-    def intf(self, pair, **kwargs):
+    def intf(self, pair, geocode=True, **kwargs):
         from PRM import PRM
         import os
 
@@ -468,17 +468,79 @@ class SBAS:
         prm_ref = self.PRM(date1)
         prm_rep = self.PRM(date2)
 
+        # TODO: define function for geocoding
+        # apply the user function AFTER geocoding
+        if geocode:
+            func = None
+            if 'func' in kwargs:
+                func = kwargs['func']
+            def func_geocoding(da_ra):
+                da_ll = da_ra
+                if func is not None:
+                    return func(da_ll)
+                return da_ll
+            # reassign callback function
+            kwargs['func'] = func_geocoding
+
+        print ('SBAS intf kwargs', kwargs)
         prm_ref.intf(prm_rep, basedir=self.basedir, **kwargs)
 
     def intf_parallel(self, pairs, **kwargs):
+        import pandas as pd
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
 
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+
         with self.tqdm_joblib(notebook.tqdm(desc="Interferograms", total=len(pairs))) as progress_bar:
             joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
 
-    def baseline_table(self, days, meters):
+    def baseline_table(self):
+        import pandas as pd
+        
+        prm_ref = self.PRM()
+        data = []
+        for date in self.df.index:
+            prm_rep = self.PRM(date)
+            ST0 = prm_rep.get('SC_clock_start')
+            DAY = int(ST0 % 1000)
+            YR = int(ST0/1000) - 2014
+            YDAY = YR * 365 + DAY
+            #print (f'YR={YR}, DAY={DAY}')
+            BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
+            data.append({'date':date, 'ST0':ST0, 'YDAY':YDAY, 'BPL':BPL, 'BPR':BPR})
+            #print (date, ST0, YDAY, BPL, BPR)
+        return pd.DataFrame(data).set_index('date')
+
+    def baseline_pairs(self, days=100, meters=150):   
+        import numpy as np
+        import pandas as pd
+     
+        tbl = self.baseline_table()
+        data = []
+        for line1 in tbl.itertuples():
+        #for line1 in tbl.loc[['2015-01-21']].itertuples():
+            for line2 in tbl.itertuples():
+            #for line2 in tbl.loc[['2015-03-10']].itertuples():
+                #print (line1, line2)
+                if not (line1.YDAY < line2.YDAY and line2.YDAY - line1.YDAY < days):
+                    continue
+                if not (abs(line1.BPR - line2.BPR)< meters):
+                    continue
+            
+                data.append({'ref_date':line1.Index, 'rep_date': line2.Index,
+                             'ref_timeline': np.round(line1.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line1.BPR, 2),
+                             'rep_timeline': np.round(line2.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line2.BPR, 2)})
+            
+                #print (line1.Index, line2.Index,
+                #       np.round(line1.YDAY/365.25+2014, 2), np.round(line1.BPR, 2),
+                #       np.round(line2.YDAY/365.25+2014, 2), np.round(line2.BPR, 2))
+        return pd.DataFrame(data)
+
+    # TODO
+    def baseline_triplets(self, days, meters):
         return
 
     def PRM(self, date=None, multi=True):
@@ -499,10 +561,14 @@ class SBAS:
         return PRM.from_file(filename)
 
     def unwrap_parallel(self, pairs, **kwargs):
+        import pandas as pd
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
 
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+            
         with self.tqdm_joblib(notebook.tqdm(desc="Unwrapping", total=len(pairs))) as progress_bar:
             joblib.Parallel(n_jobs=-1)(joblib.delayed(self.unwrap)(pair, **kwargs) for pair in pairs)
 
