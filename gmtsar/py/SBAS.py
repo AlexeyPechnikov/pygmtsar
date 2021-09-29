@@ -644,6 +644,36 @@ class SBAS:
         scale = -79.58 * self.PRM().get('radar_wavelength')
         return scale*unwraps
 
+    # returns all grids in basedir by mask or grids by dates and name
+    def open_grids(self, pairs, name):
+        import os
+
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+
+        #if pairs is None:
+        #    # stack by filepath for xr.open_mfdataset
+        #    def preprocess_dirname(ds):
+        #        pair = os.path.basename(ds.encoding['source'])[:17]
+        #        #print (ds.encoding['source'], '->', pair)
+        #        return ds.assign(pair=pair)
+        #    filenames = os.path.join(self.basedir, f'*_{name}.grd')
+        #    ds = xr.open_mfdataset(filenames, concat_dim='pair', combine='nested',
+        #                             preprocess=preprocess_dirname)['z']
+        #    return ds
+
+        das = []
+        for pair in pairs:
+            filename = os.path.join(self.basedir, f'{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
+            #print (filename)
+            da = xr.open_dataarray(filename).expand_dims('pair')
+            da['ref'] = pair[0]
+            da['rep'] = pair[1]
+            das.append(da)
+        das = xr.concat(das, dim='pair')
+        das['pair'] = [f'{ref} {rep}' for (ref,rep) in zip(_.ref.values, _.rep.values)]
+        return das
+
 #filelist = SBAS('raw_orig').set_master(MASTER)
 #filelist.df
 #filelist.get_master()
