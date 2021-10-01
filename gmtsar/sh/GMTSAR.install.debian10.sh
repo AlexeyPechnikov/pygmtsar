@@ -43,10 +43,6 @@ apt install -y imagemagick git make
 # https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_3.pdf
 # see page 16
 apt install -y parallel
-# for python tools and sbas command line arguments calculation
-apt install -y python3-pip gdal-bin python-gdal python3-netcdf4 python3-scipy bc
-# for my additional Python-coded utilities
-python3 -m pip install xarray numpy scipy pytest --upgrade
 
 mkdir -p "$ORBITS"
 cd "$ORBITS"
@@ -89,3 +85,12 @@ touch /root/.cshrc
 # allow ImageMagick to process PS and PDF files (it was already fixed vulnerability in Ghostscript)
 sed -i '/policy domain="coder" rights="none" pattern="PS"/d'  /etc/ImageMagick-6/policy.xml
 sed -i '/policy domain="coder" rights="none" pattern="PDF"/d' /etc/ImageMagick-6/policy.xml
+
+# PyGMTSAR dependencies
+# for python tools and sbas command line arguments calculation
+apt install -y python3-pip gdal-bin python-gdal python3-netcdf4 python3-scipy bc
+# for additional Python-coded utilities
+python3 -m pip install xarray numpy scipy pytest --upgrade
+# for notebooks
+apt -y install libgmt5 netcdf-bin python3-pip python3-netcdf4 python3-scipy python3-dev
+apt -y install gdal-bin python3-gdal libcharls2 libgdal-dev libproj-dev proj-data proj-bin libgeos-dev
