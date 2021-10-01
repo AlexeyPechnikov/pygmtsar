@@ -646,6 +646,8 @@ class SBAS:
 
     # returns all grids in basedir by mask or grids by dates and name
     def open_grids(self, pairs, name):
+        import pandas as pd
+        import xarray as xr
         import os
 
         if isinstance(pairs, pd.DataFrame):
@@ -667,11 +669,11 @@ class SBAS:
             filename = os.path.join(self.basedir, f'{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
             #print (filename)
             da = xr.open_dataarray(filename).expand_dims('pair')
-            da['ref'] = pair[0]
-            da['rep'] = pair[1]
             das.append(da)
         das = xr.concat(das, dim='pair')
-        das['pair'] = [f'{ref} {rep}' for (ref,rep) in zip(_.ref.values, _.rep.values)]
+        das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
+        das['ref']  = xr.DataArray([pair[0] for pair in pairs], dims='pair')
+        das['rep']  = xr.DataArray([pair[1] for pair in pairs], dims='pair')
         return das
 
 #filelist = SBAS('raw_orig').set_master(MASTER)
