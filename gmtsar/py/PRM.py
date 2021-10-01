@@ -349,17 +349,15 @@ class PRM:
 
     """
     coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1)
-    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1, mode='-bos')
-    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1, mode='-bod')
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], precise=1, binary=True)
 
     coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], tofile='out.dat', precise=1)
-    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], tofile='outs.dat', precise=1, mode='-bos')
-    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], tofile='outd.dat', precise=1, mode='-bod')
+    coords = prm.SAT_llt2rat([-115.588333, 32.758333, -42.441303], tofile='outd.dat', precise=1, binary=True)
 
     coords = prm.SAT_llt2rat(dem_data[:10], precise=1)
     [format(v, '.6f') for v in coords]
     """
-    def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, mode=None, debug=False):
+    def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, binary=False, debug=False):
         """
          Usage: SAT_llt2rat master.PRM prec [-bo[s|d]] < inputfile > outputfile
 
@@ -368,14 +366,13 @@ class PRM:
              inputfile    -  lon, lat, elevation [ASCII].
              outputfile   -  range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default].
              -bos or -bod -  binary single or double precision output.
+
+             Note: -bos mode support deleted as obsolete
         """
         import numpy as np
         from io import StringIO, BytesIO
         import os
         import subprocess
-
-        if mode is not None and not mode in ['-bos','-bod']:
-            raise Exception('Supports only text (by default) and -bod/-bos for binary double and single precision output')
 
         if coords is not None and fromfile is None:
             #lon, lat, elevation = coords
@@ -399,8 +396,8 @@ class PRM:
 
         argv = ['SAT_llt2rat', f'/dev/fd/{pipe[0]}', str(precise)]
         # set binary format mode
-        if mode is not None:
-            argv.append(mode)
+        if binary:
+            argv.append('-bod')
         #print (argv)
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -419,9 +416,7 @@ class PRM:
             with open(tofile, 'wb') as f:
                 f.write(stdout_data)
         else:
-            if mode == '-bos':
-                out = (np.frombuffer(stdout_data, dtype=np.dtype(np.float32)))
-            if mode == '-bod':
+            if binary:
                 out = (np.frombuffer(stdout_data, dtype=np.dtype(np.float64)))
             else:
                 out = np.fromstring(stdout_data, dtype=float, sep=' ')
@@ -571,10 +566,10 @@ class PRM:
         dem_data = np.column_stack([lons.values.ravel(), lats.values.ravel(), z.values.ravel()])
         #print ('dem_data', dem_data.shape)
         #if trans_dat_tofile is not None:
-        self.SAT_llt2rat(dem_data, tofile=trans_dat_tofile, precise=1, mode='-bod')
+        self.SAT_llt2rat(dem_data, tofile=trans_dat_tofile, precise=1, binary=True)
         coords = np.fromfile(trans_dat_tofile, dtype=np.float64).reshape([-1,5])
         #else:
-        #    coords = self.SAT_llt2rat(dem_data, precise=1, mode='-bod')
+        #    coords = self.SAT_llt2rat(dem_data, precise=1, binary=True)
 
         grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method)
         
@@ -926,6 +921,69 @@ class PRM:
             os.remove(filename)
 
         return
+
+    def SAT_look(self, coords=None, fromfile=None, tofile=None, binary=False, debug=False):
+        """
+        Usage: SAT_look master.PRM [-bo[s|d]] < inputfile > outputfile
+
+            master.PRM   -  parameter file for master image and points to LED orbit file
+            inputfile    -  lon, lat, elevation [ASCII]
+            outputfile   -  lon, lat, elevation look_E look_N look_U [ASCII default]
+            -bos or -bod -  binary single or double precision output
+
+                Note: -bos mode does not work
+
+        example: SAT_look master.PRM < topo.llt > topo.lltn
+
+        Note that the output elevation is the one above reference radius specified in the PRM file
+        """
+        import numpy as np
+        from io import StringIO, BytesIO
+        import os
+        import subprocess
+
+        if coords is not None and fromfile is None:
+            #lon, lat, elevation = coords
+            #data=f'{lon} {lat} {elevation}'
+            buffer = BytesIO()
+            np.savetxt(buffer, coords, delimiter=' ', fmt='%.6f')
+            stdin_data = buffer.getvalue()
+        elif coords is None and fromfile is not None:
+            with open(fromfile, 'rb') as f:
+                stdin_data = f.read()
+        else:
+            raise Exception('Should be defined data source as coordinates triplet (coords) or as file (fromfile)')
+
+        pipe = os.pipe()
+        os.write(pipe[1], bytearray(self.to_str(), 'ascii'))
+        os.close(pipe[1])
+        #print ('descriptor', str(pipe[0]))
+
+        argv = ['SAT_look', f'/dev/fd/{pipe[0]}']
+        # set binary format mode
+        if binary:
+            argv.append('-bod')
+        #print (argv)
+        cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
+        p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, pass_fds=[pipe[0]],
+                             cwd=cwd, bufsize=10*1000*1000)
+        stdout_data, stderr_data = p.communicate(input=stdin_data)
+
+        stderr_data = stderr_data.decode('ascii')
+        if stderr_data is not None and len(stderr_data) and debug:
+            print ('SAT_look', stderr_data)
+            return None
+
+        if tofile is not None:
+            with open(tofile, 'wb') as f:
+                f.write(stdout_data)
+        else:
+            if binary:
+                out = (np.frombuffer(stdout_data, dtype=np.dtype(np.float64)))
+            else:
+                out = np.fromstring(stdout_data, dtype=float, sep=' ')
+            return out if out.size==5 else out.reshape(-1,6)
 
     # TODO: use PRM parameters to define config parameters
     def snaphu_config(self, defomax):
