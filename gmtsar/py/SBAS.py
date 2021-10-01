@@ -514,7 +514,7 @@ class SBAS:
             #print (date, ST0, YDAY, BPL, BPR)
         return pd.DataFrame(data).set_index('date')
 
-    def baseline_pairs(self, days=100, meters=150):   
+    def baseline_pairs(self, days=100, meters=150, invert=False):
         import numpy as np
         import pandas as pd
      
@@ -529,10 +529,15 @@ class SBAS:
                     continue
                 if not (abs(line1.BPR - line2.BPR)< meters):
                     continue
-            
-                data.append({'ref_date':line1.Index, 'rep_date': line2.Index,
-                             'ref_timeline': np.round(line1.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line1.BPR, 2),
-                             'rep_timeline': np.round(line2.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line2.BPR, 2)})
+
+                if not invert:
+                    data.append({'ref_date':line1.Index, 'rep_date': line2.Index,
+                                 'ref_timeline': np.round(line1.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line1.BPR, 2),
+                                 'rep_timeline': np.round(line2.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line2.BPR, 2)})
+                else:
+                    data.append({'ref_date':line2.Index, 'rep_date': line1.Index,
+                                 'ref_timeline': np.round(line2.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line2.BPR, 2),
+                                 'rep_timeline': np.round(line1.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line1.BPR, 2)})
             
                 #print (line1.Index, line2.Index,
                 #       np.round(line1.YDAY/365.25+2014, 2), np.round(line1.BPR, 2),
