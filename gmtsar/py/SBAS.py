@@ -212,7 +212,7 @@ class SBAS:
     
         return grids_ll
 
-    def intf_ra2ll(self, intf_grids):
+    def intf_ra2ll_matrix(self, intf_grids):
         from scipy.spatial import cKDTree
         import xarray as xr
         import numpy as np
@@ -599,7 +599,7 @@ class SBAS:
             joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
 
         # build radar coordinates transformation matrix
-        self.intf_ra2ll(self.open_grids(pairs, 'phasefilt'))
+        self.intf_ra2ll_matrix(self.open_grids(pairs, 'phasefilt'))
 
     def baseline_table(self):
         import pandas as pd
