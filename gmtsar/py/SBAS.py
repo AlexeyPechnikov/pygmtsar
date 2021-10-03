@@ -819,7 +819,8 @@ class SBAS:
         if func is not None:
             da = func(da)
         if mask:
-            da = da*self.open_grid('mask')
+            #da = da*self.open_grid('mask')
+            da = da * self.open_grid('mask').interp_like(da, method='nearest')
         if geocode:
             return self.intf_ra2ll(da)
         return da
