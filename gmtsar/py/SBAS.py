@@ -5,6 +5,10 @@
 #import pytest
 
 class SBAS:
+
+    # save to NetCDF grid
+    compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
+
     import contextlib
     @staticmethod
     @contextlib.contextmanager
@@ -245,8 +249,7 @@ class SBAS:
         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
         intf_ra2ll.attrs['node_offset'] = 1
         # save to NetCDF file
-        compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
-        intf_ra2ll.to_netcdf(intf_ra2ll_file, encoding={'intf_ra2ll': compression})
+        intf_ra2ll.to_netcdf(intf_ra2ll_file, encoding={'intf_ra2ll': self.compression})
 
     def ra2ll(self):
         from scipy.spatial import cKDTree
@@ -282,8 +285,7 @@ class SBAS:
         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
         #trans_ra2ll.attrs['node_offset'] = 1
         # save to NetCDF file
-        compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
-        trans_ra2ll.to_netcdf(trans_ra2ll_file, encoding={'trans_ra2ll': compression})
+        trans_ra2ll.to_netcdf(trans_ra2ll_file, encoding={'trans_ra2ll': self.compression})
 
     def topo_ra(self, method='cubic'):
         import xarray as xr
@@ -591,6 +593,7 @@ class SBAS:
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
+        import os
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
@@ -600,6 +603,17 @@ class SBAS:
 
         # build radar coordinates transformation matrix
         self.intf_ra2ll_matrix(self.open_grids(pairs, 'phasefilt'))
+        
+        # build stack mask
+        filename_mask = os.path.join(self.basedir, 'mask.grd')
+        mask = self.open_grids(pairs, 'mask').mean('pair')
+        mask.to_netcdf(filename_mask, encoding={'z': self.compression})
+        
+        # build stack coherence
+        filename_corr = os.path.join(self.basedir, 'corr.grd')
+        corr = self.open_grids(pairs, 'corr').mean('pair')
+        corr.to_netcdf(filename_mask, encoding={'z': self.compression})
+        
 
     def baseline_table(self):
         import pandas as pd
@@ -687,9 +701,6 @@ class SBAS:
         import os
         import subprocess
 
-        # save to NetCDF grid
-        compression = dict(zlib=True, complevel=3, chunksizes=[128,128])
-    
         if conf is None:
             conf = self.PRM().snaphu_config(defomax=0)
 
@@ -715,7 +726,7 @@ class SBAS:
         # TEST
         if os.path.exists(basename + 'corr.tmp.grd'):
             os.remove(basename + 'corr.tmp.grd')
-        corr.where(~np.isnan(corr),0).to_netcdf(basename + 'corr.tmp.grd', encoding={'z': compression})
+        corr.where(~np.isnan(corr),0).to_netcdf(basename + 'corr.tmp.grd', encoding={'z': self.compression})
 
         unwrap_out = basename + 'unwrap.out'
 
@@ -744,7 +755,7 @@ class SBAS:
         if os.path.exists(basename + 'unwrap.grd'):
             os.remove(basename + 'unwrap.grd')
         # mask again when user-defined function applied
-        (mask * unwrap).to_netcdf(basename + 'unwrap.grd', encoding={'z': compression})
+        (mask * unwrap).to_netcdf(basename + 'unwrap.grd', encoding={'z': self.compression})
 
         for tmp_file in [phase_in, corr_in, unwrap_out]:
             #print ('tmp_file', tmp_file)
@@ -760,7 +771,7 @@ class SBAS:
 
     # returns all grids in basedir by mask or grids by dates and name
     # TODO: add geocoding support
-    def open_grids(self, pairs, name, geocode=False):
+    def open_grids(self, pairs, name, geocode=False, mask=False, func=None):
         import pandas as pd
         import xarray as xr
         import os
@@ -784,12 +795,34 @@ class SBAS:
             filename = os.path.join(self.basedir, f'{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
             #print (filename)
             da = xr.open_dataarray(filename).expand_dims('pair')
+            if func is not None:
+                da = func(da)
+            if mask:
+                da = da*self.open_grid('mask')
             das.append(da)
         das = xr.concat(das, dim='pair')
         das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
         das['ref']  = xr.DataArray([pair[0] for pair in pairs], dims='pair')
         das['rep']  = xr.DataArray([pair[1] for pair in pairs], dims='pair')
+        
+        if geocode:
+            return self.intf_ra2ll(das)
         return das
+
+    def open_grid(self, name, geocode=False, mask=False, func=None):
+        import pandas as pd
+        import xarray as xr
+        import os
+
+        filename = os.path.join(self.basedir, f'{name}.grd')
+        da = xr.open_dataarray(filename)
+        if func is not None:
+            da = func(da)
+        if mask:
+            da = da*self.open_grid('mask')
+        if geocode:
+            return self.intf_ra2ll(da)
+        return da
 
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
