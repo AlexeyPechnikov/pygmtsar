@@ -60,6 +60,7 @@ class SBAS:
         import os
         from glob import glob
         import pandas as pd
+        import numpy as np
         from datetime import datetime
         from dateutil.relativedelta import relativedelta
         oneday = relativedelta(days=1)
@@ -69,7 +70,7 @@ class SBAS:
 
         # master image
         self.master = None
-        
+
         # processing directory
         self.basedir = basedir
 
@@ -85,6 +86,7 @@ class SBAS:
         metas = pd.DataFrame(metas, columns=['metapath'])
         metas['metafile'] = [os.path.split(file)[-1] for file in metas['metapath']]
         metas['filename'] = [os.path.splitext(file)[0] for file in metas['metafile']]
+        metas['subswath'] = [filename.split('-')[1] for filename in metas['filename']]
         dates = [name[15:30] for name in metas['metafile']]
         dates = [datetime.strptime(date, "%Y%m%dt%H%M%S") for date in dates]
         #print (dates)
@@ -108,6 +110,9 @@ class SBAS:
         self.df = pd.merge(self.df, datas,  how='left', left_on=['filename'], right_on = ['filename']).set_index('date')
         del self.df['date1']
         del self.df['date2']
+
+        if len(np.unique(self.df.subswath))>1:
+            raise Exception('Sorry, only single subswath processing supported for now. Use any one iw1, iw2, or iw3')
 
     def set_master(self, master):
         self.master = master
@@ -200,7 +205,7 @@ class SBAS:
         intf_ra2ll_file = os.path.join(self.basedir, 'intf_ra2ll.grd')
 
         matrix_ra2ll = xr.open_dataarray(intf_ra2ll_file)
-    
+
         def ra2ll(grid):
             return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll], np.nan),
                 coords=matrix_ra2ll.coords)
@@ -214,6 +219,12 @@ class SBAS:
             grids_ll = joblib.Parallel(n_jobs=-1)(joblib.delayed(ra2ll)(grids[item]) for item in range(len(grids)))
         grids_ll = xr.concat(grids_ll, dim=grids.dims[0])
     
+        # add coordinates from original grids
+        for coord in grids.coords:
+            if coord in ['y', 'x']:
+                continue
+            grids_ll[coord] = grids[coord]
+
         return grids_ll
 
     def intf_ra2ll_matrix(self, intf_grids):
@@ -660,9 +671,63 @@ class SBAS:
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
-    # TODO
-    def baseline_triplets(self, days, meters):
-        return
+    # returns sorted baseline triplets
+    @staticmethod
+    def baseline_triplets(pairs, invert=False):
+        import pandas as pd
+
+        data = []
+        pairs_a = pairs
+        for line_a in pairs_a.itertuples():
+            #print (line_a)
+            date_a_ref = line_a.ref_date
+            date_a_rep = line_a.rep_date
+            pairs_b = pairs[pairs.ref_date==date_a_rep]
+            for line_b in pairs_b.itertuples():
+                #print (line_b)
+                date_b_ref = line_b.ref_date
+                date_b_rep = line_b.rep_date
+                pairs_c = pairs[(pairs.rep_date==date_b_rep)&(pairs.ref_date==date_a_ref)]
+                for line_c in pairs_c.itertuples():
+                    #print (line_c)
+                    date_c_ref = line_c.ref_date
+                    date_c_rep = line_c.rep_date
+                    #print (date_a_ref, date_a_rep, date_b_rep)
+                    data.append({'A': date_a_ref, 'B': date_a_rep, 'C': date_b_rep})
+        return pd.DataFrame(data).sort_values(['A', 'B', 'C'])
+
+    @staticmethod
+    def baseline_triplets_analysis(baseline_triplets, grids):
+        import pandas as pd
+        import numpy as np
+
+        data = []
+        for triplet in baseline_triplets.itertuples():
+            #print (triplet)
+            pair_a = f'{triplet.A} {triplet.B}'
+            pair_b = f'{triplet.B} {triplet.C}'
+            pair_c = f'{triplet.A} {triplet.C}'
+            #print (pair_a, pair_b, pair_c)
+            grid_a = grids.sel(pair=pair_a)
+            grid_b = grids.sel(pair=pair_b)
+            grid_c = grids.sel(pair=pair_c)
+            grid_abc = (grid_a + grid_b - grid_c)
+            diff_abc = float(np.round(grid_abc.mean() % np.pi,3))
+            delta_pi = int(np.round(grid_abc.mean() / np.pi,0))
+
+            a = grid_a.values.ravel()
+            b = grid_b.values.ravel()
+            c = grid_c.values.ravel()
+            mask = np.isnan(a)|np.isnan(b)|np.isnan(c)
+
+            corr_a = (np.corrcoef(a[~mask], b[~mask])[1,0].round(2))
+            corr_b = (np.corrcoef(b[~mask], c[~mask])[1,0].round(2))
+            corr_c = (np.corrcoef(a[~mask], c[~mask])[1,0].round(2))
+
+            data.append({'A': triplet.A, 'B': triplet.B, 'C': triplet.C,
+                         'corr_AB': corr_a, 'corr_BC': corr_b, 'corr_CA' :corr_c, 'delta_pi': delta_pi})
+
+        return (pd.DataFrame(data).sort_values(['A', 'B', 'C']))
 
     def PRM(self, date=None, multi=True):
         from PRM import PRM
@@ -791,20 +856,35 @@ class SBAS:
         #    return ds
 
         das = []
-        for pair in pairs:
-            filename = os.path.join(self.basedir, f'{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
-            #print (filename)
-            da = xr.open_dataarray(filename).expand_dims('pair')
-            if func is not None:
-                da = func(da)
-            if mask:
-                da = da*self.open_grid('mask')
-            das.append(da)
-        das = xr.concat(das, dim='pair')
-        das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
-        das['ref']  = xr.DataArray([pair[0] for pair in pairs], dims='pair')
-        das['rep']  = xr.DataArray([pair[1] for pair in pairs], dims='pair')
-        
+        if len(pairs.shape) == 1:
+            for date in sorted(pairs):
+                filename = os.path.join(self.basedir, f'{name}_{date}.grd'.replace('-',''))
+                #print (date, filename)
+                da = xr.open_dataarray(filename)
+                if func is not None:
+                    da = func(da)
+                if mask:
+                    da = da*self.open_grid('mask')
+                das.append(da.expand_dims('date'))
+            das = xr.concat(das, dim='date')
+            das['date'] = sorted(pairs)
+        elif len(pairs.shape) == 2:
+            for pair in pairs:
+                filename = os.path.join(self.basedir, f'{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
+                #print (filename)
+                da = xr.open_dataarray(filename)
+                if func is not None:
+                    da = func(da)
+                if mask:
+                    da = da*self.open_grid('mask')
+                das.append(da.expand_dims('pair'))
+            das = xr.concat(das, dim='pair')
+            das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
+            das['ref']  = xr.DataArray([pair[0] for pair in pairs], dims='pair')
+            das['rep']  = xr.DataArray([pair[1] for pair in pairs], dims='pair')
+        else:
+            raise Exception('Use single or two columns Pandas dataset or array as "pairs" argument')
+
         if geocode:
             return self.intf_ra2ll(das)
         return das
