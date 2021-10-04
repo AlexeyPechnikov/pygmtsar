@@ -13,7 +13,7 @@ while you don't ready to pay for it.
 
 [Live Example S1A_Stack_CPGF_T173 on Google Colab](https://colab.research.google.com/drive/1iUfn9ZVMFCh0n9O0LBtmENLmeCeP0mN8?usp=sharing)
 
-![](https://i.ibb.co/JmF1Njj/Screenshot-2021-10-03-at-15-44-15.png)
+![](https://user-images.githubusercontent.com/7342379/135814064-1bcc7baa-7eec-4c8a-b989-1033ba9c6e43.png)
 
 > 
 >
