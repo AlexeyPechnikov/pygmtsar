@@ -8,7 +8,7 @@ and I can't promise anything. You are able to sponsor my projects on [Patreon: B
 The goal of the project is easy and fast satellite interferometry (InSAR) processing everywhere
 from local host to cloud environments. Really, we are able to use even free of charge services like to Google Colab
 which are powerful enough for processing about 10 interferograms in 30 minutes.
-MacOS and Linux Debian are my prefered OSes and I support them both. By the way, please don't ask me about Windows support
+MacOS and Linux Debian are my prefered OSes and I support both of them. Please don't ask me about Windows support
 while you don't ready to pay for it. 
 
 [Live Example S1A_Stack_CPGF_T173 on Google Colab](https://colab.research.google.com/drive/1iUfn9ZVMFCh0n9O0LBtmENLmeCeP0mN8?usp=sharing)
