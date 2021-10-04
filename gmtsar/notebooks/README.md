@@ -2,11 +2,11 @@
 
 I'm a freelancer and that's my free time Open Source project. In 2005 my master's thesis was awarded first prize of the
 All-Russian Physics competition for significant results in Inverse modeling for non-linear optics and holography and so
-I know a lot about interferometry modeling. Sure, I have lots of ideas about new features but my free time is very limited
+I know a lot about interferometry modeling. Sure, I have varios ideas about new features but my free time is very limited
 and I can't promise anything. You are able to sponsor my projects on [Patreon: Become a Patron!](https://www.patreon.com/bePatron?u=54500608) and order research, development and support on [Upwork](https://www.upwork.com/freelancers/~01e65e8e7221758623)
 
 The goal of the project is easy and fast satellite interferometry (InSAR) processing everywhere
-from local host to cloud environments. Really, we are able to use even free of charge services like to Google Colab
+from local host to cloud environments. GMTSAR binary command line tools are used under the hood. By my opinion, GMTSAR is great project and has only one big problem - it is not user friendly. I've built rich Python API instead of GMTSAR CSH scripts and GMT toolkit calls and by this way we have 3x faster processing and more accurate results. Really, now we are able to use even free of charge services like to Google Colab
 which are powerful enough for processing about 10 interferograms in 30 minutes.
 MacOS and Linux Debian are my prefered OSes and I support both of them. Please don't ask me about Windows support
 while you don't ready to pay for it. 
