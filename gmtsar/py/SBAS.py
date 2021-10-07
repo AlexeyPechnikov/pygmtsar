@@ -56,7 +56,7 @@ class SBAS:
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
-    def __init__(self, datadir, dem_filename, basedir):
+    def __init__(self, datadir, dem_filename=None, basedir='.'):
         import os
         from glob import glob
         import pandas as pd
@@ -65,22 +65,30 @@ class SBAS:
         from dateutil.relativedelta import relativedelta
         oneday = relativedelta(days=1)
 
-        self.dem_filename = os.path.relpath(dem_filename,'.')
+        if dem_filename is None:
+            self.dem_filename = None
+        else:
+            self.dem_filename = os.path.relpath(dem_filename, '.')
         #print ('dem_filename', self.dem_filename)
 
-        # master image
-        self.master = None
-
         # processing directory
-        self.basedir = basedir
+        if basedir is None:
+            self.basedir = '/tmp'
+        else:
+            self.basedir = basedir
 
         orbits = glob(os.path.join(datadir, 'S1?*.EOF'), recursive=True)
         orbits = pd.DataFrame(orbits, columns=['orbitpath'])
+        if len(orbits) ==0 :
+            raise Exception('Orbit files are not found. Use "eof" command to generate them in .SAFE or .zip products directory')
+    
         orbits['orbitfile'] = [os.path.split(file)[-1] for file in orbits['orbitpath']]
         orbits['orbitname'] = [os.path.splitext(name)[0] for name in orbits['orbitfile']]
         orbits['date1'] = [name.split('_')[-2][1:9] for name in orbits['orbitname']]
         orbits['date2'] = [name.split('_')[-1][:8] for name in orbits['orbitname']]
-        #print (orbits)
+        # detect RESORB
+        RESORBs = orbits['date1'] == orbits['date2']
+        #print (RESORBs)
 
         metas = glob(os.path.join(datadir, 's1?-iw*.xml'), recursive=True)
         metas = pd.DataFrame(metas, columns=['metapath'])
@@ -90,29 +98,99 @@ class SBAS:
         dates = [name[15:30] for name in metas['metafile']]
         dates = [datetime.strptime(date, "%Y%m%dt%H%M%S") for date in dates]
         #print (dates)
+        if len(orbits) != len(dates):
+            raise Exception('Some files are missed. Expected a set of triples .EOF, .tiff, .xml')
+    
         metas['date'] = [date.strftime("%Y-%m-%d") for date in dates]
-        metas['date1'] = [(date-oneday).strftime("%Y%m%d") for date in dates]
-        metas['date2'] = [(date+oneday).strftime("%Y%m%d") for date in dates]
+        metas['date1'] = [date.strftime("%Y%m%d") if resorb else (date-oneday).strftime("%Y%m%d") for (date, resorb) in zip(dates, RESORBs)]
+        metas['date2'] = [date.strftime("%Y%m%d") if resorb else (date+oneday).strftime("%Y%m%d") for (date, resorb) in zip(dates, RESORBs)]
         #print (filenames)
         #metanames['data'] = [filename[:-4]+'.tiff' for metaname in metanames['metaname']]
         #metanames['dataname'] = [basename[:-4]+'.tiff' for basename in metanames['basename']]
         # TODO: replace F1 to iw*
         metas['stem'] = [f'S1_{date.strftime("%Y%m%d_%H%M%S")}_F1' for date in dates]
         metas['multistem'] = [f'S1_{date.strftime("%Y%m%d")}_ALL_F1' for date in dates]
-
+        #print (metas)
+    
         datas = glob(os.path.join(datadir, 's1?-iw*.tiff'), recursive=True)
         datas = pd.DataFrame(datas, columns=['datapath'])
         datas['datafile'] = [os.path.split(file)[-1] for file in datas['datapath']]
         datas['filename'] = [os.path.splitext(file)[0] for file in datas['datafile']]
         #print (datas)
 
+        if len(orbits) != len(metas) or len(orbits) != len(datas):
+            raise Exception('Some files are missed. Expected a set of triples .EOF, .tiff, .xml')
+    
+        metas['satellite'] = [metafile[:3] for metafile in metas['metafile']]
+        if len(np.unique(metas['satellite'])) > 1:
+            raise Exception('Only scenes from one satellite allowed (S1A or S1B)')
+
         self.df = pd.merge(metas, orbits,  how='left', left_on=['date1','date2'], right_on = ['date1','date2'])
-        self.df = pd.merge(self.df, datas,  how='left', left_on=['filename'], right_on = ['filename']).set_index('date')
+        self.df = pd.merge(self.df, datas,  how='left', left_on=['filename'], right_on = ['filename'])
+        self.df = self.df.set_index('date').sort_index()
         del self.df['date1']
         del self.df['date2']
 
         if len(np.unique(self.df.subswath))>1:
             raise Exception('Sorry, only single subswath processing supported for now. Use any one iw1, iw2, or iw3')
+
+        if len(self.df) < 2:
+            raise Exception('Two or more scenes required')
+        
+        # set first image as master image
+        self.master = self.df.index[0]
+        
+    def set_dem(self, dem_filename):
+        import os
+        self.dem_filename = os.path.relpath(dem_filename,'.')
+        return self
+
+    def download_dem(self, product='SRTM3', debug=False):
+        import urllib.request
+        import elevation
+        import os
+        import subprocess    
+    
+        gtx_url = 'https://github.com/mobigroup/proj-datumgrid/blob/master/egm96_15.gtx?raw=true'
+        gtx_filename = os.path.join(self.basedir, 'egm96_15.gtx')
+        tif_filename = os.path.join(self.basedir, 'DEM_EGM96.tif')
+        grd_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
+    
+        if not os.path.exists(gtx_filename):
+            with urllib.request.urlopen(gtx_url) as fin:
+                with open(gtx_filename, 'wb') as fout:
+                    fout.write(fin.read())
+
+        if not os.path.exists(tif_filename):
+            # generate DEM for the area
+            llmin, llmax = self.geoloc().longitude.min(), self.geoloc().longitude.max()
+            ltmin, ltmax = self.geoloc().latitude.min(),  self.geoloc().latitude.max()
+            # left bottom right top
+            
+            elevation.clip(bounds=(llmin, ltmin, llmax, ltmax),
+                            product=product,
+                            margin='0.01', 
+                            output=os.path.realpath(tif_filename))
+            #elevation.clean()
+
+        if not os.path.exists(grd_filename):
+            # convert to WGS84 ellipsoidal heights
+            argv = ['gdalwarp', '-co', 'COMPRESS=DEFLATE',
+                    '-r', 'bilinear',
+                    '-s_srs', f'+proj=longlat +datum=WGS84 +no_defs +geoidgrids=./egm96_15.gtx',
+                    '-t_srs', '+proj=longlat +datum=WGS84 +no_def',
+                    '-overwrite',
+                    '-ot', 'Float32',
+                    'DEM_EGM96.tif', 'DEM_WGS84.nc']
+            print ('argv', argv)
+            p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+            stdout_data, stderr_data = p.communicate()
+            if len(stderr_data) > 0:
+                print ('download_dem', stderr_data.decode('ascii'))
+            if len(stdout_data) > 0 and debug:
+                print ('download_dem', stdout_data.decode('ascii'))
+
+        self.dem_filename = grd_filename
 
     def set_master(self, master):
         self.master = master
@@ -173,6 +251,9 @@ class SBAS:
         import xarray as xr
         import os
         
+        if self.dem_filename is None:
+            raise Exception('Set DEM filename first')
+
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
         dem = xr.open_dataset(self.dem_filename)
@@ -180,8 +261,8 @@ class SBAS:
         # define latlon array
         z_array_name = [data_var for data_var in dem.data_vars if len(dem.data_vars[data_var].coords)==2]
         assert len(z_array_name) == 1
-        # extract the array
-        dem = dem[z_array_name[0]]
+        # extract the array and fill missed values by nan (mostly ocean area)
+        dem = dem[z_array_name[0]].fillna(0)
         
         if geoloc is False:
             return dem
@@ -671,9 +752,22 @@ class SBAS:
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
+    @staticmethod
+    def triplets2pairs(triplets, pairs):
+        import pandas as pd
+    
+        data = []
+        for triplet in triplets.itertuples():
+            data.append({'ref_date': triplet.A, 'rep_date': triplet.B})
+            data.append({'ref_date': triplet.B, 'rep_date': triplet.C})
+            data.append({'ref_date': triplet.A, 'rep_date': triplet.C})
+        tripairs = pd.DataFrame(data).sort_values(['ref_date', 'rep_date']).drop_duplicates()
+        idx = tripairs.set_index(['ref_date', 'rep_date']).index
+        return pairs.set_index(['ref_date', 'rep_date']).loc[idx].reset_index()
+
     # returns sorted baseline triplets
     @staticmethod
-    def baseline_triplets(pairs, invert=False):
+    def pairs2triplets(pairs, invert=False):
         import pandas as pd
 
         data = []
@@ -839,10 +933,13 @@ class SBAS:
     def open_grids(self, pairs, name, geocode=False, mask=False, func=None):
         import pandas as pd
         import xarray as xr
+        import numpy as np
         import os
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
+        else:
+            pairs = np.asarray(pairs)
 
         #if pairs is None:
         #    # stack by filepath for xr.open_mfdataset
