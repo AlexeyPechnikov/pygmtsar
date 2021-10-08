@@ -47,3 +47,5 @@ git branch
 git revert
 # create a new branch
 git checkout -b fix_bugs
+# show current status
+git status
