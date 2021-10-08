@@ -1005,31 +1005,37 @@ class SBAS:
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
         import numpy as np
+        import datetime
 
         outs = []
         for line in baseline_pairs.itertuples():
             #print (line)
             ref = line.ref_date.replace('-','')
+            jref = datetime.datetime.strptime(line.ref_date, '%Y-%m-%d').strftime('%Y%j')
             rep = line.rep_date.replace('-','')
+            jrep = datetime.datetime.strptime(line.rep_date, '%Y-%m-%d').strftime('%Y%j')
             bperp = np.round(line.rep_baseline - line.ref_baseline, 2)
-            outs.append(f'{ref}_{rep}_unwrap.grd {ref}_{rep}_corr.grd {ref} {rep} {bperp}')
+            outs.append(f'{ref}_{rep}_unwrap.grd {ref}_{rep}_corr.grd {jref} {jrep} {bperp}')
         return '\n'.join(outs) + '\n'
 
-    # scene.tab format:   scene_id   number_of_days
-    #timeline = YDAY/365.25+2014
     def scenetab(self, baseline_pairs):
         import numpy as np
+        import datetime
 
+        mst = datetime.datetime.strptime(self.master, '%Y-%m-%d').strftime('%Y%j')
+        #print (self.master, mst)
         outs = []
         for line in baseline_pairs.itertuples():
             #print (line)
-            ref = line.ref_date.replace('-','')
+            ref = datetime.datetime.strptime(line.ref_date, '%Y-%m-%d').strftime('%Y%j')
             yday_ref = np.round((line.ref_timeline - 2014)*365.25)
             outs.append(f'{ref} {yday_ref}')
-            rep = line.rep_date.replace('-','')
+            rep = datetime.datetime.strptime(line.rep_date, '%Y-%m-%d').strftime('%Y%j')
             yday_rep = np.round((line.rep_timeline - 2014)*365.25)
             outs.append(f'{rep} {yday_rep}')
-        return '\n'.join(np.unique(outs)) + '\n'
+        outs = np.unique(outs)
+        return '\n'.join([out for out in outs if out.split(' ')[0]==mst]) + '\n' + \
+               '\n'.join([out for out in outs if out.split(' ')[0]!=mst]) + '\n'
 
     def sbas(self, baseline_pairs, smooth=0, debug=False):
         """
@@ -1063,6 +1069,15 @@ class SBAS:
         import subprocess
         import numpy as np
         import math
+        import glob
+        import datetime
+
+        # cleanup
+        for filename in glob.glob(os.path.join(self.basedir, 'disp*.grd')):
+            os.remove(filename)
+        filename = os.path.join(self.basedir, 'vel.grd')
+        if os.path.exists(filename):
+            os.remove(filename)
 
         unwrap = self.open_grids(baseline_pairs[['ref_date', 'rep_date']][:1], 'unwrap')[0]
         dem = self.get_dem()
@@ -1118,6 +1133,16 @@ class SBAS:
             print ('sbas', stderr_data)
         if len(stdout_data) > 0 and debug:
             print ('sbas', stdout_data)
+
+        # fix output grid filenames
+        for date in np.unique(np.concatenate([baseline_pairs.ref_date,baseline_pairs.rep_date])):
+            jdate = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%Y%j')
+            date = date.replace('-','')
+            filename1 = os.path.join(self.basedir, f'disp_{jdate}.grd')
+            filename2 = os.path.join(self.basedir, f'disp_{date}.grd')
+            if os.path.exists(filename1):
+                os.rename(filename1, filename2)
+            #print (jdate, date)
 
         return
 
