@@ -19,7 +19,7 @@ while you don't ready to pay for it.
 
 <img src="https://user-images.githubusercontent.com/7342379/135814732-aa0eb142-ae54-4a57-b271-c33b5174a28e.png" width="50%">
 
-<img src="https://user-images.githubusercontent.com/7342379/135814064-1bcc7baa-7eec-4c8a-b989-1033ba9c6e43.png" width="50%">
+<img src="https://user-images.githubusercontent.com/7342379/136558388-cffbcea5-e5a7-44d5-ba36-b51a7e0f10e9.png" width="50%">
 
 > 
 >
