@@ -13,7 +13,11 @@ while you don't ready to pay for it.
 
 * [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
 
-<img src="https://user-images.githubusercontent.com/7342379/136322100-b451e80a-e056-4d2f-a966-9138d4906e9e.png" width="50%">
+<img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake.jpg" width="50%">
+
+* [Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece](https://colab.research.google.com/drive/17sKvqINPsDcFTR62vb40xU0Ekd0vEJfz?usp=sharing)
+
+<img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake_vs_geObsevatory.jpg" width="50%">
 
 * [Live Example S1A_Stack_CPGF_T173 on Google Colab](https://colab.research.google.com/drive/1Ab2I9A2kmZIHuNwIortaga1zZ90hBjMa?usp=sharing)
 
