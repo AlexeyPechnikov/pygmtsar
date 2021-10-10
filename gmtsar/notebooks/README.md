@@ -11,7 +11,7 @@ which are powerful enough for processing about 10 interferograms in 30 minutes.
 MacOS and Linux Debian are my prefered OSes and I support both of them. Please don't ask me about Windows support
 while you don't ready to pay for it. 
 
-* [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1-8WymVV7aUr8L1mTqbRvZUWIoOunyuee?usp=sharing)
+* [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
 
 <img src="https://user-images.githubusercontent.com/7342379/136322100-b451e80a-e056-4d2f-a966-9138d4906e9e.png" width="50%">
 
@@ -19,7 +19,7 @@ while you don't ready to pay for it.
 
 <img src="https://user-images.githubusercontent.com/7342379/135814732-aa0eb142-ae54-4a57-b271-c33b5174a28e.png" width="50%">
 
-<img src="https://user-images.githubusercontent.com/7342379/135814064-1bcc7baa-7eec-4c8a-b989-1033ba9c6e43.png" width="50%">
+<img src="https://user-images.githubusercontent.com/7342379/136558388-cffbcea5-e5a7-44d5-ba36-b51a7e0f10e9.png" width="50%">
 
 > 
 >
