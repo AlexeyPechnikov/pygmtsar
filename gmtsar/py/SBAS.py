@@ -121,9 +121,9 @@ class SBAS:
         if len(orbits) != len(metas) or len(orbits) != len(datas):
             raise Exception('Some files are missed. Expected a set of triples .EOF, .tiff, .xml')
     
-        metas['satellite'] = [metafile[:3] for metafile in metas['metafile']]
-        if len(np.unique(metas['satellite'])) > 1:
-            raise Exception('Only scenes from one satellite allowed (S1A or S1B)')
+        #metas['satellite'] = [metafile[:3] for metafile in metas['metafile']]
+        #if len(np.unique(metas['satellite'])) > 1:
+        #    raise Exception('Only scenes from one satellite allowed (S1A or S1B)')
 
         self.df = pd.merge(metas, orbits,  how='left', left_on=['date1','date2'], right_on = ['date1','date2'])
         self.df = pd.merge(self.df, datas,  how='left', left_on=['filename'], right_on = ['filename'])
