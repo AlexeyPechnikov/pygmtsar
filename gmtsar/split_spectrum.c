@@ -37,12 +37,8 @@ char *USAGE1 = "\nUSAGE: split_spectrum prm1 [split_half] \n\n"
                "filter\n\n"
                "   SLCs are bandpassed and then shifted to the center of the spectrum\n\n"
                "   split_half is build for ALOS FBD FBS cases, put 1 for using half the spectrum\n\n"
-               "   output is SLCH SLCL\n\n";
-char *USAGE2 = "\nUSAGE: split_spectrum prm1 prm2\n\n"
-               "   program used to split range spectrum for coregistered SLC using a "
-               "modified cosine filter\n\n"
-               "   SLCs are bandpassed and then shifted to the center of the spectrum\n\n"
-               "   output is SLCH1 SLCH2 SLCL1 SLCL2\n";
+               "   outputs are SLCH SLCL, for TOPS data, outputs are high.tiff low.tiff\n\n";
+
 
 int main(int argc, char **argv) {
 	if (argc != 3 && argc != 2)
@@ -65,6 +61,8 @@ int split1(int argc1, char **argv1) {
 	double *filterh, *filterl;
 	short *buf1;
 	fcomplex *c1, *c1h, *c1l, *tmp, fm;
+	double f_h=0, f_l=0, w_h=0, w_l=0;
+	
 	void *API = NULL; /* GMT API control structure */
 	// double complex zl,zh,zp,z1h,z2h,z1l,z2l;
 	// double *ph;
@@ -109,15 +107,6 @@ int split1(int argc1, char **argv1) {
 	cos_window(-bc, bw, rng_samp_rate, nffti, filterl);
 
 	//fprintf(stderr, "%.12f %.12f %.12f %.12f %.12f\n", bc / 1e6, bw / 1e6, fh / 1e6, fl / 1e6, cf / 1e6);
-    printf("low_wavelength = %.12f\n",SOL/fl);
-    printf("center_wavelength = %.12f\n",SOL/cf);
-    printf("high_wavelength = %.12f\n",SOL/fh);
-    printf("low_freq = %.12f\n",fl);
-    printf("center_freq = %.12f\n",cf);
-    printf("high_freq = %.12f\n",fh);
-    printf("low_bandwidth = %.12f\n",bw);
-    printf("center_bandwidth = %.12f\n",rng_bandwidth);
-    printf("high_bandwidth = %.12f\n",bw);
 	// test on how the window look like
 	// for (ii=0;ii<p1.num_rng_bins;ii++){
 	//    fprintf(stdout,"%.12f\n",filterl[ii]);
@@ -235,6 +224,12 @@ int split1(int argc1, char **argv1) {
 			c1h[jj].i = c1[jj].i * filterh[jj];
 			c1l[jj].r = c1[jj].r * filterl[jj];
 			c1l[jj].i = c1[jj].i * filterl[jj];
+			
+			w_h += c1h[jj].r*c1h[jj].r+c1h[jj].i*c1h[jj].i;
+			w_l += c1l[jj].r*c1l[jj].r+c1l[jj].i*c1l[jj].i;
+			f_h += (c1h[jj].r*c1h[jj].r+c1h[jj].i*c1h[jj].i)*p1.fs/nffti*jj;
+			f_l += (c1l[jj].r*c1l[jj].r+c1l[jj].i*c1l[jj].i)*p1.fs/nffti*(jj-nffti);
+			
 			// c2h[jj].r = c2[jj].r*filterh[jj];
 			// c2h[jj].i = c2[jj].i*filterh[jj];
 			// c2l[jj].r = c2[jj].r*filterl[jj];
@@ -318,6 +313,26 @@ int split1(int argc1, char **argv1) {
 			fprintf(stderr, "%d ", ii);
 	}
 	fprintf(stderr, "...\n");
+	if (p1.SC_identity == 10) {
+		printf("low_wavelength = %.12f\n",SOL/(cf+f_l/w_l));
+    	printf("center_wavelength = %.12f\n",SOL/cf);
+    	printf("high_wavelength = %.12f\n",SOL/(cf+f_h/w_h));
+		printf("low_freq = %.12f\n",cf+f_l/w_l);
+    	printf("center_freq = %.12f\n",cf);
+    	printf("high_freq = %.12f\n",cf+f_h/w_h);
+	}
+	else {
+		printf("low_wavelength = %.12f\n",SOL/fl);
+    	printf("center_wavelength = %.12f\n",SOL/cf);
+    	printf("high_wavelength = %.12f\n",SOL/fh);
+    	printf("low_freq = %.12f\n",fl);
+    	printf("center_freq = %.12f\n",cf);
+    	printf("high_freq = %.12f\n",fh);
+    }
+    
+    printf("low_bandwidth = %.12f\n",bw);
+    printf("center_bandwidth = %.12f\n",rng_bandwidth);
+    printf("high_bandwidth = %.12f\n",bw);
 
 	free(filterh);
 	free(filterl);
@@ -349,6 +364,12 @@ int split1(int argc1, char **argv1) {
 	free(tmp);
 	return (1);
 }
+
+char *USAGE2 = "\nUSAGE: split_spectrum prm1 prm2\n\n"
+               "   program used to split range spectrum for coregistered SLC using a "
+               "modified cosine filter\n\n"
+               "   SLCs are bandpassed and then shifted to the center of the spectrum\n\n"
+               "   output is SLCH1 SLCH2 SLCL1 SLCL2\n";
 
 int split2(int argc2, char **argv2) {
 
