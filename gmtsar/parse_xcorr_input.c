@@ -11,7 +11,7 @@ void print_params(struct xcorr *xc) {
 	/*
 	        fprintf(stdout," input %s \n",xc->param_name);
 	*/
-	fprintf(stdout, " format %d [0 => complex short, 1 => real float] \n", xc->format);
+	fprintf(stdout, " format %d [0 => complex short, 1 => real float, 2 => real float (NetCDF)] \n", xc->format);
 	fprintf(stdout, " m_nx %d \n", xc->m_nx);
 	fprintf(stdout, " m_ny %d \n", xc->m_ny);
 	fprintf(stdout, " s_nx %d \n", xc->s_nx);
