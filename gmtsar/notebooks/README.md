@@ -9,13 +9,15 @@ The goal of the project is easy and fast satellite interferometry (InSAR) proces
 from local host to cloud environments. GMTSAR binary command line tools are used under the hood. By my opinion, GMTSAR is great project and has only one big problem - it is not user friendly. I've built rich Python API instead of GMTSAR CSH scripts and GMT toolkit calls and by this way we have 3x faster processing and more accurate results. Really, now we are able to use even free of charge services like to Google Colab
 which are powerful enough for processing about 10 interferograms in 30 minutes.
 MacOS and Linux Debian are my prefered OSes and I support both of them. Please don't ask me about Windows support
-while you don't ready to pay for it. 
+while you don't ready to pay for it.
+
+PyGMTSAR automatically downloads Sentinel-1 orbit files, SRTM DEM and convert it to ellispoidal heights and so on. You need only 2+ raw Sentinel scenes for the processing. See below **Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece** for the fully automated processing and other examples uses pre-downloaded DEM and orbits for faster processing.
 
 * [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
 
 <img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake.jpg" width="50%">
 
-* [Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece](https://colab.research.google.com/drive/17sKvqINPsDcFTR62vb40xU0Ekd0vEJfz?usp=sharing)
+* [Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece](https://colab.research.google.com/drive/1asddx-b3f7jS6TK-fkTm_WuytqBZzovc?usp=sharing)
 
 <img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake_vs_geObsevatory.jpg" width="50%">
 
