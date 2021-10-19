@@ -205,7 +205,7 @@ class SBAS:
                     '-overwrite',
                     '-ot', 'Float32', '-of', 'NetCDF',
                     'DEM_EGM96.tif', 'DEM_WGS84.nc']
-            print ('argv', argv)
+            #print ('argv', argv)
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
             stdout_data, stderr_data = p.communicate()
             if len(stderr_data) > 0:
