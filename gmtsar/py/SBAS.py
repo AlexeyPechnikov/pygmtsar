@@ -73,34 +73,38 @@ class SBAS:
 
         # processing directory
         if basedir is None:
-            self.basedir = '/tmp'
+            self.basedir = '.'
         else:
+            os.makedirs(basedir, exist_ok=True)
             self.basedir = basedir
 
-        orbits = glob(os.path.join(datadir, 'S1?*.EOF'), recursive=True)
+        orbits = sorted(glob(os.path.join(datadir, 'S1?*.EOF'), recursive=True))
         orbits = pd.DataFrame(orbits, columns=['orbitpath'])
-        if len(orbits) ==0 :
-            raise Exception('Orbit files are not found. Use "eof" command to generate them in .SAFE or .zip products directory')
-    
+        #if len(orbits) ==0:
+        #    raise Exception('Orbit files are not found. Use "eof" command to generate them in .SAFE or .zip products directory')
         orbits['orbitfile'] = [os.path.split(file)[-1] for file in orbits['orbitpath']]
         orbits['orbitname'] = [os.path.splitext(name)[0] for name in orbits['orbitfile']]
         orbits['date1'] = [name.split('_')[-2][1:9] for name in orbits['orbitname']]
         orbits['date2'] = [name.split('_')[-1][:8] for name in orbits['orbitname']]
-        # detect RESORB
-        RESORBs = orbits['date1'] == orbits['date2']
-        #print (RESORBs)
 
-        metas = glob(os.path.join(datadir, 's1?-iw*.xml'), recursive=True)
+        metas = sorted(glob(os.path.join(datadir, 's1?-iw*.xml'), recursive=True))
         metas = pd.DataFrame(metas, columns=['metapath'])
         metas['metafile'] = [os.path.split(file)[-1] for file in metas['metapath']]
         metas['filename'] = [os.path.splitext(file)[0] for file in metas['metafile']]
         metas['subswath'] = [filename.split('-')[1] for filename in metas['filename']]
+        metas['satellite'] = [filename.split('-')[0].upper() for filename in metas['filename']]
         dates = [name[15:30] for name in metas['metafile']]
         dates = [datetime.strptime(date, "%Y%m%dt%H%M%S") for date in dates]
         #print (dates)
-        if len(orbits) != len(dates):
-            raise Exception('Some files are missed. Expected a set of triples .EOF, .tiff, .xml')
-    
+        if len(orbits) > 0 and len(orbits) != len(dates):
+            raise Exception('Some files are missed. Expected a set of triples .EOF, .tiff, .xml. Hint: you would remove all orbits and use function download_orbits()')
+
+        # detect RESORB
+        if len(orbits) > 0:
+            RESORBs = orbits['date1'] == orbits['date2']
+        else:
+            RESORBs = len(dates)*[True]
+        #print (RESORBs)
         metas['date'] = [date.strftime("%Y-%m-%d") for date in dates]
         metas['date1'] = [date.strftime("%Y%m%d") if resorb else (date-oneday).strftime("%Y%m%d") for (date, resorb) in zip(dates, RESORBs)]
         metas['date2'] = [date.strftime("%Y%m%d") if resorb else (date+oneday).strftime("%Y%m%d") for (date, resorb) in zip(dates, RESORBs)]
@@ -112,14 +116,16 @@ class SBAS:
         metas['multistem'] = [f'S1_{date.strftime("%Y%m%d")}_ALL_F1' for date in dates]
         #print (metas)
     
-        datas = glob(os.path.join(datadir, 's1?-iw*.tiff'), recursive=True)
+        datas = sorted(glob(os.path.join(datadir, 's1?-iw*.tiff'), recursive=True))
         datas = pd.DataFrame(datas, columns=['datapath'])
         datas['datafile'] = [os.path.split(file)[-1] for file in datas['datapath']]
         datas['filename'] = [os.path.splitext(file)[0] for file in datas['datafile']]
         #print (datas)
 
-        if len(orbits) != len(metas) or len(orbits) != len(datas):
-            raise Exception('Some files are missed. Expected a set of triples .EOF, .tiff, .xml')
+        if len(metas) < len(datas):
+            raise Exception('Some xml files are missed. Expected a set of pairs .tiff and .xml')
+        if len(metas) > len(datas):
+            raise Exception('Some tiff files are missed. Expected a set of pairs .tiff and .xml')
     
         #metas['satellite'] = [metafile[:3] for metafile in metas['metafile']]
         #if len(np.unique(metas['satellite'])) > 1:
@@ -136,10 +142,27 @@ class SBAS:
 
         if len(self.df) < 2:
             raise Exception('Two or more scenes required')
-        
+
         # set first image as master image
         self.master = self.df.index[0]
-        
+
+    def download_orbits(self):
+        import os
+        from eof.download import download_eofs
+        import datetime
+
+        dates = [datetime.datetime.strptime(date[15:30],'%Y%m%dt%H%M%S') for date in self.df.filename]
+        orbitpaths = []
+        for (date, satellite) in zip(dates, self.df.satellite):
+            #print (date, satellite)
+            orbitpath = download_eofs([date], [satellite], save_dir=self.basedir)[0]
+            orbitpaths.append(orbitpath)
+            #print ('orbitpath', orbitpath)
+        self.df['orbitpath'] = orbitpaths
+        self.df['orbitfile'] = [os.path.split(file)[-1] for file in self.df['orbitpath']]
+        self.df['orbitname'] = [os.path.splitext(name)[0] for name in self.df['orbitfile']]
+        return
+
     def set_dem(self, dem_filename):
         import os
         self.dem_filename = os.path.relpath(dem_filename,'.')
