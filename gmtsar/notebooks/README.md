@@ -11,7 +11,7 @@ which are powerful enough for processing about 10 interferograms in 30 minutes.
 MacOS and Linux Debian are my prefered OSes and I support both of them. Please don't ask me about Windows support
 while you don't ready to pay for it.
 
-PyGMTSAR automatically downloads Sentinel-1 orbit files, SRTM DEM and convert it to ellispoidal heights and so on. You need only 2+ raw Sentinel scenes for the processing. See below **Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece** for the fully automated processing and other examples uses pre-downloaded DEM and orbits for faster processing.
+PyGMTSAR automatically downloads Sentinel-1 orbit files, SRTM DEM and converts it to ellispoidal heights (using EGM96 model) and so on. You need only 2+ raw Sentinel scenes for the processing. See below **Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece** for the fully automated processing and other examples uses pre-downloaded DEM and orbits for faster processing.
 
 * [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
 
