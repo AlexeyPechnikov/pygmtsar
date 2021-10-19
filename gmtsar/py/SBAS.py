@@ -203,7 +203,7 @@ class SBAS:
                     '-s_srs', f'+proj=longlat +datum=WGS84 +no_defs +geoidgrids=./egm96_15.gtx',
                     '-t_srs', '+proj=longlat +datum=WGS84 +no_def',
                     '-overwrite',
-                    '-ot', 'Float32',
+                    '-ot', 'Float32', '-of', 'NetCDF',
                     'DEM_EGM96.tif', 'DEM_WGS84.nc']
             print ('argv', argv)
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
