@@ -1,67 +1,38 @@
-__INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
-----------------------------------------------
+## PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone
 
-__INSTALL__
+The goal of the project is easy and fast satellite interferometry (InSAR) processing everywhere
+from local host to cloud environments. GMTSAR binary command line tools are used under the hood. By my opinion, GMTSAR is great project and has only one big problem - it is not user friendly. I've built rich Python API instead of GMTSAR CSH scripts and GMT toolkit calls and by this way we have 3x faster processing and more accurate results. Really, now we are able to use even free of charge services like to Google Colab which are powerful enough for processing about 10 interferograms in 30 minutes.
+MacOS and Linux Debian are my prefered OSes and I support both of them. Please don't ask me about Windows support while you don't ready to pay for it.
 
-1) Go to the GMTSAR WIKI and follow the instructions.
-       http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
+PyGMTSAR automatically downloads Sentinel-1 orbit files and SRTM DEM (and converts it to ellispoidal heights using EGM96 model) and so on. You need just 2+ raw Sentinel scenes for the processing. See below **Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece** for the fully automated processing and other examples uses pre-downloaded DEM and orbits for faster processing.
 
-2) Download orbit files for just ERS and ENVISAT. The other satellites have orbits distributed with the data.
-       https://topex.ucsd.edu/gmtsar/downloads/
+* [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
 
-3) Go to the gmtsar directory and enter:
+<img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake.jpg" width="50%">
 
-       autoconf
+* [Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece](https://colab.research.google.com/drive/1asddx-b3f7jS6TK-fkTm_WuytqBZzovc?usp=sharing)
 
-4) Configure GMTSAR:	
-   Run the configure script.  To see all options, run
-   
-       ./configure --help
-	
-   Most users will simply run
-   
-       ./configure --with-orbits-dir=<orbitsdir> --prefix=<installdir>
-	
-   For example, you might run
-	
-       ./configure --with-orbits-dir=/usr/local/orbits
+<img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake_vs_geObsevatory.jpg" width="50%">
 
-5) To build all executables, type
+* [Live Example S1A_Stack_CPGF_T173 on Google Colab](https://colab.research.google.com/drive/1Ab2I9A2kmZIHuNwIortaga1zZ90hBjMa?usp=sharing)
 
-       make
-       make install
+<img src="https://user-images.githubusercontent.com/7342379/135814732-aa0eb142-ae54-4a57-b271-c33b5174a28e.png" width="50%">
 
-6) test the commands: gmt, esarp, xcorr, conv, gmtsar.csh, etc.
-   If using C-shell you may have to type rehash first. 
-   If this does not work then make sure the <installdir> is in your system $PATH or $path.
+<img src="https://user-images.githubusercontent.com/7342379/136558388-cffbcea5-e5a7-44d5-ba36-b51a7e0f10e9.png" width="50%">
 
-__RUN__
-
-1) GET DATA. There is an example data set at our website:
-       https://topex.ucsd.edu/gmtsar/downloads/
-
-Uncompress the file and then unpack with tar.
-
-2) ORGANIZE the DISK. The standard GMTSAR run has the following directories. 
-
-  raw    SLC    topo   intf
-
-raw - contains the original data.
-
-SLC - contains the single look complex images derived from the raw data.
-
-topo - contains a digital elevation model for the area in geographic and ultimately radar coordinates.
-
-intf - contains subdirectories with the possible interferograms (only 1 for this example).
-
-3) MAKE DEM 
-
-Go to the following web site and construct a file dem.grd that encloses the SAR frame.
-      https://topex.ucsd.edu/gmtsar/demgen
-
-Place the file dem.grd in the /topo directory. 
-
-4) EXAMPLE RUNS
-
-There are complete examples for each data type at the following web site:
-      https://topex.ucsd.edu/gmtsar/downloads/
+> I'm a freelancer and that's my free time Open Source project. In 2005 my master's thesis was awarded first prize of the
+> All-Russian Physics competition for significant results in Inverse modeling for non-linear optics and holography and so
+> I know a lot about interferometry modeling. Sure, I have varios ideas about new features but my free time is very limited
+> and I can't promise anything. You are able to sponsor my projects on [Patreon: Become a Patron!](https://www.patreon.com/bePatron?u=54500608) and order research, development and support on [Upwork](https://www.upwork.com/freelancers/~01e65e8e7221758623)
+>
+> @ Alexey Pechnikov, 2021
+>
+> [Geological models on YouTube channel](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg)
+>
+> [Augmented Reality (AR) Geological Models](https://mobigroup.github.io/ParaView-Blender-AR/)
+>
+> [GitHub repositories](https://github.com/mobigroup)
+>
+> [English posts and articles on LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/)
+>
+> [Russian articles on Habr](https://habr.com/ru/users/N-Cube/posts/)
