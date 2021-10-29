@@ -38,6 +38,7 @@ AC_CONFIG_SRCDIR(gmtsar/xcorr.c)
 AC_CONFIG_AUX_DIR(`pwd`)
 AC_CYGWIN
 AC_CANONICAL_SYSTEM
+AC_CANONICAL_HOST
 AC_LANG_C
 AC_PROG_CC
 AC_PROG_CPP
@@ -222,10 +223,17 @@ if test -x "$GMT_CONF" && test "X$GMT_INC" = "X" && test "X$GMT_LIB" = "X" ; the
 	AC_MSG_RESULT($GMT_LIB)
 	GMT_LIB_PATH=`echo $GMT_LIB | sed 's/^-L//;s/\ .*//'`
 	rpath="$GMT_LIB_PATH"
+	AC_MSG_CHECKING(for cpu found)
+	if test "$host_cpu" = "aarch64" && test "$os" = "Linux"; then
+		GCC_64=""
+		LDFLAGS="$LDFLAGS"
+	else
+		bits=`$GMT_CONF --bits`
+		GCC_64="-m${bits}"
+		LDFLAGS="$LDFLAGS -m${bits}"
+	fi
+	AC_MSG_RESULT(found ${host_cpu})
 	AC_MSG_CHECKING(for 32/64-bit GMT installation)
-	bits=`$GMT_CONF --bits`
-	GCC_64="-m${bits}"
-	LDFLAGS="$LDFLAGS -m${bits}"
 	AC_MSG_RESULT(found ${bits}-bit)
 fi
 dnl
