@@ -24,3 +24,5 @@ Attach a log file output from your terminal.
 
 **Screenshot**
 If applicable, attach a Screenshot to help us understand your case
+
+[Please note that if no new responses are made over six months from users, the issue will get closed]
