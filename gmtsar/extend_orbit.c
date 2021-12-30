@@ -16,12 +16,11 @@
 #include "lib_functions.h"
 #include "orbit.h"
 
-void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
+void read_orb(FILE *, struct SAT_ORB *);
 void write_orb(FILE *, struct SAT_ORB *);
 void polyfit(double *, double *, double *, int *, int *);
 
 int main(int argc, char **argv) {
-	struct PRM *prm;
 	struct SAT_ORB *orb;
 	struct SAT_ORB *orb_out;
 	FILE *infile, *outfile;
@@ -44,9 +43,6 @@ int main(int argc, char **argv) {
 		return (0);
 	}
 
-	/* don't really need prm except for call to read_orb */
-	prm = malloc(sizeof(struct PRM));
-
 	frac = atof(argv[3]);
 
 	/*  get the orbit data */
@@ -54,7 +50,7 @@ int main(int argc, char **argv) {
 		die("Can't open ", argv[1]);
 	orb = (struct SAT_ORB *)malloc(sizeof(struct SAT_ORB));
 	orb_out = (struct SAT_ORB *)malloc(sizeof(struct SAT_ORB));
-	read_orb(infile, prm, orb);
+	read_orb(infile, orb);
 
 	/* make a longer structure for the output LED file */
 	nd_in = orb->nd;

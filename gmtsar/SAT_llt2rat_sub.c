@@ -59,10 +59,10 @@
 	(c) = (d);
 #define TOL 3
 void set_prm_defaults(struct PRM *);
-void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
+void read_orb(FILE *, struct SAT_ORB *);
 void hermite_c(double *, double *, double *, int, int, double, double *, int *);
 
-void llt2rat_sub(char *filename, double *target_llt, double *target_rat) {
+void llt2rat_sub(struct PRM *prm, double *target_llt, double *target_rat) {
 
 	double rln, rlt, rht, dr, t1, t2, tm;
 	// double ts,rng, thet, relp, telp;
@@ -77,60 +77,37 @@ void llt2rat_sub(char *filename, double *target_llt, double *target_rat) {
 	int goldop();
 	int stai, endi, midi;
 	double **orb_pos;
-	struct PRM prm;
+	//struct PRM prm;
 	struct SAT_ORB *orb;
 	FILE *ldrfile;
-	FILE *fprm1;
+	//FILE *fprm1;
 	int calorb_alos(struct SAT_ORB *, double **orb_pos, double ts, double t1, int nrec);
 	double rsr;
 	char value[128], name[128];
 
-	/*  open and read the parameter file */
-	if ((fprm1 = fopen(filename, "r")) == NULL) {
-		fprintf(stderr, "couldn't open PRM file\n");
-		exit(-1);
-	}
-
-	/* initialize the prm file   */
-    null_sio_struct(&prm);
-	set_prm_defaults(&prm);
-	get_sio_struct(fprm1, &prm);
-
 	/*  get the orbit data */
-	ldrfile = fopen(prm.led_file, "r");
+	ldrfile = fopen(prm->led_file, "r");
 	if (ldrfile == NULL)
-		die("can't open ", prm.led_file);
+		die("can't open LED file", prm->led_file);
 	orb = (struct SAT_ORB *)malloc(sizeof(struct SAT_ORB));
-	read_orb(ldrfile, &prm, orb);
+	read_orb(ldrfile, orb);
 
-	/* update the rng_samp_rate in PRM file   */
-	if ((fprm1 = fopen(filename, "r")) == NULL) {
-		fprintf(stderr, "couldn't open PRM file\n");
-		exit(-1);
-	}
-	while (fscanf(fprm1, "%s = %s \n", name, value) != EOF) {
-		if (strcmp(name, "rng_samp_rate") == 0) {
-			get_double(name, "rng_samp_rate", value, &rsr);
-		}
-	}
-	prm.fs = rsr;
-
-	dr = 0.5 * SOL / prm.fs;
+	dr = 0.5 * SOL / prm->fs;
 #if 0
         r0 = -10.;
-        rf = prm.num_rng_bins + 10.;
+        rf = prm->num_rng_bins + 10.;
         a0 = -20.;
-        af = prm.num_patches * prm.num_valid_az + 20.;
+        af = prm->num_patches * prm->num_valid_az + 20.;
 #endif
 	/* compute the flattening */
-	fll = (prm.ra - prm.rc) / prm.ra;
+	fll = (prm->ra - prm->rc) / prm->ra;
 
 	/* compute the start time, stop time and increment */
-	t1 = 86400. * prm.clock_start + (prm.nrows - prm.num_valid_az) / (2. * prm.prf);
-	t2 = t1 + prm.num_patches * prm.num_valid_az / prm.prf;
+	t1 = 86400. * prm->clock_start + (prm->nrows - prm->num_valid_az) / (2. * prm->prf);
+	t2 = t1 + prm->num_patches * prm->num_valid_az / prm->prf;
 
 	/* sample the orbit only every 2th point or about 8 m along track */
-	ts = 2. / prm.prf;
+	ts = 2. / prm->prf;
 	nrec = (int)((t2 - t1) / ts);
 
 	/* allocate memory for the orbit postion into a 2-dimensional array. It's
@@ -155,7 +132,7 @@ void llt2rat_sub(char *filename, double *target_llt, double *target_rat) {
 	rp[0] = rlt;
 	rp[1] = rln;
 	rp[2] = rht;
-	plh2xyz(rp, xp, prm.ra, fll);
+	plh2xyz(rp, xp, prm->ra, fll);
 	xt[0] = -1.0;
 
 	/* compute the topography due to the difference between the local radius and
@@ -169,7 +146,7 @@ void llt2rat_sub(char *filename, double *target_llt, double *target_rat) {
 	// telp=0.;
 	//}
 	// rp[2]=rht + telp;
-	rp[2] = sqrt(xp[0] * xp[0] + xp[1] * xp[1] + xp[2] * xp[2]) - prm.RE;
+	rp[2] = sqrt(xp[0] * xp[0] + xp[1] * xp[1] + xp[2] * xp[2]) - prm->RE;
 
 	/* minimum for each point */
 	stai = 0;
@@ -181,16 +158,16 @@ void llt2rat_sub(char *filename, double *target_llt, double *target_rat) {
 
 	/* compute the range and azimuth in pixel space and correct for an azimuth
 	 * bias*/
-	xt[0] = (xt[0] - prm.near_range) / dr - (prm.rshift + prm.sub_int_r) + prm.chirp_ext;
-	xt[1] = prm.prf * (xt[1] - t1) - (prm.ashift + prm.sub_int_a);
+	xt[0] = (xt[0] - prm->near_range) / dr - (prm->rshift + prm->sub_int_r) + prm->chirp_ext;
+	xt[1] = prm->prf * (xt[1] - t1) - (prm->ashift + prm->sub_int_a);
 
 	/* compute the azimuth and range correction if the Doppler is not zero */
 
-	if (prm.fd1 != 0.) {
-		rdd = (prm.vel * prm.vel) / rng;
-		daa = -0.5 * (prm.lambda * prm.fd1) / rdd;
+	if (prm->fd1 != 0.) {
+		rdd = (prm->vel * prm->vel) / rng;
+		daa = -0.5 * (prm->lambda * prm->fd1) / rdd;
 		drr = 0.5 * rdd * daa * daa / dr;
-		daa = prm.prf * daa;
+		daa = prm->prf * daa;
 		xt[0] = xt[0] + drr;
 		xt[1] = xt[1] + daa;
 	}

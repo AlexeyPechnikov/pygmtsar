@@ -51,8 +51,8 @@ void baseline_parse_command_line(char **, int *, int *);
 void read_input_file(char *, int, char **);
 void baseline(struct PRM *, struct SAT_ORB *, int, int, char **, double);
 void read_all_ldr(struct PRM *, struct SAT_ORB *, int);
-void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
-void llt2rat_sub(char *, double *, double *);
+void read_orb(FILE *, struct SAT_ORB *);
+void llt2rat_sub(struct PRM *, double *, double *);
 void interpolate_SAT_orbit_slow(struct SAT_ORB *orb, double time, double *, double *, double *, int *);
 void interpolate_SAT_orbit(struct SAT_ORB *, double *, double *, double *, double, double *, double *, double *, int *);
 void calc_height_velocity(struct SAT_ORB *, struct PRM *, double, double, double *, double *, double *, double *, double *);
@@ -129,7 +129,7 @@ void read_all_ldr(struct PRM *r, struct SAT_ORB *orb, int nfiles) {
 		if ((ldrfile = fopen(r[i].led_file, "r")) == NULL)
 			die("Can't open ldrfile %s", r[i].led_file);
 
-		read_orb(ldrfile, &r[i], &orb[i]);
+		read_orb(ldrfile, &orb[i]);
 
 		fclose(ldrfile);
 	}
@@ -444,8 +444,8 @@ void baseline(struct PRM *r, struct SAT_ORB *orb, int nfiles, int input_flag, ch
 	printf("lon_tie_point =  %f\n", (target_llt[1] > 180.0) ? target_llt[1] - 360.0 : target_llt[1]);
 	printf("lat_tie_point =  %f\n", target_llt[0]);
 
-	llt2rat_sub(filename[0], target_llt, target_rat_ref);
-	llt2rat_sub(filename[ii], target_llt, target_rat_rep);
+	llt2rat_sub(&r[0], target_llt, target_rat_ref);
+	llt2rat_sub(&r[ii], target_llt, target_rat_rep);
 
 	/* find expected offset in pixels (rshift and yshift)   */
 	r[ii].ashift = target_rat_rep[1] - target_rat_ref[1];

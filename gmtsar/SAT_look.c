@@ -80,7 +80,7 @@ char *USAGE = " \n Usage: "
               "  Note that the output elevation is the one above reference radius "
               "specified in the PRM file\n";
 
-void read_orb(FILE *, struct PRM *, struct SAT_ORB *);
+void read_orb(FILE *, struct SAT_ORB *);
 void hermite_c(double *, double *, double *, int, int, double, double *, int *);
 void set_prm_defaults(struct PRM *);
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 	if (ldrfile == NULL)
 		die("can't open ", prm.led_file);
 	orb = (struct SAT_ORB *)malloc(sizeof(struct SAT_ORB));
-	read_orb(ldrfile, &prm, orb);
+	read_orb(ldrfile, orb);
 
 #if 0
 	dr = 0.5*SOL/prm.fs;
