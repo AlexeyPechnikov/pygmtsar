@@ -142,12 +142,12 @@
         exit
       endif
     else if ($SAT == "ENVI_SLC") then
-      if(! -f raw/$master.N1 ) then
-        echo " no file  raw/"$master.N1
+      if(! -f raw/$master.N1 || ! -f raw/$master.E1 || ! -f raw/$master.E2) then
+        echo " no file  raw/"$master
         exit
       endif
-      if(! -f raw/$aligned.N1 ) then
-        echo " no file  raw/"$aligned.N1
+      if(! -f raw/$aligned.N1 || ! -f raw/$aligned.E1 || ! -f raw/$aligned.E2 ) then
+        echo " no file  raw/"$aligned
         exit
       endif
     else if ($SAT == "ERS") then
