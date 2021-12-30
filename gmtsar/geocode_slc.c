@@ -24,7 +24,7 @@ char *USAGE = "geocode_slc [GMTSAR] - Sample slc to DEM and remove propogation d
 
 void fbisinc(double *, short *, int, int, double *);
 void fbisinc_tops(double *, short *, float *, int , int , double *);
-void read_orb(FILE *, struct PRM *, struct SAT_ORB *); 
+void read_orb(FILE *, struct SAT_ORB *);
 void set_prm_defaults(struct PRM *); 
 void hermite_c(double *, double *, double *, int, int, double, double *, int *); 
 void set_prm_defaults(struct PRM *); 
@@ -156,7 +156,7 @@ int main (int argc, char **argv) {
     /* allocate memory for an array of pointers*/
     orb = (struct SAT_ORB *)malloc(sizeof(struct SAT_ORB));
     /* for each pointer, allocate storage for an array of floats  */
-    read_orb(ldrfile, &prm, orb);
+    read_orb(ldrfile, orb);
     orb_pos = malloc(4 * sizeof(double *));
     for (j = 0; j < 4; j++) {
          orb_pos[j] = malloc((nrec + 2 * npad) * sizeof(double));
