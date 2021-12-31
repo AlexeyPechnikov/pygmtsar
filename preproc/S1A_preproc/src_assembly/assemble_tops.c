@@ -263,20 +263,24 @@ int add_branch(struct tree **T, int nlmx, int qq, char *str, char *term, int mod
 		ct = 0;
 		kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
 		t2 = time2double(T[0][T[0][T[0][kk2].firstchild].firstchild].name);
-		while (t2 - 1e-6 / 86400.0 < t1) {
+		while (t2 - 1e-6 / 86400.0 < t1 && ct < nn2) {
 			kk2 = T[0][kk2].sibr;
 			t2 = time2double(T[0][T[0][T[0][kk2].firstchild].firstchild].name);
 			ct++;
 		}
-		T[0][kk1].sibr = kk2;
-		kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
-		for (jj2 = 1; jj2 < nn2 - ct; jj2++) {
-			T[0][kk2].parent = ii1;
-			kk2 = T[0][kk2].sibr;
-		}
-		T[0][kk2].parent = ii1;
-		sprintf(tmp_c, "%s count=\"%d\"", term, nn1 + nn2 - ct);
-		strcpy(T[0][ii1].name, tmp_c);
+
+        if (ct < nn2) { 
+        // append the records from ct's record, otherwise don't do anything.
+		    T[0][kk1].sibr = kk2;
+		    kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
+		    for (jj2 = 1; jj2 < nn2 - ct; jj2++) {
+			    T[0][kk2].parent = ii1;
+			    kk2 = T[0][kk2].sibr;
+		    }
+		    T[0][kk2].parent = ii1;
+		    sprintf(tmp_c, "%s count=\"%d\"", term, nn1 + nn2 - ct);
+		    strcpy(T[0][ii1].name, tmp_c);
+        }
 	}
 	else if (mode == 3) {
 		// same as mode 2, but time comes in second child
@@ -293,21 +297,24 @@ int add_branch(struct tree **T, int nlmx, int qq, char *str, char *term, int mod
 		ct = 0;
 		kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
 		t2 = time2double(T[0][T[0][T[0][T[0][kk2].firstchild].sibr].firstchild].name);
-		while (t2 - 1e-6 / 86400.0 < t1) {
+		while (t2 - 1e-6 / 86400.0 < t1 && ct < nn2) {
 			kk2 = T[0][kk2].sibr;
 			t2 = time2double(T[0][T[0][T[0][T[0][kk2].firstchild].sibr].firstchild].name);
 			ct++;
 		}
 		// printf("%d %lf\n",nn2,t2);
-		T[0][kk1].sibr = kk2;
-		kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
-		for (jj2 = 1; jj2 < nn2 - ct; jj2++) {
-			T[0][kk2].parent = ii1;
-			kk2 = T[0][kk2].sibr;
-		}
-		T[0][kk2].parent = ii1;
-		sprintf(tmp_c, "%s count=\"%d\"", term, nn1 + nn2 - ct);
-		strcpy(T[0][ii1].name, tmp_c);
+        if (ct < nn2) {
+            // append the records from ct's record, otherwise don't do anything. 
+		    T[0][kk1].sibr = kk2;
+		    kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
+		    for (jj2 = 1; jj2 < nn2 - ct; jj2++) {
+			    T[0][kk2].parent = ii1;
+			    kk2 = T[0][kk2].sibr;
+		    }
+		    T[0][kk2].parent = ii1;
+		    sprintf(tmp_c, "%s count=\"%d\"", term, nn1 + nn2 - ct);
+		    strcpy(T[0][ii1].name, tmp_c);
+        }
 	}
 
 	return (1);
