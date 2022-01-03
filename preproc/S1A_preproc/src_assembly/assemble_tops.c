@@ -263,13 +263,14 @@ int add_branch(struct tree **T, int nlmx, int qq, char *str, char *term, int mod
 		ct = 0;
 		kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
 		t2 = time2double(T[0][T[0][T[0][kk2].firstchild].firstchild].name);
-		while (t2 - 1e-6 / 86400.0 < t1 && ct < nn2) {
+		while (t2 - 1e-6 / 86400.0 < t1) {
 			kk2 = T[0][kk2].sibr;
+            if (kk2 == -1) break;
 			t2 = time2double(T[0][T[0][T[0][kk2].firstchild].firstchild].name);
 			ct++;
 		}
 
-        if (ct < nn2) { 
+        if (kk2 != -1) { 
         // append the records from ct's record, otherwise don't do anything.
 		    T[0][kk1].sibr = kk2;
 		    kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
@@ -297,13 +298,14 @@ int add_branch(struct tree **T, int nlmx, int qq, char *str, char *term, int mod
 		ct = 0;
 		kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
 		t2 = time2double(T[0][T[0][T[0][T[0][kk2].firstchild].sibr].firstchild].name);
-		while (t2 - 1e-6 / 86400.0 < t1 && ct < nn2) {
+		while (t2 - 1e-6 / 86400.0 < t1) {
 			kk2 = T[0][kk2].sibr;
+            if (kk2 == -1) break;
 			t2 = time2double(T[0][T[0][T[0][T[0][kk2].firstchild].sibr].firstchild].name);
 			ct++;
 		}
 		// printf("%d %lf\n",nn2,t2);
-        if (ct < nn2) {
+        if (kk2 != -1) {
             // append the records from ct's record, otherwise don't do anything. 
 		    T[0][kk1].sibr = kk2;
 		    kk2 = T[0][ii2 + nlmx * qq * 5].firstchild;
