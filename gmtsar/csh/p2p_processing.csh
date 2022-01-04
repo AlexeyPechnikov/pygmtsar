@@ -797,12 +797,10 @@
 # landmask
 #
       if ($mask_water == 1 || $switch_land == 1) then
-        if ((! $?region_cut) || ($region_cut == "")) then
-          set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
-        endif
+        set r_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
         cd ../../topo
         if (! -f landmask_ra.grd) then
-          landmask.csh $region_cut
+          landmask.csh $r_cut
         endif
         cd ../intf
         cd $ref_id"_"$rep_id
@@ -814,9 +812,9 @@
       echo "threshold_snaphu: $threshold_snaphu"
 #
       if ($near_interp == 1) then
-        snaphu_interp.csh $threshold_snaphu $defomax $region_cut
+        snaphu_interp.csh $threshold_snaphu $defomax
       else
-        snaphu.csh $threshold_snaphu $defomax $region_cut
+        snaphu.csh $threshold_snaphu $defomax
       endif
 #
       echo "SNAPHU.CSH - END"
