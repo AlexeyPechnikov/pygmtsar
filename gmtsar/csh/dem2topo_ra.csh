@@ -28,6 +28,11 @@ else
 	set V = "-V"
 endif
 #
+# set tension
+#
+set tension = 0.1
+
+#
 #========================Mosaic topo data===============================
 
 #-----------------------------------------------------------------------
@@ -73,23 +78,23 @@ endif
 #
 if ($PRF < 1000) then
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R$region -I$rng/2 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R$region -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
+  gmt surface temp.rat -R$region -I$rng/2 -bi3d -T$tension -N1000 -Gpixel.grd -r -Q >& tmp
   set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
   if ("x$RR" == "x") then
-    gmt surface temp.rat -R$region -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt surface temp.rat -R$region -I$rng/2 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
   else
-    gmt surface temp.rat $RR -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt surface temp.rat $RR -I$rng/2 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
     gmt grdcut pixel.grd -R$region -Gtmp.grd
     mv tmp.grd pixel.grd
   endif
 else
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R$region -I$rng/4 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R$region -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
+  gmt surface temp.rat -R$region -I$rng/4 -bi3d -T$tension -N1000 -Gpixel.grd -r -Q >& tmp
   set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
   if ("x$RR" == "x") then
-    gmt surface temp.rat -R$region -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt surface temp.rat -R$region -I$rng/4 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
   else
-    gmt surface temp.rat $RR -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
+    gmt surface temp.rat $RR -I$rng/4 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
     gmt grdcut pixel.grd -R$region -Gtmp.grd
     mv tmp.grd pixel.grd
   endif
