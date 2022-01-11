@@ -148,6 +148,10 @@ else if ($SAT == "ALOS2_SCAN") then
   echo "azimuth_dec = 8"
 endif
 echo "#"
+echo "# compute phase gradient, make decimation to 1 above and filter wavelength small for better quality"
+echo "#"
+echo "compute_phase_gradient = 0"
+echo "#"
 echo "# make ionospheric phase corrections using split spectrum method"
 echo "correct_iono = 0"
 echo "iono_filt_rng = 1.0"

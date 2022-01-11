@@ -22,10 +22,10 @@
   gmt set COLOR_MODEL = hsv
   gmt set PROJ_LENGTH_UNIT = inch
 
-  if ($#argv != 4 && $#argv != 6) then
+  if ($#argv < 4 && $#argv > 7) then
 errormessage:
     echo ""
-    echo "Usage: filter.csh master.PRM aligned.PRM filter decimation [rng_dec azi_dec]"
+    echo "Usage: filter.csh master.PRM aligned.PRM filter decimation [rng_dec azi_dec] [compute_phase_gradient]"
     echo ""
     echo " Apply gaussian filter to amplitude and phase images."
     echo " "
@@ -79,9 +79,19 @@ errormessage:
     exit 1
   endif
 #
+# determine whether to run phase gradient
+#
+  set compute_phase_gradient = 0
+  if($#argv == 5) then
+    set compute_phase_gradient = $5
+  endif
+  if($#argv == 7) then
+    set compute_phase_gradient = $7
+  endif
+#
 # set az_lks and dec_rng to 1 for odd decimation
 #
-  if($#argv == 6) then
+  if($#argv == 6 || $#argv == 7) then
     set jud = `echo $6 | awk '{if($1%2 == 0) print 1;else print 0}'`
     if ($jud == 0) then 
       set az_lks = 1
@@ -99,7 +109,7 @@ errormessage:
   set filter2 = gauss_$3
   set idec = `cat ijdec | awk -v dc="$dec" '{ print dc*$1 }'`
   set jdec = `cat ijdec | awk -v dc="$dec" '{ print dc*$2 }'`
-  if($#argv == 6) then
+  if($#argv == 6 || $#argv == 7) then
     set idec = `echo $6 $az_lks | awk '{printf("%d",$1/$2)}'`
     set jdec = `echo $5 $dec_rng | awk '{printf("%d",$1/$2)}'`
     echo "setting range_dec = $5, azimuth_dec = $6"
@@ -126,17 +136,19 @@ errormessage:
 #
 # also compute gradients and filter them the same way
 #
-# echo "filtering for phase gradient . . "
-# conv 1 1 $filter4 real_tmp.grd xt.grd=bf
-# conv 1 1 $filter5 real_tmp.grd yt.grd=bf
-# conv $idec $jdec $filter2 xt.grd=bf xreal.grd
-# conv $idec $jdec $filter2 yt.grd=bf yreal.grd
-# rm xt.grd yt.grd
-# conv 1 1 $filter4 imag_tmp.grd xt.grd=bf
-# conv 1 1 $filter5 imag_tmp.grd yt.grd=bf
-# conv $idec $jdec $filter2 xt.grd=bf ximag.grd
-# conv $idec $jdec $filter2 yt.grd=bf yimag.grd
-# rm xt.grd yt.grd
+  if($compute_phase_gradient != 0) then
+    echo "filtering for phase gradient . . "
+    conv 1 1 $filter4 real_tmp.grd xt.grd=bf
+    conv 1 1 $filter5 real_tmp.grd yt.grd=bf
+    conv $idec $jdec $filter2 xt.grd=bf xreal.grd
+    conv $idec $jdec $filter2 yt.grd=bf yreal.grd
+    rm xt.grd yt.grd
+    conv 1 1 $filter4 imag_tmp.grd xt.grd=bf
+    conv 1 1 $filter5 imag_tmp.grd yt.grd=bf
+    conv $idec $jdec $filter2 xt.grd=bf ximag.grd
+    conv $idec $jdec $filter2 yt.grd=bf yimag.grd
+    rm xt.grd yt.grd
+  endif
 
 rm real_tmp.grd imag_tmp.grd
 
@@ -200,11 +212,12 @@ rm real_tmp.grd imag_tmp.grd
 # 
 #  form the phase gradients
 #
-# echo "making phase gradient..."
-# gmt grdmath amp.grd 2. POW = amp_pow.grd
-# gmt grdmath realfilt.grd ximag.grd MUL imagfilt.grd xreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = xphase.grd
-# gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
-#
+  if($compute_phase_gradient != 0) then
+    echo "making phase gradient..."
+    gmt grdmath amp.grd 2. POW = amp_pow.grd
+    gmt grdmath realfilt.grd ximag.grd MUL imagfilt.grd xreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = xphase.grd
+    gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
+  endif
   mv mask.grd tmp.grd 
   gmt grdmath tmp.grd FLIPUD = mask.grd
 #

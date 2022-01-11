@@ -74,6 +74,7 @@
   set shift_topo = `grep shift_topo $conf | awk '{print $3}'`
   set switch_master = `grep switch_master $conf | awk '{print $3}'`
   set filter = `grep filter_wavelength $conf | awk '{print $3}'` 
+  set compute_phase_gradient = `grep compute_phase_gradient $conf | awk '{print $3}'` 
   set iono = `grep correct_iono $conf | awk '{print $3}'`
   if ( "x$filter" == "x" ) then 
     set iono = 0
@@ -653,16 +654,16 @@
       if ($shift_topo == 1) then
         ln -s ../../topo/topo_shift.grd .
         intf.csh $ref.PRM $rep.PRM -topo topo_shift.grd  
-        filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
+        filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec $compute_phase_gradient
       else 
         ln -s ../../topo/topo_ra.grd . 
         intf.csh $ref.PRM $rep.PRM -topo topo_ra.grd 
-        filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
+        filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec $compute_phase_gradient
       endif
     else
       echo "NO TOPOGRAPHIC PHASE REMOVAL PORFORMED"
       intf.csh $ref.PRM $rep.PRM
-      filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
+      filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec $compute_phase_gradient
     endif
     cd ../..
 
