@@ -99,7 +99,13 @@ source ~/.cshrc
 
         set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
 
-echo $n1 $n2 $orb
+        echo $n1 $n2 $orb
+        if ($orb == "") then
+          echo ""
+          echo "SKIP $date0, as precise orbit file does not exist ..."
+          echo ""
+          continue
+        endif
 
         if (! -f $orb) then
           if (-f $orb_dir/$SAT0/$orb) then
