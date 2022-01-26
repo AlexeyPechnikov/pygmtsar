@@ -306,10 +306,12 @@ int read_table_data_ts(void *API, FILE *infile, FILE *datefile, char **gfile, ch
 		grdin = GG->data;
 		for (k = 0; k < ydim; k++) {
 			for (j = 0; j < xdim; j++) {
-                                indx = i * xdim * ydim + ydim * j + k;
+                //indx = i * xdim * ydim + ydim * j + k;
+                indx = k * xdim * N + j * N + i;
+                //indx = j * ydim * N + k * N + i;
 				phi[indx] = grdin[j + k * xdim];
 				if (isnan(grdin[j + k * xdim]) != 0) {
-					flag[j + xdim] = 1;
+					flag[j + k*xdim] = 1;
 				}
 				if (corin[j + k * xdim] >= 1e-2 && corin[j + k * xdim] <= 0.99) {
 					/* Rosen et al., 2000 IEEE */
@@ -363,7 +365,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
                       double *work, int64_t lwork, int64_t flag_dem, float *dem, int64_t flag_rms, float *res, int64_t *jpvt,
                       double wl, double *atm_rms) {
 
-	int64_t i, j, k, p, info = 0;
+	int64_t i, j, k, p, info = 0, indx;
 	int64_t rank = 0, nrhs = 1, lda, ldb;
 	// double rcond = 1e-3,pred;
 	double rcond = 1e-3;
@@ -386,15 +388,19 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 				for (i = 0; i < m; i++) {
 					d[i] = 0;
 					if (i < N) {
-						d[i] = (double)phi[i * xdim * ydim + ydim * j + k] / var[i * xdim * ydim + ydim * j + k];
+                        indx = k * xdim * N + j * N + i;
+                        //indx = j * ydim * N + k * N + i;
+						d[i] = (double)phi[indx] / var[indx];
 						ds[i] = d[i];
 					}
 				}
 
 				for (i = 0; i < m; i++) {
 					for (p = 0; p < n; p++) {
+                        indx = k * xdim * N + j * N + i;
+                        //ndx = j * ydim * N + k * N + i;
 						if (i < N) {
-							G[i + m * p] = A[i + m * p] / var[i * xdim * ydim + ydim * j + k];
+							G[i + m * p] = A[i + m * p] / var[indx];
 						}
 						else {
 							G[i + m * p] = A[i + m * p];
@@ -599,7 +605,7 @@ int write_output_ts(void *API, struct GMT_GRID *Out, int64_t agc, char **agv, in
 			strcpy(outfile, "aps_");
 			for (k = 0; k < ydim; k++) {
 				for (j = 0; j < xdim; j++) {
-					grdin[j + k * xdim] = screen[i * xdim * ydim + j * ydim + k];
+					grdin[j + k * xdim] = screen[i * xdim * ydim + k * xdim + j];
 				}
 			}
 			sprintf(tmp1, "%07lld", L[i]);
@@ -676,7 +682,7 @@ int free_memory_ts(int64_t N, float *phi, float *var, char **gfile, char **cfile
 
 int sum_intfs(float *phi, int64_t *mark, float *screen, int64_t xdim, int64_t ydim, int64_t N) {
 
-	int64_t n, i, j, sum = 0;
+	int64_t n, i, j, sum = 0,indx;
 
 	for (i = 0; i < N; i++)
 		sum += llabs(mark[i]);
@@ -690,11 +696,13 @@ int sum_intfs(float *phi, int64_t *mark, float *screen, int64_t xdim, int64_t yd
 
 	if (sum != 0) {
 		for (n = 0; n < N; n++) {
-			if (mark[n] == 0)
-				continue;
 			for (i = 0; i < ydim; i++) {
 				for (j = 0; j < xdim; j++) {
-					screen[i * xdim + j] += -phi[n * xdim * ydim + i * xdim + j] * (float)mark[n] / (float)sum;
+			        if (mark[n] == 0)
+				        continue;
+                    indx = i * xdim * N + j * N + n;
+                    //indx = j * ydim * N + i * N + n;
+					screen[i * xdim + j] += -phi[indx] * (float)mark[n] / (float)sum;
 				}
 			}
 		}
@@ -810,14 +818,16 @@ double compute_noise(float *screen, int64_t xdim, int64_t ydim) {
 
 int apply_screen(float *screen, float *phi, int64_t xdim, int64_t ydim, int64_t N, int64_t *mark) {
 	// also correct for the ones not used in estimation of aps.
-	int64_t i, j, n;
+	int64_t i, j, n, indx;
 
 	for (n = 0; n < N; n++) {
 		if (mark[n] != 0) {
 			// fprintf(stderr,"applying atm screen to intf %lld...\n",n);
 			for (i = 0; i < ydim; i++) {
 				for (j = 0; j < xdim; j++) {
-					phi[n * xdim * ydim + i * xdim + j] = phi[n * xdim * ydim + i * xdim + j] + screen[i * xdim + j] * mark[n];
+                    indx = i * xdim * N + j * N + n;
+                    //indx = j * ydim * N + i * N + n;
+					phi[indx] = phi[indx] + screen[i * xdim + j] * mark[n];
 				}
 			}
 		}
@@ -828,7 +838,7 @@ int apply_screen(float *screen, float *phi, int64_t xdim, int64_t ydim, int64_t 
 
 int remove_ts(float *phi, float *ts, int64_t xdim, int64_t ydim, int64_t N, int64_t S, int64_t *H, int64_t *L) {
 
-	int64_t i, j, n, h1, h2;
+	int64_t i, j, n, h1, h2, indx;
 
 	for (n = 0; n < N; n++) {
 		for (i = 0; i < S; i++) {
@@ -841,8 +851,10 @@ int remove_ts(float *phi, float *ts, int64_t xdim, int64_t ydim, int64_t N, int6
 		// %lld_%lld...\n",L[h1],L[h2]);
 		for (i = 0; i < ydim; i++) {
 			for (j = 0; j < xdim; j++) {
-				phi[n * xdim * ydim + i * xdim + j] = phi[n * xdim * ydim + i * xdim + j] - ts[h2 * xdim * ydim + i * xdim + j] +
-				                                      ts[h1 * xdim * ydim + i * xdim + j];
+                indx =  i * xdim * N + j * N + n;
+                //indx = j * ydim * N + i * N + n;
+				phi[indx] = phi[indx] - ts[h2 * xdim * ydim + j * ydim + i] +
+				                                      ts[h1 * xdim * ydim + j * ydim + i];
 			}
 		}
 	}
@@ -903,3 +915,4 @@ int rank_double(double *nums, int64_t *seq, int64_t n) {
 
 	return (1);
 }
+
