@@ -84,6 +84,13 @@ gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN I
 gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 gmt grdmath $fh $fc DIV up_l.grd MUL $fl $fc DIV up_h.grd MUL SUB $fl $fh MUL $fh $fh MUL $fl $fl MUL SUB DIV MUL = tmp_ph0.grd
+
+if (-e ../../merge_log) then
+  cp tmp_ph0.grd tmp_ph0_save.grd
+  correct_merge_offset.csh tmp_phaselist ../../merge/merge_log tmp_ph0.grd tmp_ph0_corrected.grd
+  mv tmp_ph0_corrected.grd tmp_ph0.grd
+endif
+
 gmt grdmath tmp_ph0.grd mask.grd MUL = tmp_ph.grd
 cp tmp_ph.grd tmp_ph1.grd
 
@@ -99,7 +106,6 @@ gmt grdmath tmp_ph0.grd mask.grd MUL = tmp_ph.grd
 gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 nearest_grid tmp_ph.grd tmp_ph_interp.grd
-
 
 #foreach iteration (1 2 3 4 5 ) 
 foreach iteration (1 2 3) 

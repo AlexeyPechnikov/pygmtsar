@@ -67,9 +67,9 @@
 
   echo ""
   echo "Merging START"
-  merge_swath tmp_phaselist phasefilt.grd $stem
-  merge_swath tmp_corrlist corr.grd
-  merge_swath tmp_masklist mask.grd
+  merge_swath tmp_phaselist phasefilt.grd $stem > merge_log
+  merge_swath tmp_corrlist corr.grd > merge_log_corr
+  merge_swath tmp_masklist mask.grd > merge_log_mask
   echo "Merging END"
   echo ""
 
