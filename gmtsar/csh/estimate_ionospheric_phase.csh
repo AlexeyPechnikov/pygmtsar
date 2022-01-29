@@ -85,7 +85,7 @@ gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 gmt grdmath $fh $fc DIV up_l.grd MUL $fl $fc DIV up_h.grd MUL SUB $fl $fh MUL $fh $fh MUL $fl $fl MUL SUB DIV MUL = tmp_ph0.grd
 
-if (-e ../../merge_log) then
+if (-e ../../merge/merge_log) then
   cp tmp_ph0.grd tmp_ph0_save.grd
   correct_merge_offset.csh tmp_phaselist ../../merge/merge_log tmp_ph0.grd tmp_ph0_corrected.grd
   mv tmp_ph0_corrected.grd tmp_ph0.grd
