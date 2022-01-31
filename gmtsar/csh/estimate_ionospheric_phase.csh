@@ -66,7 +66,7 @@ gmt grdmath up_h.grd $ch 2 PI MUL MUL SUB = tmp.grd
 mv tmp.grd up_h.grd
 gmt grdmath up_l.grd up_o.grd SUB = tmp.grd
 set cl = `gmt grdinfo tmp.grd -L1 -C |  awk '{if ($12 >=0) printf("%d\n",int($12/6.2831853072+0.5)); else printf("%d\n",int($12/6.2831853072-0.5))}'`
-echo "Correcting high passed phase by $cl * 2PI ..."
+echo "Correcting low passed phase by $cl * 2PI ..."
 gmt grdmath up_l.grd $cl 2 PI MUL MUL SUB = tmp.grd
 mv tmp.grd up_l.grd
 
@@ -85,9 +85,13 @@ gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 gmt grdmath $fh $fc DIV up_l.grd MUL $fl $fc DIV up_h.grd MUL SUB $fl $fh MUL $fh $fh MUL $fl $fl MUL SUB DIV MUL = tmp_ph0.grd
 
-if (-e ../../merge/merge_log) then
+if (-e ../../merge/merge_log || -e ../intf_h/merge_log) then
   cp tmp_ph0.grd tmp_ph0_save.grd
-  correct_merge_offset.csh tmp_phaselist ../../merge/merge_log tmp_ph0.grd tmp_ph0_corrected.grd
+  #awk -F: '{print "../"$1":../"$2}' ../../merge/tmp_phaselist > tmp_phaselist
+  echo "../../F1/iono_phase/intf_h/tmp.PRM:../../F1/iono_phase/intf_h/phasefilt.grd" > tmp_phaselist
+  echo "../../F2/iono_phase/intf_h/tmp.PRM:../../F2/iono_phase/intf_h/phasefilt.grd" >> tmp_phaselist
+  echo "../../F3/iono_phase/intf_h/tmp.PRM:../../F3/iono_phase/intf_h/phasefilt.grd" >> tmp_phaselist
+  correct_merge_offset.csh tmp_phaselist ../intf_h/merge_log tmp_ph0.grd tmp_ph0_corrected.grd
   mv tmp_ph0_corrected.grd tmp_ph0.grd
 endif
 

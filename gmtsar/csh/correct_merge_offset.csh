@@ -34,17 +34,16 @@ set xmax = `gmt grdinfo $input -C | awk '{print $3}'`
 set ymin = `gmt grdinfo $input -C | awk '{print $4}'`
 set ymax = `gmt grdinfo $input -C | awk '{print $5}'`
 
-#echo $grd1 $grd2 $grd3
 set nx1 = `gmt grdinfo $grd1 -C | awk '{print $10}'`
-set n1 = `grep n1 merge_log | awk '{print $NF}'`
-set ovl12 = `grep ovl merge_log | awk -F: '{print $2}' | awk -F, '{print $1}'`
+set n1 = `grep n1 $merge_log | awk '{print $NF}'`
+set ovl12 = `grep ovl $merge_log | awk -F: '{print $2}' | awk -F, '{print $1}'`
 set stitch_position1 = `echo $nx1 $n1 $ovl12 | awk '{print $1+$2-$3}'`
 set position1 = `echo $incx $stitch_position1 | awk '{print $1*$2}'`
 
 if ($nf == 3) then
   set nx2 = `gmt grdinfo $grd2 -C | awk '{print $10}'`
-  set n2 = `grep n2 merge_log | awk '{print $NF}'`
-  set ovl23 = `grep ovl merge_log | awk -F: '{print $2}' | awk -F, '{print $2}'`
+  set n2 = `grep n2 $merge_log | awk '{print $NF}'`
+  set ovl23 = `grep ovl $merge_log | awk -F: '{print $2}' | awk -F, '{print $2}'`
   set stitch_position2 = `echo $nx1 $nx2 $n2 $ovl12 $ovl23 | awk '{print $1+$2-1-$4-$5+$3}'`
   set position2 = `echo $incx $stitch_position2 | awk '{print $1*$2}'`
 endif
@@ -72,6 +71,7 @@ endif
 if ($nf == 2) then
   gmt grdcut $input -R$xmin/$position1/$ymin/$ymax -G"tmp1_"$output
   gmt grdcut $input -R$position1/$xmax/$ymin/$ymax -G"tmp2_"$output
+  echo "Correcting second image by $diff1 ..."
   gmt grdmath "tmp2_"$output $diff1 SUB = "tmp2_"$output
   gmt grdpaste "tmp1_"$output "tmp2_"$output -G$output
   rm "tmp1_"$output "tmp2_"$output tmp12_diff.grd
@@ -79,6 +79,8 @@ else if ($nf == 3) then
   gmt grdcut $input -R$xmin/$position1/$ymin/$ymax -G"tmp1_"$output
   gmt grdcut $input -R$position1/$position2/$ymin/$ymax -G"tmp2_"$output
   gmt grdcut $input -R$position2/$xmax/$ymin/$ymax -G"tmp3_"$output
+  echo "Correcting second image by $diff1 ..."
+  echo "Correcting third image by $diff1 + $diff2 ..."
   gmt grdmath "tmp2_"$output $diff1 SUB = "tmp2_"$output
   gmt grdmath "tmp3_"$output $diff1 SUB $diff2 SUB = "tmp3_"$output
   gmt grdpaste "tmp1_"$output "tmp2_"$output -G"tmp4_"$output
