@@ -199,9 +199,10 @@ if ($mode == 2) then
   #gmt surface test_b -bi3d -Gtest.grd -R0/$rmax/0/$amax -I1000/500 -T0.8 -r -N1000
   #gmt grdsample test.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
 
-  gmt blockmedian test -R0/$rmax/0/$amax -I400/100 | gmt greenspline -Gtest.grd -R0/$rmax/0/$amax -I400/100 -D1 -Cn700 -r 
+  gmt blockmedian test -R-100/$rmax/-100/$amax -I400/100 | gmt greenspline -Gtest.grd -R-100/$rmax/-100/$amax -I400/100 -D1 -Cn700 -r 
   gmt grdfilter test.grd -D0 -Fg8000/1500 -Gtest2.grd -V
-  gmt grdsample test2.grd -R0/$rmax/0/$amax -Gtest_b.grd -I16/8 -r -nc
+  gmt grdedit test2.grd -R0/$rmax/0/$amax -Gtest2.grd
+  gmt grdsample test2.grd -Ra.grd -Gtest_b.grd -nc
 
   gmt grdmath test_b.grd FLIPUD $spec_sep DIV 2 PI MUL DIV = res_shift.grd
   gmt grdmath a.grd res_shift.grd ADD = tmp.grd

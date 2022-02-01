@@ -7,7 +7,7 @@ if ($#argv != 4 && $#argv != 6) then
   echo " estimate ionosphere based on split spectrum method in Gomba et. al. 2016"
   echo " with filtering method in Fattahi et. al. 2017"
   echo ""
-  echo "Example: estimate_ionospheric_phase.csh ../iono_phase/intf_h ../iono_phase/intf_l ../iono_phase/intf_o"
+  echo "Example: estimate_ionospheric_phase.csh ../iono_phase/intf_h ../iono_phase/intf_l ../iono_phase/intf_o ../../intf/2018312_2018324"
   echo ""
   exit 1
 endif
@@ -16,7 +16,7 @@ set intfH = $1
 set intfL = $2
 set intfO = $3
 set intf = $4
-if ($#argv == 3) then
+if ($#argv == 4) then
   set rx = 1
   set ry = 1
 else
