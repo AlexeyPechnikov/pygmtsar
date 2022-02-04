@@ -137,6 +137,11 @@ set II = `gmt grdinfo -I tmp_ph0.grd`
 gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
 gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
 mv tmp.grd tmp_filt.grd
+gmt grdfilter tmp_filt.grd -Dp -Fg$filtx/$filty -Gtmp.grd -V -Ni -I$filt_incx/$filt_incy
+mv tmp.grd tmp_filt.grd
+gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
+mv tmp.grd tmp_filt.grd
+
 #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
 #gmt grdsample tmp_filt.grd -Rmask.grd -Gtmp.grd
 #mv tmp.grd tmp_filt.grd
