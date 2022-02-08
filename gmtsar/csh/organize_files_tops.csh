@@ -92,6 +92,10 @@
           echo ""
           echo "SKIP $date0, as precise orbit file does not exist ..."
           echo ""
+          echo $file1 > tmprecord
+          set file0 = `echo $file1`
+          set date0 = `echo $date1`
+          set SAT0 = `echo $SAT1`
           continue
         endif
 
@@ -188,6 +192,14 @@
   set n1 = `date -v-1d -jf "%Y%m%d" $date0 +%Y%m%d`
   set n2 = `date -v+1d -jf "%Y%m%d" $date0 +%Y%m%d`
   set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
+
+  echo $n1 $n2 $orb
+  if ($orb == "") then
+    echo ""
+    echo "SKIP $date0, as precise orbit file does not exist ..."
+    echo ""
+    exit 1
+  endif
 
   if (! -f $orb) then
     if (-f $orb_dir/$SAT0/$orb) then

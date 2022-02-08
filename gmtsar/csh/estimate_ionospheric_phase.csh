@@ -74,9 +74,9 @@ gmt grdmath up_h.grd up_l.grd ADD up_o.grd 2 MUL SUB = tmp.grd
 gmt grdmath tmp.grd 2 PI MUL DIV ABS 0.2 GE 1 SUB -1 MUL 0 NAN = mask_up.grd
 
 gmt grdmath up_h.grd mask_up.grd MUL = tmp.grd
-gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_h.grd -V -Nr 
+gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_h.grd -Vq -Nr 
 gmt grdmath up_l.grd mask_up.grd MUL = tmp.grd
-gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_l.grd -V -Nr
+gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_l.grd -Vq -Nr
 
 gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN 0 MUL 1 ADD mask_up.grd MUL = mask.grd
 gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN ISNAN 1 SUB -1 MUL mask_up.grd 0 DENAN MUL = mask1.grd
@@ -115,9 +115,9 @@ nearest_grid tmp_ph.grd tmp_ph_interp.grd
 foreach iteration (1 2 3) 
   set odd = `echo $iteration | awk '{if ($1%2==0) print 0;else print 1}'`
   if ($odd == 1) then
-    gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
+    gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
   else
-    gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
+    gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
   endif
   gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -T0.5 -Gtmp.grd
   mv tmp.grd tmp_filt.grd
@@ -134,10 +134,10 @@ end
 # needs to be improved
 set RR = `gmt grdinfo -I- ph0.grd`
 set II = `gmt grdinfo -I tmp_ph0.grd`
-gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
+gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
 gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
 mv tmp.grd tmp_filt.grd
-gmt grdfilter tmp_filt.grd -Dp -Fg$filtx/$filty -Gtmp.grd -V -Ni -I$filt_incx/$filt_incy
+gmt grdfilter tmp_filt.grd -Dp -Fg$filtx/$filty -Gtmp.grd -Vq -Ni -I$filt_incx/$filt_incy
 mv tmp.grd tmp_filt.grd
 gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
 mv tmp.grd tmp_filt.grd
