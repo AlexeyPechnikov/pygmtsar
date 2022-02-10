@@ -1,37 +1,43 @@
 /*      $Id: sbas.h 39 2016-06-18 03/16/24 Xiaohua Xu $  */
 /*****************************************************************************************
  *  Program to do InSAR time-series analysis. * Use Small Baseline Subset (SBAS)         *
- *algorithm.                                                                             *
+ *  algorithm.                                                                           *
  *                                                                                       *
  *  Xiaohua Xu  Jan, 2021                                                                *
- *  Changing the code to parallel with openMP                                            */
-/*****************************************************************************************
- *  Program to do InSAR time-series analysis. * Use Small Baseline Subset (SBAS)
- *algorithm.                                          *
+ *  Changing the code to parallel with openMP                                            *
  *                                                                                       *
- *  Xiaohua Xu and David T. Sandwell, Jul, 2016 *
+ *  Anders Hogrelius Feb, 2022                                                           *
+ *  Fixing memory allocation bugs and bugs in openMP code, optimizing code and           *
+ *  adding code to place temporary files in /tmp directory (when running over NFS or     *
+ *  iSCSI). Added disp variable to mmap.                                                 *
  *                                                                                       *
- *  Taking the old sbas code to add atmospheric correction by means of common
- *point64_t      * stacking by Tymofeyeva & Fialko 2015. *
+ *****************************************************************************************
+ *  Program to do InSAR time-series analysis. * Use Small Baseline Subset (SBAS)         *
+ *  algorithm.                                                                           *
+ *                                                                                       *
+ *  Xiaohua Xu and David T. Sandwell, Jul, 2016                                          *
+ *                                                                                       *
+ *  Taking the old sbas code to add atmospheric correction by means of common            *
+ *  point stacking by Tymofeyeva & Fialko 2015.                                          *
  *                                                                                       *
  *  Xiaohua Xu and David Sandwell Jan 2021                                               *
  *  Adding option to mmap instead of using memory                                        *
  *                                                                                       *
  *****************************************************************************************
- * Creator: Xiaopeng Tong and David Sandwell
- ** (Scripps Institution of Oceanography) * Date: 12/23/2012
- **
- ****************************************************************************************/
-/*****************************************************************************************
- *  Modification history:
- ** 08/31/2013 debug the program
- ** 03/20/2014 add DEM error, mean velocity
- ** 03/22/2014 add correlation, use weighted least-squares
- ** 04/01/2014 add seasonal term
- ** 08/19/2014 allocate memory with 1D array instead of multiple malloc *
- *  08/19/2014 do not require the velocity curve go through origin * 08/19/2014
- *remove seasonal term                                                      *
- *  08/19/2014 fix temporal smoothing *
+ **                                                                                     **
+ **  Creator: Xiaopeng Tong and David Sandwell                                          **
+ **  (Scripps Institution of Oceanography) * Date: 12/23/2012                           **
+ **                                                                                     **
+ *****************************************************************************************
+ *  Modification history:                                                                *
+ *  08/31/2013 debug the program                                                         *
+ *  03/20/2014 add DEM error, mean velocity                                              *
+ *  03/22/2014 add correlation, use weighted least-squares                               *
+ *  04/01/2014 add seasonal term                                                         *
+ *  08/19/2014 allocate memory with 1D array instead of multiple malloc                  *
+ *  08/19/2014 do not require the velocity curve go through origin * 08/19/2014          *
+ *  remove seasonal term                                                                 *
+ *  08/19/2014 fix temporal smoothing                                                    *
  ****************************************************************************************/
 
 /* Reference:
@@ -55,13 +61,18 @@ J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
 #include<omp.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#define Malloc(type, n) (type *)malloc((n) * sizeof(type))
+//#define Malloc(type, n) (type *)malloc((n) * sizeof(type))
+
+// It is better to use calloc as this allocates data in contigous memory blocks and zeroes them out on allocation
+#define Malloc(type, n) (type *)calloc((n) , sizeof(type))
+
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #ifdef DEBUG
 #define checkpoint() printf("Checkpoint64_t at line %lld in file %s\n", __LINE__, __FILE__)
 #else
 #define checkpoint()
 #endif
+
 
 char *USAGE = " \n\nUSAGE: sbas_parallel intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] "
                    "[-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]\n\n"
@@ -213,9 +224,9 @@ int allocate_memory_ts(int64_t **jpvt, double **work, double **d, double **ds, f
 		    die("memory allocation!", "phi");
 	    if ((*var = Malloc(float, N *xdim *ydim)) == NULL)
 		    die("memory allocation!", "var");
+            if ((*disp = Malloc(float, S *xdim *ydim)) == NULL)
+                    die("memory allocation!", "disp");
     }
-	if ((*disp = Malloc(float, S *xdim *ydim)) == NULL)
-		die("memory allocation!", "disp");
 
 	if ((*hit = Malloc(int64_t, S * S)) == NULL)
 		die("memory allocation!", "hit");
@@ -224,22 +235,26 @@ int allocate_memory_ts(int64_t **jpvt, double **work, double **d, double **ds, f
 }
 
 int init_array_ts(double *G, double *Gs, float *res, float *dem, float *disp, int64_t n, int64_t m, int64_t xdim, int64_t ydim,
-                  int64_t N, int64_t S) {
+                  int64_t N, int64_t S, int64_t flag_mmap) {
 
-	int64_t i, j, k, p;
+        int64_t i, j, k, p;
 
-	for (i = 0; i < m * n; i++)
-		G[i] = 0;
-	for (i = 0; i < n * N; i++)
-		Gs[i] = 0;
+        for (i = 0; i < m * n; i++)
+                G[i] = 0;
+        for (i = 0; i < n * N; i++)
+                Gs[i] = 0;
 
-	for (k = 0; k < ydim; k++) {
-		for (j = 0; j < xdim; j++) {
-			res[j + xdim * k] = 0;
-			dem[j + xdim * k] = 0;
-			for (p = 0; p < S; p++) {
-				disp[p * xdim * ydim + j * ydim + k] = 0;
-			}
+	//fprintf(stderr,"S=%d N=%d n=%d m=%d\n",S,N,n,m);
+
+	for (k = 0; k < (xdim*ydim); k++){
+		//fprintf(stderr,"k=%d\n",k);
+		res[k] = 0;
+        	dem[k] = 0;
+	}
+	if (flag_mmap == 1) {
+		for (p = 0; p < (xdim*ydim*S); p++){
+			//fprintf(stderr,"p=%d\n",p);
+			disp[p] = 0;
 		}
 	}
 	return (1);
@@ -369,7 +384,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 	
 	// float new,old;
 	int64_t lda, ldb, zz;
-	int64_t count;
+	int64_t count, numt;
 
 	lda = max(1, m);
 	ldb = max(1, max(m, n));
@@ -380,10 +395,18 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 
 	printf("run least-squares problem over %lld by %lld pixel (%lld) ...\n", xdim, ydim, count);
 
-    printf("%d %d %d %d\n",m,n,N,lwork);	
-	
-    // the segment below needs some cleaning, deleting non-useful variables, etc.
-	#pragma omp parallel 
+	//Get max number of threads on this system
+	int64_t numthreads_max;
+	numthreads_max=sysconf(_SC_NPROCESSORS_ONLN);
+
+	//Allocate separate doubles per thread for workwork variable
+	double* workwork[numthreads_max];
+    	for (int i = 0; i < numthreads_max; i++)
+        	workwork[i] = (double*)malloc(sizeof(double)*lwork);
+
+
+        // the segment below needs some cleaning, deleting non-useful variables, etc.
+	#pragma omp parallel
 	{
 	
 	int64_t from, to, tid, numt;
@@ -391,9 +414,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 	int64_t rank = 0, nrhs = 1; 	
 	double rcond = 1e-3;
 	double sumxx, sumxy, sumx, sumy, sumyy, aa;
-    double ddd[ldb],GGG[m*n],GGGs[N*n];
-    double *workwork;
-    workwork = Malloc(double, lwork);
+    	double ddd[ldb],GGG[m*n],GGGs[N*n];
 	
 	tid = omp_get_thread_num();
 	numt = omp_get_num_threads();
@@ -401,8 +422,10 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 	to = (ydim/numt)*(tid+1)-1;
 	if (tid == numt-1)
 		to = ydim-1;
-	printf("Initialing thread %d of %d, running rows from %d to %d\n", tid, numt, from, to);	
-	
+	printf("Initialing thread %d of %d, running rows from %d to %d\n", tid+1, numt, from, to);
+
+	//This pragma necessary to keep data for all threads private within for clause
+	#pragma omp parallel for collapse(2)
 	for (k = from; k <= to; k++) {
 		for (j = 0; j < xdim; j++) {
 			/* check the dummy value of the grd file */
@@ -425,7 +448,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 					}
 				}
 
-				dgelsy_(&m, &n, &nrhs, GGG, &lda, ddd, &ldb, jpvt, &rcond, &rank, workwork, &lwork, &info);
+				dgelsy_(&m, &n, &nrhs, GGG, &lda, ddd, &ldb, jpvt, &rcond, &rank, workwork[tid], &lwork, &info);
 
 				if (info != 0)
 					printf("warning! input has an illegal value\n");
@@ -538,8 +561,10 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 			}
 		}
 	}
-    free(workwork);
 	}
+	//Free up array of workwork doubles 
+	for (int i = 0; i < numthreads_max; i++)
+        	free(workwork[i]);
 
 	return (1);
 }
@@ -673,7 +698,6 @@ int free_memory_ts(int64_t N, float *phi, float *var, char **gfile, char **cfile
 	}
 	free(gfile);
 	free(cfile);
-	free(disp);
 	free(G);
 	free(A);
 	free(Gs);
@@ -694,6 +718,7 @@ int free_memory_ts(int64_t N, float *phi, float *var, char **gfile, char **cfile
     if (flag_mmap == 0) {
 	    free(phi);
 	    free(var);
+	    free(disp);
     }
 
 	return (1);
@@ -928,66 +953,6 @@ int rank_double(double *nums, int64_t *seq, int64_t n) {
 
 	return (1);
 }
-/*      $Id: sbas.h 39 2016-06-18 03/16/24 Xiaohua Xu $  */
-/*****************************************************************************************
- *  Program to do InSAR time-series analysis. * Use Small Baseline Subset (SBAS)
- *algorithm.                                          *
- *                                                                                       *
- *  Xiaohua Xu, Jul 2016 *
- *                                                                                       *
- *  Taking the old sbas code to add atmospheric correction by means of common
- *point      * stacking by Tymofeyeva & Fialko 2015. *
- *                                                                                       *
- ****************************************************************************************/
-/*****************************************************************************************
- *  Modification history:
- ** 07/25/2017 EXU Set num of iterations as a parameter * 07/22/2017 EXU Fixing
- *a few bugs, using only dates having atm screen for vel compute * 07/05/2017
- *EXU Changing count of matrix to int64_t to avoid overflow                 *
- *  07/23/2016 EXU Decomposed the program into subroutines. * 08/02/2016 EXU
- *Start to build in the atmospheric correction Tymofyeyeva & Fialko 2015*
- *  09/01/2016 EXU Determing the number of iterations. *
- ****************************************************************************************/
-/****************************************************************************************
- * Creator: Xiaopeng Tong and David Sandwell
- ** (Scripps Institution of Oceanography) * Date: 12/23/2012
- **
- ****************************************************************************************/
-/*****************************************************************************************
- *  Modification history:
- ** 08/31/2013 debug the program
- ** 03/20/2014 add DEM error, mean velocity
- ** 03/22/2014 add correlation, use weighted least-squares
- ** 04/01/2014 add seasonal term
- ** 08/19/2014 allocate memory with 1D array instead of multiple malloc *
- *  08/19/2014 do not require the velocity curve go through origin * 08/19/2014
- *remove seasonal term                                                      *
- *  08/19/2014 fix temporal smoothing *
- ****************************************************************************************/
-
-/* Reference:
-P. Berardino, G. Fornaro, R. Lanari, and E. Sansosti, “A new algorithm for
-surface deformation monitoring based on small baseline differential SAR
-interferograms,” IEEE Trans. Geosci. Remote Sensing, vol. 40, pp. 2375–2383,
-Nov. 2002.
-
-Schmidt, D. A., and R. Bürgmann 2003, Time-dependent land uplift and subsidence
-in the Santa Clara valley, California, from a large interferometric synthetic
-aperture radar data set, J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267,
-B9.
-
-Tong, X. and Schmidt, D., 2016. Active movement of the Cascade landslide complex
-in Washington from a coherence-based InSAR time series method. Remote Sensing of
-Environment, 186, pp.405-415.
-
-Tymofyeyeva, E. and Fialko, Y., 2015. Mitigation of atmospheric phase delays in
-InSAR data, with application to the eastern California shear zone. Journal of
-Geophysical Research: Solid Earth, 120(8), pp.5952-5963.
-*/
-
-/* Use DGELSY to solve the equations */
-/* Calling DGELSY using column-major order */
-
 
 int main(int argc, char **argv) {
 
@@ -1013,11 +978,29 @@ int main(int argc, char **argv) {
 	int64_t *atm_rank, n_atm = 0, kk;
 	float *sfs;
 
-	size_t mm_size;
-	int ftmp_phi = 0, fphi = 0, fvar = 0;
+	size_t mm_size_N;
+	size_t mm_size_S;
+	int ftmp_phi = 0, fphi = 0, fvar = 0, fdisp = 0;
+
+	char *sz_tmp_sbas_phi;
+	char *sz_tmp_sbas_var;
+	char *sz_tmp_sbas_disp;
+	char *sz_tmp_sbas_tmp_phi;
 
 	if (argc < 7)
 		die("\n", USAGE);
+
+        asprintf(&sz_tmp_sbas_phi,"/tmp/%d_tmp_sbas_phi.%d",geteuid(),getpid());
+        asprintf(&sz_tmp_sbas_var,"/tmp/%d_tmp_sbas_var.%d",geteuid(),getpid());
+        asprintf(&sz_tmp_sbas_disp,"/tmp/%d_tmp_sbas_disp.%d",geteuid(),getpid());
+        asprintf(&sz_tmp_sbas_tmp_phi,"/tmp/%d_tmp_sbas_tmp_phi.%d",geteuid(),getpid());
+
+
+        if (sz_tmp_sbas_phi == NULL || sz_tmp_sbas_var == NULL || sz_tmp_sbas_disp == NULL || sz_tmp_sbas_tmp_phi == NULL) {
+                fprintf(stderr, "Error in asprintf when allocation memory.\n");
+                return EXIT_FAILURE;
+        }
+
 
 	/* Begin: Initializing new GMT session */
 	if ((API = GMT_Create_Session(argv[0], 0U, 0U, NULL)) == NULL)
@@ -1058,31 +1041,42 @@ int main(int argc, char **argv) {
 
 	/* memory allocation */ // also malloc for atm(nx,ny,S), hit(N,S), sum_vec(N)
 	                        // and atm_rms(S)
-	mm_size = 4 * (size_t)N * (size_t)xdim * (size_t)ydim;
+	mm_size_N = 4 * (size_t)N * (size_t)xdim * (size_t)ydim;
+	mm_size_S = 4 * (size_t)S * (size_t)xdim * (size_t)ydim;
 	allocate_memory_ts(&jpvt, &work, &d, &ds, &bperp, &gfile, &cfile, &L, &time, &H, &G, &A, &Gs, &flag, &dem, &res, &vel, &phi,
 	                   &var, &disp, n, m, lwork, ldb, N, S, xdim, ydim, &hit, flag_mmap);
 
         /* mmap the phi and var arrays. this must be done in the main program  */
     if (flag_mmap == 1) {
-	    remove("tmp_sbas_phi");
-	    if ((fphi = open("tmp_sbas_phi", O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
-		    die("can't open %s for reading", "tmp_sbas_phi");
-	    lseek(fphi,mm_size-1, SEEK_SET);
+	    remove(sz_tmp_sbas_phi);
+	    if ((fphi = open(sz_tmp_sbas_phi, O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
+		    die("can't open %s for reading", sz_tmp_sbas_phi);
+	    lseek(fphi,mm_size_N-1, SEEK_SET);
 	    write(fphi, "",1);
-	    if ((phi = mmap( NULL , mm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fphi, 0)) == MAP_FAILED)
+	    if ((phi = mmap( NULL , mm_size_N, PROT_READ | PROT_WRITE, MAP_SHARED, fphi, 0)) == MAP_FAILED)
 		    die("mmap error for input", "phi");
 
-	    remove("tmp_sbas_var");
-	    if ((fvar = open("tmp_sbas_var", O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
-		    die("can't open %s for reading", "tmp_sbas_var");
-	    lseek(fvar,mm_size-1, SEEK_SET);
+	    remove(sz_tmp_sbas_var);
+	    if ((fvar = open(sz_tmp_sbas_var, O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
+		    die("can't open %s for reading", sz_tmp_sbas_var);
+	    lseek(fvar,mm_size_N-1, SEEK_SET);
 	    write(fvar, "",1);
-	    if ((var = mmap( NULL , mm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fvar, 0)) == MAP_FAILED)
+	    if ((var = mmap( NULL , mm_size_N, PROT_READ | PROT_WRITE, MAP_SHARED, fvar, 0)) == MAP_FAILED)
 		    die("mmap error for input", "var");
+
+            remove(sz_tmp_sbas_disp);
+            if ((fdisp = open(sz_tmp_sbas_disp, O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
+                    die("can't open %s for reading", sz_tmp_sbas_disp);
+            lseek(fdisp,mm_size_S-1, SEEK_SET);
+            write(fdisp, "",1);
+            if ((disp = mmap( NULL , mm_size_S, PROT_READ | PROT_WRITE, MAP_SHARED, fdisp, 0)) == MAP_FAILED)
+                    die("mmap error for input", "disp");
+
     }
 
 	// initialization
-	init_array_ts(G, Gs, res, dem, disp, n, m, xdim, ydim, N, S);
+	//fprintf(stderr,"Before 1 call init_array_ts: xdim=%d ydim=%d N=%d S=%d\n",xdim, ydim, N, S);
+	init_array_ts(G, Gs, res, dem, disp, n, m, xdim, ydim, N, S, flag_mmap);
 
 	// reading in the table files
 	read_table_data_ts(API, infile, datefile, gfile, cfile, H, bperp, flag, var, phi, S, N, xdim, ydim, &Out, L, time);
@@ -1116,12 +1110,12 @@ int main(int argc, char **argv) {
 		    tmp_phi = (float *)malloc(xdim * ydim * sizeof(float) * N);
         }
         else {
-		    remove("tmp_sbas_tmp_phi");
-		    if ((ftmp_phi = open("tmp_sbas_tmp_phi", O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
-			    die("can't open %s for reading", "tmp_sbas_tmp_phi");
-		    lseek(ftmp_phi,mm_size-1, SEEK_SET);
+		    remove(sz_tmp_sbas_tmp_phi);
+		    if ((ftmp_phi = open(sz_tmp_sbas_tmp_phi, O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
+			    die("can't open %s for reading", sz_tmp_sbas_tmp_phi);
+		    lseek(ftmp_phi,mm_size_N-1, SEEK_SET);
 		    write(ftmp_phi, "",1);
-		    if ((tmp_phi = mmap( NULL , mm_size, PROT_READ | PROT_WRITE, MAP_SHARED, ftmp_phi, 0)) == MAP_FAILED)
+		    if ((tmp_phi = mmap( NULL , mm_size_N, PROT_READ | PROT_WRITE, MAP_SHARED, ftmp_phi, 0)) == MAP_FAILED)
 			    die("mmap error for input", "tmp_phi");
         }
 
@@ -1263,7 +1257,8 @@ int main(int argc, char **argv) {
 		// lastly compute time-series
 		sf = sfs[n_atm];
 		fprintf(stderr, "Setting smoothing parameter to %f...\n", sf);
-		init_array_ts(G, Gs, res, dem, disp, n, m, xdim, ydim, N, S);
+		//fprintf(stderr,"Before 2 call init_array_ts: xdim=%d ydim=%d N=%d S=%d\n",xdim, ydim, N, S);
+		init_array_ts(G, Gs, res, dem, disp, n, m, xdim, ydim, N, S, flag_mmap);
 		init_G_ts(G, Gs, N, S, m, n, L, H, time, sf, bperp, scale);
 		for (i = 0; i < m * n; i++)
 			A[i] = G[i];
@@ -1289,20 +1284,27 @@ int main(int argc, char **argv) {
 		    free(tmp_phi);
         }
         else {
-		    munmap(tmp_phi, mm_size);
+		    munmap(tmp_phi, mm_size_N);
         }
 		free(atm_rms);
 	}
     if (flag_mmap == 1) {
-		munmap(phi, mm_size);
-		munmap(var, mm_size);
+		munmap(phi, mm_size_N);
+		munmap(var, mm_size_N);
+		munmap(disp, mm_size_S);
     }
 
 	fclose(infile);
 	fclose(datefile);
 	close(fphi);
 	close(fvar);
+	close(fdisp);
 	close(ftmp_phi);
+
+	free(sz_tmp_sbas_phi);
+	free(sz_tmp_sbas_var);
+	free(sz_tmp_sbas_disp);
+	free(sz_tmp_sbas_tmp_phi);
 
 	if (GMT_Destroy_Session(API))
 		return EXIT_FAILURE; /* Remove the GMT machinery */
