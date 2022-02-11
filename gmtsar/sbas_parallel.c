@@ -74,33 +74,58 @@ J. Geophys. Res., 108, 2416, doi:10.1029/2002JB002267, B9.
 #endif
 
 
-char *USAGE = " \n\nUSAGE: sbas_parallel intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] "
-                   "[-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]\n\n"
-                   " input: \n"
-                   "intf.tab           --  list of unwrapped (filtered) interferograms:\n"
-                   "   format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp \n"
-                   "scene.tab          --  list of the SAR scenes in chronological order\n"
-                   "   format:   scene_id   number_of_days \n"
-                   "   note:     the number_of_days is relative to a reference date \n"
-                   "N                  --  number of the interferograms\n"
-                   "S                  --  number of the SAR scenes \n"
-                   "xdim and ydim      --  dimension of the interferograms\n"
-                   "-smooth sf         --  smoothing factors, default=0 \n"
-                   "-atm ni            --  number of iterations for atmospheric correction, "
-                   "default=0(skip atm correction) \n"
-                   "-wavelength wl     --  wavelength of the radar wave (m) default=0.236 \n"
-                   "-incidence theta   --  incidence angle of the radar wave (degree) "
-                   "default=37 \n"
-                   "-range rng         --  range distance from the radar to the center of the "
-                   "interferogram (m) default=866000 \n"
-                   "-rms               --  output velocity uncertainty grids (mm/yr): rms.grd\n"
-                   "-dem               --  output DEM error (m): dem.grd \n\n"
-                   "-mmap              --  use mmap to allocate disk space for less use of memory \n\n"
-                   " output: \n"
-                   "disp_##.grd        --  cumulative displacement time series (mm) grids\n"
-                   "vel.grd            --  mean velocity (mm/yr) grids \n\n"
-                   " example:\n"
-                   "   sbas intf.tab scene.tab 88 28 700 1000 \n\n";
+char *USAGE = "USAGE: sbas_parallel intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] "
+              "[-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]\n\n"
+              " input: \n"
+              "  intf.tab             --  list of unwrapped (filtered) interferograms:\n"
+              "   format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp \n"
+              "  scene.tab            --  list of the SAR scenes in chronological order\n"
+              "   format:   scene_id   number_of_days \n"
+              "   note:     the number_of_days is relative to a reference date \n"
+              "  N                    --  number of the interferograms\n"
+              "  S                    --  number of the SAR scenes \n"
+              "  xdim and ydim        --  dimension of the interferograms\n"
+              "  -smooth sf           --  smoothing factors, default=0 \n"
+              "  -atm ni              --  number of iterations for atmospheric "
+              "correction, default=0(skip atm correction) \n"
+              "  -wavelength wl       --  wavelength of the radar wave (m) default=0.236 "
+              "\n"
+              "  -incidence theta     --  incidence angle of the radar wave (degree) "
+              "default=37 \n"
+              "  -range rng           --  range distance from the radar to the center of "
+              "the interferogram (m) default=866000 \n"
+              "  -rms                 --  output velocity uncertainty grids (mm/yr): "
+              "rms.grd\n"
+              "  -dem                 --  output DEM error (m): dem.grd \n"
+              "  -mmap                --  use mmap to allocate disk space for less use of memory \n\n"
+              " output: \n"
+              "  disp_##.grd          --  cumulative displacement time series (mm) "
+              "grids\n"
+              "  vel.grd              --  linear regressed velocity (mm/yr) grids \n\n"
+              " example:\n"
+              "  sbas intf.tab scene.tab 88 28 700 1000 \n\n"
+              "Before run: set the environment variable OMP_NUM_THREADS to a proper number"
+              " that fits your machine\n\n"
+              "REFERENCES: \n"
+              "Berardino P., G. Fornaro, R. Lanari, and E. Sansosti, “A new algorithm "
+              "for surface deformation monitoring based on small baseline differential "
+              "SAR interferograms,” IEEE Trans. Geosci. Remote Sensing, vol. 40, pp. "
+              "2375–2383, Nov. 2002. \n\n"
+              "Schmidt, D. A., and R. Bürgmann 2003, Time-dependent land uplift and "
+              "subsidence in the Santa Clara valley, California, from a large "
+              "interferometric synthetic aperture radar data set, J. Geophys. Res., 108, "
+              "2416, doi:10.1029/2002JB002267, B9. \n\n"
+              "Tong, X. and Schmidt, D., 2016. Active movement of the Cascade landslide "
+              "complex in Washington from a coherence-based InSAR time series method. "
+              "Remote Sensing of Environment, 186, pp.405-415. \n\n"
+              "Tymofyeyeva, E. and Fialko, Y., 2015. Mitigation of atmospheric phase "
+              "delays in InSAR data, with application to the eastern California shear "
+              "zone. Journal of Geophysical Research: Solid Earth, 120(8), "
+              "pp.5952-5963.\n\n"
+              "Xu, X., Sandwell, D. T., Tymofyeyeva, E., González-Ortega, A., & Tong, X."
+              "(2017). Tectonic and anthropogenic deformation at the Cerro Prieto"
+              "geothermal step-over revealed by Sentinel-1A InSAR. IEEE Transactions on"
+              "Geoscience and Remote Sensing, 55(9), 5284-5292.\n\n";
 
 void dgelsy_(const int64_t *m, const int64_t *n, const int64_t *nrhs, double *G, const int64_t *lda, double *b,
              const int64_t *ldb, int64_t *jpvt, const double *rcond, const int64_t *rank, double *work, const int64_t *lwork,
@@ -381,51 +406,52 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
                       double *work, int64_t lwork, int64_t flag_dem, float *dem, int64_t flag_rms, float *res, int64_t *jpvt,
                       double wl, double *atm_rms) {
 
-	
-	// float new,old;
-	int64_t lda, ldb, zz;
-	int64_t count, numt;
+    // float new,old;
+    int64_t lda, ldb, zz;
+    int64_t count, numt;
+    // omp variables
+    int64_t from, to, tid;
+    int64_t i, j, k, p, info = 0;
+    int64_t rank = 0, nrhs = 1;
+    double rcond = 1e-3;
+    double sumxx, sumxy, sumx, sumy, sumyy, aa;
+    double *ddd,*GGG;
 
-	lda = max(1, m);
-	ldb = max(1, max(m, n));
-	count = 0;
-	for (zz = 0; zz < S; zz++)
-		if (atm_rms[zz] != 0.0 && zz != 0 && zz != 1 && zz != S - 1 && zz != S - 2)
-			count++;
+    lda = max(1, m);
+    ldb = max(1, max(m, n));
+    count = 0;
+    for (zz = 0; zz < S; zz++) 
+        if (atm_rms[zz] != 0.0 && zz != 0 && zz != 1 && zz != S - 1 && zz != S - 2)
+            count++;
 
-	printf("run least-squares problem over %lld by %lld pixel (%lld) ...\n", xdim, ydim, count);
+    printf("run least-squares problem over %lld by %lld pixel (%lld) ...\n", xdim, ydim, count);
 
-	//Get max number of threads on this system
-	int64_t numthreads_max;
-	numthreads_max=sysconf(_SC_NPROCESSORS_ONLN);
+    //Get max number of threads on this system
+    int64_t numthreads_max;
+    numthreads_max=sysconf(_SC_NPROCESSORS_ONLN);
 
-	//Allocate separate doubles per thread for workwork variable
-	double* workwork[numthreads_max];
-    	for (int i = 0; i < numthreads_max; i++)
-        	workwork[i] = (double*)malloc(sizeof(double)*lwork);
-
+    //Allocate separate doubles per thread for workwork variable
+    double* workwork[numthreads_max];
+        for (int i = 0; i < numthreads_max; i++)
+            workwork[i] = (double*)malloc(sizeof(double)*lwork);
 
         // the segment below needs some cleaning, deleting non-useful variables, etc.
-	#pragma omp parallel
-	{
-	
-	int64_t from, to, tid, numt;
-	int64_t i, j, k, p, info = 0;
-	int64_t rank = 0, nrhs = 1; 	
-	double rcond = 1e-3;
-	double sumxx, sumxy, sumx, sumy, sumyy, aa;
-    	double ddd[ldb],GGG[m*n],GGGs[N*n];
-	
-	tid = omp_get_thread_num();
-	numt = omp_get_num_threads();
-	from = (ydim/numt)*tid;
-	to = (ydim/numt)*(tid+1)-1;
-	if (tid == numt-1)
-		to = ydim-1;
-	printf("Initialing thread %d of %d, running rows from %d to %d\n", tid+1, numt, from, to);
+    #pragma omp parallel private(from,to,tid,numt,i,j,k,p,rank,nrhs,rcond,sumxx,sumxy,sumx,sumy,sumyy,aa,ddd,GGG)
+    {
+    ddd = (double *) calloc(ldb,sizeof(double));
+    GGG = (double *) calloc(m*n,sizeof(double));
+    rank = 0; nrhs = 1; rcond = 1e-3;
+    
+    numt = omp_get_num_threads();
+    tid = omp_get_thread_num();
+    from = (ydim/numt)*tid;
+    to = (ydim/numt)*(tid+1)-1;
+    if (tid == numt-1)
+        to = ydim-1;
+    fprintf(stderr,"Initialing thread %d of %d, running rows from %d to %d\n", tid+1, numt, from, to);
 
-	//This pragma necessary to keep data for all threads private within for clause
-	#pragma omp parallel for collapse(2)
+    //This pragma necessary to keep data for all threads private within for clause
+    #pragma omp parallel for collapse(2)
 	for (k = from; k <= to; k++) {
 		for (j = 0; j < xdim; j++) {
 			/* check the dummy value of the grd file */
@@ -561,6 +587,8 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 			}
 		}
 	}
+    free(ddd); 
+    free(GGG);
 	}
 	//Free up array of workwork doubles 
 	for (int i = 0; i < numthreads_max; i++)
