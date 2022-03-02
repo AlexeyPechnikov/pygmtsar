@@ -432,7 +432,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 
     //Allocate separate doubles per thread for workwork variable
     double* workwork[numthreads_max];
-        for (int i = 0; i < numthreads_max; i++)
+        for (i = 0; i < numthreads_max; i++)
             workwork[i] = (double*)malloc(sizeof(double)*lwork);
 
         // the segment below needs some cleaning, deleting non-useful variables, etc.
@@ -591,7 +591,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
     free(GGG);
 	}
 	//Free up array of workwork doubles 
-	for (int i = 0; i < numthreads_max; i++)
+	for (i = 0; i < numthreads_max; i++)
         	free(workwork[i]);
 
 	return (1);
