@@ -1018,10 +1018,10 @@ int main(int argc, char **argv) {
 	if (argc < 7)
 		die("\n", USAGE);
 
-        asprintf(&sz_tmp_sbas_phi,"/tmp/%d_tmp_sbas_phi.%d",geteuid(),getpid());
-        asprintf(&sz_tmp_sbas_var,"/tmp/%d_tmp_sbas_var.%d",geteuid(),getpid());
-        asprintf(&sz_tmp_sbas_disp,"/tmp/%d_tmp_sbas_disp.%d",geteuid(),getpid());
-        asprintf(&sz_tmp_sbas_tmp_phi,"/tmp/%d_tmp_sbas_tmp_phi.%d",geteuid(),getpid());
+        asprintf(&sz_tmp_sbas_phi,"./%d_tmp_sbas_phi.%d",geteuid(),getpid());
+        asprintf(&sz_tmp_sbas_var,"./%d_tmp_sbas_var.%d",geteuid(),getpid());
+        asprintf(&sz_tmp_sbas_disp,"./%d_tmp_sbas_disp.%d",geteuid(),getpid());
+        asprintf(&sz_tmp_sbas_tmp_phi,"./%d_tmp_sbas_tmp_phi.%d",geteuid(),getpid());
 
 
         if (sz_tmp_sbas_phi == NULL || sz_tmp_sbas_var == NULL || sz_tmp_sbas_disp == NULL || sz_tmp_sbas_tmp_phi == NULL) {
