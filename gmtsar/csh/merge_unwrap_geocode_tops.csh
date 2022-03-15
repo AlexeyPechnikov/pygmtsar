@@ -71,14 +71,14 @@
   set nl = `wc -l $1 | awk '{print $1}'`
   if ($nl == 2) then
     set pth2 = `head -1 $1 | awk -F: '{print $1}'`
-    gmt grdcut $pth2/phasefilt.grd -Z+N -Gtmp.grd
-    set xm1 = `gmt grdinfo $pth2/phasefilt.grd -C | awk '{print $3}'`
+    gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
+    set xm1 = `gmt grdinfo $pth2"phasefilt.grd" -C | awk '{print $3}'`
     set xc1 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
     set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
     set n12 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
  
     set pth2 = `tail -1 $1 | awk -F: '{print $1}'`
-    gmt grdcut $pth2/phasefilt.grd -Z+N -Gtmp.grd
+    gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
     set x01 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
     set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
     set n21 = `echo $x01 $incx | awk '{printf("%d",$1/$2)}'`
@@ -87,14 +87,14 @@
     rm tmp.grd
   else if ($nl == 3) then
     set pth2 = `head -1 $1 | awk -F: '{print $1}'`
-    gmt grdcut $pth2/phasefilt.grd -Z+N -Gtmp.grd
+    gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
     set xm1 = `gmt grdinfo $pth2/phasefilt.grd -C | awk '{print $3}'`
     set xc1 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
     set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
     set n12 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
 
     set pth2 = `head -2 $1 | tail -1 | awk -F: '{print $1}'`
-    gmt grdcut $pth2/phasefilt.grd -Z+N -Gtmp.grd
+    gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
     set x02 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
     set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
     set n21 = `echo $x02 $incx | awk '{printf("%d",$1/$2)}'`
@@ -104,7 +104,7 @@
     set n22 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
 
     set pth2 = `tail -1 $1 | awk -F: '{print $1}'`
-    gmt grdcut $pth2/phasefilt.grd -Z+N -Gtmp.grd
+    gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
     set x03 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
     set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
     set n31 = `echo $x03 $incx | awk '{printf("%d",$1/$2)}'`
