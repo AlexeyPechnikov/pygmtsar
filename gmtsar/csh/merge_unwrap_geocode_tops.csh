@@ -43,8 +43,8 @@
     set det_stitch = 1
   else
     set det_stitch = 0
-    set n1 = ""
-    set n2 = ""
+    set n1 = 0
+    set n2 = 0
   endif
 
   set region_cut = `grep region_cut $2 | awk '{print $3}'`
@@ -127,10 +127,17 @@
     endif
     echo "Stitching postitions set to $n1 $n2"
   endif
-
-  merge_swath tmp_phaselist phasefilt.grd $stem $n1 $n2> merge_log
-  merge_swath tmp_corrlist corr.grd $n1 $n2 > merge_log_corr
-  merge_swath tmp_masklist mask.grd $n1 $n2 > merge_log_mask
+  
+  if ($n1 > 5 && $n2 > 5) then
+    merge_swath tmp_phaselist phasefilt.grd $stem $n1 $n2> merge_log
+    merge_swath tmp_corrlist corr.grd $n1 $n2 > merge_log_corr
+    merge_swath tmp_masklist mask.grd $n1 $n2 > merge_log_mask
+  else
+    merge_swath tmp_phaselist phasefilt.grd $stem > merge_log
+    merge_swath tmp_corrlist corr.grd  > merge_log_corr
+    merge_swath tmp_masklist mask.grd  > merge_log_mask
+  endif
+    
   echo "Merging END"
   echo ""
 

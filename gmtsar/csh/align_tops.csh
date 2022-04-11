@@ -20,6 +20,8 @@ if ($#argv != 5 && $#argv != 6) then
  echo " "
  echo "Be sure the tiff, xml, orbit and dem files are available in the local directory."
  echo " "
+ echo "To pre-process master only, use 0 to replace aligned orbit file. To skip master images and process aligned images, use 0 to replace master orbit file"
+ echo " "
  echo "Example: align_tops.csh s1a-iw3-slc-vv-20150526t014937-20150526t015002-006086-007e23-003 S1A_OPER_AUX_POEORB_OPOD_20150615T155109_V20150525T225944_20150527T005944.EOF.txt s1a-iw3-slc-vv-20150607t014937-20150607t015003-006261-00832e-006 S1A_OPER_AUX_POEORB_OPOD_20150627T155155_V20150606T225944_20150608T005944.EOF.txt dem.grd "
  echo " "
  echo "Output: S1_20150526_F3.PRM S1_20150526_F3.LED S1_20150526_F3.SLC S1_20150607_F3.PRM S1_20150607_F3.LED S1_20150607_F3.SLC "
@@ -29,19 +31,19 @@ endif
 #  
 #  make sure the files are available
 #
-if(! -f $1.xml) then
+if( $2 != 0 && ! -f $1.xml ) then
    echo "****** missing file: "$1
    exit
 endif
-if(! -f $2) then
+if( $2 != 0 && ! -f $2 ) then
    echo "****** missing file: "$2
    exit
 endif
-if(! -f $3.xml) then
+if( $4 != 0 && ! -f $3.xml ) then
    echo "****** missing file: "$3
    exit
 endif
-if(! -f $4) then
+if( $4 != 0 && ! -f $4 ) then
    echo "****** missing file: "$4
    exit
 endif
@@ -56,6 +58,17 @@ else
    set mode = 0
 endif
 
+if ( $2 == 0) then
+   set skip_master = 1
+else if ( $4 == 0) then
+   set skip_master = 2
+else if ( $2 != 0 && $4 != 0) then
+   set skip_master = 0
+else
+   echo "[ERROR]: Wrong input syntax, chose proper input image names "
+   exit 1
+endif
+
 # 
 #  set the full names and create an output prefix
 #
@@ -65,34 +78,49 @@ set stiff = ` echo $3.tiff `
 set sxml = ` echo $3.xml `
 set mpre = ` echo $1 | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
 set spre = ` echo $3 | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
-echo $mpre
-echo $spre
+if ($skip_master == 0 || $skip_master == 2) then
+  echo $mpre
+endif
+if ($skip_master == 0 || $skip_master == 1) then
+  echo $spre
+endif
 
     #
     #  1) make PRM and LED files for both master and aligned but not the SLC file
     #
+if ($skip_master == 2) then 
+  make_s1a_tops $mxml $mtiff $mpre 1
+  ext_orb_s1a $mpre".PRM" $2 $mpre
+  calc_dop_orb $mpre".PRM" tmp 0 0
+  cat tmp >> $mpre".PRM"
+  rm tmp
+else 
+  if ($skip_master == 0) then  
     make_s1a_tops $mxml $mtiff $mpre 0 
-    make_s1a_tops $sxml $stiff $spre 0 
-    #
-    #  replace the LED with the precise orbit
-    #
+  endif
+  make_s1a_tops $sxml $stiff $spre 0 
+  #
+  #  replace the LED with the precise orbit
+  #
+  if ($skip_master == 0) then
     ext_orb_s1a $mpre".PRM" $2 $mpre
-    ext_orb_s1a $spre".PRM" $4 $spre
-    #
-    #  calculate the earth radius and make the aligned match the master
-    #
+    # calculate the earth radius and make the aligned match the master
     calc_dop_orb $mpre".PRM" tmp 0 0 
     cat tmp >> $mpre".PRM"
-    set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
-    calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
-    cat tmp2 >> $spre".PRM"
-    rm tmp tmp2
-    #
-    #  2) do a geometric back projection to determine the alignment parameters
-    #
-    #  Filter and downsample the topography to 12 seconds or about 360 m
-    #
-if ($mode == 0) then
+    rm tmp
+  endif
+  ext_orb_s1a $spre".PRM" $4 $spre
+  # calculate the earth radius and make the aligned match the master
+  set earth_radius = `grep earth_radius $mpre".PRM" | awk '{print $3}'`
+  calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
+  cat tmp2 >> $spre".PRM"
+  rm tmp2
+  #
+  #  2) do a geometric back projection to determine the alignment parameters
+  #
+  #  Filter and downsample the topography to 12 seconds or about 360 m
+  #
+  if ($mode == 0) then
     gmt grdfilter $5 -D3 -Fg2 -I12s -Ni -Gflt.grd 
     gmt grd2xyz --FORMAT_FLOAT_OUT=%lf flt.grd -s > topo.llt
     #
@@ -101,7 +129,7 @@ if ($mode == 0) then
     #
     # first check whether there are any burst shift
     #
-endif
+  endif
     set lontie = `SAT_baseline $mpre".PRM" $spre".PRM" | grep lon_tie_point | awk '{print $3}'`
     set lattie = `SAT_baseline $mpre".PRM" $spre".PRM" | grep lat_tie_point | awk '{print $3}'`
     set tmp_am = `echo $lontie $lattie 0 | SAT_llt2rat $mpre".PRM" 1 | awk '{print $2}'`
@@ -110,7 +138,7 @@ endif
     #
     # if ther is, modify the master PRM start_time to get a better r/a estimate
     #
-if ($mode == 0) then    
+  if ($mode == 0) then    
     if ($tmp_da > -1000 && $tmp_da < 1000) then
       SAT_llt2rat $mpre".PRM" 1 < topo.llt > master.ratll &
       SAT_llt2rat $spre".PRM" 1 < topo.llt > aligned.ratll &
@@ -127,8 +155,6 @@ if ($mode == 0) then
       update_PRM tmp.PRM SC_clock_start $ttmp
       set ttmp = `grep SC_clock_stop tmp.PRM | awk '{print $3}' | awk '{printf ("%.12f",$1 - '$tmp_da'/'$prf'/86400.0)}'`
       update_PRM tmp.PRM SC_clock_stop $ttmp
-      
-
     #
     #  restore the modified lines 
     #
@@ -172,47 +198,55 @@ if ($mode == 0) then
     gmt grdmath rtmp.grd FLIPUD = r.grd
     gmt grdmath atmp.grd FLIPUD = a.grd
     #
+  endif
+  #  3) make PRM, LED and SLC files for both master and aligned that are aligned
+  #     at the fractional pixel level but still need a integer alignment from 
+  #     resamp
+  #  
+  #  make the new PRM files and SLC
+  #
+  if ($skip_master == 0) then
+    make_s1a_tops $mxml $mtiff $mpre 1 
+  endif
+  make_s1a_tops $sxml $stiff $spre 1 r.grd a.grd
+  #
+  #  resamp the aligned and set the aoffset to zero
+  #
+  cp $spre".PRM" $spre".PRM0"
+  if ($tmp_da > -1000 && $tmp_da < 1000) then
+    update_PRM $spre".PRM" ashift 0
+  else
+    update_PRM $spre".PRM" ashift $tmp_da
+    echo "Restoring $tmp_da lines with resamp..."
+  endif
+  resamp $mpre".PRM" $spre".PRM" $spre".PRMresamp" $spre".SLCresamp" 1
+  mv $spre".SLCresamp" $spre".SLC"
+  mv $spre".PRMresamp" $spre".PRM"
+  #
+  if ($tmp_da > -1000 && $tmp_da < 1000) then
+    fitoffset.csh 3 3 offset.dat >> $spre.PRM
+  else
+    fitoffset.csh 3 3 offset2.dat >> $spre.PRM
+  endif
+  #
+  #   re-extract the lED files
+  #
+  if ($skip_master == 0) then
+    ext_orb_s1a $mpre".PRM" $2 $mpre
+  endif
+  ext_orb_s1a $spre".PRM" $4 $spre
+  #
+  #  calculate the earth radius and make the aligned match the master
+  #
+  if ($skip_master == 0) then
+    calc_dop_orb $mpre".PRM" tmp 0 0
+    cat tmp >> $mpre".PRM"
+    rm tmp
+  endif
+  set earth_radius = `grep earth_radius $mpre".PRM" | awk '{print $3}'`
+  calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
+  cat tmp2 >> $spre".PRM"
+  rm tmp2
+  #
+  rm topo.llt master.ratll aligned.ratll *tmp* flt.grd r.xyz a.xyz *.PRM0
 endif
-#  3) make PRM, LED and SLC files for both master and aligned that are aligned
-#     at the fractional pixel level but still need a integer alignment from 
-#     resamp
-#  
-#  make the new PRM files and SLC
-#
-make_s1a_tops $mxml $mtiff $mpre 1 
-make_s1a_tops $sxml $stiff $spre 1 r.grd a.grd
-#
-#  resamp the aligned and set the aoffset to zero
-#
-cp $spre".PRM" $spre".PRM0"
-if ($tmp_da > -1000 && $tmp_da < 1000) then
-  update_PRM $spre".PRM" ashift 0
-else
-  update_PRM $spre".PRM" ashift $tmp_da
-  echo "Restoring $tmp_da lines with resamp..."
-endif
-resamp $mpre".PRM" $spre".PRM" $spre".PRMresamp" $spre".SLCresamp" 1
-mv $spre".SLCresamp" $spre".SLC"
-mv $spre".PRMresamp" $spre".PRM"
-#
-if ($tmp_da > -1000 && $tmp_da < 1000) then
-  fitoffset.csh 3 3 offset.dat >> $spre.PRM
-else
-  fitoffset.csh 3 3 offset2.dat >> $spre.PRM
-endif
-#
-#   re-extract the lED files
-#
-ext_orb_s1a $mpre".PRM" $2 $mpre
-ext_orb_s1a $spre".PRM" $4 $spre
-#
-#  calculate the earth radius and make the aligned match the master
-#
-calc_dop_orb $mpre".PRM" tmp 0 0
-cat tmp >> $mpre".PRM"
-set earth_radius = `grep earth_radius tmp | awk '{print $3}'`
-calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
-cat tmp2 >> $spre".PRM"
-rm tmp tmp2
-#
-rm topo.llt master.ratll aligned.ratll *tmp* flt.grd r.xyz a.xyz *.PRM0
