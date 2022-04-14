@@ -10,15 +10,14 @@
 # For linux users, modify the date command accordingly in order to let the script run.
 # Some linux system has issues with the if statement comapring tt, t1, t2. This is not fixed yet
 #
-# alias wgetasf to 'wget --http-user=**** --http-password=****' in .cshrc or .tcshrc file
-# requires having an account on with ASF
-#
+# EDIT 04/2022: Replaced the wgetasf calls with ESA api commands
 
 
   if ($#argv != 3) then
     echo ""
     echo "Usage: organize_files_tops.csh filelist pins.ll mode"
-    echo "  organize one track of S1A TOPS data, redefine frames, precise/restituted orbit is required"
+    echo "  organize one track of S1A TOPS data, redefine frames, auto-download precise orbits"
+    echo "    if restituted orbits are required, user must download separately"
     echo ""
     echo "filest:"
     echo "    pth_filename1"
@@ -37,13 +36,8 @@
     exit 1
   endif
 
-  set url_root = "https://s1qc.asf.alaska.edu/aux_poeorb"
-  set orb_dir = "/geosat2/InSAR_Processing/Sentinel_Orbits"
-  if (! -f orbits.list) then
-    wget $url_root -O orbits.html
-    grep EOF orbits.html | awk -F'"' '{print $2}' > orbits.list
-    rm orbits.html
-  endif
+  # set local orbit directory
+  set orb_dir = "Sentinel_Orbits"
 
   set ii = 0
   set mode = $3
@@ -55,6 +49,7 @@
     set file1 = `echo $line | awk -F"," '{print $1}'`
     set date1 = `echo $file1 | awk '{print substr($1,length($1)-54,8)}'`
     set SAT1 = `echo $file1 | awk '{print substr($1,length($1)-71,3)}'`
+    set orbittype="AUX_POEORB" #assume precise orbits
     
     if ($ii == 0) then
       set file0 = `echo $file1`
@@ -85,42 +80,64 @@
         # get the orbit file names and download
         set n1 = `date -v-1d -jf "%Y%m%d" $date0 +%Y%m%d`
         set n2 = `date -v+1d -jf "%Y%m%d" $date0 +%Y%m%d`
-        set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
+        #set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
+        
+        echo "Required orbit file dates: ${n1} to  ${n2}..."
 
-        echo $n1 $n2 $orb
-        if ($orb == "") then
-          echo ""
-          echo "SKIP $date0, as precise orbit file does not exist ..."
-          echo ""
-          echo $file1 > tmprecord
-          set file0 = `echo $file1`
-          set date0 = `echo $date1`
-          set SAT0 = `echo $SAT1`
-          continue
-        endif
+        # Format SAFEfile date constraints for ESA database query
+        set startorbtime = ` echo $n1 | awk '{printf "%d-%s-%sT00:00:00.000Z",substr($1,1,4),substr($1,5,2),substr($1,7,2)}' `
+        set endorbtime = ` echo $n2 | awk '{printf "%d-%s-%sT23:59:59.999Z",substr($1,1,4),substr($1,5,2),substr($1,7,2)}' `
 
-        if (! -f $orb) then
-          if (-f $orb_dir/$SAT0/$orb) then
-            ln -s $orb_dir/$SAT0/$orb .
+        #echo "Querying ESA POD Hub orbit archive..."
+        # Run the query
+        wget --no-check-certificate --user={gnssguest} --password={gnssguest} --output-document=orbitquery.txt "https://scihub.copernicus.eu/gnss/search?q=beginPosition:[${startorbtime} TO ${endorbtime}] AND endPosition:[${startorbtime} TO ${endorbtime}] AND platformname:Sentinel-1 AND filename:${SAT1}_* AND producttype:${orbittype}"
+
+        echo "Checking query for existing orbit file..."
+
+        set orbit = ` grep "title" orbitquery.txt | tail -1 | awk '{printf "%s.EOF",substr($1,8,73)}' `
+        set esaID = ` grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' `           
+        if (! -f $orbit) then
+          # IF esaID is empty that means no uuid was found corresponding to the date window 
+          if (${esaID} == "") then
+            echo "Query Failed -- possible issues:"
+            echo " - an orbit file for those dates may not exist yet"
+            echo "     --> check the resistited orbit files (AUX_RESORB) "
+            echo ""
+            echo " SKIP $date0, as precise orbit file may not exist ..."
+            echo ""
+            echo $file1 > tmprecord
+            set file0 = `echo $file1`
+            set date0 = `echo $date1`
+            set SAT0 = `echo $SAT1`
+            continue
           else
-            wgetasf $url_root"/"$orb
-          endif
+            if (-f $orb_dir/$SAT0/$orbit) then
+              ln -s $orb_dir/$SAT0/$orbit
+            else
+              echo "Query successful -- downloading orbit file..."
+              wget --content-disposition --continue --user={gnssguest} --password={gnssguest} "https://scihub.copernicus.eu/gnss/odata/v1/Products('${esaID}')/"`echo '$'`"value"
+              echo "...orbit file ${orbit} downloaded"
+            endif
+          endif  
+        else  
+          echo "...orbit file already exists..."
+          echo " "
         endif
 
         # compute azimuth for the start and end 
         set pin1 = `head -1 $2 | awk '{print $1,$2}'` 
         set f1 = `head -1 tmprecord`
         make_s1a_tops $f1/annotation/*iw1*vv*xml $f1/measurement/*iw1*vv*tiff tmp2 0
-        ext_orb_s1a tmp2.PRM $orb tmp2
+        ext_orb_s1a tmp2.PRM $orbit tmp2
         set tmpazi = `echo $pin1 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
-        # refinie the calculation in case the pin is far away from the starting frame. (baseline error)
+        # refine the calculation in case the pin is far away from the starting frame. (baseline error)
         shift_atime_PRM.csh tmp2.PRM $tmpazi
         set azi1 = `echo $pin1 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
         
         set pin2 = `tail -1 $2 | awk '{print $1,$2}'`
         set f2 = `tail -1 tmprecord`
         make_s1a_tops $f2/annotation/*iw1*vv*xml $f2/measurement/*iw1*vv*tiff tmp2 0
-        ext_orb_s1a tmp2.PRM $orb tmp2
+        ext_orb_s1a tmp2.PRM $orbit tmp2
         set tmpazi = `echo $pin2 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
         # refinie the calculation in case the pin is far away from the starting frame.
         shift_atime_PRM.csh tmp2.PRM $tmpazi
@@ -136,7 +153,7 @@
               echo $pin0 | awk -F"," '{print $1,$2}' > tmp1llt
               echo $line2 | awk -F"," '{print $1,$2}' >> tmp1llt
               if ($mode != 1) then
-                create_frame_tops.csh tmprecord $orb tmp1llt 1
+                create_frame_tops.csh tmprecord $orbit tmp1llt 1
                 set newfile = `ls -t -d *.SAFE | awk NR==1'{print $0}'`
                 set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
                 set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
@@ -174,7 +191,7 @@
     endif
   end 
 
-  # proces the last set of files
+  # process the last set of files
   echo "" | awk '{printf("%s ","Combing")}' 
   set jj = 1
   set t2 = 9999999999
@@ -191,29 +208,51 @@
   # get the orbit file names and download
   set n1 = `date -v-1d -jf "%Y%m%d" $date0 +%Y%m%d`
   set n2 = `date -v+1d -jf "%Y%m%d" $date0 +%Y%m%d`
-  set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
+  #set orb = `grep $SAT0 orbits.list | grep $n1 | grep $n2 | tail -1`
 
-  echo $n1 $n2 $orb
-  if ($orb == "") then
-    echo ""
-    echo "SKIP $date0, as precise orbit file does not exist ..."
-    echo ""
-    exit 1
-  endif
+  echo "Required orbit file dates: ${n1} to  ${n2}..."
 
-  if (! -f $orb) then
-    if (-f $orb_dir/$SAT0/$orb) then
-      ln -s $orb_dir/$SAT0/$orb .
+  # Format SAFEfile date constraints for ESA database query
+  set startorbtime = ` echo $n1 | awk '{printf "%d-%s-%sT00:00:00.000Z",substr($1,1,4),substr($1,5,2),substr($1,7,2)}' `
+  set endorbtime = ` echo $n2 | awk '{printf "%d-%s-%sT23:59:59.999Z",substr($1,1,4),substr($1,5,2),substr($1,7,2)}' `
+
+  # Run the query
+  wget --no-check-certificate --user={gnssguest} --password={gnssguest} --output-document=orbitquery.txt "https://scihub.copernicus.eu/gnss/search?q=beginPosition:[${startorbtime} TO ${endorbtime}] AND endPosition:[${startorbtime} TO ${endorbtime}] AND platformname:Sentinel-1 AND filename:${SAT1}_* AND producttype:${orbittype}"
+
+  echo "Checking query for existing orbit file..."
+      
+  set orbit = ` grep "title" orbitquery.txt | tail -1 | awk '{printf "%s.EOF",substr($1,8,73)}' `
+  set esaID = ` grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' `           
+  if (! -f $orbit) then
+    # IF esaID is empty that means no uuid was found corresponding to the date window 
+    if (${esaID} == "") then
+      echo "Query Failed -- possible issues:"
+      echo " - an orbit file for those dates may not exist yet"
+      echo "     --> check the resistited orbit files (AUX_RESORB)"
+      echo ""
+      echo " SKIP $date0, as precise orbit file may not exist ..."
+      echo ""
+      exit 1  
     else
-      wgetasf $url_root"/"$orb
-    endif
+      if (-f $orb_dir/$SAT0/$orbit) then
+        ln -s $orb_dir/$SAT0/$orbit
+      else
+        echo "Query successful -- downloading orbit file..."
+        wget --content-disposition --continue --user={gnssguest} --password={gnssguest} "https://scihub.copernicus.eu/gnss/odata/v1/Products('${esaID}')/"`echo '$'`"value"
+        echo "...orbit file ${orbit} downloaded"
+      endif
+    endif  
+  else  
+    echo "...orbit file already exists..."
+    echo " "
   endif
+
 
   # check the start and the end, make sure the start comes later than the first line of the first file and the end comes before the last line of the last file
   set pin1 = `head -1 $2 | awk '{print $1,$2}'` 
   set f1 = `head -1 tmprecord`
   make_s1a_tops $f1/annotation/*iw1*vv*xml $f1/measurement/*iw1*vv*tiff tmp2 0
-  ext_orb_s1a tmp2.PRM $orb tmp2
+  ext_orb_s1a tmp2.PRM $orbit tmp2
   set tmpazi = `echo $pin1 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
   shift_atime_PRM.csh tmp2.PRM $tmpazi
   set azi1 = `echo $pin1 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
@@ -221,7 +260,7 @@
   set pin2 = `tail -1 $2 | awk '{print $1,$2}'` 
   set f2 = `tail -1 tmprecord`
   make_s1a_tops $f2/annotation/*iw1*vv*xml $f2/measurement/*iw1*vv*tiff tmp2 0
-  ext_orb_s1a tmp2.PRM $orb tmp2
+  ext_orb_s1a tmp2.PRM $orbit tmp2
   set tmpazi = `echo $pin2 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
   shift_atime_PRM.csh tmp2.PRM $tmpazi
   set azi2 = `echo $pin2 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
@@ -237,7 +276,7 @@
         echo $line2 | awk -F"," '{print $1,$2,$3,$4,$5,$6}' >> tmp1llt
 
         if ($mode != 1) then
-          create_frame_tops.csh tmprecord $orb tmp1llt 1
+          create_frame_tops.csh tmprecord $orbit tmp1llt 1
           set newfile = `ls -t -d *.SAFE | awk NR==1'{print $0}'`
           set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
           set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
