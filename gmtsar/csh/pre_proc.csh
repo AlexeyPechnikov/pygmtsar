@@ -349,7 +349,7 @@ echo $commandline
     echo ""
     echo " Pre-Process CSK Raw data - START"
     echo ""
-    if ($skip_master == 0 || $skip_master == 1) then
+    if ($skip_master == 0 || $skip_master == 2) then
       make_raw_csk $master.h5 $master
       # calculate SC_vel and SC_height
       mv $master.PRM $master.PRM0
@@ -358,9 +358,10 @@ echo $commandline
       echo "fdd1                    = 0" >> $master.PRM
       echo "fddd1                   = 0" >> $master.PRM
     endif
-    if ($skip_master == 0 || $skip_master == 2) then
+    if ($skip_master == 0 || $skip_master == 1) then
       make_raw_csk $aligned.h5 $aligned
       # calculate SC_vel and SC_height
+      #mv $master.PRM $master.PRM0
       mv $aligned.PRM $aligned.PRM0
       calc_dop_orb $aligned.PRM0 $aligned.log $RAD $FD1
       cat $aligned.PRM0 $aligned.log > $aligned.PRM
