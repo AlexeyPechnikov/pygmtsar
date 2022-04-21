@@ -361,7 +361,6 @@ echo $commandline
     if ($skip_master == 0 || $skip_master == 2) then
       make_raw_csk $aligned.h5 $aligned
       # calculate SC_vel and SC_height
-      mv $master.PRM $master.PRM0
       mv $aligned.PRM $aligned.PRM0
       calc_dop_orb $aligned.PRM0 $aligned.log $RAD $FD1
       cat $aligned.PRM0 $aligned.log > $aligned.PRM
