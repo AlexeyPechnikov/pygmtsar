@@ -20,8 +20,15 @@ cd merge
 rm -f */*_patch.grd */*_interp.grd */unwrap* */landmask* */tmp* */conncomp.grd */gmt.history
 rm -f landmask* log_???????_???????.txt unwrap* tmp* gmt.history
 
-# define server core count
-CPU_CORES=$(lscpu -p=CORE,ONLINE | grep -c 'Y')
+# define server cores count (on MacOS lscpu tool is missed)
+# see also getconf _NPROCESSORS_ONLN
+if which lscpu
+then
+    CPU_CORES=$(lscpu -p=CORE,ONLINE | grep -c 'Y')
+else
+    # Note: see also sysctl hw.logicalcpu
+    CPU_CORES=$(sysctl -n hw.physicalcpu)
+fi
 
 # create landmask if needed
 if [ -n "${uselandmask}" ]

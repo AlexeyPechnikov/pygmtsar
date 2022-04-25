@@ -12,8 +12,15 @@ swathlist="$3"
 cd "$workdir"
 cd "$orbit"
 
-# define server core count
-CPU_CORES=$(lscpu -p=CORE,ONLINE | grep -c 'Y')
+# define server cores count (on MacOS lscpu tool is missed)
+# see also getconf _NPROCESSORS_ONLN
+if which lscpu
+then
+    CPU_CORES=$(lscpu -p=CORE,ONLINE | grep -c 'Y')
+else
+    # Note: see also sysctl hw.logicalcpu
+    CPU_CORES=$(sysctl -n hw.physicalcpu)
+fi
 
 for num in $(echo "$swathlist" | grep -o . | tail -n +2)
 do

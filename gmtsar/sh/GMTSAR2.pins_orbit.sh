@@ -37,4 +37,11 @@ cd data
 ls -d $PWD/*.SAFE > SAFE_filelist
 # data directory named Fxxxx_Fxxxx create and populate
 # with new stitched/trimmed *SAFE data
-organize_files_tops_linux.csh SAFE_filelist ../reframed/pins.ll 2
+if [ $(uname) = "Darwin" ]
+then
+    echo "MacOS specific section"
+    organize_files_tops.csh SAFE_filelist ../reframed/pins.ll 2
+else
+    echo "Linux specific section"
+    organize_files_tops_linux.csh SAFE_filelist ../reframed/pins.ll 2
+fi

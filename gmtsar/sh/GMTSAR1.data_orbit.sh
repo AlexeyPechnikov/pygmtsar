@@ -15,15 +15,22 @@ pattern="$4"
 
 cd "$workdir/$orbit/data/"
 
-# define server core count
-CPU_CORES=$(lscpu -p=CORE,ONLINE | grep -c 'Y')
+# define server cores count (on MacOS lscpu tool is missed)
+# see also getconf _NPROCESSORS_ONLN
+if which lscpu
+then
+    CPU_CORES=$(lscpu -p=CORE,ONLINE | grep -c 'Y')
+else
+    # Note: see also sysctl hw.logicalcpu
+    CPU_CORES=$(sysctl -n hw.physicalcpu)
+fi
 
 # no pattern defined
 if [ "$#" = "3" ]
 then
     pattern="S1A_IW_SLC_*.zip"
 fi
-if echo -n "${pattern}" | grep -q ".zip"
+if printf "${pattern}" | grep -q ".zip"
 then
     echo "Copy zipped data by pattern ${datadir}/${pattern}"
     find "$datadir" -name "${pattern}" -print0 | xargs -0 -I {} -n 1 -P ${CPU_CORES} unzip {}
@@ -36,7 +43,7 @@ if [ "$#" = "3" ]
 then
     pattern="S1A_IW_SLC_*.SAFE"
 fi
-if echo -n "${pattern}" | grep -q ".SAFE"
+if printf "${pattern}" | grep -q ".SAFE"
 then
     echo "Link unzipped data by pattern ${datadir}/${pattern}"
     find "$datadir" -name "$pattern" -print0 | xargs -0 -I {} -n 1 -P ${CPU_CORES} ln -f -s {} .

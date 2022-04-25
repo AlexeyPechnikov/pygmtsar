@@ -17,7 +17,7 @@ rm -fr merge/*
 cd merge
 
 # number of subswaths plus 1 (symbols in string F...)
-swaths=$(echo -n "${swathlist}" | wc -c | tr -d ' ')
+swaths=$(printf "${swathlist}" | wc -c | tr -d ' ')
 
 # process one subswath
 for num in $(echo "$swathlist" | grep -o . | tail -n +2 | head -n 1)
@@ -34,7 +34,8 @@ do
     ln -f -s "../${swath}/baseline_table.dat" .
 
     # missed step to build a list of interferogram directories in the intf_all directory of F2 (intflist)
-    find "../${swath}/intf_all/" -mindepth 1 -maxdepth 1 -name '*' -type d | sed -s "s|^../${swath}/intf_all/||g" > intflist
+    # note: drop leading slashed on MacOSX using tr tool
+    find "../${swath}/intf_all/" -mindepth 1 -maxdepth 1 -name '*' -type d | sed -s "s|^../${swath}/intf_all/||g" | tr -d '/' > intflist
 
     # define master image to use for merging below
     master=$(grep master_image "../${swath}/batch_tops.config" | sed -E 's/(.*)(S1_.*_F[123])(.*)/\2/')
@@ -71,11 +72,11 @@ then
     # mode 1 is for F1/F2
     # mode 2 is for F2/F3
     # note: F1/F3 are not connected and so unsopported for the merging
-    if echo -n "$swathlist" | grep -q 123
+    if printf "$swathlist" | grep -q 123
     then
         mode=0
     else
-        if echo -n "$swathlist" | grep -q 12
+        if printf "$swathlist" | grep -q 12
         then
             # mode 1 is for F1/F2
             mode=1
@@ -91,7 +92,8 @@ then
     echo "Master line: $masterline"
     mv merge_list merge_list.orig
     echo "$masterline" > merge_list
-    grep -v "$masterline" -- merge_list.orig >> merge_list
+    # prevent the empty output error
+    grep -v "$masterline" -- merge_list.orig >> merge_list || true
     rm -f merge_list.orig
 
     # Run merge_batch.csh

@@ -49,6 +49,14 @@ SBASOPTS="-atm 0 -smooth 5.0"
 
 # notify user via Telegram
 telegram_senddocument.sh Start "$0"
+
+if [ $(uname) = "Darwin" ]
+then
+    echo "MacOS specific section: make alisa to use gsed instead of sed tool"
+    sed() { gsed "$@"; }
+    export -f sed
+fi
+
 ##########################################################################################
 # Start GMTSAR processing
 ##########################################################################################
