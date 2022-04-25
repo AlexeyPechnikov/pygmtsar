@@ -225,13 +225,20 @@
 
     if (-f unwrap.grd) then
       gmt grdmath unwrap.grd mask2.grd MUL = unwrap_mask.grd
+      set wavel = `grep wavelength *.PRM | awk '{print($3)}' | head -1 `
+      gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
       proj_ra2ll.csh trans.dat unwrap.grd unwrap_ll.grd
       proj_ra2ll.csh trans.dat unwrap_mask.grd unwrap_mask_ll.grd
+      proj_ra2ll.csh trans.dat los.grd los_ll.grd
       set BT = `gmt grdinfo -C unwrap.grd | awk '{print $7}'`
       set BL = `gmt grdinfo -C unwrap.grd | awk '{print $6}'`
       gmt makecpt -T$BL/$BT/0.5 -Z > unwrap.cpt
       grd2kml.csh unwrap_mask_ll unwrap.cpt
       grd2kml.csh unwrap_ll unwrap.cpt
+      set BT = `gmt grdinfo -C los.grd | awk '{print $7}'`
+      set BL = `gmt grdinfo -C los.grd | awk '{print $6}'`
+      gmt makecpt -T$BL/$BT/2 -Z > los.cpt
+      grd2kml.csh los_ll los.cpt
     endif
     
     echo "GEOCODE END"
