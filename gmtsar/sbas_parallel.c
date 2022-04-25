@@ -197,10 +197,24 @@ int parse_command_ts(int64_t agc, char **agv, float *sf, double *wl, double *the
 int allocate_memory_ts(int64_t **jpvt, double **work, double **d, double **ds, float **bperp, char ***gfile, char ***cfile,
                        int64_t **L, double **time, int64_t **H, double **G, double **A, double **Gs, int64_t **flag, float **dem,
                        float **res, float **vel, float **phi, float **var, float **disp, int64_t n, int64_t m, int64_t lwork,
-                       int64_t ldb, int64_t N, int64_t S, int64_t xdim, int64_t ydim, int64_t **hit, int64_t flag_mmap) {
+                       int64_t ldb, int64_t N, int64_t S, int64_t xdim, int64_t ydim, int64_t **hit, int64_t flag_mmap, int64_t n_atm) {
 
 	int64_t i;
 	char **p1, **p2;
+    double Mem;
+
+    Mem = xdim*ydim*(N*2 + S)*4 + n*4 + lwork*8 + N*8 + N*4 + N*8*2 + 256*N*2 + S*4 + S*8 + N*2*4 + m*n*8*2 + xdim*ydim*4*3 + S*S*4 + S*8;
+    if (n_atm != 0) {
+      Mem = Mem + xdim*ydim*(N*4+S*4) + N*4 + S*8 + S*4;
+    }   
+    if (flag_mmap != 0) {
+      Mem = xdim*ydim*S*4 + n*4 + lwork*8 + N*8 + N*4 + N*8*2 + 256*N*2 + S*4 + S*8 + N*2*4 + m*n*8*2 + xdim*ydim*4*3 + S*S*4;
+      if (n_atm != 0) {
+        Mem = Mem + xdim*ydim*S*4 + N*4 + S*8 + S*4;
+      }   
+    }   
+    Mem = Mem/1024/1024/1024;
+    printf("Required Memory Usage is %.6f GB ...\n", Mem);
 
 	if ((*jpvt = Malloc(int64_t, n)) == NULL)
 		die("memory allocation!", "jpvt");
@@ -1072,7 +1086,7 @@ int main(int argc, char **argv) {
 	mm_size_N = 4 * (size_t)N * (size_t)xdim * (size_t)ydim;
 	mm_size_S = 4 * (size_t)S * (size_t)xdim * (size_t)ydim;
 	allocate_memory_ts(&jpvt, &work, &d, &ds, &bperp, &gfile, &cfile, &L, &time, &H, &G, &A, &Gs, &flag, &dem, &res, &vel, &phi,
-	                   &var, &disp, n, m, lwork, ldb, N, S, xdim, ydim, &hit, flag_mmap);
+	                   &var, &disp, n, m, lwork, ldb, N, S, xdim, ydim, &hit, flag_mmap, n_atm);
 
         /* mmap the phi and var arrays. this must be done in the main program  */
     if (flag_mmap == 1) {

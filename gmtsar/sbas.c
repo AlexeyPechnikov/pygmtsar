@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 	                        // and atm_rms(S)
 	mm_size = 4 * (size_t)N * (size_t)xdim * (size_t)ydim;
 	allocate_memory_ts(&jpvt, &work, &d, &ds, &bperp, &gfile, &cfile, &L, &time, &H, &G, &A, &Gs, &flag, &dem, &res, &vel, &phi,
-	                   &var, &disp, n, m, lwork, ldb, N, S, xdim, ydim, &hit, flag_mmap);
+	                   &var, &disp, n, m, lwork, ldb, N, S, xdim, ydim, &hit, flag_mmap, n_atm);
 
         /* mmap the phi and var arrays. this must be done in the main program  */
     if (flag_mmap == 1) {
