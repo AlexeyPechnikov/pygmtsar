@@ -29,13 +29,13 @@ set d1 = `date`
 foreach line (`awk '{print $0}' $intflist`)
   echo "$unwrapscript $line > log_$line.txt" >> unwrap.cmd
 end
-
-parallel --jobs $ncores < unwrap.cmd
+# long option --jobs is not supported on MacOSX
+parallel -j $ncores < unwrap.cmd
 
 echo ""
 echo "Finished all unwrapping jobs..."
 echo ""
 
 set d2 = `date`
-
-#echo "parallel --jobs $ncores < intf_tops.cmd" | mail -s "Unwrapping finished" "balabala@gmail.com" 
+# long option --jobs is not supported on MacOSX
+#echo "parallel -j $ncores < intf_tops.cmd" | mail -s "Unwrapping finished" "balabala@gmail.com" 
