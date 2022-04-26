@@ -3,8 +3,8 @@ __INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
 
 __INSTALL__
 
-1) Go to the GMTSAR WIKI and follow the instructions.
-       http://gmt.soest.hawaii.edu/projects/gmt5sar/wiki
+1) Go to the GMTSAR WIKI and follow the instructions to install dependencies and download the GMTSAR package.
+       https://github.com/gmtsar/gmtsar/wiki/GMTSAR-Wiki-Page
 
 2) Download orbit files for just ERS and ENVISAT. The other satellites have orbits distributed with the data.
        https://topex.ucsd.edu/gmtsar/downloads/
