@@ -12,10 +12,9 @@
 #
 # EDIT 04/2022: Replaced the wgetasf calls with ESA api commands
 
-
-  if ($#argv != 3) then
+  if ($#argv != 3 && $#argv != 4) then
     echo ""
-    echo "Usage: organize_files_tops.csh filelist pins.ll mode"
+    echo "Usage: organize_files_tops.csh filelist pins.ll mode [observation_mode]"
     echo "  organize one track of S1A TOPS data, redefine frames, auto-download precise orbits"
     echo "    if restituted orbits are required, user must download separately"
     echo ""
@@ -41,6 +40,10 @@
 
   set ii = 0
   set mode = $3
+  set org_mod = "$org_mod"
+  if ($#argv == 4) then
+    set org_mod = $4
+  endif
 
   if (-f tmprecord) rm tmprecord
 
@@ -127,7 +130,7 @@
         # compute azimuth for the start and end 
         set pin1 = `head -1 $2 | awk '{print $1,$2}'` 
         set f1 = `head -1 tmprecord`
-        make_s1a_tops $f1/annotation/*iw1*vv*xml $f1/measurement/*iw1*vv*tiff tmp2 0
+        make_s1a_tops $f1/annotation/*iw1*"$org_mod"*xml $f1/measurement/*iw1*"$org_mod"*tiff tmp2 0
         ext_orb_s1a tmp2.PRM $orbit tmp2
         set tmpazi = `echo $pin1 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
         # refine the calculation in case the pin is far away from the starting frame. (baseline error)
@@ -136,7 +139,7 @@
         
         set pin2 = `tail -1 $2 | awk '{print $1,$2}'`
         set f2 = `tail -1 tmprecord`
-        make_s1a_tops $f2/annotation/*iw1*vv*xml $f2/measurement/*iw1*vv*tiff tmp2 0
+        make_s1a_tops $f2/annotation/*iw1*"$org_mod"*xml $f2/measurement/*iw1*"$org_mod"*tiff tmp2 0
         ext_orb_s1a tmp2.PRM $orbit tmp2
         set tmpazi = `echo $pin2 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
         # refinie the calculation in case the pin is far away from the starting frame.
@@ -155,8 +158,8 @@
               if ($mode != 1) then
                 create_frame_tops.csh tmprecord $orbit tmp1llt 1
                 set newfile = `ls -t -d *.SAFE | awk NR==1'{print $0}'`
-                set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
-                set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
+                set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
+                set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
                 set dirname = `echo $Frame1"_"$Frame2`
                 echo "Created Frame $Frame1 - $Frame2 ..."
                 echo ""
@@ -251,7 +254,7 @@
   # check the start and the end, make sure the start comes later than the first line of the first file and the end comes before the last line of the last file
   set pin1 = `head -1 $2 | awk '{print $1,$2}'` 
   set f1 = `head -1 tmprecord`
-  make_s1a_tops $f1/annotation/*iw1*vv*xml $f1/measurement/*iw1*vv*tiff tmp2 0
+  make_s1a_tops $f1/annotation/*iw1*"$org_mod"*xml $f1/measurement/*iw1*"$org_mod"*tiff tmp2 0
   ext_orb_s1a tmp2.PRM $orbit tmp2
   set tmpazi = `echo $pin1 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
   shift_atime_PRM.csh tmp2.PRM $tmpazi
@@ -259,7 +262,7 @@
 
   set pin2 = `tail -1 $2 | awk '{print $1,$2}'` 
   set f2 = `tail -1 tmprecord`
-  make_s1a_tops $f2/annotation/*iw1*vv*xml $f2/measurement/*iw1*vv*tiff tmp2 0
+  make_s1a_tops $f2/annotation/*iw1*"$org_mod"*xml $f2/measurement/*iw1*"$org_mod"*tiff tmp2 0
   ext_orb_s1a tmp2.PRM $orbit tmp2
   set tmpazi = `echo $pin2 | awk '{print $1,$2,0}' | SAT_llt2rat tmp2.PRM 1 | awk '{printf("%d",$2+0.5)}'`
   shift_atime_PRM.csh tmp2.PRM $tmpazi
@@ -278,8 +281,8 @@
         if ($mode != 1) then
           create_frame_tops.csh tmprecord $orbit tmp1llt 1
           set newfile = `ls -t -d *.SAFE | awk NR==1'{print $0}'`
-          set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
-          set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*vv*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
+          set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
+          set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
           set dirname = `echo $Frame1"_"$Frame2`
           echo "Created Frame $Frame1 - $Frame2 ..."
           echo ""
