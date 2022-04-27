@@ -9,7 +9,7 @@
 
   if ($#argv != 3 && $#argv != 4) then
     echo ""
-    echo "Usage: create_frame_tops.csh SAFE_filelist ****.EOF two_pins.ll [mode]"
+    echo "Usage: create_frame_tops.csh SAFE_filelist ****.EOF two_pins.ll [observation_mode]"
     echo "       create one frame based on the two input frames, precise/restituted orbit is required"
     echo ""
     echo "  format of two_pins.llt (lon2/lat2 comes later than lon1/lat1 in orbit time):"
@@ -22,7 +22,7 @@
     echo ""
     echo "  Note:"
     echo "    The two input .SAFE file should be in time order, if the two_pin.llt is at wrong location, the program will output all the bursts."
-    echo "    mode = 1, output vv; mode = 2, output vh; default is vv"
+    echo "    observation_mode could be vv, vh, hh, hv, default is vv"
     echo "    Files listed in SAFE_filelist should be the absolute path"
     echo ""
     exit 1
@@ -31,11 +31,7 @@
   if ($#argv == 3) then
     set mode = `echo "vv"`
   else 
-    if ($4 == 1) then
-      set mode = `echo "vv"`
-    else
-      set mode = `echo "vh"`
-    endif
+    set mode = $4
   endif
 
   set ncol = `awk '{print NF}' $3 | head -1`

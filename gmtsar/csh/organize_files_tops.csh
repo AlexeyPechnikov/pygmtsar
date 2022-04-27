@@ -156,7 +156,7 @@
               echo $pin0 | awk -F"," '{print $1,$2}' > tmp1llt
               echo $line2 | awk -F"," '{print $1,$2}' >> tmp1llt
               if ($mode != 1) then
-                create_frame_tops.csh tmprecord $orbit tmp1llt 1
+                create_frame_tops.csh tmprecord $orbit tmp1llt $org_mod
                 set newfile = `ls -t -d *.SAFE | awk NR==1'{print $0}'`
                 set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
                 set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
@@ -279,7 +279,7 @@
         echo $line2 | awk -F"," '{print $1,$2,$3,$4,$5,$6}' >> tmp1llt
 
         if ($mode != 1) then
-          create_frame_tops.csh tmprecord $orbit tmp1llt 1
+          create_frame_tops.csh tmprecord $orbit tmp1llt $org_mod
           set newfile = `ls -t -d *.SAFE | awk NR==1'{print $0}'`
           set Frame1 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | head -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'`
           set Frame2 = `grep azimuthAnxTime $newfile/annotation/*iw1*"$org_mod"*xml | tail -1 | awk -F">" '{print $2}' | awk -F"<" '{printf("F%.4d", $1+0.5)}'` 
