@@ -175,9 +175,12 @@ if ($skip_master != 2) then
 
 
   set iono = `grep correct_iono ../$5 | awk '{print $3}'`
+  set iono_filt_rng = `grep iono_filt_rng $3 | awk '{print $3}'`
+  set iono_filt_azi = `grep iono_filt_azi $3 | awk '{print $3}'`
+  set det_stitch = `grep det_stitch $3 | awk '{print $3}'`
   if ($iono != 0) then
     sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
-    merge_unwrap_geocode_tops.csh tmp.filelist $5 1
+    merge_unwrap_geocode_tops.csh tmp.filelist $5 $det_stitch
 
     cd ..
     mkdir iono
@@ -190,7 +193,7 @@ if ($skip_master != 2) then
     sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
     ln -s ../../topo/dem.grd .
     ln -s ../../merge/trans.dat .
-    merge_unwrap_geocode_tops.csh tmp.filelist $5 1
+    merge_unwrap_geocode_tops.csh tmp.filelist $5 $det_stitch
     cp ../../F1/SLC/params* .
     cd ../intf_l
 
@@ -200,7 +203,7 @@ if ($skip_master != 2) then
     sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
     ln -s ../../topo/dem.grd .
     ln -s ../../merge/trans.dat .
-    merge_unwrap_geocode_tops.csh tmp.filelist $5 1
+    merge_unwrap_geocode_tops.csh tmp.filelist $5 $det_stitch
     cp ../../F1/SLC/params* .
     cd ../intf_o
 
@@ -210,20 +213,20 @@ if ($skip_master != 2) then
     sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
     ln -s ../../topo/dem.grd .
     ln -s ../../merge/trans.dat .
-    merge_unwrap_geocode_tops.csh tmp.filelist $5 1
+    merge_unwrap_geocode_tops.csh tmp.filelist $5 $det_stitch
     cp ../../F1/SLC/params* .
     cd ../iono_correction
 
-    estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o ../../merge 0.8 0.8 
+    estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o ../../merge $iono_filt_rng $iono_filt_azi
     cd ../../merge
     ln -s ../iono/iono_correction/ph_iono_orig.grd .
     cp ../$5 .
 
-    merge_unwrap_geocode_tops.csh tmp.filelist $5 1
+    merge_unwrap_geocode_tops.csh tmp.filelist $5 $det_stitch
    
   else
     cp ../$5 .
-    merge_unwrap_geocode_tops.csh tmp.filelist $5 1
+    merge_unwrap_geocode_tops.csh tmp.filelist $5 $det_stitch
 
   endif
 else

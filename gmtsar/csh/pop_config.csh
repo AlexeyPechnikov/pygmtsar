@@ -195,3 +195,11 @@ echo "#####################################"
 echo "# correlation threshold for geocode.csh (0< threshold <=1), set 0 to skip"
 echo "threshold_geocode = .10"
 echo ""
+echo "#####################################"
+echo "#   Other parameters                #"
+echo "#####################################"
+echo ""
+if ($SAT == "S1_TOPS" || $SAT == "ALOS2_SCAN") then
+  echo "# determine stitching location for TOPS and ALOS2SanSAR data using nan-s surrounding images from subswaths"
+  echo "det_stitch = 0"
+endif
