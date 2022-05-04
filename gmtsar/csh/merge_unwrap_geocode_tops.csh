@@ -40,11 +40,11 @@
   endif
 
   if ($#argv == 3) then
-    set det_stitch = 1
-  else
-    set det_stitch = 0
+    set det_stitch = $3
     set n1 = 0
     set n2 = 0
+  else
+    set det_stitch = 0
   endif
 
   set region_cut = `grep region_cut $2 | awk '{print $3}'`
