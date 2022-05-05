@@ -45,6 +45,8 @@
     set n2 = 0
   else
     set det_stitch = 0
+    set n1 = ""
+    set n2 = ""
   endif
 
   set region_cut = `grep region_cut $2 | awk '{print $3}'`
