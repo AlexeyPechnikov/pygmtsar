@@ -85,14 +85,20 @@ gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 gmt grdmath $fh $fc DIV up_l.grd MUL $fl $fc DIV up_h.grd MUL SUB $fl $fh MUL $fh $fh MUL $fl $fl MUL SUB DIV MUL = tmp_ph0.grd
 
-if (-e ../../merge/merge_log || -e ../intf_h/merge_log) then
+if (-e $intfH/merge_log || -e $intfH/merge_log1) then
   cp tmp_ph0.grd tmp_ph0_save.grd
-  #awk -F: '{print "../"$1":../"$2}' ../../merge/tmp_phaselist > tmp_phaselist
-  echo "../../F1/iono_phase/intf_h/tmp.PRM:../../F1/iono_phase/intf_h/phasefilt.grd" > tmp_phaselist
-  echo "../../F2/iono_phase/intf_h/tmp.PRM:../../F2/iono_phase/intf_h/phasefilt.grd" >> tmp_phaselist
-  echo "../../F3/iono_phase/intf_h/tmp.PRM:../../F3/iono_phase/intf_h/phasefilt.grd" >> tmp_phaselist
-  correct_merge_offset.csh tmp_phaselist ../intf_h/merge_log tmp_ph0.grd tmp_ph0_corrected.grd
-  mv tmp_ph0_corrected.grd tmp_ph0.grd
+  if (-e $intfH/merge_log) then
+    cp $intfH/tmp_phaselist .
+    correct_merge_offset.csh tmp_phaselist ../intf_h/merge_log tmp_ph0.grd tmp_ph0_corrected.grd
+    mv tmp_ph0_corrected.grd tmp_ph0.grd
+  else
+    cp $intfH/tmp_phaselist1 .
+    correct_merge_offset.csh tmp_phaselist1 ../intf_h/merge_log1 tmp_ph0.grd tmp_ph0_corrected.grd
+    ln -s $intfH/tmp_first .
+    cp $intfH/tmp_phaselist2 .
+    correct_merge_offset.csh tmp_phaselist2 ../intf_h/merge_log2 tmp_ph0_corrected.grd tmp_ph0.grd
+    rm tmp_ph0_corrected.grd
+  endif
 endif
 
 gmt grdmath tmp_ph0.grd mask.grd MUL = tmp_ph.grd

@@ -34,8 +34,18 @@ unset noclobber
 
   set master = `echo $1 | awk '{print substr($1,8,length($1)-7)}'`
   set aligned = `echo $2 | awk '{print substr($1,8,length($1)-7)}'`
+  
+  set stage = `grep proc_stage $3 | awk '{print $3}'`
+  
+  set iono = `grep correct_iono $3 | awk '{print $3}'`
+  set iono_filt_rng = `grep iono_filt_rng $3 | awk '{print $3}'`
+  set iono_filt_azi = `grep iono_filt_azi $3 | awk '{print $3}'`
+  set det_stitch = `grep det_stitch $3 | awk '{print $3}'`
+  set mask_water = `grep mask_water $3 | awk '{print $3}'`
 
-#if ( 6 == 9 ) then
+  echo "Starting at Stage $stage"  
+
+if ( $stage < 5  ) then
 
 #
 # determine file names
@@ -63,34 +73,38 @@ unset noclobber
 #   
   if ($seq == 0) then
     foreach swath (1 2 3 4 5)
-      cd F$swath
-      sed "s/.*skip_stage.*/skip_stage = 2,3,4,5,6/g" $3 > tmp_config
-      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config
-      cd raw 
-      samp_slc.csh $1"-F"$swath 3350 0
-      samp_slc.csh $2"-F"$swath 3350 0
-      cd ..
+      if ($stage < 2) then
+        cd F$swath
+        sed "s/.*skip_stage.*/skip_stage = 2,3,4,5,6/g" $3 > tmp_config
+        p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config
+        cd raw 
+        samp_slc.csh $1"-F"$swath 3350 0
+        samp_slc.csh $2"-F"$swath 3350 0
+        cd ..
+      endif
       sed "s/.*skip_stage.*/skip_stage = 1/g" $3 > tmp_config
       p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config
       rm tmp_config
       cd ..
     end
   else if ($seq == 1) then
-    foreach swath (1 2 3 4 5)
-      cd F$swath
-      sed "s/.*skip_stage.*/skip_stage = 2,3,4,5,6/g" $3 > tmp_config
-      p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config >&log&
-      cd ..
-    end
-    wait 
+    if ($stage < 1) then
+      foreach swath (1 2 3 4 5)
+        cd F$swath
+        sed "s/.*skip_stage.*/skip_stage = 2,3,4,5,6/g" $3 > tmp_config
+        p2p_processing.csh ALOS2_SCAN $1"-F"$swath $2"-F"$swath tmp_config >&log&
+        cd ..
+      end
+      wait 
 
-    foreach swath (1 2 3 4 5)
-      cd F$swath/raw
-      samp_slc.csh $1"-F"$swath 3350 0 
-      samp_slc.csh $2"-F"$swath 3350 0
-      cd ../..
-    end 
-    wait 
+      foreach swath (1 2 3 4 5)
+        cd F$swath/raw
+        samp_slc.csh $1"-F"$swath 3350 0 
+        samp_slc.csh $2"-F"$swath 3350 0
+        cd ../..
+      end 
+      wait 
+    endif
 
     foreach swath (1 2 3 4 5)
       cd F$swath
@@ -106,89 +120,221 @@ unset noclobber
   endif
 
 
-#endif
+endif
 
 
 #
 # merge_unwrap_geocode
 #
+
   mkdir merge
   cd merge
   ln -s ../topo/dem.grd .
   ln -s ../F1/intf/*/gauss* .
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$3 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $3
+  set recompute_LUT = 1
+
   set pth1 = `ls ../F1/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
   set prm1m = `ls ../F1/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
+  set prm1s = `ls ../F1/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'` 
+
   set pth2 = `ls ../F2/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
   set prm2m = `ls ../F2/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
+  set prm2s = `ls ../F2/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'` 
+
   set pth3 = `ls ../F3/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
   set prm3m = `ls ../F3/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
+  set prm3s = `ls ../F3/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'` 
+
   set pth4 = `ls ../F4/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
   set prm4m = `ls ../F4/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
+  set prm4s = `ls ../F4/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'` 
+
   set pth5 = `ls ../F5/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{for (i=1;i<NF;i++) printf("%s/",$i)}'`
   set prm5m = `ls ../F5/intf/*/*PRM | awk NR==1'{print $1}' | awk -F"/" '{print $NF}'`
-  
-  echo $pth1$prm1m":"$pth1"phasefilt.grd" > phaselist
-  echo $pth2$prm2m":"$pth2"phasefilt.grd" >> phaselist
-  echo $pth3$prm3m":"$pth3"phasefilt.grd" >> phaselist
-  echo $pth4$prm4m":"$pth4"phasefilt.grd" >> phaselist
-  echo $pth5$prm5m":"$pth5"phasefilt.grd" >> phaselist
+  set prm5s = `ls ../F5/intf/*/*PRM | awk NR==2'{print $1}' | awk -F"/" '{print $NF}'` 
 
-  head -3 phaselist > first.txt
-  merge_swath first.txt first.grd first
-  echo "first.PRM:first.grd" > second.txt
-  tail -2 phaselist >> second.txt
-  merge_swath second.txt second.grd second
-  mv second.PRM $prm1m
-  mv second.grd phasefilt.grd
-  rm first* second*
-
-
-  echo $pth1$prm1m":"$pth1"corr.grd" > corrlist
-  echo $pth2$prm2m":"$pth2"corr.grd" >> corrlist
-  echo $pth3$prm3m":"$pth3"corr.grd" >> corrlist
-  echo $pth4$prm4m":"$pth4"corr.grd" >> corrlist
-  echo $pth5$prm5m":"$pth5"corr.grd" >> corrlist
-
-  head -3 corrlist > first.txt
-  merge_swath first.txt first.grd first
-  echo "first.PRM:first.grd" > second.txt
-  tail -2 corrlist >> second.txt
-  merge_swath second.txt second.grd second
-  mv second.grd corr.grd
-  rm first* second*
-
-
-  echo $pth1$prm1m":"$pth1"mask.grd" > masklist
-  echo $pth2$prm2m":"$pth2"mask.grd" >> masklist
-  echo $pth3$prm3m":"$pth3"mask.grd" >> masklist
-  echo $pth4$prm4m":"$pth4"mask.grd" >> masklist
-  echo $pth5$prm5m":"$pth5"mask.grd" >> masklist
-
-  head -3 masklist > first.txt
-  merge_swath first.txt first.grd first
-  echo "first.PRM:first.grd" > second.txt
-  tail -2 masklist >> second.txt
-  merge_swath second.txt second.grd second
-  mv second.grd mask.grd
-  rm first* second*
-
+  echo $pth1":"$prm1m":"$prm1s > tmp.filelist
+  echo $pth2":"$prm2m":"$prm2s >> tmp.filelist
+  echo $pth3":"$prm3m":"$prm3s >> tmp.filelist
+  set stem = `awk -F: 'NR==1 {print $2}' tmp.filelist | awk -F"." '{print $1}'`
+ 
   if (! -f trans.dat) then
+    touch trans.dat
+  else
+    set recompute_LUT = 0
+  endif 
+  
+  merge_unwrap_geocode_tops.csh tmp.filelist $3 $det_stitch
+  mv merge_log merge_log1
+  mv tmp_phaselist tmp_phaselist1
+  mkdir tmp_first
+  mv phasefilt.grd tmp_first
+  mv corr.grd tmp_first
+  mv mask.grd tmp_first
+  cp $stem.PRM tmp_first/$stem.PRM
+  echo "./tmp_first/:$stem.PRM:$stem.PRM" > tmp2.filelist
+  echo $pth4":"$prm4m":"$prm4s >> tmp2.filelist
+  echo $pth5":"$prm5m":"$prm5s >> tmp2.filelist
+  merge_unwrap_geocode_tops.csh tmp2.filelist $3 det_stitch
+  mv merge_log merge_log2
+  mv tmp_phaselist tmp_phaselist2
+  #rm -rf tmp_first
+
+  if ($recompute_LUT == 1) then
+    rm trans.dat
     if (! -f dem.grd) then
       echo "ERROR: missing dem.grd ... (link from the topo folder)"
       exit 1
     endif
-    set led = `grep led_file $prm1m | awk '{print $3}'`
+    set led = `grep led_file $stem.PRM | awk '{print $3}'`
     cp $pth1$led .
-    gmt grd2xyz --FORMAT_FLOAT_OUT=%lf dem.grd -s | SAT_llt2rat $prm1m 1 -bod > trans.dat
+    echo "Recomputing the projection LUT..."
+    gmt grd2xyz --FORMAT_FLOAT_OUT=%lf dem.grd -s | SAT_llt2rat $stem.PRM 1 -bod > trans.dat
   endif
+  cd ..
 
+#
+# ionospheric correction
+#
+
+if ($iono == 1) then
+
+  echo ""
+  echo "ALOS2 Ionospheric phase estimates - START"
+  echo ""
+  mkdir iono
+  cd iono
+  mkdir intf_h intf_l intf_o iono_correction
+
+  cd intf_h
+  ln -s ../../topo/dem.grd .
+  ln -s ../../merge/trans.dat .
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$3 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $3
+  echo "../../F1/iono_phase/intf_h/:"$prm1m":"$prm1s > tmp.filelist
+  echo "../../F2/iono_phase/intf_h/:"$prm2m":"$prm2s >> tmp.filelist
+  echo "../../F3/iono_phase/intf_h/:"$prm3m":"$prm3s >> tmp.filelist
+  merge_unwrap_geocode_tops.csh tmp.filelist $3 det_stitch
+  mv merge_log merge_log1
+  mv tmp_phaselist tmp_phaselist1
+  mkdir tmp_first
+  mv phasefilt.grd tmp_first
+  mv corr.grd tmp_first
+  mv mask.grd tmp_first
+  cp $stem.PRM tmp_first/$stem.PRM
+  echo "./tmp_first/:$stem.PRM:$stem.PRM" > tmp2.filelist
+  echo "../../F4/iono_phase/intf_h/:"$prm4m":"$prm4s >> tmp2.filelist
+  echo "../../F5/iono_phase/intf_h/:"$prm5m":"$prm5s >> tmp2.filelist
+  sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" $3 > tmp
+  mv tmp $3
+  merge_unwrap_geocode_tops.csh tmp2.filelist $3 det_stitch
+  mv merge_log merge_log2
+  mv tmp_phaselist tmp_phaselist2
+  correct_merge_offset.csh tmp_phaselist1 merge_log1 unwrap.grd unwrap_corrected.grd
+  correct_merge_offset.csh tmp_phaselist2 merge_log2 unwrap_corrected.grd unwrap.grd
+  rm unwrap_corrected.grd
+  cp ../../F1/SLC/params* .
+  mv $stem.PRM $prm1m
+  #rm -rf tmp_first
+  cd ..
+
+  cd intf_l
+  ln -s ../../topo/dem.grd .
+  ln -s ../../merge/trans.dat .
+  if ($mask_water == 1) then
+    ln -s ../intf_h/landmask_ra.grd .
+  endif
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$3 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $3
+  echo "../../F1/iono_phase/intf_l/:"$prm1m":"$prm1s > tmp.filelist
+  echo "../../F2/iono_phase/intf_l/:"$prm2m":"$prm2s >> tmp.filelist
+  echo "../../F3/iono_phase/intf_l/:"$prm3m":"$prm3s >> tmp.filelist
+  merge_unwrap_geocode_tops.csh tmp.filelist $3 det_stitch
+  mv merge_log merge_log1
+  mv tmp_phaselist tmp_phaselist1
+  mkdir tmp_first
+  mv phasefilt.grd tmp_first
+  mv corr.grd tmp_first
+  mv mask.grd tmp_first
+  cp $stem.PRM tmp_first/$stem.PRM
+  echo "./tmp_first/:$stem.PRM:$stem.PRM" > tmp2.filelist
+  echo "../../F4/iono_phase/intf_l/:"$prm4m":"$prm4s >> tmp2.filelist
+  echo "../../F5/iono_phase/intf_l/:"$prm5m":"$prm5s >> tmp2.filelist
+  sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" $3 > tmp 
+  mv tmp $3
+  merge_unwrap_geocode_tops.csh tmp2.filelist $3 det_stitch
+  mv merge_log merge_log2
+  mv tmp_phaselist tmp_phaselist2
+  correct_merge_offset.csh tmp_phaselist1 merge_log1 unwrap.grd unwrap_corrected.grd
+  correct_merge_offset.csh tmp_phaselist2 merge_log2 unwrap_corrected.grd unwrap.grd
+  rm unwrap_corrected.grd
+  cp ../../F1/SLC/params* .
+  mv $stem.PRM $prm1m
+  #rm -rf tmp_first
+  cd ..
+
+  cd intf_o
+  ln -s ../../topo/dem.grd .
+  ln -s ../../merge/trans.dat .
+  if ($mask_water == 1) then
+    ln -s ../intf_h/landmask_ra.grd .
+  endif
+  sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../../$3 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $3
+  echo "../../F1/iono_phase/intf_o/:"$prm1m":"$prm1s > tmp.filelist
+  echo "../../F2/iono_phase/intf_o/:"$prm2m":"$prm2s >> tmp.filelist
+  echo "../../F3/iono_phase/intf_o/:"$prm3m":"$prm3s >> tmp.filelist
+  merge_unwrap_geocode_tops.csh tmp.filelist $3 det_stitch
+  mv merge_log merge_log1
+  mv tmp_phaselist tmp_phaselist1
+  mkdir tmp_first
+  mv phasefilt.grd tmp_first
+  mv corr.grd tmp_first
+  mv mask.grd tmp_first
+  cp $stem.PRM tmp_first/$stem.PRM
+  echo "./tmp_first/:$stem.PRM:$stem.PRM" > tmp2.filelist
+  echo "../../F4/iono_phase/intf_o/:"$prm4m":"$prm4s >> tmp2.filelist
+  echo "../../F5/iono_phase/intf_o/:"$prm5m":"$prm5s >> tmp2.filelist
+  sed "s/.*threshold_snaphu.*/threshold_snaphu = 0.1/g" $3 > tmp 
+  mv tmp $3
+  merge_unwrap_geocode_tops.csh tmp2.filelist $3 det_stitch
+  mv merge_log merge_log2
+  mv tmp_phaselist tmp_phaselist2
+  correct_merge_offset.csh tmp_phaselist1 merge_log1 unwrap.grd unwrap_corrected.grd
+  correct_merge_offset.csh tmp_phaselist2 merge_log2 unwrap_corrected.grd unwrap.grd
+  rm unwrap_corrected.grd
+  cp ../../F1/SLC/params* .
+  mv $stem.PRM $prm1m
+  #rm -rf tmp_first
+  cd ..
+  
+  cd iono_correction
+  estimate_ionospheric_phase.csh ../intf_h ../intf_l ../intf_o ../../merge $iono_filt_rng $iono_filt_azi
+  cd ../../
+
+  cd merge
+  ln -s ../iono/iono_correction/ph_iono_orig.grd .
+  
+  echo "Correcting ionosphere ..."
+  gmt grdsample ph_iono_orig.grd -Rphasefilt.grd -Gtmp.grd
+  gmt grdmath phasefilt.grd tmp.grd SUB PI ADD 2 PI MUL MOD PI SUB = tmp2.grd
+  mv phasefilt.grd phasefilt_orig.grd
+  mv tmp2.grd phasefilt.grd
+  rm tmp.grd
+  cd ..
+
+  echo ""
+  echo "ALOS2 Ionospheric phase estimates - END"
+  echo ""
+
+endif
+
+
+  cd merge
     # Read in parameters
-  set threshold_snaphu = `grep threshold_snaphu $2 | awk '{print $3}'`
-  set threshold_geocode = `grep threshold_geocode $2 | awk '{print $3}'`
-  set region_cut = `grep region_cut $2 | awk '{print $3}'`
-  set mask_water = `grep mask_water $2 | awk '{print $3}'`
-  set defomax = `grep defomax $2 | awk '{print $3}'`
-  set near_interp = `grep near_interp $2 | awk '{print $3}'`
+  set threshold_snaphu = `grep threshold_snaphu $3 | awk '{print $3}'`
+  set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
+  set region_cut = `grep region_cut $3 | awk '{print $3}'`
+  set defomax = `grep defomax $3 | awk '{print $3}'`
+  set near_interp = `grep near_interp $3 | awk '{print $3}'`
 
   # Unwrapping
   if ($region_cut == "") then
