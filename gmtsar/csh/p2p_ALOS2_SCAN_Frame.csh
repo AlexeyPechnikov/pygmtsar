@@ -88,7 +88,7 @@ if ( $stage < 5  ) then
       cd ..
     end
   else if ($seq == 1) then
-    if ($stage < 1) then
+    if ($stage < 2) then
       foreach swath (1 2 3 4 5)
         cd F$swath
         sed "s/.*skip_stage.*/skip_stage = 2,3,4,5,6/g" $3 > tmp_config
