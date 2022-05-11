@@ -241,3 +241,7 @@ snaphu/src/snaphu_io.o
 snaphu/src/snaphu_solver.o
 snaphu/src/snaphu_tile.o
 snaphu/src/snaphu_util.o
+preproc/GF3_preproc/include
+preproc/GF3_preproc/lib
+preproc/GF3_preproc/src/make_slc_gf3
+preproc/GF3_preproc/src/make_slc_gf3.o

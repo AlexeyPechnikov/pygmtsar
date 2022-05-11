@@ -14,7 +14,7 @@
     echo ""
     echo "    Put the data and orbit files in the raw folder, put DEM in the topo folder"
     echo "    The SAT needs to be specified, choices with in ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_SCAN"
-    echo "    S1_STRIP, S1_TOPS, ENVI_SLC, CSK_RAW, CSK_SLC, TSX, RS2"
+    echo "    S1_STRIP, S1_TOPS, ENVI_SLC, CSK_RAW, CSK_SLC, TSX, RS2, GF3"
     echo ""
     echo "    Make sure the files from the same date have the same stem, e.g. aaaa.tif aaaa.xml aaaa.cos aaaa.EOF, etc"
     echo ""
@@ -257,6 +257,23 @@
       endif
       if(! -f raw/$aligned.cos ) then
         echo " no file  raw/"$aligned".cos"
+        exit
+      endif
+    else if ($SAT == "GF3") then
+      if(! -f raw/$master.xml ) then
+        echo " no file  raw/"$master".xml"
+        exit
+      endif
+      if(! -f raw/$aligned.xml ) then
+        echo " no file  raw/"$aligned".xml"
+        exit 
+      endif
+      if(! -f raw/$master.tiff ) then
+        echo " no file  raw/"$master".tiff"
+        exit 
+      endif
+      if(! -f raw/$aligned.tiff ) then
+        echo " no file  raw/"$aligned".tiff"
         exit
       endif
     endif
