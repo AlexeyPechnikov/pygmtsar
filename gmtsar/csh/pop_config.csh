@@ -10,7 +10,7 @@ if ($#argv != 1) then
   echo "Usage: pop_config.csh SAT"
   echo ""
   echo "       SAT can be ERS, ENVI, ALOS, ALOS_SLC, ALOS2, ALOS2_SCAN"
-  echo "       S1_STRIP, S1_TOPS, CSK_RAW, CSK_SLC, TSX, RS2"
+  echo "       S1_STRIP, S1_TOPS, CSK_RAW, CSK_SLC, TSX, RS2, GF3"
   echo ""
   exit 1
 endif
