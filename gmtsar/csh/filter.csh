@@ -22,7 +22,7 @@
   gmt set COLOR_MODEL = hsv
   gmt set PROJ_LENGTH_UNIT = inch
 
-  if ($#argv < 4 && $#argv > 7) then
+  if ($#argv < 4 || $#argv > 7) then
 errormessage:
     echo ""
     echo "Usage: filter.csh master.PRM aligned.PRM filter decimation [rng_dec azi_dec] [compute_phase_gradient]"
