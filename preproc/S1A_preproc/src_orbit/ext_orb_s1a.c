@@ -72,9 +72,10 @@ int main(int argc, char **argv) {
 	get_sio_struct(INPUT_PRM, &prm);
 	// fprintf(stderr,"%.12f  %.12f\n",prm.SC_clock_start,prm.SC_clock_stop);
     // revising t1 and t2 in case only one burst is used.
+    // if smaller than 2 burst, extract more
 	t1 = prm.SC_clock_start - 10 * (prm.SC_clock_stop - prm.SC_clock_start);
 	t2 = prm.SC_clock_stop + 10 * (prm.SC_clock_stop - prm.SC_clock_start);
-    if (fabs(t2-t1) < 1/86400.0*100) {
+    if (fabs(t2-t1) < 1/86400.0*150) {
         t1 = prm.SC_clock_start - 20 * (prm.SC_clock_stop - prm.SC_clock_start);
         t2 = prm.SC_clock_stop + 20 * (prm.SC_clock_stop - prm.SC_clock_start);
     }
