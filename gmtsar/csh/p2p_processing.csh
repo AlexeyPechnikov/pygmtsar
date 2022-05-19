@@ -131,7 +131,7 @@
   if (!($SLC_factor == "")) then  
     set commandline = "$commandline -SLC_factor $SLC_factor"
   endif
-  if (!($spec_div == "")) then
+  if (!($spec_div == 0)) then
     set commandline = "$commandline -ESD $spec_mode"
   endif
   if (!($skip_master == "")) then

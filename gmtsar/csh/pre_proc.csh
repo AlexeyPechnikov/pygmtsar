@@ -522,7 +522,7 @@ echo $commandline
     endif
     ln -s ../topo/dem.grd .
 
-    if ($ESD_mode == "") then
+    if ($ESD_mode == 0) then
       if ($skip_master == 0) then
         align_tops.csh $master $master.EOF $aligned $aligned.EOF dem.grd
       else if ($skip_master == 1) then

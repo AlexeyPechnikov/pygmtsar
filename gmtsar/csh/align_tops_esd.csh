@@ -28,7 +28,7 @@ if ($#argv < 5 || $#argv > 6) then
  echo " "
  echo "Output: S1_20150526_F3.PRM S1_20150526_F3.LED S1_20150526_F3.SLC S1_20150607_F3.PRM S1_20150607_F3.LED S1_20150607_F3.SLC "
  echo ""
- echo "Note: set mode = 0 for constant sum correction, set mode = 1 for constant median correction, set mode = 2 for non-constant correction with mapping the residual azimuth shift"
+ echo "Note: set mode = 0 for constant sum correction, set mode = 1 (recommended) for constant median correction, set mode = 2 (for ionospheric correction) for non-constant correction with mapping the residual azimuth shift"
  echo " "
  exit 1
 endif 
