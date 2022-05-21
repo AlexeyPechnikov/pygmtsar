@@ -95,6 +95,9 @@
   set iono_dsamp = `grep iono_dsamp $conf | awk '{print $3}'`
   set iono_skip_est = `grep iono_skip_est $conf | awk '{print $3}'`
   set spec_div = `grep spec_div $conf | awk '{print $3}'`
+  if ( "x$spec_div" == "x" ) then
+    set spec_div = 0
+  end
   set spec_mode = `grep spec_mode $conf | awk '{print $3}'`
   #  set filter = 200
   #  echo " "
