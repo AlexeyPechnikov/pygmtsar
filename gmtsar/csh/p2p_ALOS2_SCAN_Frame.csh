@@ -329,7 +329,8 @@ endif
 
 
   cd merge
-    # Read in parameters
+  cp ../$3 .
+  # Read in parameters
   set threshold_snaphu = `grep threshold_snaphu $3 | awk '{print $3}'`
   set threshold_geocode = `grep threshold_geocode $3 | awk '{print $3}'`
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
@@ -384,6 +385,8 @@ endif
     endif
 
     echo "GEOCODE END"
+  else 
+    echo "SKIP GEOCODE"
   endif 
 
 
