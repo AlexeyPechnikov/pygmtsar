@@ -114,7 +114,7 @@
       set n1 = `echo $n12 $n21 | awk '{printf("%d",($1+$2)/2)}'`
       set xm2 = `gmt grdinfo $pth2/phasefilt.grd -C | awk '{print $3}'`
       set xc2 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
-      set n22 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
+      set n22 = `echo $xm2 $xc2 $incx | awk '{printf("%d",($1-$2)/$3)}'`
 
       set pth2 = `tail -1 $1 | awk -F: '{print $1}'`
       gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
