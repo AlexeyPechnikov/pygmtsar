@@ -125,7 +125,7 @@ foreach iteration (1 2 3)
   else
     gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
   endif
-  gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -T0.5 -Gtmp.grd
+  gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -T0.1 -Gtmp.grd
   mv tmp.grd tmp_filt.grd
   #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
   #gmt grdsample tmp_filt.grd -Rmask.grd -Gtmp.grd
@@ -141,11 +141,11 @@ end
 set RR = `gmt grdinfo -I- ph0.grd`
 set II = `gmt grdinfo -I tmp_ph0.grd`
 gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
-gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
+gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd -T0.1
 mv tmp.grd tmp_filt.grd
 gmt grdfilter tmp_filt.grd -Dp -Fg$filtx/$filty -Gtmp.grd -Vq -Ni -I$filt_incx/$filt_incy
 mv tmp.grd tmp_filt.grd
-gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
+gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd -T0.1
 mv tmp.grd tmp_filt.grd
 
 #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
