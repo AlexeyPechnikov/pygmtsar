@@ -194,7 +194,7 @@ int pop_led(tree *xml_tree, state_vector *sv) {
 		tmp_c[4] = '\0';
 		sv[i - 1].yr = (int)(str2double(tmp_c));
 		sv[i - 1].jd = (int)(tmp_d - trunc(tmp_d / 1000.0) * 1000.0);
-		sv[i - 1].sec = (tmp_d - trunc(tmp_d)) * 86400;
+		sv[i - 1].sec = (tmp_d - trunc(tmp_d)) * 86400.0;
 		search_tree(xml_tree,
 		            "/product/sourceAttributes/orbitAndAttitude/orbitInformation/"
 		            "stateVector/xPosition/",

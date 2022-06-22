@@ -6,9 +6,9 @@
 #
 # Script for merging 3 subswaths TOPS interferograms and then unwrap and geocode. 
 #
-  if ($#argv != 2) then
+  if ($#argv != 2 && $#argv != 3) then
     echo ""
-    echo "Usage: merge_unwrap_geocode_tops.csh inputfile config_file"
+    echo "Usage: merge_unwrap_geocode_tops.csh inputfile config_file [det_stitch]"
     echo ""
     echo "Note: Inputfiles should be as following:"
     echo ""
@@ -23,6 +23,8 @@
     echo ""
     echo "      config_file is the same one used for processing."
     echo ""
+    echo "      set det_stitch to 1 if you want to calculate stitching position based on the NaN area in the grids"
+    echo ""
     echo "Example: merge_unwrap_geocode_tops.csh filelist batch.config"
     echo ""
     exit 1
@@ -35,6 +37,16 @@
   if (! -f dem.grd ) then
     echo "Please link dem.grd to current folder"
     exit 1
+  endif
+
+  if ($#argv == 3) then
+    set det_stitch = $3
+    set n1 = 0
+    set n2 = 0
+  else
+    set det_stitch = 0
+    set n1 = ""
+    set n2 = ""
   endif
 
   set region_cut = `grep region_cut $2 | awk '{print $3}'`
@@ -67,9 +79,68 @@
 
   echo ""
   echo "Merging START"
-  merge_swath tmp_phaselist phasefilt.grd $stem
-  merge_swath tmp_corrlist corr.grd
-  merge_swath tmp_masklist mask.grd
+  if ($det_stitch == 1) then
+    echo "Calculating valid starting columns of data ..."
+    set nl = `wc -l $1 | awk '{print $1}'`
+    if ($nl == 2) then
+      set pth2 = `head -1 $1 | awk -F: '{print $1}'`
+      gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
+      set xm1 = `gmt grdinfo $pth2"phasefilt.grd" -C | awk '{print $3}'`
+      set xc1 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
+      set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
+      set n12 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
+ 
+      set pth2 = `tail -1 $1 | awk -F: '{print $1}'`
+      gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
+      set x01 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
+      set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
+      set n21 = `echo $x01 $incx | awk '{printf("%d",$1/$2)}'`
+      set n1 = `echo $n12 $n21 | awk '{printf("%d",($1+$2)/2)}'`
+      set n2 = 0
+      rm tmp.grd
+    else if ($nl == 3) then
+      set pth2 = `head -1 $1 | awk -F: '{print $1}'`
+      gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
+      set xm1 = `gmt grdinfo $pth2/phasefilt.grd -C | awk '{print $3}'`
+      set xc1 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
+      set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
+      set n12 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
+
+      set pth2 = `head -2 $1 | tail -1 | awk -F: '{print $1}'`
+      gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
+      set x02 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
+      set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
+      set n21 = `echo $x02 $incx | awk '{printf("%d",$1/$2)}'`
+      set n1 = `echo $n12 $n21 | awk '{printf("%d",($1+$2)/2)}'`
+      set xm2 = `gmt grdinfo $pth2/phasefilt.grd -C | awk '{print $3}'`
+      set xc2 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
+      set n22 = `echo $xm2 $xc2 $incx | awk '{printf("%d",($1-$2)/$3)}'`
+
+      set pth2 = `tail -1 $1 | awk -F: '{print $1}'`
+      gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
+      set x03 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
+      set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
+      set n31 = `echo $x03 $incx | awk '{printf("%d",$1/$2)}'`
+      set n2 = `echo $n22 $n31 | awk '{printf("%d",($1+$2)/2)}'`
+      rm tmp.grd
+    else
+      echo "Incorrect number of records in input filelist .."
+      exit 1
+    endif
+    echo "Stitching postitions set to $n1 $n2"
+  endif
+  
+  # for two subswath (n1 >5, n2 =0), for three subswath (n1>5, n2>5) subswath merge with pixel offset computed from det_stich flag
+  if ($n1 > 5) then
+    merge_swath tmp_phaselist phasefilt.grd $stem $n1 $n2> merge_log
+    merge_swath tmp_corrlist corr.grd $n1 $n2 > merge_log_corr
+    merge_swath tmp_masklist mask.grd $n1 $n2 > merge_log_mask
+  else
+    merge_swath tmp_phaselist phasefilt.grd $stem > merge_log
+    merge_swath tmp_corrlist corr.grd  > merge_log_corr
+    merge_swath tmp_masklist mask.grd  > merge_log_mask
+  endif
+    
   echo "Merging END"
   echo ""
 
@@ -157,13 +228,20 @@
 
     if (-f unwrap.grd) then
       gmt grdmath unwrap.grd mask2.grd MUL = unwrap_mask.grd
+      set wavel = `grep wavelength *.PRM | awk '{print($3)}' | head -1 `
+      gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
       proj_ra2ll.csh trans.dat unwrap.grd unwrap_ll.grd
       proj_ra2ll.csh trans.dat unwrap_mask.grd unwrap_mask_ll.grd
+      proj_ra2ll.csh trans.dat los.grd los_ll.grd
       set BT = `gmt grdinfo -C unwrap.grd | awk '{print $7}'`
       set BL = `gmt grdinfo -C unwrap.grd | awk '{print $6}'`
       gmt makecpt -T$BL/$BT/0.5 -Z > unwrap.cpt
       grd2kml.csh unwrap_mask_ll unwrap.cpt
       grd2kml.csh unwrap_ll unwrap.cpt
+      set BT = `gmt grdinfo -C los.grd | awk '{print $7}'`
+      set BL = `gmt grdinfo -C los.grd | awk '{print $6}'`
+      gmt makecpt -T$BL/$BT/2 -Z > los.cpt
+      grd2kml.csh los_ll los.cpt
     endif
     
     echo "GEOCODE END"

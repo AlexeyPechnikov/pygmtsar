@@ -8,9 +8,9 @@
 #
 #
 
-  if ($#argv != 2) then
+  if ($#argv != 2 && $#argv != 3) then
     echo ""
-    echo "Usage: merge_batch.csh inputfile config_file"
+    echo "Usage: merge_batch.csh inputfile config_file [det_stitch]"
     echo ""
     echo "Note: Inputfiles should be as following:"
     echo ""
@@ -26,6 +26,8 @@
     echo ""
     echo "      config_file is the same one used for processing."
     echo ""
+    echo "      set det_stitch to 1 if you want to calculate stitching position based on the NaN area in the grids"
+    echo ""
     echo "Example: merge_batch.csh filelist batch.config"
     echo ""
     exit 1
@@ -34,6 +36,11 @@
   if (! -f dem.grd) then
     echo "dem.grd is required ..."
     exit 1
+  endif
+  if ($#argv == 3) then
+    set det_stitch = 1
+  else
+    set det_stitch = ""
   endif
 
   set input_file = $1
@@ -75,7 +82,7 @@
     ln -s ../$2 .
     rm tmp
     
-    merge_unwrap_geocode_tops.csh tmp.filelist $2
+    merge_unwrap_geocode_tops.csh tmp.filelist $2 $det_stitch
 
     if (! -f ../trans.dat && -f trans.dat) then
       mv trans.dat ../

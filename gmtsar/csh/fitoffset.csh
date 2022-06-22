@@ -23,11 +23,10 @@ if ($#argv == 0) then
   	exit 1
 endif
 #
- if ($#argv == 4) then
-  	set SNR = $4
- else
-  	set SNR = 20.
- 	endif
+if ($#argv == 4) then
+  set SNR = $4
+else
+  set SNR = 20.
 endif
 
 #

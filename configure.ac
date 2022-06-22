@@ -38,6 +38,7 @@ AC_CONFIG_SRCDIR(gmtsar/xcorr.c)
 AC_CONFIG_AUX_DIR(`pwd`)
 AC_CYGWIN
 AC_CANONICAL_SYSTEM
+AC_CANONICAL_HOST
 AC_LANG_C
 AC_PROG_CC
 AC_PROG_CPP
@@ -165,7 +166,9 @@ dnl ------------------------------------------------------------------
 dnl
 AC_MSG_CHECKING(for TIFF include directory)
 if test "X$with_TIFF_include" = "X"; then	# Must look for it in standard places
-	if [ test -d /sw/include ]; then	# fink
+	if [ test -d /opt/homebrew/include ]; then	# homebrew
+		TIFF_INC=/opt/homebrew/include
+	elif [ test -d /sw/include ]; then	# fink
 		TIFF_INC=/sw/include
 	elif [ test -d /opt/local/include ]; then	# macports
 		TIFF_INC=/opt/local/include
@@ -184,7 +187,9 @@ fi
 AC_MSG_RESULT($TIFF_INC)
 AC_MSG_CHECKING(for TIFF library directory)
 if test "X$with_tiff_lib" = "X"; then	# Must look for it in standard places
-	if [ test -d /sw/include ]; then	# fink
+	if [ test -d /opt/homebrew/include ]; then	# fink
+		TIFF_LIB=/opt/homebrew/lib
+	elif [ test -d /sw/include ]; then	# fink
 		TIFF_LIB=/sw/lib
 	elif [ test -d /opt/local/include ]; then	# macports
 		TIFF_LIB=/opt/local/lib
@@ -201,46 +206,6 @@ else
 	TIFF_LIB=$with_tiff_lib/lib
 fi
 AC_MSG_RESULT($TIFF_LIB)
-dnl
-dnl ------------------------------------------------------------------
-dnl Set path to tiff directories with --with-tiff=include|lib
-dnl ------------------------------------------------------------------
-dnl
-AC_MSG_CHECKING(for TIFF include directory)
-if [ test -d /sw/include ]; then	# fink
-	TIFF_INC=/sw/include
-elif [ test -d /opt/local/include ]; then	# macports
-	TIFF_INC=/opt/local/include
-elif [ test -d /usr/local/include ]; then
-	TIFF_INC=/usr/local/include
-elif [ test -d /usr/include ]; then	# Ubuntu
-	TIFF_INC=/usr/include
-elif [ test -d /opt/csw/include ]; then	# Blastwave
-	TIFF_INC=/opt/csw/include
-elif [ test -d /opt/include ]; then
-	TIFF_INC=/opt/include
-fi
-AC_MSG_RESULT($TIFF_INC)
-AC_MSG_CHECKING(for TIFF library directory)
-if test "X$with_tiff_lib" = "X"; then	# Must look for it in standard places
-	if [ test -d /sw/include ]; then	# fink
-		TIFF_LIB=/sw/lib
-	elif [ test -d /opt/local/include ]; then	# macports
-		TIFF_LIB=/opt/local/lib
-	elif [ test -d /usr/local/include ]; then
-		TIFF_LIB=/usr/local/lib
-	elif [ test -d /usr/include ]; then	# Ubuntu
-		TIFF_LIB=/usr/lib/x86_64-linux-gnu
-	elif [ test -d /opt/csw/include ]; then	# Blastwave
-		TIFF_LIB=/opt/csw/lib
-	elif [ test -d /opt/include ]; then
-		TIFF_LIB=/opt/lib
-	fi
-else
-	TIFF_LIB=$with_tiff_lib/lib
-fi
-AC_MSG_RESULT($TIFF_LIB)
-dnl
 dnl
 dnl ------------------------------------------------------------------
 dnl We use gmt-config to set GMT paths and settings
@@ -258,10 +223,17 @@ if test -x "$GMT_CONF" && test "X$GMT_INC" = "X" && test "X$GMT_LIB" = "X" ; the
 	AC_MSG_RESULT($GMT_LIB)
 	GMT_LIB_PATH=`echo $GMT_LIB | sed 's/^-L//;s/\ .*//'`
 	rpath="$GMT_LIB_PATH"
+	AC_MSG_CHECKING(for cpu found)
+	if test "$host_cpu" = "aarch64" && test "$os" = "Linux"; then
+		GCC_64=""
+		LDFLAGS="$LDFLAGS"
+	else
+		bits=`$GMT_CONF --bits`
+		GCC_64="-m${bits}"
+		LDFLAGS="$LDFLAGS -m${bits}"
+	fi
+	AC_MSG_RESULT(found ${host_cpu})
 	AC_MSG_CHECKING(for 32/64-bit GMT installation)
-	bits=`$GMT_CONF --bits`
-	GCC_64="-m${bits}"
-	LDFLAGS="$LDFLAGS -m${bits}"
 	AC_MSG_RESULT(found ${bits}-bit)
 fi
 dnl

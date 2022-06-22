@@ -7,7 +7,7 @@ if ($#argv != 4 && $#argv != 6) then
   echo " estimate ionosphere based on split spectrum method in Gomba et. al. 2016"
   echo " with filtering method in Fattahi et. al. 2017"
   echo ""
-  echo "Example: estimate_ionospheric_phase.csh ../iono_phase/intf_h ../iono_phase/intf_l ../iono_phase/intf_o"
+  echo "Example: estimate_ionospheric_phase.csh ../iono_phase/intf_h ../iono_phase/intf_l ../iono_phase/intf_o ../../intf/2018312_2018324"
   echo ""
   exit 1
 endif
@@ -16,7 +16,7 @@ set intfH = $1
 set intfL = $2
 set intfO = $3
 set intf = $4
-if ($#argv == 3) then
+if ($#argv == 4) then
   set rx = 1
   set ry = 1
 else
@@ -66,7 +66,7 @@ gmt grdmath up_h.grd $ch 2 PI MUL MUL SUB = tmp.grd
 mv tmp.grd up_h.grd
 gmt grdmath up_l.grd up_o.grd SUB = tmp.grd
 set cl = `gmt grdinfo tmp.grd -L1 -C |  awk '{if ($12 >=0) printf("%d\n",int($12/6.2831853072+0.5)); else printf("%d\n",int($12/6.2831853072-0.5))}'`
-echo "Correcting high passed phase by $cl * 2PI ..."
+echo "Correcting low passed phase by $cl * 2PI ..."
 gmt grdmath up_l.grd $cl 2 PI MUL MUL SUB = tmp.grd
 mv tmp.grd up_l.grd
 
@@ -74,9 +74,9 @@ gmt grdmath up_h.grd up_l.grd ADD up_o.grd 2 MUL SUB = tmp.grd
 gmt grdmath tmp.grd 2 PI MUL DIV ABS 0.2 GE 1 SUB -1 MUL 0 NAN = mask_up.grd
 
 gmt grdmath up_h.grd mask_up.grd MUL = tmp.grd
-gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_h.grd -V -Nr 
+gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_h.grd -Vq -Nr 
 gmt grdmath up_l.grd mask_up.grd MUL = tmp.grd
-gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_l.grd -V -Nr
+gmt grdfilter tmp.grd -Dp -Fm21/21 -Gup_l.grd -Vq -Nr
 
 gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN 0 MUL 1 ADD mask_up.grd MUL = mask.grd
 gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN ISNAN 1 SUB -1 MUL mask_up.grd 0 DENAN MUL = mask1.grd
@@ -84,6 +84,23 @@ gmt grdmath $intfH/corr.grd $intfL/corr.grd ADD 2 DIV 0 DENAN $thresh GE 0 NAN I
 gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 gmt grdmath $fh $fc DIV up_l.grd MUL $fl $fc DIV up_h.grd MUL SUB $fl $fh MUL $fh $fh MUL $fl $fl MUL SUB DIV MUL = tmp_ph0.grd
+
+if (-e $intfH/merge_log || -e $intfH/merge_log1) then
+  cp tmp_ph0.grd tmp_ph0_save.grd
+  if (-e $intfH/merge_log) then
+    cp $intfH/tmp_phaselist .
+    correct_merge_offset.csh tmp_phaselist ../intf_h/merge_log tmp_ph0.grd tmp_ph0_corrected.grd
+    mv tmp_ph0_corrected.grd tmp_ph0.grd
+  else
+    cp $intfH/tmp_phaselist1 .
+    correct_merge_offset.csh tmp_phaselist1 ../intf_h/merge_log1 tmp_ph0.grd tmp_ph0_corrected.grd
+    ln -s $intfH/tmp_first .
+    cp $intfH/tmp_phaselist2 .
+    correct_merge_offset.csh tmp_phaselist2 ../intf_h/merge_log2 tmp_ph0_corrected.grd tmp_ph0.grd
+    rm tmp_ph0_corrected.grd
+  endif
+endif
+
 gmt grdmath tmp_ph0.grd mask.grd MUL = tmp_ph.grd
 cp tmp_ph.grd tmp_ph1.grd
 
@@ -100,16 +117,15 @@ gmt grdmath mask1.grd 1 SUB -1 MUL = mask2.grd
 
 nearest_grid tmp_ph.grd tmp_ph_interp.grd
 
-
 #foreach iteration (1 2 3 4 5 ) 
 foreach iteration (1 2 3) 
   set odd = `echo $iteration | awk '{if ($1%2==0) print 0;else print 1}'`
   if ($odd == 1) then
-    gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
+    gmt grdfilter tmp_ph_interp.grd -Dp -Fm$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
   else
-    gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
+    gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
   endif
-  gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -T0.5 -Gtmp.grd
+  gmt grd2xyz tmp_filt.grd -s | gmt surface -Rtmp_ph0.grd -T0.1 -Gtmp.grd
   mv tmp.grd tmp_filt.grd
   #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
   #gmt grdsample tmp_filt.grd -Rmask.grd -Gtmp.grd
@@ -124,9 +140,14 @@ end
 # needs to be improved
 set RR = `gmt grdinfo -I- ph0.grd`
 set II = `gmt grdinfo -I tmp_ph0.grd`
-gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -V -Ni -I$filt_incx/$filt_incy
-gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd
+gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filtx/$filty -Gtmp_filt.grd -Vq -Ni -I$filt_incx/$filt_incy
+gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd -T0.1
 mv tmp.grd tmp_filt.grd
+gmt grdfilter tmp_filt.grd -Dp -Fg$filtx/$filty -Gtmp.grd -Vq -Ni -I$filt_incx/$filt_incy
+mv tmp.grd tmp_filt.grd
+gmt grd2xyz tmp_filt.grd -s | gmt surface $RR $II -Gtmp.grd -T0.1
+mv tmp.grd tmp_filt.grd
+
 #gmt grdfilter tmp_ph_interp.grd -Dp -Fb$filt -Gtmp_filt.grd -V -Ni -I$inc
 #gmt grdsample tmp_filt.grd -Rmask.grd -Gtmp.grd
 #mv tmp.grd tmp_filt.grd

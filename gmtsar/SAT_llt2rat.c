@@ -12,13 +12,15 @@
  *     must have local access to the LED-file for the master.
  *   4 For each of the xyz points, calculate range, azimuth and topography
  ****************************************************************************/
-
 /***************************************************************************
  * Creator:  Xiaopeng Tong and David T. Sandwell                           *
  *           (Scripps Institution of Oceanography)                         *
  * Date   :  08/10/2006                                                    *
  ***************************************************************************/
-
+/***************************************************************************
+ * Xiaohua Xu & David Sandwell: changed the search part to do polynomial   *
+ * refinement. Forgot when this was done, sometime around 2015             *
+ ***************************************************************************/
 /***************************************************************************
  * Modification history:                                                   *
  *                                                                         *
@@ -70,7 +72,8 @@ char *USAGE = " \n Usage: "
               "             inputfile    -  lon, lat, elevation [ASCII] \n"
               "             outputfile   -  range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII "
               "default] \n"
-              "             -bos or -bod -  binary single or double precision output \n"
+              "             -bos or -bod -  binary single or double precision output (only output results within \n"
+              "                             data coverage, PRM num_lines, num_rng_bins ) \n"
               " \n"
               " example: SAT_llt2rat master.PRM 0 < topo.llt > topo.ratll    \n";
 

@@ -47,7 +47,7 @@ if (-f landmask_ra.grd) then
   if ($#argv == 3 ) then 
     gmt grdsample landmask_ra.grd -R$3 `gmt grdinfo -I phase_patch.grd` -Glandmask_ra_patch.grd
   else 
-    gmt grdsample landmask_ra.grd `gmt grdinfo -I phase_patch.grd` -Glandmask_ra_patch.grd
+    gmt grdsample landmask_ra.grd -Rphase_patch.grd -Glandmask_ra_patch.grd
   endif
   gmt grdmath phase_patch.grd landmask_ra_patch.grd MUL = phase_patch.grd $V
 endif

@@ -314,8 +314,10 @@ int main(int argc, char **argv) {
 	cpu_time = ((double)(end - start)) / CLOCKS_PER_SEC;
 	fprintf(stdout, " elapsed time: %lf \n", cpu_time);
 
-	fclose(xc->data1);
-	fclose(xc->data2);
+        if (xc->format == 0 || xc->format == 1) {
+          fclose(xc->data1);
+          fclose(xc->data2);
+        }
 
 	if (GMT_Destroy_Session(API))
 		return EXIT_FAILURE; /* Remove the GMT machinery */

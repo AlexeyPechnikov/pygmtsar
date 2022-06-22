@@ -58,9 +58,9 @@
       update_PRM IMG-HH-$supermasterstem.PRM SLC_file IMG-HH-$supermasterstem.SLC
       ln -s ../raw/IMG-HH-$masterstem.SLC . 
       ln -s ../raw/IMG-HH-$alignedstem.SLC . 
-      ln -s ../raw/LED-$masterstem . 
-      ln -s ../raw/LED-$alignedstem .
-      ln -s ../raw/LED-$supermasterstem .
+      ln -s ../raw/IMG-HH-$masterstem.LED . 
+      ln -s ../raw/IMG-HH-$alignedstem.LED .
+      ln -s ../raw/IMG-HH-$supermasterstem.LED .
       align_ALOS_SLC.csh $master $aligned $supermaster
       cd ..
       echo "Align $aligned to $master via $supermaster - END"

@@ -14,6 +14,7 @@ unset noclobber
   echo "Usage: update_PRM file.PRM param value "
   echo " "
   echo "Example: update_PRM IMG-HH-ALPSRP049040660-H1.0__A.PRM rshift 10"
+  echo " "
   exit 1
  endif
 #

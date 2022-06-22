@@ -12,9 +12,10 @@ unset noclobber
 #
 if ($#argv != 3 && $#argv != 2 ) then
  echo " "
- echo "Usage: dem2topo_ra.csh master.PRM dem.grd [xmin/xmax/ymin/ymax]" 
+ echo "Usage: dem2topo_ra.csh master.PRM dem.grd [interpolation_approach]" 
  echo " "
- echo "        Note: Works for TSX,ALOS,ERS,ENVISAT"
+ echo "    Note: interpolation_approach default is 0:surface with tension"
+ echo "          set to 1 for gmt triangulate"
  echo " "
  exit 1
 endif 
@@ -28,6 +29,17 @@ else
 	set V = "-V"
 endif
 #
+# set tension
+#
+set tension = 0.1
+#
+# set interpolation approach
+#
+set mode = 0
+if ($#argv == 3) then
+  set mode = $3
+endif
+#
 #========================Mosaic topo data===============================
 
 #-----------------------------------------------------------------------
@@ -39,11 +51,8 @@ set num_patch = `grep num_patches $1 | awk '{print $3}'`
 set YMAX = `echo "$yvalid $num_patch" | awk '{print $1*$2}'`
 set SC = `grep SC_identity $1 | awk '{print $3}'`
 set PRF = `grep PRF *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
-if ($#argv == 3) then
-  set region = $3
-else
-  set region = 0/$XMAX/0/$YMAX
-endif
+set region = 0/$XMAX/0/$YMAX
+echo "Working over $region ... "
 #
 # look for range sampling rate
 #
@@ -62,7 +71,7 @@ else
    exit 0
 endif
 echo " range decimation is: " $rng
-#
+
 if($SC == 10) then
      gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 1 -bod  > trans.dat
   else
@@ -73,25 +82,43 @@ endif
 #
 if ($PRF < 1000) then
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R$region -I$rng/2 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R$region -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
-  set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
-  if ("x$RR" == "x") then
-    gmt surface temp.rat -R$region -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
-  else
-    gmt surface temp.rat $RR -I$rng/2 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
-    gmt grdcut pixel.grd -R$region -Gtmp.grd
-    mv tmp.grd pixel.grd
+  if ($mode == 0) then
+    gmt surface temp.rat -R$region -I$rng/2 -bi3d -T$tension -N1000 -Gpixel.grd -r -Q >& tmp
+    set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
+    if ("x$RR" == "x") then
+      gmt surface temp.rat -R$region -I$rng/2 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
+    else
+      gmt surface temp.rat $RR -I$rng/2 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
+      gmt grdcut pixel.grd -R$region -Gtmp.grd
+      mv tmp.grd pixel.grd
+    endif
+  else if ($mode == 1) then
+    set rng2 = `echo $rng | awk '{print $1*8}'`
+    gmt triangulate temp.rat -R$region -I$rng/2 -bi3d -Gtopo_ra_tmp.grd -r $V
+    gmt blockmean temp.rat -R$region -I$rng2/16 -bi3d -bo3d -r > mean.rat
+    gmt surface mean.rat -R$region -I$rng2/16 -bi3d -T0.1 -N1000 -Gcoarse.grd -r
+    gmt grdfill topo_ra_tmp.grd -Agcoarse.grd -Gpixel.grd
+    rm topo_ra_tmp.grd coarse.grd mean.rat
   endif
 else
   gmt gmtconvert trans.dat -o0,1,2 -bi5d -bo3d | gmt blockmedian -R$region -I$rng/4 -bi3d -bo3d -r $V > temp.rat 
-  gmt surface temp.rat -R$region -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r -Q >& tmp
-  set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
-  if ("x$RR" == "x") then
-    gmt surface temp.rat -R$region -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
-  else
-    gmt surface temp.rat $RR -I$rng/4 -bi3d -T.50 -N1000 -Gpixel.grd -r $V
-    gmt grdcut pixel.grd -R$region -Gtmp.grd
-    mv tmp.grd pixel.grd
+  if ($mode == 0) then
+    gmt surface temp.rat -R$region -I$rng/4 -bi3d -T$tension -N1000 -Gpixel.grd -r -Q >& tmp
+    set RR = `grep Hint tmp | head -1 | awk '{for(i=1;i<=NF;i++) print $i}' | grep /`
+    if ("x$RR" == "x") then
+      gmt surface temp.rat -R$region -I$rng/4 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
+    else
+      gmt surface temp.rat $RR -I$rng/4 -bi3d -T$tension -N1000 -Gpixel.grd -r $V
+      gmt grdcut pixel.grd -R$region -Gtmp.grd
+      mv tmp.grd pixel.grd
+    endif  
+  else if ($mode == 1) then
+    set rng2 = `echo $rng | awk '{print $1*8}'`
+    gmt triangulate temp.rat -R$region -I$rng/4 -bi3d -Gtopo_ra_tmp.grd -r $V
+    gmt blockmean temp.rat -R$region -I$rng2/32 -bi3d -bo3d -r > mean.rat
+    gmt surface mean.rat -R$region -I$rng2/32 -bi3d -T0.1 -N1000 -Gcoarse.grd -r
+    gmt grdfill topo_ra_tmp.grd -Agcoarse.grd -Gpixel.grd
+    rm topo_ra_tmp.grd coarse.grd mean.rat
   endif
 endif
 # 
@@ -99,13 +126,13 @@ endif
 #  
   gmt grdmath pixel.grd FLIPUD = topo_ra.grd
 
-if ($#argv == 3) then
-  set x0 = echo $region | awk -F'/' '{print $1}'
-  set y0 = echo $region | awk -F'/' '{print $3}'
-  set x1 = echo $region | awk -F'/' '{printf("%d",$1 - '$x0')}'
-  set y1 = echo $region | awk -F'/' '{printf("%d",$3 - '$y0')}'
-  gmt grdedit topo_ra.grd -R0/$x1/0/$y1 
-endif
+#if ($#argv == 3) then
+#  set x0 = echo $region | awk -F'/' '{print $1}'
+#  set y0 = echo $region | awk -F'/' '{print $3}'
+#  set x1 = echo $region | awk -F'/' '{printf("%d",$1 - '$x0')}'
+#  set y1 = echo $region | awk -F'/' '{printf("%d",$3 - '$y0')}'
+#  gmt grdedit topo_ra.grd -R0/$x1/0/$y1 
+#endif
 
 # 
 # plotting

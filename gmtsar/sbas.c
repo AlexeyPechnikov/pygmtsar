@@ -1,12 +1,11 @@
 /*      $Id: sbas.h 39 2016-06-18 03/16/24 Xiaohua Xu $  */
 /*****************************************************************************************
- *  Program to do InSAR time-series analysis. * Use Small Baseline Subset (SBAS)
- *algorithm.                                          *
+ *  Program to do InSAR time-series analysis. Use Small Baseline Subset (SBAS) algorithm.*                                         *
  *                                                                                       *
- *  Xiaohua Xu, Jul 2016 *
+ *  Xiaohua Xu, Jul 2016                                                                 *
  *                                                                                       *
- *  Taking the old sbas code to add atmospheric correction by means of common
- *point      * stacking by Tymofeyeva & Fialko 2015. *
+ *  Taking the old sbas code to add atmospheric correction by means of common point      * 
+ *  stacking by Tymofeyeva & Fialko 2015.                                                *
  *                                                                                       *
  ****************************************************************************************/
 /*****************************************************************************************
@@ -17,6 +16,8 @@
  *  07/23/2016 EXU Decomposed the program into subroutines. * 08/02/2016 EXU
  *Start to build in the atmospheric correction Tymofyeyeva & Fialko 2015*
  *  09/01/2016 EXU Determing the number of iterations. *
+ *  12/30/2021 DTS Modified to use mmap() for the large 3-D arrays to reduce memory req.*
+ *  12/31/2021 EXU adding flag, changing modules for use of mmap*
  ****************************************************************************************/
 /****************************************************************************************
  * Creator: Xiaopeng Tong and David Sandwell
@@ -30,8 +31,8 @@
  ** 03/22/2014 add correlation, use weighted least-squares
  ** 04/01/2014 add seasonal term
  ** 08/19/2014 allocate memory with 1D array instead of multiple malloc *
- *  08/19/2014 do not require the velocity curve go through origin * 08/19/2014
- *remove seasonal term                                                      *
+ *  08/19/2014 do not require the velocity curve go through origin * 
+ *  08/19/2014 remove seasonal term                                                      *
  *  08/19/2014 fix temporal smoothing *
  ****************************************************************************************/
 
@@ -61,6 +62,8 @@ Geophysical Research: Solid Earth, 120(8), pp.5952-5963.
 #include "sbas.h"
 #include "gmtsar.h"
 #include <stdint.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #ifdef DEBUG
 #define checkpoint() printf("Checkpoint at line %lld in file %s\n", __LINE__, __FILE__)
@@ -88,13 +91,14 @@ char *USAGE = "USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth s
               "default=37 \n"
               "  -range rng           --  range distance from the radar to the center of "
               "the interferogram (m) default=866000 \n"
-              "  -rms                 --  output RMS of the data misfit grids (mm): "
+              "  -rms                 --  output velocity uncertainty grids (mm/yr): "
               "rms.grd\n"
-              "  -dem                 --  output DEM error (m): dem.grd \n\n"
+              "  -dem                 --  output DEM error (m): dem.grd \n"
+              "  -mmap                --  use mmap to allocate disk space for less use of memory \n\n"
               " output: \n"
               "  disp_##.grd          --  cumulative displacement time series (mm) "
               "grids\n"
-              "  vel.grd              --  mean velocity (mm/yr) grids \n\n"
+              "  vel.grd              --  linear regressed velocity (mm/yr) grids \n\n"
               " example:\n"
               "  sbas intf.tab scene.tab 88 28 700 1000 \n\n"
               "REFERENCES: \n"
@@ -113,9 +117,9 @@ char *USAGE = "USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth s
               "delays in InSAR data, with application to the eastern California shear "
               "zone. Journal of Geophysical Research: Solid Earth, 120(8), "
               "pp.5952-5963.\n\n"
-              "Xu, X., Sandwell, D. T., Tymofyeyeva, E., González-Ortega, A., & Tong, X.\n"
-              "(2017). Tectonic and anthropogenic deformation at the Cerro Prieto\n"
-              "geothermal step-over revealed by Sentinel-1A InSAR. IEEE Transactions on\n"
+              "Xu, X., Sandwell, D. T., Tymofyeyeva, E., González-Ortega, A., & Tong, X."
+              "(2017). Tectonic and anthropogenic deformation at the Cerro Prieto"
+              "geothermal step-over revealed by Sentinel-1A InSAR. IEEE Transactions on"
               "Geoscience and Remote Sensing, 55(9), 5284-5292.\n\n";
 
 int main(int argc, char **argv) {
@@ -127,7 +131,7 @@ int main(int argc, char **argv) {
 	int64_t i, j, m, n, nrhs = 1, xdim, lwork, ydim, k1, k2;
 	int64_t N, S;
 	int64_t ldb, lda, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
-	int64_t flag_rms = 0, flag_dem = 0;
+	int64_t flag_rms = 0, flag_dem = 0, flag_mmap = 0;
 	float *phi = NULL, *tmp_phi = NULL, sf, *disp = NULL, *res = NULL, *dem = NULL, *bperp = NULL, *vel = NULL, *screen = NULL,
 	      *tmp_screen = NULL;
 	float *var = NULL;
@@ -141,6 +145,8 @@ int main(int argc, char **argv) {
 	double *atm_rms;
 	int64_t *atm_rank, n_atm = 0, kk;
 	float *sfs;
+	size_t mm_size;
+	int ftmp_phi = 0, fphi = 0, fvar = 0;
 
 	if (argc < 7)
 		die("\n", USAGE);
@@ -172,7 +178,7 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "\n");
 
 	/* read in the parameters from command line */
-	parse_command_ts(argc, argv, &sf, &wl, &theta, &rng, &flag_rms, &flag_dem, &n_atm);
+	parse_command_ts(argc, argv, &sf, &wl, &theta, &rng, &flag_rms, &flag_dem, &n_atm, &flag_mmap);
 
 	/* setting up some parameters */
 	scale = 4.0 * M_PI / wl / rng / sin(theta / 180.0 * M_PI);
@@ -184,8 +190,28 @@ int main(int argc, char **argv) {
 
 	/* memory allocation */ // also malloc for atm(nx,ny,S), hit(N,S), sum_vec(N)
 	                        // and atm_rms(S)
+	mm_size = 4 * (size_t)N * (size_t)xdim * (size_t)ydim;
 	allocate_memory_ts(&jpvt, &work, &d, &ds, &bperp, &gfile, &cfile, &L, &time, &H, &G, &A, &Gs, &flag, &dem, &res, &vel, &phi,
-	                   &var, &disp, n, m, lwork, ldb, N, S, xdim, ydim, &hit);
+	                   &var, &disp, n, m, lwork, ldb, N, S, xdim, ydim, &hit, flag_mmap, n_atm);
+
+        /* mmap the phi and var arrays. this must be done in the main program  */
+    if (flag_mmap == 1) {
+	    remove("tmp_sbas_phi");
+	    if ((fphi = open("tmp_sbas_phi", O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
+		    die("can't open %s for reading", "tmp_sbas_phi");
+	    lseek(fphi,mm_size-1, SEEK_SET);
+	    write(fphi, "",1);
+	    if ((phi = mmap( NULL , mm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fphi, 0)) == MAP_FAILED)
+		    die("mmap error for input", "phi");
+
+	    remove("tmp_sbas_var");
+	    if ((fvar = open("tmp_sbas_var", O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
+		    die("can't open %s for reading", "tmp_sbas_var");
+	    lseek(fvar,mm_size-1, SEEK_SET);
+	    write(fvar, "",1);
+	    if ((var = mmap( NULL , mm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fvar, 0)) == MAP_FAILED)
+		    die("mmap error for input", "var");
+    }
 
 	// initialization
 	init_array_ts(G, Gs, res, dem, disp, n, m, xdim, ydim, N, S);
@@ -212,11 +238,24 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "\n\nApplying atmospheric correction by common point stacking...\n\n");
 		mark = (int64_t *)malloc(N * sizeof(int64_t));
 		screen = (float *)malloc(xdim * ydim * sizeof(float) * S);
-		tmp_phi = (float *)malloc(xdim * ydim * sizeof(float) * N);
-		tmp_screen = (float *)malloc(xdim * ydim * sizeof(float));
 		atm_rms = (double *)malloc(S * sizeof(double));
 		atm_rank = (int64_t *)malloc(S * sizeof(int64_t));
 		sfs = (float *)malloc((n_atm + 2) * sizeof(float));
+		tmp_screen = (float *)malloc(xdim * ydim * sizeof(float));
+
+		/* allocate the memory of tmp_phi using mmap */
+        if (flag_mmap == 0) {
+		    tmp_phi = (float *)malloc(xdim * ydim * sizeof(float) * N);
+        }
+        else {
+		    remove("tmp_sbas_tmp_phi");
+		    if ((ftmp_phi = open("tmp_sbas_tmp_phi", O_RDWR | O_CREAT | O_EXCL, (mode_t)0755)) < 0)
+			    die("can't open %s for reading", "tmp_sbas_tmp_phi");
+		    lseek(ftmp_phi,mm_size-1, SEEK_SET);
+		    write(ftmp_phi, "",1);
+		    if ((tmp_phi = mmap( NULL , mm_size, PROT_READ | PROT_WRITE, MAP_SHARED, ftmp_phi, 0)) == MAP_FAILED)
+			    die("mmap error for input", "tmp_phi");
+        }
 
 		sfs[0] = 1000.0;
 		sfs[n_atm] = sf;
@@ -370,19 +409,31 @@ int main(int argc, char **argv) {
 
 	/* free memory */
 
-	free_memory_ts(N, phi, var, gfile, cfile, disp, G, A, Gs, H, d, ds, L, res, vel, time, flag, bperp, dem, work, jpvt, hit);
+	free_memory_ts(N, phi, var, gfile, cfile, disp, G, A, Gs, H, d, ds, L, res, vel, time, flag, bperp, dem, work, jpvt, hit, flag_mmap);
 
 	if (n_atm != 0) {
 		free(mark);
 		free(screen);
 		free(tmp_screen);
 		free(atm_rank);
-		free(tmp_phi);
+        if (flag_mmap == 0) {
+		    free(tmp_phi);
+        }
+        else {
+		    munmap(tmp_phi, mm_size);
+        }
 		free(atm_rms);
 	}
+    if (flag_mmap == 1) {
+		munmap(phi, mm_size);
+		munmap(var, mm_size);
+    }
 
 	fclose(infile);
 	fclose(datefile);
+	close(fphi);
+	close(fvar);
+	close(ftmp_phi);
 
 	if (GMT_Destroy_Session(API))
 		return EXIT_FAILURE; /* Remove the GMT machinery */

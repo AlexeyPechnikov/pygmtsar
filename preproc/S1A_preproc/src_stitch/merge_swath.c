@@ -186,6 +186,8 @@ int main(int argc, char **argv) {
 		wesn[GMT_XHI] = wesn[GMT_XHI] + (G3->header->n_columns - ovl23 - 1) * incx;
 	wesn[GMT_XHI] = (int)round(wesn[GMT_XHI]);
 
+    printf("ovl12,23: %d, %d\n",ovl12,ovl23);
+
 	// printf("%f,%f,%f,%f,%f,%f\n",inc[0],inc[1],wesn[0],wesn[1],wesn[2],wesn[3]);
 	// printf("%d,%d,%d,%d,%d\n",head1,head2,head3,ovl12,ovl23);
 
@@ -209,10 +211,8 @@ int main(int argc, char **argv) {
 		head3 = GOUT->header->n_rows - G3->header->n_rows - head3;
 
 	n1 = (int)ceil((-(float)prm2.rshift + (float)prm2.first_sample + 150.0) / incx);
-    printf("Stitching location n1 = %d\n",n1);
 	if (nfile == 3) {
 		n2 = (int)ceil((-(float)prm3.rshift + (float)prm3.first_sample + 150.0) / incx);
-        printf("Stitching location n2 = %d\n",n2);
     }
 	if (n1 < 10)
 		n1 = 10;
@@ -229,6 +229,8 @@ int main(int argc, char **argv) {
         n1 = atoi(argv[4]);
         n2 = atoi(argv[5]);
     }
+    printf("Stitching location n1 = %d\n",n1);
+    printf("Stitching location n2 = %d\n",n2);
     //printf("Stitching location n1 = %d\n",n1);
     //printf("Stitching location n2 = %d\n",n2);
 
