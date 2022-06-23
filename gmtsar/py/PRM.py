@@ -151,7 +151,7 @@ class PRM:
             raise Exception('Arguments is not a PRM object')
         for key, value in kwargs.items():
             self.df.loc[key] = float(format(value, 'g')) if gformat and type(value) \
-                in [float, np.float16, np.float32, np.float64, np.float128] else value
+                in [float, np.float16, np.float32, np.float64] else value
         return self
 
     def to_dataframe(self):
@@ -604,7 +604,7 @@ class PRM:
         df2 = other.df.copy()
 
         if gformat:
-            fmt = lambda v: format(v, 'g') if type(v) in [float, np.float16, np.float32, np.float64, np.float128] else v
+            fmt = lambda v: format(v, 'g') if type(v) in [float, np.float16, np.float32, np.float64] else v
             df1['value'] = [fmt(value) for value in df1['value']]
             df2['value'] = [fmt(value) for value in df2['value']]
 
