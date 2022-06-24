@@ -6,6 +6,34 @@ MacOS and Linux Debian are my prefered OSes and I support both of them. Please d
 
 PyGMTSAR automatically downloads Sentinel-1 orbit files and SRTM DEM (and converts it to ellispoidal heights using EGM96 model) and so on. You need just 2+ raw Sentinel scenes for the processing. See below **Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece** for the fully automated processing and other examples for faster processing using pre-downloaded DEM and orbits.
 
+### Installation on MacOS
+
+Use the same commands for BigSur on Intel chips and Monterey on Apple Silicon chips:
+
+```
+# create installation directory
+sudo mkdir /usr/local/GMTSAR
+sudo chown $(whoami) /usr/local/GMTSAR
+# prepare system dependencies
+brew install libtiff hdf5 gmt ghostscript
+# install recent PyGMTSAR
+cd /usr/local
+git clone --branch master https://github.com/mobigroup/gmtsar GMTSAR
+cd /usr/local/GMTSAR
+autoconf
+./configure --with-orbits-dir=/tmp
+make
+make install
+```
+
+Note: that's possible to install PyGMTSAR to /opt directory instead. For this case we need to change "GMTSAR" path in the notebooks.
+
+### Installation on Debian and Ubuntu Linux
+
+See the notebooks below where the installation commands included.
+
+### Live Examples
+
 * [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
 
 <img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake.jpg" width="50%">
