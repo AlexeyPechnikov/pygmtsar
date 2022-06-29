@@ -705,16 +705,30 @@ class SBAS:
 
     def intf_parallel(self, pairs, **kwargs):
         import pandas as pd
+        import numpy as np
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
+        from joblib.externals import loky
         import os
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-        with self.tqdm_joblib(notebook.tqdm(desc="Interferograms", total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
+		# this way does not work properly for long interferogram series
+        #with self.tqdm_joblib(notebook.tqdm(desc="Interferograms", total=len(pairs))) as progress_bar:
+        #    joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
+
+        # start a set of jobs together but not more than available cpu cores at once
+        n_jobs = joblib.cpu_count()
+        n_chunks = int(np.ceil(len(pairs)/n_jobs))
+        chunks = np.array_split(pairs, n_chunks)
+        with notebook.tqdm(desc='Interferograms', total=len(pairs)) as pbar:
+            for chunk in chunks:
+                loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
+                with joblib.parallel_backend('loky', n_jobs=len(chunk), inner_max_num_threads=1):
+                    joblib.Parallel()(joblib.delayed(self.intf)(pair, **kwargs) for pair in chunk)
+                pbar.update(len(chunk))
 
         # build radar coordinates transformation matrix
         self.intf_ra2ll_matrix(self.open_grids(pairs, 'phasefilt'))
