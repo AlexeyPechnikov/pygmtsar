@@ -571,9 +571,24 @@ class PRM:
 
         # build topo_ra
         coords = np.fromfile(trans_dat_tofile, dtype=np.float64).reshape([-1,5])
-        #else:
-        #    coords = self.SAT_llt2rat(dem_data, precise=1, binary=True)
+        # or return numpy array and save it to the trans_dat file later
+        #coords = self.SAT_llt2rat(dem_data, precise=1, binary=True)
 
+        # also, we can use all cores for the calculation (and save 2-3 minutes from 15 in total) while the longest processing is below
+        #import joblib
+        #from joblib.externals import loky
+        # start a set of jobs together but not more than available cpu cores at once
+        #n_jobs = joblib.cpu_count()
+        #loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
+        #with joblib.parallel_backend('loky', n_jobs=n_jobs, inner_max_num_threads=1):
+        #    coords = joblib.Parallel()(joblib.delayed(self.SAT_llt2rat)(dem_data_chunk, precise=1, binary=True)
+        #                               for dem_data_chunk in np.array_split(dem_data, n_jobs))
+        #coords = np.concatenate(coords)
+        #if trans_dat_tofile is not None:
+        #    with open(trans_dat_tofile, 'wb') as f:
+        #        f.write(coords)
+
+        # this processing is not parallelized and it is time consuming
         grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method)
 
         # remove subpixel noise
