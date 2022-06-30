@@ -319,7 +319,7 @@ class SBAS:
             return ra2ll(grids)
 
         # process a set of 2D rasters
-        with self.tqdm_joblib(notebook.tqdm(desc="Geocoding", total=len(grids))) as progress_bar:
+        with self.tqdm_joblib(notebook.tqdm(desc='Geocoding', total=len(grids))) as progress_bar:
             grids_ll = joblib.Parallel(n_jobs=-1)(joblib.delayed(ra2ll)(grids[item]) for item in range(len(grids)))
         grids_ll = xr.concat(grids_ll, dim=grids.dims[0])
     
@@ -687,7 +687,7 @@ class SBAS:
         self.stack_ref()
 
         # prepare secondary images
-        with self.tqdm_joblib(notebook.tqdm(desc="Aligning", total=len(dates))) as progress_bar:
+        with self.tqdm_joblib(notebook.tqdm(desc='Aligning', total=len(dates))) as progress_bar:
             joblib.Parallel(n_jobs=-1)(joblib.delayed(self.stack_rep)(date, **kwargs) for date in dates)
 
     def intf(self, pair, **kwargs):
@@ -716,7 +716,7 @@ class SBAS:
             pairs = pairs.values
 
 		# this way does not work properly for long interferogram series
-        #with self.tqdm_joblib(notebook.tqdm(desc="Interferograms", total=len(pairs))) as progress_bar:
+        #with self.tqdm_joblib(notebook.tqdm(desc='Interferograms', total=len(pairs))) as progress_bar:
         #    joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
 
         # start a set of jobs together but not more than available cpu cores at once
@@ -886,7 +886,7 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-        with self.tqdm_joblib(notebook.tqdm(desc="Unwrapping", total=len(pairs))) as progress_bar:
+        with self.tqdm_joblib(notebook.tqdm(desc='Unwrapping', total=len(pairs))) as progress_bar:
             joblib.Parallel(n_jobs=-1)(joblib.delayed(self.unwrap)(pair, **kwargs) for pair in pairs)
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
