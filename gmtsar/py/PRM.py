@@ -546,7 +546,6 @@ class PRM:
         import xarray as xr
         from scipy.interpolate import griddata
         from scipy.ndimage.filters import gaussian_filter
-        from scipy.spatial import cKDTree
 
         XMAX, yvalid, num_patch = self.get('num_rng_bins', 'num_valid_az', 'num_patches')
         YMAX = yvalid * num_patch
@@ -569,7 +568,7 @@ class PRM:
         #print ('dem_data', dem_data.shape)
         #if trans_dat_tofile is not None:
         self.SAT_llt2rat(dem_data, tofile=trans_dat_tofile, precise=1, binary=True)
-    
+
         # build topo_ra
         coords = np.fromfile(trans_dat_tofile, dtype=np.float64).reshape([-1,5])
         #else:
