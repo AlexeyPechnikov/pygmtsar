@@ -261,6 +261,16 @@ class PRM:
             prm = self.df + other
         return PRM(prm)
 
+    def __sub__(self, other):
+        import pandas as pd
+        if isinstance(other, PRM):
+            prm = pd.concat([self.df, other.df])
+            # drop duplicates
+            prm = prm.groupby(prm.index).last()
+        else:
+            prm = self.df - other
+        return PRM(prm)
+
     def get(self, *args):
         out = [self.df.loc[[key]].iloc[0].values[0] for key in args]
         if len(out) == 1:
