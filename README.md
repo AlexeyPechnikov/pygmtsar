@@ -36,11 +36,11 @@ See the notebooks below where the installation commands included.
 
 * [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
 
-<img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake.jpg" width="50%">
+<img src="https://user-images.githubusercontent.com/7342379/177004243-123f7127-2c42-48d4-996b-b4200929a011.jpg" width="50%">
 
 * [Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece](https://colab.research.google.com/drive/1asddx-b3f7jS6TK-fkTm_WuytqBZzovc?usp=sharing)
 
-<img src="https://storage.googleapis.com/pygmtsar/examples/S1AB_Crete_Earthquake_vs_geObsevatory.jpg" width="50%">
+<img src="https://user-images.githubusercontent.com/7342379/177004287-cdd4351c-0834-42ae-8e46-9da5e8b124bf.jpg" width="50%">
 
 * [Live Example S1A_Stack_CPGF_T173 on Google Colab](https://colab.research.google.com/drive/1Ab2I9A2kmZIHuNwIortaga1zZ90hBjMa?usp=sharing)
 
