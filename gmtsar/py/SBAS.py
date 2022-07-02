@@ -168,7 +168,10 @@ class SBAS:
         self.dem_filename = os.path.relpath(dem_filename,'.')
         return self
 
-    def download_dem(self, product='SRTM3', debug=False):
+    # buffer required to get correct (binary) results from SAT_llt2rat tool
+    # small margin produces insufficient DEM not covers the defined area
+    # 0.01 is usually enough but not always
+    def download_dem(self, product='SRTM3', buffer_degrees=0.02, debug=False):
         import urllib.request
         import elevation
         import os
@@ -189,10 +192,9 @@ class SBAS:
             llmin, llmax = self.geoloc().longitude.min(), self.geoloc().longitude.max()
             ltmin, ltmax = self.geoloc().latitude.min(),  self.geoloc().latitude.max()
             # left bottom right top
-            
             elevation.clip(bounds=(llmin, ltmin, llmax, ltmax),
                             product=product,
-                            margin='0.01', 
+                            margin=str(buffer_degrees),
                             output=os.path.realpath(tif_filename))
             #elevation.clean()
 
@@ -269,8 +271,9 @@ class SBAS:
         return geoloc_df
     
     # buffer required to get correct (binary) results from SAT_llt2rat tool
+    # small buffer produces incomplete area coverage and restricted NaNs
     # minimum buffer size: 8 arc seconds for 90 m DEM
-    def get_dem(self, geoloc=False, buffer_degrees = 12./3600):
+    def get_dem(self, geoloc=False, buffer_degrees = 0.02):
         import xarray as xr
         import os
         
@@ -590,29 +593,31 @@ class SBAS:
         tmp_prm = prm1
 
         # compute whether there are any image offset
-        if tmp_da == 0:
-            # tmp_prm defined above from {master}.PRM
-            prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
-            prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug).update()
-            lontie,lattie = prm1.SAT_baseline(prm2, debug=debug).get('lon_tie_point', 'lat_tie_point')
-            tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
-            tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
-            # bursts look equal to rounded result int(np.round(...))
-            tmp_da = int(tmp_as - tmp_am)
-            #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
+        #if tmp_da == 0:
+        # tmp_prm defined above from {master}.PRM
+        prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+        prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug).update()
+        lontie,lattie = prm1.SAT_baseline(prm2, debug=debug).get('lon_tie_point', 'lat_tie_point')
+        tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
+        tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
+        # bursts look equal to rounded result int(np.round(...))
+        tmp_da = int(tmp_as - tmp_am)
+        #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
 
         # in case the images are offset by more than a burst, shift the super-master's PRM again
         # so SAT_llt2rat gives precise estimate
-        if abs(tmp_da) < 1000:
-            # tmp.PRM defined above from {master}.PRM
-            prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
-            tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
-            prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
-            tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
-        else:
-            raise Exception('TODO: Modifying master PRM by $tmp_da lines...')
+        if abs(tmp_da) >= 1000:
+            prf = tmp_prm.get('PRF')
+            tmp_prm.set(tmp_prm.sel('clock_start' ,'clock_stop', 'SC_clock_start', 'SC_clock_stop') - tmp_da/prf/86400.0)
+            #raise Exception('TODO: Modifying master PRM by $tmp_da lines...')
 
-        # echo get r, dr, a, da, SNR table to be used by fitoffset.csh
+        # tmp.PRM defined above from {master}.PRM
+        prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+        tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
+        prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+        tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
+
+        # get r, dr, a, da, SNR table to be used by fitoffset.csh
         offset_dat0 = np.hstack([tmpm_dat, tmp1_dat])
         func = lambda row: [row[0],row[5]-row[0],row[1],row[6]-row[1],100]
         offset_dat = np.apply_along_axis(func, 1, offset_dat0)
@@ -715,7 +720,7 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-		# this way does not work properly for long interferogram series
+        # this way does not work properly for long interferogram series
         #with self.tqdm_joblib(notebook.tqdm(desc='Interferograms', total=len(pairs))) as progress_bar:
         #    joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
 
