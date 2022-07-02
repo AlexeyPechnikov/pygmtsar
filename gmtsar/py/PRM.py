@@ -583,6 +583,8 @@ class PRM:
         coords = np.fromfile(trans_dat_tofile, dtype=np.float64).reshape([-1,5])
         # or return numpy array and save it to the trans_dat file later
         #coords = self.SAT_llt2rat(dem_data, precise=1, binary=True)
+        if np.any(np.isnan(coords)):
+            raise Exception('Invalid trans.dat file with NaN values detected')
 
         # also, we can use all cores for the calculation (and save 2-3 minutes from 15 in total) while the longest processing is below
         #import joblib
@@ -600,11 +602,16 @@ class PRM:
 
         # this processing is not parallelized and it is time consuming
         grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method)
+        if np.any(np.isnan(grid)):
+            raise Exception('Invalid topo_ra grid with NaN values detected')
 
         # remove subpixel noise
         grid = gaussian_filter(grid, 1.0, mode='constant', cval=0)
 
         topo = xr.DataArray(np.flipud(grid), coords={'y': azis, 'x': rngs}, name='z')
+
+        if np.any(np.isnan(topo)):
+            raise Exception('Invalid topo_ra file with NaN values detected')
 
         if topo_ra_tofile is None:
             return topo
