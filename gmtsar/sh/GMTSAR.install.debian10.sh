@@ -76,6 +76,7 @@ EOF
 
 # to download Sentinel-1 orbit files and SRTM 30m and 90m DEM
 apt install -y unzip
+apt install -y python3-pip
 python3 -m pip install sentineleof elevation
 eio selfcheck
 
@@ -88,7 +89,7 @@ sed -i '/policy domain="coder" rights="none" pattern="PDF"/d' /etc/ImageMagick-6
 
 # PyGMTSAR dependencies
 # for python tools and sbas command line arguments calculation
-apt install -y python3-pip gdal-bin python-gdal python3-netcdf4 python3-scipy bc
+apt install -y gdal-bin python-gdal python3-netcdf4 python3-scipy bc
 # for additional Python-coded utilities
 python3 -m pip install xarray numpy scipy pytest --upgrade
 # for notebooks
