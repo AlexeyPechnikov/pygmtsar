@@ -12,6 +12,7 @@ class PRM:
     @staticmethod
     def gaussian_kernel(size=5, std=1):
         """Make 2D Gaussian kernel matrix"""
+        import numpy as np
         from scipy import signal
         matrix1d = signal.gaussian(size, std=std).reshape(size, 1)
         matrix2d = np.outer(matrix1d, matrix1d)
@@ -823,7 +824,10 @@ class PRM:
             print ('phasefilt', stderr_data.decode('ascii'))
         return
 
-    def intf(self, other, basedir, basename=None, wavelength=200, psize=32, func=None):
+    # see about correlation filter
+    # https://github.com/gmtsar/gmtsar/issues/86
+    # use_boxcar_filter=True for ISCE-type boxcar and multilook filter
+    def intf(self, other, basedir, basename=None, wavelength=200, psize=32, use_boxcar_filter=False, func=None):
         import os
         import numpy as np
         import xarray as xr
@@ -849,6 +853,7 @@ class PRM:
 
         #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
         fill_3x3 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/fill.3x3', skip_header=1)
+        filename_boxcar3x5 = os.path.join(os.environ['GMTSAR'],'share','gmtsar','filters','boxcar.3x5')
         filename_gauss5x5 = os.path.join(os.environ['GMTSAR'],'share','gmtsar','filters','gauss5x5')
         gauss_dec, gauss_string = self.make_gaussian_filter(2, 1, wavelength=wavelength)
         #print (gauss_matrix_astext)
@@ -863,32 +868,50 @@ class PRM:
                        imag_tofile=fullname('imag.grd=bf'),
                        real_tofile=fullname('real.grd=bf'))
 
-        # making amplitudes
-        self.conv(1, 2, filter_file = filename_gauss5x5,
-                  output_file=fullname('amp1_tmp.grd=bf'))
-        self.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                  input_file=fullname('amp1_tmp.grd=bf'),
-                  output_file=fullname('amp1.grd'))
-
-        other.conv(1, 2, filter_file = filename_gauss5x5,
-                   output_file=fullname('amp2_tmp.grd=bf'))
-        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                   input_file=fullname('amp2_tmp.grd=bf'),
-                   output_file=fullname('amp2.grd'))
-
         # filtering interferogram
-        self.conv(1, 2, filter_file=filename_gauss5x5,
-                  input_file=fullname('real.grd=bf'),
-                  output_file=fullname('real_tmp.grd=bf'))
-        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                   input_file=fullname('real_tmp.grd=bf'),
-                   output_file=fullname('realfilt.grd'))
-        self.conv(1, 2, filter_file=filename_gauss5x5,
-                  input_file=fullname('imag.grd=bf'),
-                  output_file=fullname('imag_tmp.grd=bf'))
-        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                   input_file=fullname('imag_tmp.grd=bf'),
-                   output_file=fullname('imagfilt.grd'))
+        if not use_boxcar_filter:
+            # use default GMTSAR filter
+            # making amplitudes
+            self.conv(1, 2, filter_file = filename_gauss5x5,
+                      output_file=fullname('amp1_tmp.grd=bf'))
+            self.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                      input_file=fullname('amp1_tmp.grd=bf'),
+                      output_file=fullname('amp1.grd'))
+
+            other.conv(1, 2, filter_file = filename_gauss5x5,
+                       output_file=fullname('amp2_tmp.grd=bf'))
+            other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                       input_file=fullname('amp2_tmp.grd=bf'),
+                       output_file=fullname('amp2.grd'))
+
+            # filtering interferogram
+            self.conv(1, 2, filter_file=filename_gauss5x5,
+                      input_file=fullname('real.grd=bf'),
+                      output_file=fullname('real_tmp.grd=bf'))
+            other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                       input_file=fullname('real_tmp.grd=bf'),
+                       output_file=fullname('realfilt.grd'))
+            self.conv(1, 2, filter_file=filename_gauss5x5,
+                      input_file=fullname('imag.grd=bf'),
+                      output_file=fullname('imag_tmp.grd=bf'))
+            other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                       input_file=fullname('imag_tmp.grd=bf'),
+                       output_file=fullname('imagfilt.grd'))
+        else:
+            # use ISCE-type boxcar and multilook filter
+            # 3 range and 5 azimuth looks
+            # making amplitudes
+            self.conv(5, 3, filter_file = filename_boxcar3x5,
+                      output_file=fullname('amp1.grd'))
+            other.conv(5, 3, filter_file = filename_boxcar3x5,
+                       output_file=fullname('amp2.grd'))
+
+            self.conv(5, 3, filter_file=filename_boxcar3x5,
+                      input_file=fullname('real.grd=bf'),
+                      output_file=fullname('realfilt.grd'))
+            self.conv(5, 3, filter_file=filename_boxcar3x5,
+                      input_file=fullname('imag.grd=bf'),
+                      output_file=fullname('imagfilt.grd'))
 
         # filtering phase
         self.phasefilt(imag_fromfile=fullname('imagfilt.grd'),
