@@ -52,6 +52,12 @@ See the notebooks below where the installation commands included.
 
 <img src="https://user-images.githubusercontent.com/7342379/136558388-cffbcea5-e5a7-44d5-ba36-b51a7e0f10e9.png" width="50%">
 
+* [Live Example S1A_Stack_CPGF_T173 using ISCE boxcar and multilook filter on Google Colab](https://colab.research.google.com/drive/1JmS7MGdqDHUI-Ynl70L3DyXTpFb52cqZ?usp=sharing)
+
+GMTSAR uses it's own correlation calculation which is not equal to other interferometric packages approach, see more details here: [GMTSAR: Correlation file #86](https://github.com/gmtsar/gmtsar/issues/86). Sometimes we need to know the relation between the different correlation estimations to reproduce 3rd party results using GMTSAR. PyGMTSAR supports also ISCE-compatible algorithm (`sbas.intf_parallel(pairs, ... use_boxcar_filter=True)`) and we can compare the results:
+
+![GMTSAR vs ISCE correlation](https://user-images.githubusercontent.com/7342379/177130538-d3c3b8ea-a30e-4c75-a496-68d3a203ba24.png)
+
 * [Yamchi DAM Interferograms Persistent Scatterer Interferometry (PSI) Analysis](https://colab.research.google.com/drive/1ant72nEGxARIqxkXfVvwoMg1yxEkImrr?usp=sharing)
 See also a separate GitHub repository for the processing results: [YamchiDam](https://github.com/mobigroup/YamchiDam)
 
