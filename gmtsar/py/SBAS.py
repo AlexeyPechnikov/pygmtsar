@@ -196,7 +196,7 @@ class SBAS:
                             product=product,
                             margin=str(buffer_degrees),
                             output=os.path.realpath(tif_filename))
-            #elevation.clean()
+            elevation.clean()
 
         if not os.path.exists(grd_filename):
             # convert to WGS84 ellipsoidal heights
