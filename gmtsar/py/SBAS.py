@@ -33,25 +33,8 @@ class SBAS:
 
     @staticmethod
     def nearest_grid(in_grid, search_radius_pixels=300):
-        from scipy.spatial import cKDTree
-        import xarray as xr
-        import numpy as np
-
-        ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
-        ys = ys.reshape(-1)
-        xs = xs.reshape(-1)
-        zs = in_grid.values.reshape(-1)
-        mask = np.where(~np.isnan(zs))
-        # on regular source grid some options should be redefined for better performance
-        tree = cKDTree(np.column_stack((ys[mask],xs[mask])), compact_nodes=False, balanced_tree=False)
-        # use distance_limit
-        d, inds = tree.query(np.column_stack((ys,xs)), k = 1, distance_upper_bound=search_radius_pixels, workers=8)
-        # replace not available indexes by zero (see distance_upper_bound)
-        fakeinds = np.where(~np.isinf(d), inds, 0)
-        # produce the same output array as dataset to be able to add global attributes
-        values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
-        out_grid = xr.DataArray(values, coords=in_grid.coords, name='z')
-        return out_grid
+        from PRM import PRM
+        return PRM.nearest_grid(in_grid, search_radius_pixels)
 
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)

@@ -18,6 +18,33 @@ class PRM:
         matrix2d = np.outer(matrix1d, matrix1d)
         return matrix2d
 
+    @staticmethod
+    def nearest_grid(in_grid, search_radius_pixels=300):
+        """Fill NaNs in NumPy array or Xarray DataArray using nearest neighbor values"""
+        from scipy.spatial import cKDTree
+        import xarray as xr
+        import numpy as np
+
+        if isinstance(in_grid, xr.DataArray):
+            ys, xs = np.meshgrid(in_grid.y, in_grid.x)
+            zs = in_grid.values.reshape(-1)
+        else:
+            ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
+            zs = in_grid.reshape(-1)
+        ys = ys.reshape(-1)
+        xs = xs.reshape(-1)
+        mask = np.where(~np.isnan(zs))
+        # on regular source grid some options should be redefined for better performance
+        tree = cKDTree(np.column_stack((ys[mask],xs[mask])), compact_nodes=False, balanced_tree=False)
+        # use distance_limit
+        d, inds = tree.query(np.column_stack((ys,xs)), k = 1, distance_upper_bound=search_radius_pixels, workers=8)
+        # replace not available indexes by zero (see distance_upper_bound)
+        fakeinds = np.where(~np.isinf(d), inds, 0)
+        # produce the same output array as dataset to be able to add global attributes
+        values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
+        if isinstance(in_grid, xr.DataArray):
+             return xr.DataArray(values, coords=in_grid.coords, name='z')
+        return values
 
     # replacement function for GMT based robust 2D trend coefficient calculations:
     # gmt trend2d r.xyz -Fxyzmw -N1r -V
@@ -604,22 +631,27 @@ class PRM:
         # this processing is not parallelized and it is time consuming
         grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method)
         if np.any(np.isnan(grid)):
-            raise Exception('Invalid topo_ra grid with NaN values detected')
+            print('Note: Fill NaNs in topo_ra using NN values', np.isnan(grid).sum().item())
+            # fill the gaps
+            grid = self.nearest_grid(grid)
 
         # remove subpixel noise
         grid = gaussian_filter(grid, 1.0, mode='constant', cval=0)
-
+        # wrap to dataarray
         topo = xr.DataArray(np.flipud(grid), coords={'y': azis, 'x': rngs}, name='z')
 
-        if np.any(np.isnan(topo)):
-            raise Exception('Invalid topo_ra file with NaN values detected')
-
         if topo_ra_tofile is None:
+            if np.any(np.isnan(topo)):
+                raise Exception('Invalid topo_ra file with NaN values detected', np.isnan(topo).sum().item())
             return topo
 
         # save to NetCDF file
         compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
         topo.to_netcdf(topo_ra_tofile, encoding={'z': compression})
+
+        # save file for debug and raise error after that
+        if np.any(np.isnan(topo)):
+            raise Exception('Invalid topo_ra file with NaN values detected', np.isnan(topo).sum().item())
         return
 
     def diff(self, other, gformat=True):
