@@ -34,7 +34,7 @@ See the notebooks below where the installation commands included.
 
 ### Live Examples
 
-* Live example automatically downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF) and compares the desults to SNAP, GMTSAR and GAMMA Software. Just replace the scene names to you own to produce custom interferogram. [ASF Downloading 2017 Iran–Iraq Earthquake Co-Seismic Interferogram.ipynb](https://colab.research.google.com/drive/1PKj75zrFY6SGcqR6u1SrrMOpVNRQ2_S9?usp=sharing)
+* Live example automatically downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF) and compares the results to SNAP, GMTSAR and GAMMA Software. Just replace the scene names to your own to produce a custom interferogram. [ASF Downloading 2017 Iran–Iraq Earthquake Co-Seismic Interferogram.ipynb](https://colab.research.google.com/drive/1PKj75zrFY6SGcqR6u1SrrMOpVNRQ2_S9?usp=sharing)
 
 <img width="50%" src="https://user-images.githubusercontent.com/7342379/177748605-788889e5-9afd-44d8-bc3c-dc6efe920ea0.png">
 
