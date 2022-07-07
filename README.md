@@ -51,7 +51,7 @@ See the notebooks below where the installation commands included.
 <img src="https://user-images.githubusercontent.com/7342379/135814732-aa0eb142-ae54-4a57-b271-c33b5174a28e.png" width="50%">
 
 <img src="https://user-images.githubusercontent.com/7342379/136558388-cffbcea5-e5a7-44d5-ba36-b51a7e0f10e9.png" width="50%">
-x
+
 * [Yamchi DAM Interferograms Persistent Scatterer Interferometry (PSI) Analysis](https://colab.research.google.com/drive/1ant72nEGxARIqxkXfVvwoMg1yxEkImrr?usp=sharing)
 See also a separate GitHub repository for the processing results: [YamchiDam](https://github.com/mobigroup/YamchiDam)
 
