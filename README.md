@@ -65,3 +65,5 @@ Place the file dem.grd in the /topo directory.
 
 There are complete examples for each data type at the following web site:
       https://topex.ucsd.edu/gmtsar/downloads/
+
+To process a pair interferogram, try `p2p_processing.csh`, or `p2p_S1_TOPS_Frame.csh` for Sentinel-1 TOPS data and `p2p_ALOS2_SCAN_Frame.csh` for ALOS-2 ScanSAR data. For batch processing, see instructions in the GMTSAR documentation (http://topex.ucsd.edu/gmtsar/tar/GMTSAR_2ND_TEX.pdf) or the Sentinel-1 time-series recipe (http://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_5.pdf).
