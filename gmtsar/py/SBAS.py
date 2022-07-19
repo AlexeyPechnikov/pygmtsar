@@ -245,7 +245,10 @@ class SBAS:
 
         filename = self.df.loc[date,'metapath']
         with open(filename) as fd:
-            doc = xmltodict.parse(fd.read())
+            # fix wrong XML tags to process cropped scenes
+            # GMTSAR assemble_tops.c produces malformed xml
+            # https://github.com/gmtsar/gmtsar/issues/354
+            doc = xmltodict.parse(fd.read().replace('/></','></'))
         #doc['geolocationGrid']
         geoloc = doc['product']['geolocationGrid']['geolocationGridPointList']
         # check data consistency
