@@ -20,19 +20,19 @@ class PRM:
 
     @staticmethod
     def nearest_grid(in_grid, search_radius_pixels=300):
-        """Fill NaNs in NumPy array or Xarray DataArray using nearest neighbor values"""
+        """
+        Fill NaNs in NumPy array or Xarray DataArray using pixel-based nearest neighbor values
+        """
         from scipy.spatial import cKDTree
         import xarray as xr
         import numpy as np
-
-        if isinstance(in_grid, xr.DataArray):
-            ys, xs = np.meshgrid(in_grid.y, in_grid.x)
-            zs = in_grid.values.reshape(-1)
-        else:
-            ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
-            zs = in_grid.reshape(-1)
+        ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
         ys = ys.reshape(-1)
         xs = xs.reshape(-1)
+        if isinstance(in_grid, xr.DataArray):
+            zs = in_grid.values.reshape(-1)
+        else:
+            zs = in_grid.reshape(-1)
         mask = np.where(~np.isnan(zs))
         # on regular source grid some options should be redefined for better performance
         tree = cKDTree(np.column_stack((ys[mask],xs[mask])), compact_nodes=False, balanced_tree=False)
@@ -43,7 +43,7 @@ class PRM:
         # produce the same output array as dataset to be able to add global attributes
         values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
         if isinstance(in_grid, xr.DataArray):
-             return xr.DataArray(values, coords=in_grid.coords, name='z')
+            return xr.DataArray(values, coords=in_grid.coords, name=in_grid.name)
         return values
 
     # replacement function for GMT based robust 2D trend coefficient calculations:
@@ -629,10 +629,15 @@ class PRM:
         #        f.write(coords)
 
         # this processing is not parallelized and it is time consuming
+        # TODO: plit to overlapping chunks and process them in parallel
         grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method)
+
+        # a few NaNs possible and we need to fill all of them
         if np.any(np.isnan(grid)):
             print('Note: Fill NaNs in topo_ra using NN values', np.isnan(grid).sum().item())
             # fill the gaps
+            # TODO: that's too slow to fill a small set of NaNs
+            # we might use a faster way
             grid = self.nearest_grid(grid)
 
         # remove subpixel noise
