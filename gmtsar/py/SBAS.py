@@ -661,7 +661,7 @@ class SBAS:
 
         PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True, debug=debug).update()
 
-    def stack_parallel(self, dates=None, **kwargs):
+    def stack_parallel(self, dates=None, n_jobs=-1, **kwargs):
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
@@ -676,7 +676,7 @@ class SBAS:
 
         # prepare secondary images
         with self.tqdm_joblib(notebook.tqdm(desc='Aligning', total=len(dates))) as progress_bar:
-            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.stack_rep)(date, **kwargs) for date in dates)
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.stack_rep)(date, **kwargs) for date in dates)
 
     def intf(self, pair, **kwargs):
         from PRM import PRM
@@ -691,7 +691,7 @@ class SBAS:
         #print ('SBAS intf kwargs', kwargs)
         prm_ref.intf(prm_rep, basedir=self.basedir, **kwargs)
 
-    def intf_parallel(self, pairs, **kwargs):
+    def intf_parallel(self, pairs, n_jobs=-1, **kwargs):
         import pandas as pd
         import numpy as np
         #from tqdm import tqdm
@@ -708,7 +708,8 @@ class SBAS:
         #    joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
 
         # start a set of jobs together but not more than available cpu cores at once
-        n_jobs = joblib.cpu_count()
+        if n_jobs == -1:
+            n_jobs = joblib.cpu_count()
         n_chunks = int(np.ceil(len(pairs)/n_jobs))
         chunks = np.array_split(pairs, n_chunks)
         with notebook.tqdm(desc='Interferograms', total=len(pairs)) as pbar:
@@ -865,7 +866,7 @@ class SBAS:
         #print (filename)
         return PRM.from_file(filename)
 
-    def unwrap_parallel(self, pairs, **kwargs):
+    def unwrap_parallel(self, pairs, n_jobs=-1, **kwargs):
         import pandas as pd
         #from tqdm import tqdm
         from tqdm import notebook
@@ -875,7 +876,7 @@ class SBAS:
             pairs = pairs.values
 
         with self.tqdm_joblib(notebook.tqdm(desc='Unwrapping', total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=-1)(joblib.delayed(self.unwrap)(pair, **kwargs) for pair in pairs)
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.unwrap)(pair, **kwargs) for pair in pairs)
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
