@@ -100,7 +100,7 @@
   rm *.tiff *.xml tmp1*
   cd ..
 
-# wrok on the second subswath
+# work on the second subswath
   echo ""
   echo "Working on subswath 2 ..."
   set a = `awk NR==1'{print $0}' $filelist`
@@ -153,7 +153,7 @@
   rm *.tiff *.xml tmp1*
   cd ..
 
-# wrok on the third subswath
+# work on the third subswath
   echo ""
   echo "Working on subswath 3 ..."
   set a = `awk NR==1'{print $0}' $filelist`
