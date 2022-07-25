@@ -61,6 +61,7 @@ install-main:
 	$(INSTALL) -d $(sharedir)/snaphu/config
 	$(INSTALL) gmtsar/filters/[bfgsxy]* $(sharedir)/filters
 	$(INSTALL) gmtsar/csh/snaphu.conf.* $(sharedir)/snaphu/config
+	$(INSTALL) gmtsar/*.grd $(sharedir)
 
 install-orbits:
 	wget $(ORBITS_URL) 2>/dev/null || curl -O $(ORBITS_URL)
