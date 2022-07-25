@@ -509,7 +509,7 @@
           if ($SAT == "ALOS2_SCAN") then
             ln -s ../SLC/freq_alos2.dat
             fitoffset.csh  2 3 freq_alos2.dat 10 >> $aligned.PRM
-          else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW") then
+          else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW" || $SAT == "TSX") then
             ln -s ../SLC/freq_xcorr.dat .
             fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
           else
