@@ -36,17 +36,46 @@ class SBAS:
         from PRM import PRM
         return PRM.nearest_grid(in_grid, search_radius_pixels)
 
+    #text2date('V20171110T225942'), text2date('20171117t145927')
+    @staticmethod
+    def text2date(text, as_date=True):
+        from datetime import datetime
+        
+        date_fmt = '%Y%m%dT%H%M%S'
+        date_str = text.replace('V','').replace('t','T')
+        dt = datetime.strptime(date_str, date_fmt)
+        if as_date == False:
+            return dt
+        return dt.date()
+
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
-    def __init__(self, datadir, dem_filename=None, basedir='.'):
+    def __init__(self, datadir, dem_filename=None, basedir='.',
+                filter_orbit=None, filter_mission=None, filter_subswath=None, filter_polarization=None):
         import os
         from glob import glob
         import pandas as pd
+        import geopandas as gpd
+        import shapely
         import numpy as np
         from datetime import datetime
         from dateutil.relativedelta import relativedelta
         oneday = relativedelta(days=1)
+
+        def pattern2paths(pattern):
+            path_pattern = os.path.join(datadir, '**', pattern)
+            paths = glob(path_pattern, recursive=True)
+            return paths
+
+        assert filter_orbit is None or filter_orbit=='A' or filter_orbit=='D', \
+            'ERROR: use symbol A (Ascending) or D (Descending) for orbit filter'
+        assert filter_mission is None or filter_mission=='S1A' or filter_mission=='S1B', \
+            'ERROR: use name S1A or S1B for mission filter'
+        assert filter_subswath is None or filter_subswath in [1,2,3], \
+            'ERROR: use number 1 or 2 or 3 for subswath filter'
+        assert filter_polarization is None or filter_polarization in ['VV','VH','HH','HV'], \
+            'ERROR: use VV or VH or HH or HV for polarization filter'
 
         if dem_filename is None:
             self.dem_filename = None
@@ -61,90 +90,132 @@ class SBAS:
             os.makedirs(basedir, exist_ok=True)
             self.basedir = basedir
 
-        orbits = sorted(glob(os.path.join(datadir, 'S1?*.EOF'), recursive=True))
-        orbits = pd.DataFrame(orbits, columns=['orbitpath'])
-        #if len(orbits) ==0:
-        #    raise Exception('Orbit files are not found. Use "eof" command to generate them in .SAFE or .zip products directory')
-        orbits['orbitfile'] = [os.path.split(file)[-1] for file in orbits['orbitpath']]
-        orbits['orbitname'] = [os.path.splitext(name)[0] for name in orbits['orbitfile']]
-        orbits['date1'] = [name.split('_')[-2][1:9] for name in orbits['orbitname']]
-        orbits['date2'] = [name.split('_')[-1][:8] for name in orbits['orbitname']]
-
-        metas = sorted(glob(os.path.join(datadir, 's1?-iw*.xml'), recursive=True))
-        metas = pd.DataFrame(metas, columns=['metapath'])
-        metas['metafile'] = [os.path.split(file)[-1] for file in metas['metapath']]
-        metas['filename'] = [os.path.splitext(file)[0] for file in metas['metafile']]
-        metas['subswath'] = [filename.split('-')[1] for filename in metas['filename']]
-        metas['satellite'] = [filename.split('-')[0].upper() for filename in metas['filename']]
-        dates = [name[15:30] for name in metas['metafile']]
-        dates = [datetime.strptime(date, "%Y%m%dt%H%M%S") for date in dates]
-        #print (dates)
-        if len(orbits) > 0 and len(orbits) != len(dates):
-            raise Exception('Some files are missed. Expected a set of triples .EOF, .tiff, .xml. Hint: you would remove all orbits and use function download_orbits()')
-
-        # detect RESORB
-        if len(orbits) > 0:
-            RESORBs = orbits['date1'] == orbits['date2']
+        if filter_polarization is None:
+            filter_polarization = '??'
+        if filter_subswath is None:
+            filter_subswath  = '?'
+        # filter mission
+        if filter_mission is not None:
+            path_pattern = f'{filter_mission.lower()}-iw{filter_subswath}-slc-{filter_polarization.lower()}-*'
         else:
-            RESORBs = len(dates)*[True]
-        #print (RESORBs)
-        metas['date'] = [date.strftime("%Y-%m-%d") for date in dates]
-        metas['date1'] = [date.strftime("%Y%m%d") if resorb else (date-oneday).strftime("%Y%m%d") for (date, resorb) in zip(dates, RESORBs)]
-        metas['date2'] = [date.strftime("%Y%m%d") if resorb else (date+oneday).strftime("%Y%m%d") for (date, resorb) in zip(dates, RESORBs)]
-        #print (filenames)
-        #metanames['data'] = [filename[:-4]+'.tiff' for metaname in metanames['metaname']]
-        #metanames['dataname'] = [basename[:-4]+'.tiff' for basename in metanames['basename']]
-        # TODO: replace F1 to iw*
-        metas['stem'] = [f'S1_{date.strftime("%Y%m%d_%H%M%S")}_F1' for date in dates]
-        metas['multistem'] = [f'S1_{date.strftime("%Y%m%d")}_ALL_F1' for date in dates]
-        #print (metas)
+            path_pattern = f's1?-iw{filter_subswath}-slc-{filter_polarization.lower()}-*'
+        datapaths = pattern2paths(path_pattern + '.tiff')
+        #print ('datapaths', datapaths)
+        metapaths = pattern2paths(path_pattern + '.xml')
+        #print ('metapaths', metapaths)
     
-        datas = sorted(glob(os.path.join(datadir, 's1?-iw*.tiff'), recursive=True))
-        datas = pd.DataFrame(datas, columns=['datapath'])
-        datas['datafile'] = [os.path.split(file)[-1] for file in datas['datapath']]
-        datas['filename'] = [os.path.splitext(file)[0] for file in datas['datafile']]
-        #print (datas)
+        datanames = [os.path.splitext(os.path.split(path)[-1])[0] for path in datapaths]
+        #print ('datanames', datanames)
+        metanames = [os.path.splitext(os.path.split(path)[-1])[0] for path in metapaths]
+        #print ('metanames', metanames)
+        
+        datas = dict(zip(datanames, datapaths))
+        metas = dict(zip(metanames, metapaths))
+        
+        # define the same order when and only when the names are the same
+        datanames = sorted(datanames)
+        metanames = sorted(metanames)
+        assert datanames == metanames, 'Found inconsistent set of .tiff and .xml files'
+        # reorder paths using the same order
+        datapaths = [datas[name] for name in datanames]
+        metapaths = [metas[name] for name in metanames]
 
-        if len(metas) < len(datas):
-            raise Exception('Some xml files are missed. Expected a set of pairs .tiff and .xml')
-        if len(metas) > len(datas):
-            raise Exception('Some tiff files are missed. Expected a set of pairs .tiff and .xml')
+        # points to datadir and extensions tiff, xml
+        #print ('filenames', filenames)
+        dts = [self.text2date(name.split('-')[4],False) for name in datanames]
+        #print ('filedatetimes', dts)
     
-        #metas['satellite'] = [metafile[:3] for metafile in metas['metafile']]
-        #if len(np.unique(metas['satellite'])) > 1:
-        #    raise Exception('Only scenes from one satellite allowed (S1A or S1B)')
+        ds = [dt.date() for dt in dts]
+        #print ('filedates', ds)
 
-        self.df = pd.merge(metas, orbits,  how='left', left_on=['date1','date2'], right_on = ['date1','date2'])
-        self.df = pd.merge(self.df, datas,  how='left', left_on=['filename'], right_on = ['filename'])
-        self.df = self.df.set_index('date').sort_index()
-        del self.df['date1']
-        del self.df['date2']
+        df = pd.DataFrame({'date':[str(d) for d in ds], 'datetime': dts, 'datapath': datapaths, 'metapath': metapaths})
+        #print ('self.df', self.df)
 
-        if len(np.unique(self.df.subswath))>1:
-            raise Exception('Sorry, only single subswath processing supported for now. Use any one iw1, iw2, or iw3')
+        # filter mission
+        if filter_mission is not None:
+            orbit_path_pattern = f'{filter_mission.upper()}_OPER_AUX_*.EOF'
+        else:
+            orbit_path_pattern = 'S1?_OPER_AUX_*.EOF'
+        orbitpaths = pattern2paths(orbit_path_pattern)
+        #print ('orbitpaths', orbitpaths)
+        orbitnames = [os.path.splitext(os.path.split(path)[-1])[0] for path in orbitpaths]
+        if orbitpaths:
+            orbit_dates = [(self.text2date(name.split('_')[-2]), self.text2date(name.split('_')[-1])) for name in orbitnames]
+            orbits = dict(zip(orbit_dates, orbitpaths))
+            #print ('orbits', orbits)
+            # look for as precise (from date-1 day to date+1 day) as restituted orbits (from date to date)
+            orbits = [orbits.get((date-oneday, date+oneday)) or orbits.get((date,date)) for date in ds]
+            #print ('fileorbits', fileorbits)
+            df['orbitpath'] = orbits
+        else:
+            df['orbitpath'] = None
 
-        if len(self.df) < 2:
-            raise Exception('Two or more scenes required')
+        # add some calculated properties
+        df['subswath'] = [filename.split('-')[1] for filename in datanames]
+        df['mission'] = [filename.split('-')[0].upper() for filename in datanames]
+        df['polarization'] = [filename.split('-')[3].upper() for filename in datanames]
+        
+        # read approximate locations
+        geolocs = [shapely.geometry.MultiPoint(self.geoloc(path).geometry).minimum_rotated_rectangle for path in metapaths]
+        #print ('geolocs', geolocs)
+        df = gpd.GeoDataFrame(df, geometry=geolocs)
+        
+        # define orbit directions
+        orbits = [self.annotation(path)['product']['generalAnnotation']['productInformation']['pass'][:1] for path in metapaths]
+        df['orbit'] = orbits
+        # filter orbits
+        if filter_orbit is not None:
+            df = df[df.orbit == filter_orbit]
+        
+        df = df.set_index('date').sort_values('datetime')\
+            [['datetime','orbit','mission','polarization','subswath','datapath','metapath','orbitpath','geometry']]
 
-        # set first image as master image
+        err, warn = self.validate(df)
+        #print ('err, warn', err, warn)
+        assert not err, 'ERROR: Please fix all the issues listed above to continue'
+        if warn:
+            print ('NOTE: Please follow all the notes listed above')
+
+        self.df = df
+        # set first image as master
         self.master = self.df.index[0]
 
+    def validate(self, df=None):
+        if df is None:
+            df = self.df
+        error = False
+        warning = False
+    
+        # we can't merge together scenes from different missions
+        missions = df.groupby('date')['mission'].unique().values
+        missions = [len(mission) for mission in missions if len(mission)>1]
+        if not len(missions) == 0:
+            error = True
+            print ('ERROR: Found multiple scenes for a single date from different missions')
+        if not len(df.subswath.unique()) <= 1:
+            error = True
+            print ('ERROR: Only single subswath processing supported. Use any one iw1, iw2, or iw3')
+        if not len(df.orbit.unique()) <= 1:
+            error = True
+            print ('ERROR: Only single orbit processing supported. Use any one ascending or descending')
+        if not len(df.index.unique()) >= 2:
+            error = True
+            print ('ERROR: Two or more scenes required')
+        daily_scenes = df.groupby('date')['datetime'].count().values.max()
+        if daily_scenes > 1:
+            warning = True
+            print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
+        return error, warning
+    
     def download_orbits(self):
-        import os
         from eof.download import download_eofs
-        import datetime
 
-        dates = [datetime.datetime.strptime(date[15:30],'%Y%m%dt%H%M%S') for date in self.df.filename]
-        orbitpaths = []
-        for (date, satellite) in zip(dates, self.df.satellite):
-            #print (date, satellite)
-            orbitpath = download_eofs([date], [satellite], save_dir=self.basedir)[0]
-            orbitpaths.append(orbitpath)
+        # download all the misssed orbit files
+        for record in self.df[self.df['orbitpath'].isna()].itertuples():
+            #print (date, mission)
+            orbitpath = download_eofs([record.datetime], [record.mission], save_dir=self.basedir)[0]
             #print ('orbitpath', orbitpath)
-        self.df['orbitpath'] = orbitpaths
-        self.df['orbitfile'] = [os.path.split(file)[-1] for file in self.df['orbitpath']]
-        self.df['orbitname'] = [os.path.splitext(name)[0] for name in self.df['orbitfile']]
-        return
+            self.df.loc[self.df.datetime == record.datetime,'orbitpath'] = orbitpath
 
     def set_dem(self, dem_filename):
         import os
@@ -153,113 +224,226 @@ class SBAS:
 
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small margin produces insufficient DEM not covers the defined area
-    # 0.01 is usually enough but not always
     def download_dem(self, product='SRTM3', buffer_degrees=0.02, debug=False):
         import urllib.request
         import elevation
         import os
-        import subprocess    
-    
+        import subprocess
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+
+        err, warn = self.validate()
+        #print ('err, warn', err, warn)
+        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
+
         gtx_url = 'https://github.com/mobigroup/proj-datumgrid/blob/master/egm96_15.gtx?raw=true'
         gtx_filename = os.path.join(self.basedir, 'egm96_15.gtx')
         tif_filename = os.path.join(self.basedir, 'DEM_EGM96.tif')
         grd_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
-    
+
         if not os.path.exists(gtx_filename):
             with urllib.request.urlopen(gtx_url) as fin:
                 with open(gtx_filename, 'wb') as fout:
                     fout.write(fin.read())
 
-        if not os.path.exists(tif_filename):
-            # generate DEM for the area
-            llmin, llmax = self.geoloc().longitude.min(), self.geoloc().longitude.max()
-            ltmin, ltmax = self.geoloc().latitude.min(),  self.geoloc().latitude.max()
+        #if not os.path.exists(tif_filename):
+        # generate DEM for the area
+        bounds = self.geoloc().dissolve().envelope.bounds.values[0]
+        # show progress indicator
+        def func():
             # left bottom right top
-            elevation.clip(bounds=(llmin, ltmin, llmax, ltmax),
+            elevation.clip(bounds=bounds,
                             product=product,
                             margin=str(buffer_degrees),
                             output=os.path.realpath(tif_filename))
             elevation.clean()
+        with self.tqdm_joblib(notebook.tqdm(desc='Downloading', total=1)) as progress_bar:
+            _ = joblib.Parallel(n_jobs=1)(joblib.delayed(func)() for i in [1])
 
-        if not os.path.exists(grd_filename):
-            # convert to WGS84 ellipsoidal heights
-            argv = ['gdalwarp', '-co', 'COMPRESS=DEFLATE',
-                    '-r', 'bilinear',
-                    '-s_srs', f'+proj=longlat +datum=WGS84 +no_defs +geoidgrids=./egm96_15.gtx',
-                    '-t_srs', '+proj=longlat +datum=WGS84 +no_def',
-                    '-overwrite',
-                    '-ot', 'Float32', '-of', 'NetCDF',
-                    'DEM_EGM96.tif', 'DEM_WGS84.nc']
-            #print ('argv', argv)
-            p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
-            stdout_data, stderr_data = p.communicate()
-            if len(stderr_data) > 0:
-                print ('download_dem', stderr_data.decode('ascii'))
-            if len(stdout_data) > 0 and debug:
-                print ('download_dem', stdout_data.decode('ascii'))
+        #if not os.path.exists(grd_filename):
+        # convert to WGS84 ellipsoidal heights
+        argv = ['gdalwarp', '-co', 'COMPRESS=DEFLATE',
+                '-r', 'bilinear',
+                '-s_srs', f'+proj=longlat +datum=WGS84 +no_defs +geoidgrids=./egm96_15.gtx',
+                '-t_srs', '+proj=longlat +datum=WGS84 +no_def',
+                '-overwrite',
+                '-ot', 'Float32', '-of', 'NetCDF',
+                'DEM_EGM96.tif', 'DEM_WGS84.nc']
+        #print ('argv', argv)
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        stdout_data, stderr_data = p.communicate()
+        if len(stderr_data) > 0:
+            print ('download_dem', stderr_data.decode('ascii'))
+        if len(stdout_data) > 0 and debug:
+            print ('download_dem', stdout_data.decode('ascii'))
 
         self.dem_filename = grd_filename
 
     def set_master(self, master):
+        if not master in self.df.index:
+            raise Exception('Master image not found')
         self.master = master
         return self
 
     def get_master(self):
-        if self.master is None:
-            raise Exception('Set master image first')
-        idx = self.master
-        return self.df.loc[[idx]]
+        return self.df.loc[[self.master]]
 
     def get_aligned(self, date=None):
-        if self.master is None:
-            raise Exception('Set master image first')
-        #if self.master is not None and self.master == date:
-        #    raise Exception('Requested image is master image')
-
+        """
+        Return selected aligned image or all the images (excluding master)
+        """
         if date is None:
             idx = self.df.index.difference([self.master])
         else:
             idx = [date]
         return self.df.loc[idx]
 
-    def to_file(self, filename):
-        """
-        Save data.in file like to prep_data_linux.csh & prep_data.csh tools
-        """
-        if self.master is None:
-            raise Exception('Set master image first')
-        line = '\n'.join(self.get_master().apply(lambda row: f'{row.filename}:{row.orbitfile}', axis=1).values)
-        lines = '\n'.join(self.get_aligned().apply(lambda row: f'{row.filename}:{row.orbitfile}', axis=1).values)
-        with open(filename, 'wt') as f:
-            f.write(line+'\n'+lines+'\n')
-        return self
+#    def to_file(self, filename):
+#        """
+#        Save data.in file like to prep_data_linux.csh & prep_data.csh tools
+#        """
+#        if self.master is None:
+#            raise Exception('Set master image first')
+#        line = '\n'.join(self.get_master().apply(lambda row: f'{row.filename}:{row.orbitfile}', axis=1).values)
+#        lines = '\n'.join(self.get_aligned().apply(lambda row: f'{row.filename}:{row.orbitfile}', axis=1).values)
+#        with open(filename, 'wt') as f:
+#            f.write(line+'\n'+lines+'\n')
+#        return self
 
-    def geoloc(self, date=None):
-        import pandas as pd
+    def multistem_stem(self, dt=None):
+        """
+        Define stem and multistem using datetime    
+        """
+        from datetime import datetime
+
+        # master datetime
+        if dt is None:
+            dt = self.df.loc[self.master, 'datetime']
+
+        stem = f'S1_{dt.strftime("%Y%m%d_%H%M%S")}_F1'
+        multistem = f'S1_{dt.strftime("%Y%m%d")}_ALL_F1'
+        return (multistem, stem)
+
+    @staticmethod
+    def annotation(filename):
+        """
+        Return XML scene annotation
+        """
         import xmltodict
 
-        if date is None:
-            if self.master is None:
-                raise Exception('Set master image or define argument date')
-            date = self.master
-
-        filename = self.df.loc[date,'metapath']
         with open(filename) as fd:
             # fix wrong XML tags to process cropped scenes
             # GMTSAR assemble_tops.c produces malformed xml
             # https://github.com/gmtsar/gmtsar/issues/354
             doc = xmltodict.parse(fd.read().replace('/></','></'))
-        #doc['geolocationGrid']
+        return doc
+
+#    def orbit(self, date=None):
+#        """
+#        Get orbit from XML scene annotation as single symbol 'A' | 'D'
+#        """
+#        
+#        if date is None:
+#            date = self.master
+#       
+#        filename = self.df.loc[date,'metapath']
+#        doc = self.annotation(filename)
+#        return doc['product']['generalAnnotation']['productInformation']['pass'][:1]
+
+#    def geoloc(self, date=None):
+#        """
+#        Get GCPs from XML scene annotation as DataFrame
+#        """
+#       import pandas as pd
+#        
+#       if date is None:
+#            date = self.master
+#        
+#        filename = self.df.loc[date,'metapath']
+#        doc = self.annotation(filename)
+#        #doc['geolocationGrid']
+#        geoloc = doc['product']['geolocationGrid']['geolocationGridPointList']
+#        # check data consistency
+#        assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
+#        geoloc_df = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
+#        return geoloc_df
+
+    def geoloc(self, filename=None):
+        """
+        Build approximate scene polygons using GCPs from XML scene annotation
+        """
+        from PRM import PRM
+        import numpy as np
+        import pandas as pd
+        import geopandas as gpd
+        import os
+
+        if filename is None:
+            filename = self.df.loc[self.master,'metapath']
+        doc = self.annotation(filename)
         geoloc = doc['product']['geolocationGrid']['geolocationGridPointList']
         # check data consistency
         assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
-        geoloc_df = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
-        return geoloc_df
-    
+        gcps = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
+        # return approximate location as set of GCP
+        return gpd.GeoDataFrame(gcps, geometry=gpd.points_from_xy(x=gcps.longitude, y=gcps.latitude))
+
+#    # produce cropped frame using two pins
+#    def geoloc_frame(self, pins):
+#        """
+#        Estimate framed area using two pins using Sentinel-1 GCPs with accuracy about 1 km.
+#        The pins should be defined in any order as 1D or 2D array like to
+#            [x1, y1, x2, y2] or [x2, y2, x1, y1] or [[x1, y1], [x2, y2]] or [[x2, y2], [x1, y1]]
+#        The pins automatically reordered properly for ascending and descending orbits and returned in the true order.
+#        """
+#        import numpy as np
+#        import geopandas as gpd
+#        from shapely.geometry import LineString, Point, MultiPoint
+#        from shapely.ops import split
+#
+#        def pin2line(pin, lons, lats):
+#            coeffs = np.polyfit(lons, lats, 1)
+#            poly = np.poly1d(coeffs)
+#            dy = poly(pin.x) - pin.y
+#            return LineString([Point(-180, poly(-180)-dy), Point( 180, poly( 180)-dy)])
+#
+#        date = self.master
+#        
+#        assert len(pins) == 4 or len(pins) == 2, 'Define two pins as two pairs of lat,lon coordinates'
+#        orbit = self.orbit(self.master)
+#        # convert to 1D array if needed
+#        pins = np.array(pins).flatten()
+#        assert len(pins) == 4, 'Define two pins as two pairs of lat,lon coordinates'
+#        # swap pins if needed
+#        if orbit == 'A' and pins[1] < pins[3]:
+#            pin1 = Point(pins[:2])
+#            pin2 = Point(pins[2:])
+#        else:
+#            pin1 = Point(pins[2:])
+#            pin2 = Point(pins[:2])
+#        df = self.geoloc()
+#        area = MultiPoint(points=list(zip(df.lon, df.lat))).convex_hull
+#        
+#        line1 = pin2line(pin1,
+#                         df[df.line==df.line.min()].lon,
+#                         df[df.line==df.line.min()].lat)
+#        line2 = pin2line(pin2,
+#                         df[df.line==df.line.max()].lon,
+#                         df[df.line==df.line.max()].lat)
+#
+#        diag = LineString([pin1,pin2])
+#        geoms = [area.intersection(geom1).intersection(geom2) for geom1 in split(area, line1)
+#                                                             for geom2 in split(area, line2)
+#                if geom1.buffer(-1e-3).intersects(diag) and geom2.intersects(diag)
+#                ]
+#        assert len(geoms) > 0, 'Frame cannot be defined between the two pins. Hint: change the pins coordinates'
+#        return gpd.GeoDataFrame({'name':['GCP','pin','pin','frame']},geometry=gpd.GeoSeries([area,pin1,pin2,geoms[0]]))
+
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small buffer produces incomplete area coverage and restricted NaNs
     # minimum buffer size: 8 arc seconds for 90 m DEM
-    def get_dem(self, geoloc=False, buffer_degrees = 0.02):
+    def get_dem(self, geoloc=False, buffer_degrees=0.02):
         import xarray as xr
         import os
         
@@ -279,13 +463,169 @@ class SBAS:
         if geoloc is False:
             return dem
         
-        geoloc = self.geoloc()
-        ymin, ymax = geoloc.latitude.min(), geoloc.latitude.max()
-        #print ('ymin, ymax', ymin, ymax)
-        xmin, xmax = geoloc.longitude.min(), geoloc.longitude.max()
+        bounds = self.geoloc().dissolve().envelope.bounds.values[0]
         #print ('xmin, xmax', xmin, xmax)
-        return dem.sel(lat=slice(ymin-buffer_degrees, ymax+buffer_degrees),
-                       lon=slice(xmin-buffer_degrees, xmax+buffer_degrees))
+        return dem.sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
+                       lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
+
+    def reframe(self, date, debug=False):
+        """
+        Estimate framed area using two pins using Sentinel-1 GCPs approximation.
+        """
+        from PRM import PRM
+        import numpy as np
+        import shapely
+        import os
+
+        df = self.df.loc[[date]]
+        stem = self.multistem_stem(df['datetime'][0])[1]
+
+        old_filename = os.path.join(self.basedir, f'{stem}')
+        #print ('old_filename', old_filename)
+
+        self.make_s1a_tops(date, debug)
+
+        prm = PRM.from_file(old_filename+'.PRM')
+        azi1 = prm.SAT_llt2rat([self.pins[0], self.pins[1], 0], precise=1)[1]
+        azi2 = prm.SAT_llt2rat([self.pins[2], self.pins[3], 0], precise=1)[1]
+        #print ('azi1', azi1, 'azi2', azi2)
+        prm.shift_atime(azi1, inplace=True).update()
+
+        # Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2)...
+        self.assemble_tops(date, azi1, azi2, debug)
+
+        # Parse new .xml to define new scene name
+        # like to 's1b-iw3-slc-vv-20171117t145922-20171117t145944-008323-00ebab-006'
+        filename = os.path.splitext(os.path.split(df['datapath'][0])[-1])[0]
+        head1 = filename[:15]
+        tail1 = filename[-17:]
+        xml_header = self.annotation(old_filename+'.xml')['product']['adsHeader']
+        date_new = xml_header['startTime'][:10].replace('-','')
+        t1 = xml_header['startTime'][11:19].replace(':','')
+        t2 = xml_header['stopTime'][11:19].replace(':','')
+        new_name = f'{head1}{date_new}t{t1}-{date_new}t{t2}-{tail1}'
+        new_filename = os.path.join(self.basedir, new_name)
+        #print ('new_filename', new_filename)
+
+        # rename xml and tiff
+        for ext in ['.tiff', '.xml']:
+            os.rename(old_filename+ext, new_filename+ext)
+
+        # cleanup
+        for fname in [old_filename+'.LED', old_filename+'.PRM']:
+            if not os.path.exists(fname):
+                continue
+            os.remove(fname)
+
+        # update and return only one record
+        df = df.head(1)
+        df['datetime'] = self.text2date(f'{date_new}t{t1}', False)
+        df['metapath'] = new_filename + '.xml'
+        df['datapath'] = new_filename + '.tiff'
+        # update approximate location
+        gcps = self.geoloc(new_filename + '.xml').geometry
+        df['geometry'] = shapely.geometry.MultiPoint(gcps).minimum_rotated_rectangle
+    
+        return df
+
+    def get_pins(self, pin_number=None):
+        if pin_number is None:
+            return self.pins
+        elif pin_number == 1:
+            return self.pins[:2]
+        elif pin_number == 2:
+            return self.pins[2:]
+
+    def set_pins(self, pins):
+        """
+        Estimate framed area using two pins on Sentinel-1 GCPs approximation.
+        The pins should be defined in any order like to
+            [x1, y1, x2, y2]
+            [[x1, y1], [x2, y2]]
+            [[x1, y1], None]
+            [None, [x2, y2]]
+            [None, None]
+        The pins automatically reordered properly for ascending and descending orbits and returned in the true order.
+        """
+        import numpy as np
+        from shapely.geometry import Point
+
+        error = False
+        warning = False
+
+        if pins is None:
+            pins = [None, None]
+        if len(pins) == 4:
+            pins = np.array(pins).reshape(2,2)
+        assert len(pins) == 2, 'Define two pins as two pairs of lat,lon coordinates where pin2 is upper pin1'
+        #print ('pins', pins)
+        pin1 = pins[0]
+        pin2 = pins[1]
+    
+        df = self.df.loc[[self.master]]
+        area = self.get_master()['geometry'].unary_union
+        orbit = df['orbit'][0]
+
+        # check the pins validity
+        #geoloc = self.geoloc()
+        llmin, ltmin, llmax, ltmax = self.geoloc().dissolve().envelope.bounds.values[0].round(3)
+        #llmin, llmax = geoloc.longitude.min().round(3), geoloc.longitude.max().round(3)
+        #ltmin, ltmax = geoloc.latitude.min().round(3), geoloc.latitude.max().round(3)
+    
+        if not np.all(pin1) is None and not area.intersects(Point(pin1[0], pin1[1])):
+            print ('ERROR: pin1 lays outside of master frame. Move the pin or set it to None and try again.')
+            error = True
+        if not np.all(pin2) is None and not area.intersects(Point(pin2[0], pin2[1])):
+            print ('ERROR: pin2 lays outside of master frame. Move the pin or set it to None and try again.')
+            error = True
+        
+        # check pin1
+        if np.all(pin1) is None and orbit == 'A':
+            # use right bottom corner
+            print ('NOTE: pin1 is not defined, master image corner coordinate will be used')
+            warning = True
+            pin1 = [llmax, ltmin]
+        elif np.all(pin1) is None and orbit == 'D':
+            # use right top corner
+            print ('NOTE: pin1 is not defined, master image corner coordinate will be used')
+            warning = True
+            pin1 = [llmin, ltmin]
+
+        # check pin2
+        if np.all(pin2) is None and orbit == 'A':
+            # use left top corner
+            print ('NOTE: pin2 is not defined, master image corner coordinate will be used')
+            warning = True
+            pin2 = [llmin, ltmax]
+        elif np.all(pin2) is None and orbit == 'D':
+            # use left bottom corner
+            print ('NOTE: pin2 is not defined, master image corner coordinate will be used')
+            warning = True
+            pin2 = [llmax, ltmax]
+
+        # swap pins for Descending orbit
+        if orbit == 'A':
+            self.pins = [pin1[0], pin1[1], pin2[0], pin2[1]]
+        else:
+            self.pins = [pin2[0], pin2[1], pin1[0], pin1[1]]
+
+        # pins are defined even is case of errors to have ability to plot them
+        assert not error, 'ERROR: Please fix all the issues listed above to continue'
+
+    def reframe_parallel(self, dates=None, n_jobs=-1, **kwargs):
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+        import pandas as pd
+
+        if dates is None:
+            dates = self.df.index.unique().values
+
+        # process all the scenes
+        with self.tqdm_joblib(notebook.tqdm(desc='Reframing', total=len(dates))) as progress_bar:
+            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe)(date, **kwargs) for date in dates)
+
+        self.df = pd.concat(records)
 
     def intf_ra2ll(self, grids):
         #from tqdm import tqdm
@@ -373,7 +713,8 @@ class SBAS:
         lat_min, lat_max = trans[:,4].min(),trans[:,4].max()
 
         #dem = xr.open_dataset(in_dem_gridfile)
-        dem = self.get_dem(geoloc=True)
+        #dem = self.get_dem(geoloc=True)
+        dem = self.get_dem(geoloc=True).sel(lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
         
         trans_latlons = np.stack([trans[:,4],trans[:,3]], axis=1)
         dem_lats, dem_lons = xr.broadcast(dem.lat,dem.lon)
@@ -402,7 +743,7 @@ class SBAS:
         for filename in [trans_dat_file, topo_ra_file]:
             if os.path.exists(filename):
                 os.remove(filename)
-
+        
         self.PRM().topo_ra(self.get_dem(geoloc=True),
                            trans_dat_tofile=trans_dat_file,
                            topo_ra_tofile=topo_ra_file,
@@ -417,7 +758,7 @@ class SBAS:
         import numpy as np
 
         # add buffer around the cropped area for borders interpolation
-        dem_area = self.get_dem(geoloc=geoloc, buffer_degrees=2*degrees)
+        dem_area = self.get_dem(geoloc=geoloc)
         ny = int(np.round(degrees/dem_area.lat.diff('lat')[0]))
         nx = int(np.round(degrees/dem_area.lon.diff('lon')[0]))
         #print ('DEM decimation','ny', ny, 'nx', nx)
@@ -444,6 +785,60 @@ class SBAS:
     def to_dataframe(self):
         return self.df
 
+    def assemble_tops(self, date, azi_1, azi_2, debug=False):
+        """
+        Usage: assemble_tops azi_1 azi_2 name_stem1 name_stem2 ... output_stem
+
+        Example: assemble_tops 1685 9732 s1a-iw1-slc-vv-20150706t135900-20150706t135925-006691-008f28-001
+            s1a-iw1-slc-vv-20150706t135925-20150706t135950-006691-008f28-001
+            s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001
+
+        Output:s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.xml
+            s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.tiff
+
+        Note: output files are bursts that covers area between azi_1 and azi_2, set them to 0s to output all bursts
+        """
+        import numpy as np
+        import os
+        import subprocess
+
+        df = self.df.loc[[date]]
+        #print ('scenes', len(df))
+
+        # assemble_tops requires the same path to xml and tiff files
+        datadirs = [os.path.split(path)[:-1] for path in df['datapath']]
+        metadirs = [os.path.split(path)[:-1] for path in df['metapath']]
+        if not datadirs == metadirs:
+            # in case when the files placed in different directories we need to create symlinks for them
+            datapaths = []
+            for datapath, metapath in zip(df['datapath'], df['metapath']):
+                for filepath in [datapath, metapath]:
+                    filename = os.path.split(filepath)[-1]
+                    relname = os.path.join(self.basedir, filename)
+                    if os.path.exists(relname) or os.path.islink(relname):
+                        os.remove(relname)
+                    os.symlink(os.path.relpath(filepath, self.basedir), relname)
+                datapaths.append(os.path.splitext(filename)[0])
+        else:
+            datapaths = [os.path.relpath(path, self.basedir)[:-5] for path in df['datapath']]
+        #print ('datapaths', datapaths)
+        stem = self.multistem_stem(df['datetime'][0])[1]
+
+        # round values and convert to strings
+        azi_1 = np.round(azi_1).astype(int).astype(str)
+        azi_2 = np.round(azi_2).astype(int).astype(str)
+
+        argv = ['assemble_tops', azi_1, azi_2] + datapaths + [stem]
+        #print ('argv', argv)
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        stdout_data, stderr_data = p.communicate()
+        if len(stderr_data) > 0 and debug:
+            print ('assemble_tops', stderr_data.decode('ascii'))
+        if len(stdout_data) > 0 and debug:
+            print ('assemble_tops', stdout_data.decode('ascii'))
+
+        return
+
     def ext_orb_s1a(self, stem, date=None, debug=False):
         import os
         import subprocess
@@ -469,10 +864,18 @@ class SBAS:
     # produce LED and PRM in basedir
     # when date=None work on master image
     def make_s1a_tops(self, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
+        """
+        Usage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd
+         xml_file    - name of xml file 
+         tiff_file   - name of tiff file 
+         output      - stem name of output files .PRM, .LED, .SLC 
+         mode        - (0) no SLC; (1) center SLC; (2) high SLCH and lowSLCL; (3) output ramp phase
+        """
         import os
         import subprocess
 
-        if date is None or date == self.master:
+        #or date == self.master
+        if date is None:
             date = self.master
             # for master image mode should be 1
             mode = 1
@@ -480,8 +883,7 @@ class SBAS:
     
         xmlfile = os.path.relpath(df['metapath'][0], self.basedir)
         datafile = os.path.relpath(df['datapath'][0], self.basedir)
-        #orbit = os.path.relpath(df['orbitfile'][0], self.basedir)
-        stem = df['stem'][0]
+        stem = self.multistem_stem(df['datetime'][0])[1]
     
         argv = ['make_s1a_tops', xmlfile, datafile, stem, str(mode)]
         if rshift_fromfile is not None:
@@ -507,24 +909,26 @@ class SBAS:
         import os
         from PRM import PRM
 
-        if self.master is None:
-            raise Exception('Set master image first')
-                
+        err, warn = self.validate()
+        #print ('err, warn', err, warn)
+        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
+
         master_line = list(self.get_master().itertuples())[0]
         #print (master_line)
 
         # for master image
-        path_stem = os.path.join(self.basedir, master_line.stem)
-        path_multistem = os.path.join(self.basedir, master_line.multistem)
+        multistem, stem = self.multistem_stem(master_line.datetime)
+        path_stem = os.path.join(self.basedir, stem)
+        path_multistem = os.path.join(self.basedir, multistem)
 
-        # generate prms and leds
+        # generate PRM, LED, SLC
         self.make_s1a_tops(debug=debug)
 
         PRM.from_file(path_stem + '.PRM')\
             .set(input_file = path_multistem + '.raw')\
             .update(path_multistem + '.PRM', safe=True)
 
-        self.ext_orb_s1a(master_line.multistem, debug=debug)
+        self.ext_orb_s1a(multistem, debug=debug)
 
         # recalculate after ext_orb_s1a
         earth_radius = PRM.from_file(path_multistem + '.PRM')\
@@ -537,14 +941,16 @@ class SBAS:
         import os
         from PRM import PRM
 
-        if self.master is None:
-            raise Exception('Set master image first')
+        err, warn = self.validate()
+        #print ('err, warn', err, warn)
+        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
 
         master_line = list(self.get_master().itertuples())[0]
+        multistem, stem = self.multistem_stem(master_line.datetime)
         #print (master_line)
 
         # define master image parameters
-        master = self.PRM().sel('earth_radius').set(stem=master_line.stem, multistem=master_line.multistem)
+        master = self.PRM().sel('earth_radius').set(stem=stem, multistem=multistem)
 
         # prepare coarse DEM for alignment
         # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
@@ -552,18 +958,19 @@ class SBAS:
         #topo_llt.shape
 
         line = list(self.get_aligned(date).itertuples())[0]
+        multistem, stem = self.multistem_stem(line.datetime)
         #print (line)
 
         # define relative filenames for PRM
-        stem_prm    = os.path.join(self.basedir, line.stem + '.PRM')
-        mstem_prm   = os.path.join(self.basedir, line.multistem + '.PRM')
+        stem_prm    = os.path.join(self.basedir, stem + '.PRM')
+        mstem_prm   = os.path.join(self.basedir, multistem + '.PRM')
         master_prm  = os.path.join(self.basedir, master.get("stem") + '.PRM')
         mmaster_prm = os.path.join(self.basedir, master.get("multistem") + '.PRM')
 
         # TODO: define 1st image for line, in the example we have no more
         tmp_da = 0
 
-        # generate prms and leds
+        # generate PRM, LED
         self.make_s1a_tops(date, debug=debug)
 
         # compute the time difference between first frame and the rest frames
@@ -632,9 +1039,10 @@ class SBAS:
 
         # generate the image with point-by-point shifts
         # note: it removes calc_dop_orb parameters from PRM file
+        # generate PRM, LED
         self.make_s1a_tops(date=line.Index, mode=1,
-                           rshift_fromfile=f'{line.stem}_r.grd',
-                           ashift_fromfile=f'{line.stem}_a.grd',
+                           rshift_fromfile=f'{stem}_r.grd',
+                           ashift_fromfile=f'{stem}_a.grd',
                            debug=debug)
 
         # need to update shift parameter so stitch_tops will know how to stitch
@@ -645,10 +1053,10 @@ class SBAS:
 
         # the raw file does not exist but it works
         PRM.from_file(stem_prm)\
-            .set(input_file = f'{line.multistem}.raw')\
+            .set(input_file = f'{multistem}.raw')\
             .update(mstem_prm, safe=True)
 
-        self.ext_orb_s1a(line.multistem, date=line.Index, debug=debug)
+        self.ext_orb_s1a(multistem, date=line.Index, debug=debug)
 
         # Restoring $tmp_da lines shift to the image... 
         PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
@@ -670,8 +1078,6 @@ class SBAS:
         import joblib
     
         if dates is None:
-            if self.master is None:
-                raise Exception('Set master image or define argument dates')
             dates = list(self.get_aligned().index)
 
         # prepare master image
@@ -861,10 +1267,9 @@ class SBAS:
         else:
             line = self.get_aligned(date)
         #print (line)
+        multistem, stem = self.multistem_stem(line.datetime[0])
         if multi:
-            stem = line.multistem[0]
-        else:
-            stem = line.stem[0]
+            stem = multistem
         filename = os.path.join(self.basedir, f'{stem}.PRM')
         #print (filename)
         return PRM.from_file(filename)
@@ -883,7 +1288,7 @@ class SBAS:
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
-    def unwrap(self, pair, threshold=0.1, conf=None, func=None, debug=False):
+    def unwrap(self, pair, threshold, conf=None, func=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
@@ -958,8 +1363,7 @@ class SBAS:
         return scale*unwraps
 
     # returns all grids in basedir by mask or grids by dates and name
-    # TODO: add geocoding support
-    def open_grids(self, pairs, name, geocode=False, mask=False, func=None):
+    def open_grids(self, pairs, name, geocode=False, mask=False, func=None, crop_valid=False):
         import pandas as pd
         import xarray as xr
         import numpy as np
@@ -1012,7 +1416,21 @@ class SBAS:
             raise Exception('Use single or two columns Pandas dataset or array as "pairs" argument')
 
         if geocode:
-            return self.intf_ra2ll(das)
+            das = self.intf_ra2ll(das)
+
+        # crop NaNs
+        if crop_valid:
+            dims = [dim for dim in das.dims if dim != 'pair']
+            assert len(dims) == 2, 'ERROR: interferogram should be 2D array'
+            da = das.min('pair')
+            indexer = {}
+            for dim in dims:
+                da = da.dropna(dim=dim, how='all')
+                dim_min, dim_max = da[dim].min().item(), da[dim].max().item()
+                indexer[dim] = slice(dim_min, dim_max)
+            #print ('indexer', indexer)
+            return das.loc[indexer]
+
         return das
 
     def open_grid(self, name, geocode=False, mask=False, func=None):
@@ -1119,6 +1537,7 @@ class SBAS:
         N = len(baseline_pairs)
         S = len(np.unique(list(baseline_pairs['ref_date']) + list(baseline_pairs['rep_date'])))
 
+        #bounds = self.geoloc().dissolve().envelope.bounds.values[0]
         lon0 = geoloc.longitude.mean()
         lat0 = geoloc.latitude.mean()
         elevation0 = float(dem.sel(lat=lat0, lon=lon0, method='nearest'))

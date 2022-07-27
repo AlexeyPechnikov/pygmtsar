@@ -21,7 +21,7 @@ class PRM:
     @staticmethod
     def nearest_grid(in_grid, search_radius_pixels=300):
         """
-        Fill NaNs in NumPy array or Xarray DataArray using pixel-based nearest neighbor values
+        Pixel-based Nearest Neighbour interpolation
         """
         from scipy.spatial import cKDTree
         import xarray as xr
@@ -305,6 +305,16 @@ class PRM:
             return out[0]
         return out
 
+    def shift_atime(self, lines, inplace=False):
+        """
+        Shift time in azimuth by a number of lines
+        """
+        prm = self.sel('clock_start','clock_stop','SC_clock_start','SC_clock_stop') + lines/self.get('PRF')/86400.0
+        if inplace:
+            return self.set(prm)
+        else:
+            return prm
+    
     def calc_dop_orb(self, earth_radius=0, doppler_centroid=0, inplace=False, debug=False):
         """
         Usage: calc_dop_orb  file.PRM  added.PRM  earth_radius  [doppler_centroid]
@@ -594,8 +604,8 @@ class PRM:
         print (f'Range and azimuth decimation: {rng_dec}/{azi_dec}')
 
         # use center pixel GMT registration mode 
-        rngs = np.arange(1,XMAX+1,2)
-        azis = np.arange(1,YMAX+1,2)
+        rngs = np.arange(1, XMAX+1, rng_dec)
+        azis = np.arange(1, YMAX+1, azi_dec)
         grid_r, grid_a = np.meshgrid(rngs, azis)
         #print ('grid_r', grid_r.shape)
 
@@ -630,16 +640,9 @@ class PRM:
 
         # this processing is not parallelized and it is time consuming
         # TODO: plit to overlapping chunks and process them in parallel
-        grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method)
-
-        # a few NaNs possible and we need to fill all of them
-        if np.any(np.isnan(grid)):
-            print('Note: Fill NaNs in topo_ra using NN values', np.isnan(grid).sum().item())
-            # fill the gaps
-            # TODO: that's too slow to fill a small set of NaNs
-            # we might use a faster way
-            grid = self.nearest_grid(grid)
-
+        # fill_value used to fill in outside of the convex hull of the input points (default is nan)
+        grid = griddata((coords[:,0], coords[:,1]), coords[:,2], (grid_r, grid_a), method=method, fill_value=0)
+        
         # remove subpixel noise
         grid = gaussian_filter(grid, 1.0, mode='constant', cval=0)
         # wrap to dataarray
@@ -1086,25 +1089,37 @@ class PRM:
             return out if out.size==5 else out.reshape(-1,6)
 
     # TODO: use PRM parameters to define config parameters
-    def snaphu_config(self, defomax):
+    def snaphu_config(self, defomax=0, **kwargs):
+        import os
+        # we already use joblib everywhere
+        import joblib
+    
+        tiledir = os.path.splitext(self.filename)[0]
+        n_jobs = joblib.cpu_count()
+    
         conf_basic = f"""
-        INFILEFORMAT   FLOAT_DATA
-        OUTFILEFORMAT  FLOAT_DATA
-        AMPFILEFORMAT  FLOAT_DATA
-        CORRFILEFORMAT FLOAT_DATA
-        ALTITUDE       693000.0
-        EARTHRADIUS    6378000.0
-        NEARRANGE      831000
-        DR             18.4
-        DA             28.2
-        RANGERES       28
-        AZRES          44
-        LAMBDA         0.0554658
-        NLOOKSRANGE    1
-        NLOOKSAZ       1
-        DEFOMAX_CYCLE  {defomax}
-        """
-        return conf_basic
+INFILEFORMAT   FLOAT_DATA
+OUTFILEFORMAT  FLOAT_DATA
+AMPFILEFORMAT  FLOAT_DATA
+CORRFILEFORMAT FLOAT_DATA
+ALTITUDE       693000.0
+EARTHRADIUS    6378000.0
+NEARRANGE      831000
+DR             18.4
+DA             28.2
+RANGERES       28
+AZRES          44
+LAMBDA         0.0554658
+NLOOKSRANGE    1
+NLOOKSAZ       1
+DEFOMAX_CYCLE  {defomax}
+TILEDIR        {tiledir}_snaphu_tiledir
+NPROC          {n_jobs}
+"""
+        conf_custom = ''
+        for key, value in kwargs.items():
+            conf_custom += f'{key} {value}\n'
+        return conf_basic + conf_custom
 
 def main():
     import sys
