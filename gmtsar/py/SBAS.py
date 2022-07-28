@@ -54,6 +54,7 @@ class SBAS:
     def __init__(self, datadir, dem_filename=None, basedir='.',
                 filter_orbit=None, filter_mission=None, filter_subswath=None, filter_polarization=None):
         import os
+        import shutil
         from glob import glob
         import pandas as pd
         import geopandas as gpd
@@ -87,6 +88,9 @@ class SBAS:
         if basedir is None:
             self.basedir = '.'
         else:
+            # (re)create basedir
+            if os.path.exists(basedir):
+                shutil.rmtree(basedir)
             os.makedirs(basedir, exist_ok=True)
             self.basedir = basedir
 
@@ -280,6 +284,18 @@ class SBAS:
 
         self.dem_filename = grd_filename
 
+    def backup(self, backup_dir):
+        import os
+        import shutil
+    
+        os.makedirs(backup_dir, exist_ok=True)
+        for record in self.df.itertuples():
+            for fname in [record.datapath, record.metapath, record.orbitpath]:
+                shutil.copy2(fname, backup_dir)
+        shutil.copy2(self.dem_filename, os.path.join(backup_dir, 'DEM_WGS84.nc'))
+    
+        return
+    
     def set_master(self, master):
         if not master in self.df.index:
             raise Exception('Master image not found')
