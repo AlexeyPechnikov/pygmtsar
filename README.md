@@ -32,25 +32,22 @@ Note: that's possible to install PyGMTSAR to /opt directory instead. For this ca
 
 See the notebooks below where the installation commands included.
 
-### Live Examples
+### Live Examples on Google Colab - just click on the links to run the processing in your own browser without any sooftware installation
 
-* Live example automatically downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF) and compares the results to SNAP, GMTSAR and GAMMA Software. Just replace the scene names to your own to produce a custom interferogram. [ASF Downloading 2017 Iran–Iraq Earthquake Co-Seismic Interferogram.ipynb](https://colab.research.google.com/drive/1PKj75zrFY6SGcqR6u1SrrMOpVNRQ2_S9?usp=sharing)
+* [2017 Iran–Iraq Earthquake Co-Seismic Interferogram](https://colab.research.google.com/drive/1PKj75zrFY6SGcqR6u1SrrMOpVNRQ2_S9?usp=sharing). Download Sentinel-1 Scenes from Alaska Satellite Facility (ASF) and compare to SNAP, GMTSAR and GAMMA Software.
+Note: replace the scene names to produce an interferogram for your area of interest.
 
 <img width="50%" src="https://user-images.githubusercontent.com/7342379/177748605-788889e5-9afd-44d8-bc3c-dc6efe920ea0.png">
 
-* [Live Example Kumamoto Earthquake on Apr, 2016 Co-Seismic Interferogram on Google Colab](https://colab.research.google.com/drive/1yCeYYfh-HPehpld1lWJ860MBCkq0JDE4?usp=sharing)
+* [Live Example Kumamoto Earthquake on Apr, 2016 Co-Seismic Interferogram compare to ESA Sentinel 1 Toolbox on Alaska Satellite Facility](https://colab.research.google.com/drive/1yCeYYfh-HPehpld1lWJ860MBCkq0JDE4?usp=sharing)
 
 <img src="https://user-images.githubusercontent.com/7342379/177028662-c24463dd-f58d-4be0-80e7-f9d0b38e8eb4.jpg" width="50%">
 
-* [Live Example S1A_Crete_Earthquake on Google Colab](https://colab.research.google.com/drive/1reRd-BJxa3Vxz_hmCMrn_Jv1Dbpazwa-?usp=sharing)
-
-<img src="https://user-images.githubusercontent.com/7342379/177004243-123f7127-2c42-48d4-996b-b4200929a011.jpg" width="50%">
-
-* [Live Example S1A_Stack_CPGF_T173 on Google Colab comparision to report from Centre of EO Research & Satellite Remote Sensing, Greece](https://colab.research.google.com/drive/1asddx-b3f7jS6TK-fkTm_WuytqBZzovc?usp=sharing)
+* [Crete Earthquake M5.8 on Sep 27, 2021 Co-Seismic Interferogram compare to to report from Centre of EO Research & Satellite Remote Sensing, Greece](https://colab.research.google.com/drive/1asddx-b3f7jS6TK-fkTm_WuytqBZzovc?usp=sharing)
 
 <img src="https://user-images.githubusercontent.com/7342379/177004287-cdd4351c-0834-42ae-8e46-9da5e8b124bf.jpg" width="50%">
 
-* [Live Example S1A_Stack_CPGF_T173 on Google Colab](https://colab.research.google.com/drive/1Ab2I9A2kmZIHuNwIortaga1zZ90hBjMa?usp=sharing)
+* [GMTSRAR example dataset S1A_Stack_CPGF_T173](https://colab.research.google.com/drive/1Ab2I9A2kmZIHuNwIortaga1zZ90hBjMa?usp=sharing)
 
 <img src="https://user-images.githubusercontent.com/7342379/135814732-aa0eb142-ae54-4a57-b271-c33b5174a28e.png" width="50%">
 
