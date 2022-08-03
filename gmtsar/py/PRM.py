@@ -601,7 +601,7 @@ class PRM:
         # as defined in dem2topo_ra.csh for Sentinel-1
         azi_dec = 2
         rng_dec = 2
-        print (f'Range and azimuth decimation: {rng_dec}/{azi_dec}')
+        print (f'Topography range and azimuth decimation: {rng_dec}/{azi_dec}')
 
         # use center pixel GMT registration mode 
         rngs = np.arange(1, XMAX+1, rng_dec)
@@ -654,7 +654,7 @@ class PRM:
             return topo
 
         # save to NetCDF file
-        compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
+        compression = dict(zlib=True, complevel=3, chunksizes=[256,256])
         topo.to_netcdf(topo_ra_tofile, encoding={'z': compression})
 
         # save file for debug and raise error after that
@@ -867,7 +867,7 @@ class PRM:
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
     # use_boxcar_filter=True for ISCE-type boxcar and multilook filter
-    def intf(self, other, basedir, basename=None, wavelength=200, psize=32, use_boxcar_filter=False, func=None):
+    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, use_boxcar_filter=False, func=None):
         import os
         import numpy as np
         import xarray as xr
@@ -877,19 +877,22 @@ class PRM:
         thresh = 5.e-21
 
         # options to save as NetCDF file
-        compression = dict(zlib=True, complevel=3, chunksizes=[512,512])
+        compression = dict(zlib=True, complevel=3, chunksizes=[256,256])
 
         if not isinstance(other, PRM):
             raise Exception('Argument "other" should be PRM class instance')
 
         # define basename from two PRM names
         if basename is None:
-            date1 = os.path.basename(self.filename)[3:11]
-            date2 = os.path.basename(other.filename)[3:11]
-            basename = f'{date1}_{date2}_'
+            # S1_20171111_ALL_F3.PRM -> F3
+            subswath = os.path.basename(self.filename)[16:18]
+            date1    = os.path.basename(self.filename)[3:11]
+            date2    = os.path.basename(other.filename)[3:11]
+            basename = f'{subswath}_{date1}_{date2}_'
+            #print ('basename', basename)
 
         # make full file name
-        fullname = lambda name: os.path.join(basedir,basename + name)
+        fullname = lambda name: os.path.join(basedir, basename + name)
 
         #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
         fill_3x3 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/fill.3x3', skip_header=1)
@@ -904,7 +907,8 @@ class PRM:
 
         # for topo_ra use relative path from PRM files directory
         # use imag.grd=bf for GMT native, C-binary format
-        self.phasediff(other, topo_ra_fromfile=os.path.join(basedir, 'topo_ra.grd'),
+        # os.path.join(basedir, f'{subswath}_topo_ra.grd')
+        self.phasediff(other, topo_ra_fromfile=topo_ra_fromfile,
                        imag_tofile=fullname('imag.grd=bf'),
                        real_tofile=fullname('real.grd=bf'))
 
@@ -974,7 +978,7 @@ class PRM:
         # use the same coordinates for all output grids
         # use .values to remove existing attributes from the axes
         coords = {'y': amp.y.values, 'x': amp.x.values}
-        
+
         # making correlation
         tmp = amp1 * amp2
         mask = xr.where(tmp >= thresh, 1, np.nan)
@@ -987,14 +991,14 @@ class PRM:
             os.remove(fullname('corr.grd'))
         corr.to_netcdf(fullname('corr.grd'), encoding={'z': compression})
 
-        # making phase
-        phase = xr.ufuncs.arctan2(imagfilt, realfilt) * mask
-        phase = xr.DataArray(np.flipud(phase).astype(np.float32), coords, name='z')
-        if func is not None:
-            phase = func(phase)
-        if os.path.exists(fullname('phase.grd')):
-            os.remove(fullname('phase.grd'))
-        phase.to_netcdf(fullname('phase.grd'), encoding={'z': compression})
+        # making phase - this file is not used later, miss it
+        #phase = xr.ufuncs.arctan2(imagfilt, realfilt) * mask
+        #phase = xr.DataArray(np.flipud(phase).astype(np.float32), coords, name='z')
+        #if func is not None:
+        #    phase = func(phase)
+        #if os.path.exists(fullname('phase.grd')):
+        #    os.remove(fullname('phase.grd'))
+        #phase.to_netcdf(fullname('phase.grd'), encoding={'z': compression})
 
         # make the Werner/Goldstein filtered phase
         phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'))

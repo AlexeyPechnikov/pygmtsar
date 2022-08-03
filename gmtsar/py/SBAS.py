@@ -73,8 +73,8 @@ class SBAS:
             'ERROR: use symbol A (Ascending) or D (Descending) for orbit filter'
         assert filter_mission is None or filter_mission=='S1A' or filter_mission=='S1B', \
             'ERROR: use name S1A or S1B for mission filter'
-        assert filter_subswath is None or filter_subswath in [1,2,3], \
-            'ERROR: use number 1 or 2 or 3 for subswath filter'
+        assert filter_subswath is None or filter_subswath in [1,2,3,12,23,123], \
+            'ERROR: use a single or sequential numbers 1, 2, 3, 12, 23, 123 for subswath filter'
         assert filter_polarization is None or filter_polarization in ['VV','VH','HH','HV'], \
             'ERROR: use VV or VH or HH or HV for polarization filter'
 
@@ -98,6 +98,8 @@ class SBAS:
             filter_polarization = '??'
         if filter_subswath is None:
             filter_subswath  = '?'
+        else:
+            filter_subswath = f'[{filter_subswath}]'
         # filter mission
         if filter_mission is not None:
             path_pattern = f'{filter_mission.lower()}-iw{filter_subswath}-slc-{filter_polarization.lower()}-*'
@@ -107,15 +109,15 @@ class SBAS:
         #print ('datapaths', datapaths)
         metapaths = pattern2paths(path_pattern + '.xml')
         #print ('metapaths', metapaths)
-    
+
         datanames = [os.path.splitext(os.path.split(path)[-1])[0] for path in datapaths]
         #print ('datanames', datanames)
         metanames = [os.path.splitext(os.path.split(path)[-1])[0] for path in metapaths]
         #print ('metanames', metanames)
-        
+
         datas = dict(zip(datanames, datapaths))
         metas = dict(zip(metanames, metapaths))
-        
+
         # define the same order when and only when the names are the same
         datanames = sorted(datanames)
         metanames = sorted(metanames)
@@ -128,18 +130,18 @@ class SBAS:
         #print ('filenames', filenames)
         dts = [self.text2date(name.split('-')[4],False) for name in datanames]
         #print ('filedatetimes', dts)
-    
+
         ds = [dt.date() for dt in dts]
         #print ('filedates', ds)
 
         df = pd.DataFrame({'date':[str(d) for d in ds], 'datetime': dts, 'datapath': datapaths, 'metapath': metapaths})
         #print ('self.df', self.df)
 
-        # filter mission
+        # filter mission and always ignore approximate RESORB orbits to download precise POEORB when possible
         if filter_mission is not None:
-            orbit_path_pattern = f'{filter_mission.upper()}_OPER_AUX_*.EOF'
+            orbit_path_pattern = f'{filter_mission.upper()}_OPER_AUX_POEORB_OPOD_*.EOF'
         else:
-            orbit_path_pattern = 'S1?_OPER_AUX_*.EOF'
+            orbit_path_pattern = 'S1?_OPER_AUX_POEORB_OPOD_*.EOF'
         orbitpaths = pattern2paths(orbit_path_pattern)
         #print ('orbitpaths', orbitpaths)
         orbitnames = [os.path.splitext(os.path.split(path)[-1])[0] for path in orbitpaths]
@@ -155,22 +157,22 @@ class SBAS:
             df['orbitpath'] = None
 
         # add some calculated properties
-        df['subswath'] = [filename.split('-')[1] for filename in datanames]
+        df['subswath'] = [int(filename.split('-')[1][-1]) for filename in datanames]
         df['mission'] = [filename.split('-')[0].upper() for filename in datanames]
         df['polarization'] = [filename.split('-')[3].upper() for filename in datanames]
-        
+    
         # read approximate locations
         geolocs = [shapely.geometry.MultiPoint(self.geoloc(path).geometry).minimum_rotated_rectangle for path in metapaths]
         #print ('geolocs', geolocs)
         df = gpd.GeoDataFrame(df, geometry=geolocs)
-        
+
         # define orbit directions
         orbits = [self.annotation(path)['product']['generalAnnotation']['productInformation']['pass'][:1] for path in metapaths]
         df['orbit'] = orbits
         # filter orbits
         if filter_orbit is not None:
             df = df[df.orbit == filter_orbit]
-        
+
         df = df.set_index('date').sort_values('datetime')\
             [['datetime','orbit','mission','polarization','subswath','datapath','metapath','orbitpath','geometry']]
 
@@ -183,39 +185,48 @@ class SBAS:
         self.df = df
         # set first image as master
         self.master = self.df.index[0]
+        
+        # initialize empty pins list
+        self.pins = []
 
     def validate(self, df=None):
         if df is None:
             df = self.df
         error = False
         warning = False
-    
+
         # we can't merge together scenes from different missions
         missions = df.groupby('date')['mission'].unique().values
         missions = [len(mission) for mission in missions if len(mission)>1]
         if not len(missions) == 0:
             error = True
             print ('ERROR: Found multiple scenes for a single date from different missions')
-        if not len(df.subswath.unique()) <= 1:
+        subswaths = int(''.join(map(str,df.subswath.unique())))
+        if not int(subswaths) in [1, 2, 3, 12, 23, 123]:
             error = True
-            print ('ERROR: Only single subswath processing supported. Use any one iw1, iw2, or iw3')
+            print ('ERROR: Subswhats list incorrect. Allowed a single or sequential subswath numbers 1, 2, 3, 12, 23, 123')
         if not len(df.orbit.unique()) <= 1:
             error = True
             print ('ERROR: Only single orbit processing supported. Use any one ascending or descending')
         if not len(df.index.unique()) >= 2:
             error = True
             print ('ERROR: Two or more scenes required')
-        daily_scenes = df.groupby('date')['datetime'].count().values.max()
+        daily_scenes = df.groupby(['date', 'subswath'])['datetime'].count().values.max()
         if daily_scenes > 1:
             warning = True
             print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
-        return error, warning
-    
+        return error, warning    
+
+    # for precision orbit there is only single orbit per day
+    # for approximate orbit 2 and maybe more orbits per day are possible
+    # so check orbit file for for each subswath
     def download_orbits(self):
         from eof.download import download_eofs
 
+        df = self.df[self.df['orbitpath'].isna()]
+    
         # download all the misssed orbit files
-        for record in self.df[self.df['orbitpath'].isna()].itertuples():
+        for record in df.itertuples():
             #print (date, mission)
             orbitpath = download_eofs([record.datetime], [record.mission], save_dir=self.basedir)[0]
             #print ('orbitpath', orbitpath)
@@ -223,12 +234,20 @@ class SBAS:
 
     def set_dem(self, dem_filename):
         import os
-        self.dem_filename = os.path.relpath(dem_filename,'.')
+        if dem_filename is not None:
+            self.dem_filename = os.path.relpath(dem_filename,'.')
+        else:
+            self.dem_filename = None
         return self
 
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small margin produces insufficient DEM not covers the defined area
-    def download_dem(self, product='SRTM3', buffer_degrees=0.02, debug=False):
+    def download_dem(self, product='SRTM3', resolution_meters=60, method='cubic', buffer_degrees=0.02, debug=False):
+        """
+        Download SRTM3 90m or SRTM1 30 m DEM
+        Regrid the DEM to specified approximate resolution_meters 60m by default
+        Use resampling method 'cubic' by default (see gdalwarp documentation for -r <resampling_method>)
+        """
         import urllib.request
         import elevation
         import os
@@ -236,6 +255,15 @@ class SBAS:
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
+        # 0.000833333333333 cell size for SRTM3 90m
+        # 0.000277777777778 cell size for SRTM1 30m
+        scale = 0.000833333333333/90
+        
+        if self.dem_filename is not None:
+            print ('NOTE: DEM exists, ignore the command. Use sbas.set_dem(None) to allow new DEM downloading')
+            return
+        
+        resolution_degrees = scale * resolution_meters
 
         err, warn = self.validate()
         #print ('err, warn', err, warn)
@@ -252,8 +280,8 @@ class SBAS:
                     fout.write(fin.read())
 
         #if not os.path.exists(tif_filename):
-        # generate DEM for the area
-        bounds = self.geoloc().dissolve().envelope.bounds.values[0]
+        # generate DEM for the full area
+        bounds = self.df.dissolve().envelope.bounds.values[0]
         # show progress indicator
         def func():
             # left bottom right top
@@ -268,9 +296,10 @@ class SBAS:
         #if not os.path.exists(grd_filename):
         # convert to WGS84 ellipsoidal heights
         argv = ['gdalwarp', '-co', 'COMPRESS=DEFLATE',
-                '-r', 'bilinear',
+                '-r', method,
                 '-s_srs', f'+proj=longlat +datum=WGS84 +no_defs +geoidgrids=./egm96_15.gtx',
                 '-t_srs', '+proj=longlat +datum=WGS84 +no_def',
+                '-tr', str(resolution_degrees), str(resolution_degrees),
                 '-overwrite',
                 '-ot', 'Float32', '-of', 'NetCDF',
                 'DEM_EGM96.tif', 'DEM_WGS84.nc']
@@ -287,33 +316,51 @@ class SBAS:
     def backup(self, backup_dir):
         import os
         import shutil
-    
+
         os.makedirs(backup_dir, exist_ok=True)
-        for record in self.df.itertuples():
-            for fname in [record.datapath, record.metapath, record.orbitpath]:
-                shutil.copy2(fname, backup_dir)
-        shutil.copy2(self.dem_filename, os.path.join(backup_dir, 'DEM_WGS84.nc'))
     
+        # prepare list of all the files including DEM file
+        filenames = [self.dem_filename]
+        for record in self.df.itertuples():
+            for filename in [record.datapath, record.metapath, record.orbitpath]:
+                filenames += filename if isinstance(filename, list) else [filename]
+    
+        for filename in filenames:
+            shutil.copy2(filename, backup_dir)
+
         return
     
     def set_master(self, master):
+        """
+        Set master image date
+        """
         if not master in self.df.index:
             raise Exception('Master image not found')
         self.master = master
         return self
 
-    def get_master(self):
-        return self.df.loc[[self.master]]
-
-    def get_aligned(self, date=None):
+    def get_master(self, subswath=None):
         """
-        Return selected aligned image or all the images (excluding master)
+        Return dataframe master record(s) for all or only selected subswath
+        """
+        df = self.df.loc[[self.master]]
+        if not subswath is None:
+            df = df[df.subswath == subswath]
+        assert len(df) > 0, f'Master record for subswath {subswath} not found'
+        return df
+
+    def get_aligned(self, subswath=None, date=None):
+        """
+        Return dataframe aligned records (excluding master) for selected subswath
         """
         if date is None:
             idx = self.df.index.difference([self.master])
         else:
             idx = [date]
-        return self.df.loc[idx]
+        df = self.df.loc[idx]
+        if subswath is None:
+            return df
+        return df[df.subswath == subswath]
 
 #    def to_file(self, filename):
 #        """
@@ -327,18 +374,32 @@ class SBAS:
 #            f.write(line+'\n'+lines+'\n')
 #        return self
 
-    def multistem_stem(self, dt=None):
+#    def multistem_stem(self, dt=None):
+#        """
+#        Define stem and multistem using datetime    
+#        """
+#        from datetime import datetime
+#
+#        # master datetime
+#        if dt is None:
+#            dt = self.df.loc[self.master, 'datetime']
+#
+#        stem = f'S1_{dt.strftime("%Y%m%d_%H%M%S")}_F1'
+#        multistem = f'S1_{dt.strftime("%Y%m%d")}_ALL_F1'
+#        return (multistem, stem)
+    # todo: use subswath
+    def multistem_stem(self, subswath, dt=None):
         """
         Define stem and multistem using datetime    
         """
         from datetime import datetime
 
-        # master datetime
+        # use master datetime if not defined
         if dt is None:
             dt = self.df.loc[self.master, 'datetime']
 
-        stem = f'S1_{dt.strftime("%Y%m%d_%H%M%S")}_F1'
-        multistem = f'S1_{dt.strftime("%Y%m%d")}_ALL_F1'
+        stem = f'S1_{dt.strftime("%Y%m%d_%H%M%S")}_F{subswath}'
+        multistem = f'S1_{dt.strftime("%Y%m%d")}_ALL_F{subswath}'
         return (multistem, stem)
 
     @staticmethod
@@ -394,9 +455,12 @@ class SBAS:
         import pandas as pd
         import geopandas as gpd
         import os
-
+    
+        # for backward compatibility
         if filename is None:
-            filename = self.df.loc[self.master,'metapath']
+            print ('NOTE: sbas.geoloc() command is outdated. Use sbas.to_dataframe().plot()')
+            return pd.DataFrame({'longitude': [], 'latitude': [], 'pixel': ''})
+
         doc = self.annotation(filename)
         geoloc = doc['product']['geolocationGrid']['geolocationGridPointList']
         # check data consistency
@@ -459,7 +523,7 @@ class SBAS:
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small buffer produces incomplete area coverage and restricted NaNs
     # minimum buffer size: 8 arc seconds for 90 m DEM
-    def get_dem(self, geoloc=False, buffer_degrees=0.02):
+    def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.02):
         import xarray as xr
         import os
         
@@ -479,12 +543,128 @@ class SBAS:
         if geoloc is False:
             return dem
         
-        bounds = self.geoloc().dissolve().envelope.bounds.values[0]
+        bounds = self.get_master(subswath).dissolve().envelope.bounds.values[0].round(3)
         #print ('xmin, xmax', xmin, xmax)
         return dem.sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
                        lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
 
-    def reframe(self, date, debug=False):
+    def get_pins(self, subswath=None):
+        """
+        Return linear list of two pin coordinates for one or all subswaths. Use this list to easy plot the pins.
+        """
+    
+        if subswath is None:
+            # that's ok when pins are not defined here
+            # all the pins useful for plotting only
+            return self.pins
+        else:
+            # detect all the subswaths
+            subswaths = self.df.subswath.unique()
+            # check pins defined for all the subswaths
+            assert len(self.pins)/4. == len(subswaths), f'ERROR: Pins are not defined for all the subswaths. \
+                Found {len(self.pins)} pins for {subswaths} subswathss'
+            assert subswath in subswaths, f'Subswath {subswath} not found'
+            idx = subswaths.tolist().index(subswath)
+            pins = self.pins[4*idx:4*(idx+1)]
+            assert len(pins) == 4, f'ERROR: wrong number of pins detected. Found {len(pins)} for subswath {subswath}'
+            return pins
+
+    def set_pins(self, *args):
+        """
+        Estimate framed area using two pins on Sentinel-1 GCPs approximation.
+        For each defined subswath the pins should be defined like to
+            [x1, y1, x2, y2]
+            [[x1, y1], [x2, y2]]
+            [[x1, y1], None]
+            [None, [x2, y2]]
+            [None, None]
+        The pins automatically ordering for ascending and descending orbits.
+        """
+        import numpy as np
+        from shapely.geometry import Point
+        # project pin location to boundary geometry
+        def pip2pin(geom, lon, lat):
+            pin = geom.boundary.interpolate(geom.boundary.project(Point(lon, lat)))
+            return pin.x[0].round(3), pin.y[0].round(3)
+
+        # detect all the subswaths
+        subswaths = self.df.subswath.unique()
+        if len(args) == 0:
+            args = len(subswaths)*[None]
+        # check input data to have a single argument for the each subswath
+        assert len(args) == len(subswaths), f'Define pair of pins for the each subswath \
+            {",".join(map(str,subswaths))} ({2*len(subswaths)} pins and {4*len(subswaths)} coordinates in total)'
+
+        # iterate 1 to 3 subswaths
+        allpins = []
+        for (subswath, pins) in zip(subswaths, args):
+            #print ('subswath, pins', subswath, pins)
+
+            error = False
+            warning = False
+
+            if pins is None:
+                pins = [None, None]
+            if len(pins) == 4:
+                pins = np.array(pins).reshape(2,2)
+            assert len(pins) == 2, 'Define two pins as two pairs of lat,lon coordinates where pin2 is upper pin1 or use None'
+            #print ('pins', pins)
+            pin1 = pins[0]
+            pin2 = pins[1]
+
+            df = self.get_master(subswath)
+            area = df['geometry'].unary_union
+            orbit = df['orbit'][0]
+
+            # check the pins validity
+            #llmin, ltmin, llmax, ltmax = self.get_master(subswath).dissolve().envelope.bounds.values[0].round(3)
+            geom = self.get_master(subswath).dissolve()
+            llmin, ltmin, llmax, ltmax = geom.envelope.bounds.values[0]
+            if not np.all(pin1) is None and not area.intersects(Point(pin1[0], pin1[1])):
+                print (f'ERROR subswath {subswath}: pin1 lays outside of master frame. Move the pin or set it to None and try again.')
+                error = True
+            if not np.all(pin2) is None and not area.intersects(Point(pin2[0], pin2[1])):
+                print (f'ERROR subswath {subswath}: pin2 lays outside of master frame. Move the pin or set it to None and try again.')
+                error = True
+
+            # check pin1
+            if np.all(pin1) is None and orbit == 'A':
+                # use right bottom corner
+                print (f'NOTE subswath {subswath}: pin1 is not defined, master image corner coordinate will be used')
+                warning = True
+                #pin1 = [llmax, ltmin]
+                pin1 = pip2pin(geom, llmax, ltmin)
+            elif np.all(pin1) is None and orbit == 'D':
+                # use right top corner
+                print (f'NOTE subswath {subswath}: pin1 is not defined, master image corner coordinate will be used')
+                warning = True
+                #pin1 = [llmin, ltmin]
+                pin1 = pip2pin(geom, llmin, ltmin)
+            # check pin2
+            if np.all(pin2) is None and orbit == 'A':
+                # use left top corner
+                print (f'NOTE subswath {subswath}: pin2 is not defined, master image corner coordinate will be used')
+                warning = True
+                #pin2 = [llmin, ltmax]
+                pin2 = pip2pin(geom, llmin, ltmax)
+            elif np.all(pin2) is None and orbit == 'D':
+                # use left bottom corner
+                print (f'NOTE subswath {subswath}: pin2 is not defined, master image corner coordinate will be used')
+                warning = True
+                #pin2 = [llmax, ltmax]
+                pin2 = pip2pin(geom, llmax, ltmax)
+
+            # swap pins for Descending orbit
+            if orbit == 'A':
+                allpins += [pin1[0], pin1[1], pin2[0], pin2[1]]
+            else:
+                allpins += [pin2[0], pin2[1], pin1[0], pin1[1]]
+
+        self.pins = allpins
+        # pins are defined even is case of errors to have ability to plot them
+        assert not error, 'ERROR: Please fix all the issues listed above to continue. Note: you are able to plot the pins.'
+
+    def reframe(self, subswath, date, debug=False):
         """
         Estimate framed area using two pins using Sentinel-1 GCPs approximation.
         """
@@ -493,22 +673,26 @@ class SBAS:
         import shapely
         import os
 
-        df = self.df.loc[[date]]
-        stem = self.multistem_stem(df['datetime'][0])[1]
+        pins = self.get_pins(subswath)
+
+        df = self.get_aligned(subswath, date)
+        stem = self.multistem_stem(subswath, df['datetime'][0])[1]
+        #print ('stem', stem)
 
         old_filename = os.path.join(self.basedir, f'{stem}')
         #print ('old_filename', old_filename)
 
-        self.make_s1a_tops(date, debug)
+        self.make_s1a_tops(subswath, date, debug)
 
         prm = PRM.from_file(old_filename+'.PRM')
-        azi1 = prm.SAT_llt2rat([self.pins[0], self.pins[1], 0], precise=1)[1]
-        azi2 = prm.SAT_llt2rat([self.pins[2], self.pins[3], 0], precise=1)[1]
+        azi1 = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1)[1]
+        azi2 = prm.SAT_llt2rat([pins[2], pins[3], 0], precise=1)[1]
         #print ('azi1', azi1, 'azi2', azi2)
         prm.shift_atime(azi1, inplace=True).update()
 
         # Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2)...
-        self.assemble_tops(date, azi1, azi2, debug)
+        #print ('assemble_tops', subswath, date, azi1, azi2, debug)
+        self.assemble_tops(subswath, date, azi1, azi2, debug)
 
         # Parse new .xml to define new scene name
         # like to 's1b-iw3-slc-vv-20171117t145922-20171117t145944-008323-00ebab-006'
@@ -541,92 +725,8 @@ class SBAS:
         # update approximate location
         gcps = self.geoloc(new_filename + '.xml').geometry
         df['geometry'] = shapely.geometry.MultiPoint(gcps).minimum_rotated_rectangle
-    
+
         return df
-
-    def get_pins(self, pin_number=None):
-        if pin_number is None:
-            return self.pins
-        elif pin_number == 1:
-            return self.pins[:2]
-        elif pin_number == 2:
-            return self.pins[2:]
-
-    def set_pins(self, pins):
-        """
-        Estimate framed area using two pins on Sentinel-1 GCPs approximation.
-        The pins should be defined in any order like to
-            [x1, y1, x2, y2]
-            [[x1, y1], [x2, y2]]
-            [[x1, y1], None]
-            [None, [x2, y2]]
-            [None, None]
-        The pins automatically reordered properly for ascending and descending orbits and returned in the true order.
-        """
-        import numpy as np
-        from shapely.geometry import Point
-
-        error = False
-        warning = False
-
-        if pins is None:
-            pins = [None, None]
-        if len(pins) == 4:
-            pins = np.array(pins).reshape(2,2)
-        assert len(pins) == 2, 'Define two pins as two pairs of lat,lon coordinates where pin2 is upper pin1'
-        #print ('pins', pins)
-        pin1 = pins[0]
-        pin2 = pins[1]
-    
-        df = self.df.loc[[self.master]]
-        area = self.get_master()['geometry'].unary_union
-        orbit = df['orbit'][0]
-
-        # check the pins validity
-        #geoloc = self.geoloc()
-        llmin, ltmin, llmax, ltmax = self.geoloc().dissolve().envelope.bounds.values[0].round(3)
-        #llmin, llmax = geoloc.longitude.min().round(3), geoloc.longitude.max().round(3)
-        #ltmin, ltmax = geoloc.latitude.min().round(3), geoloc.latitude.max().round(3)
-    
-        if not np.all(pin1) is None and not area.intersects(Point(pin1[0], pin1[1])):
-            print ('ERROR: pin1 lays outside of master frame. Move the pin or set it to None and try again.')
-            error = True
-        if not np.all(pin2) is None and not area.intersects(Point(pin2[0], pin2[1])):
-            print ('ERROR: pin2 lays outside of master frame. Move the pin or set it to None and try again.')
-            error = True
-        
-        # check pin1
-        if np.all(pin1) is None and orbit == 'A':
-            # use right bottom corner
-            print ('NOTE: pin1 is not defined, master image corner coordinate will be used')
-            warning = True
-            pin1 = [llmax, ltmin]
-        elif np.all(pin1) is None and orbit == 'D':
-            # use right top corner
-            print ('NOTE: pin1 is not defined, master image corner coordinate will be used')
-            warning = True
-            pin1 = [llmin, ltmin]
-
-        # check pin2
-        if np.all(pin2) is None and orbit == 'A':
-            # use left top corner
-            print ('NOTE: pin2 is not defined, master image corner coordinate will be used')
-            warning = True
-            pin2 = [llmin, ltmax]
-        elif np.all(pin2) is None and orbit == 'D':
-            # use left bottom corner
-            print ('NOTE: pin2 is not defined, master image corner coordinate will be used')
-            warning = True
-            pin2 = [llmax, ltmax]
-
-        # swap pins for Descending orbit
-        if orbit == 'A':
-            self.pins = [pin1[0], pin1[1], pin2[0], pin2[1]]
-        else:
-            self.pins = [pin2[0], pin2[1], pin1[0], pin1[1]]
-
-        # pins are defined even is case of errors to have ability to plot them
-        assert not error, 'ERROR: Please fix all the issues listed above to continue'
 
     def reframe_parallel(self, dates=None, n_jobs=-1, **kwargs):
         #from tqdm import tqdm
@@ -634,16 +734,26 @@ class SBAS:
         import joblib
         import pandas as pd
 
+        if len(self.pins) == 0:
+            # set auto-pins when the list is empty
+            self.set_pins()
+
         if dates is None:
             dates = self.df.index.unique().values
 
+        subswaths = self.df.subswath.unique()
+
         # process all the scenes
-        with self.tqdm_joblib(notebook.tqdm(desc='Reframing', total=len(dates))) as progress_bar:
-            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe)(date, **kwargs) for date in dates)
+        with self.tqdm_joblib(notebook.tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
+            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe)(subswath, date, **kwargs) \
+                                                     for date in dates for subswath in subswaths)
 
         self.df = pd.concat(records)
 
-    def intf_ra2ll(self, grids):
+    def intf_ra2ll(self, subswath, grids):
+        """
+        Geocoding function based on interferogram geocode matrix to call from open_grids(geocode=True)
+        """
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
@@ -651,7 +761,7 @@ class SBAS:
         import numpy as np
         import os
 
-        intf_ra2ll_file = os.path.join(self.basedir, 'intf_ra2ll.grd')
+        intf_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_intf_ra2ll.grd')
 
         matrix_ra2ll = xr.open_dataarray(intf_ra2ll_file)
 
@@ -667,7 +777,7 @@ class SBAS:
         with self.tqdm_joblib(notebook.tqdm(desc='Geocoding', total=len(grids))) as progress_bar:
             grids_ll = joblib.Parallel(n_jobs=-1)(joblib.delayed(ra2ll)(grids[item]) for item in range(len(grids)))
         grids_ll = xr.concat(grids_ll, dim=grids.dims[0])
-    
+
         # add coordinates from original grids
         for coord in grids.coords:
             if coord in ['y', 'x']:
@@ -676,16 +786,22 @@ class SBAS:
 
         return grids_ll
 
-    def intf_ra2ll_matrix(self, intf_grids):
+    def intf_ra2ll_matrix(self, subswath, intf_grids):
+        """
+        Build interferogram geocoding matrix after interferogram processing required for open_grids(geocode=True)
+        """
         from scipy.spatial import cKDTree
         import xarray as xr
         import numpy as np
         import os
+    
+        # use 2D grid grom the pairs stack
+        intf_grid = intf_grids[0]
 
-        trans_dat_file = os.path.join(self.basedir, 'trans.dat')
-        trans_ra2ll_file = os.path.join(self.basedir, 'trans_ra2ll.grd')
-        intf_ra2ll_file = os.path.join(self.basedir, 'intf_ra2ll.grd')
-        
+        trans_dat_file   = os.path.join(self.basedir, f'F{subswath}_trans.dat')
+        trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
+        intf_ra2ll_file  = os.path.join(self.basedir, f'F{subswath}_intf_ra2ll.grd')
+
         # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
         trans = np.fromfile(trans_dat_file, dtype=np.float64).reshape([-1,5])
         lon_min, lon_max = trans[:,3].min(),trans[:,3].max()
@@ -693,12 +809,12 @@ class SBAS:
 
         trans_ra2ll = xr.open_dataarray(trans_ra2ll_file)
 
-        intf_ys, intf_xs = xr.broadcast(intf_grids[0].y, intf_grids[0].x)
+        intf_ys, intf_xs = xr.broadcast(intf_grids.y, intf_grids.x)
         intf_yxs = np.stack([intf_ys.values.reshape(-1),intf_xs.values.reshape(-1)], axis=1)
         trans_yxs = np.stack([trans[:,1],trans[:,0]], axis=1)
 
         tree = cKDTree(intf_yxs, compact_nodes=False, balanced_tree=False)
-        distance_limit = np.max([intf_grids[0].y.diff('y')[0], intf_grids[0].x.diff('x')[0]])
+        distance_limit = np.max([intf_grids.y.diff('y')[0], intf_grids.x.diff('x')[0]])
         d, inds = tree.query(trans_yxs, k = 1, distance_upper_bound=distance_limit, workers=8)
 
         # single integer index mask
@@ -711,15 +827,18 @@ class SBAS:
         # save to NetCDF file
         intf_ra2ll.to_netcdf(intf_ra2ll_file, encoding={'intf_ra2ll': self.compression})
 
-    def ra2ll(self):
+    def ra2ll(self, subswath):
+        """
+        Create radar to geographic coordinate transformation matrix for DEM grid using geocoding table trans.dat
+        """
         from scipy.spatial import cKDTree
         import xarray as xr
         import numpy as np
         import os
 
-        trans_dat_file = os.path.join(self.basedir, 'trans.dat')
-        trans_ra2ll_file = os.path.join(self.basedir, 'trans_ra2ll.grd')
-        
+        trans_dat_file   = os.path.join(self.basedir, f'F{subswath}_trans.dat')
+        trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
+
         if os.path.exists(trans_ra2ll_file):
             os.remove(trans_ra2ll_file)
 
@@ -731,7 +850,7 @@ class SBAS:
         #dem = xr.open_dataset(in_dem_gridfile)
         #dem = self.get_dem(geoloc=True)
         dem = self.get_dem(geoloc=True).sel(lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
-        
+
         trans_latlons = np.stack([trans[:,4],trans[:,3]], axis=1)
         dem_lats, dem_lons = xr.broadcast(dem.lat,dem.lon)
         dem_latlons = np.stack([dem_lats.values.reshape(-1),dem_lons.values.reshape(-1)], axis=1)
@@ -748,37 +867,55 @@ class SBAS:
         # save to NetCDF file
         trans_ra2ll.to_netcdf(trans_ra2ll_file, encoding={'trans_ra2ll': self.compression})
 
-    def topo_ra(self, method='cubic'):
-        import xarray as xr
-        import os
+    def topo_ra_parallel(self, n_jobs=-1, **kwargs):
+        from tqdm import notebook
+        import joblib
+    
+        # process all the subswaths
+        subswaths = self.df.subswath.unique()
+        with self.tqdm_joblib(notebook.tqdm(desc='Transforming Coordinates', total=len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.topo_ra)(subswath, **kwargs) \
+                                                     for subswath in subswaths)
 
-        trans_dat_file = os.path.join(self.basedir, 'trans.dat')
-        topo_ra_file = os.path.join(self.basedir, 'topo_ra.grd')
+    def topo_ra(self, subswath=None, method='cubic'):
+        import os
+    
+        if subswath is None:
+            subswaths = self.df.subswath.unique()
+            assert len(subswaths) == 1, 'Backward-compatibility topo_ra() call works for a single subswath only'
+            subswath = subswaths[0]
+
+        # process selected subswaths 1,2,3 or 12, 23, 123
+        #print ('subswath', subswath)
+        prefix = f'F{subswath}_'
+        trans_dat_file = os.path.join(self.basedir, prefix + 'trans.dat')
+        topo_ra_file = os.path.join(self.basedir, prefix + 'topo_ra.grd')
 
         # cleanup before createing the new files
         for filename in [trans_dat_file, topo_ra_file]:
             if os.path.exists(filename):
                 os.remove(filename)
-        
-        self.PRM().topo_ra(self.get_dem(geoloc=True),
+
+        self.PRM(subswath).topo_ra(self.get_dem(subswath, geoloc=True),
                            trans_dat_tofile=trans_dat_file,
                            topo_ra_tofile=topo_ra_file,
                            method=method)
         
-        # build DEM coordinates transform matrix
-        self.ra2ll()
+        # build DEM grid coordinates transform matrix
+#        self.ra2ll()
 
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
-    def get_topo_llt(self, degrees, geoloc=True):
+    # use median decimation instead of average
+    def get_topo_llt(self, subswath, degrees, geoloc=True):
         import xarray as xr
         import numpy as np
 
         # add buffer around the cropped area for borders interpolation
-        dem_area = self.get_dem(geoloc=geoloc)
+        dem_area = self.get_dem(subswath, geoloc=geoloc)
         ny = int(np.round(degrees/dem_area.lat.diff('lat')[0]))
         nx = int(np.round(degrees/dem_area.lon.diff('lon')[0]))
         #print ('DEM decimation','ny', ny, 'nx', nx)
-        dem_area = dem_area.coarsen({'lat': ny, 'lon': nx}, boundary='pad').mean()
+        dem_area = dem_area.coarsen({'lat': ny, 'lon': nx}, boundary='pad').median()
 
         lats, lons, z = xr.broadcast(dem_area.lat, dem_area.lon, dem_area)
         topo_llt = np.column_stack([lons.values.ravel(), lats.values.ravel(), z.values.ravel()])
@@ -801,7 +938,7 @@ class SBAS:
     def to_dataframe(self):
         return self.df
 
-    def assemble_tops(self, date, azi_1, azi_2, debug=False):
+    def assemble_tops(self, subswath, date, azi_1, azi_2, debug=False):
         """
         Usage: assemble_tops azi_1 azi_2 name_stem1 name_stem2 ... output_stem
 
@@ -818,7 +955,7 @@ class SBAS:
         import os
         import subprocess
 
-        df = self.df.loc[[date]]
+        df = self.get_aligned(subswath, date)
         #print ('scenes', len(df))
 
         # assemble_tops requires the same path to xml and tiff files
@@ -838,7 +975,7 @@ class SBAS:
         else:
             datapaths = [os.path.relpath(path, self.basedir)[:-5] for path in df['datapath']]
         #print ('datapaths', datapaths)
-        stem = self.multistem_stem(df['datetime'][0])[1]
+        stem = self.multistem_stem(subswath, df['datetime'][0])[1]
 
         # round values and convert to strings
         azi_1 = np.round(azi_1).astype(int).astype(str)
@@ -855,17 +992,17 @@ class SBAS:
 
         return
 
-    def ext_orb_s1a(self, stem, date=None, debug=False):
+    def ext_orb_s1a(self, subswath, stem, date=None, debug=False):
         import os
         import subprocess
 
         if date is None or date == self.master:
-            df = self.get_master()
+            df = self.get_master(subswath)
         else:
-            df = self.df.loc[[date]]
+            df = self.get_aligned(subswath, date)
 
         orbit = os.path.relpath(df['orbitpath'][0], self.basedir)
-    
+
         argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
         #print ('argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
@@ -879,7 +1016,7 @@ class SBAS:
     
     # produce LED and PRM in basedir
     # when date=None work on master image
-    def make_s1a_tops(self, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
+    def make_s1a_tops(self, subswath, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
         """
         Usage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd
          xml_file    - name of xml file 
@@ -892,15 +1029,17 @@ class SBAS:
 
         #or date == self.master
         if date is None:
-            date = self.master
+            df = self.get_master(subswath)
             # for master image mode should be 1
             mode = 1
-        df = self.df.loc[[date]]
-    
+        else:
+            df = self.get_aligned(subswath, date)
+
+        # TODO: use subswath
         xmlfile = os.path.relpath(df['metapath'][0], self.basedir)
         datafile = os.path.relpath(df['datapath'][0], self.basedir)
-        stem = self.multistem_stem(df['datetime'][0])[1]
-    
+        stem = self.multistem_stem(subswath, df['datetime'][0])[1]
+
         argv = ['make_s1a_tops', xmlfile, datafile, stem, str(mode)]
         if rshift_fromfile is not None:
             argv.append(rshift_fromfile)
@@ -913,68 +1052,64 @@ class SBAS:
             print ('make_s1a_tops', stderr_data.decode('ascii'))
         if len(stdout_data) > 0 and debug:
             print ('make_s1a_tops', stdout_data.decode('ascii'))
-    
-        self.ext_orb_s1a(stem, date, debug=debug)
-    
+
+        self.ext_orb_s1a(subswath, stem, date, debug=debug)
+
         return
 
     # aligning for master image
-    def stack_ref(self, debug=False):
+    def stack_ref(self, subswath, debug=False):
         import xarray as xr
         import numpy as np
         import os
         from PRM import PRM
 
-        err, warn = self.validate()
-        #print ('err, warn', err, warn)
-        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
+    #        err, warn = self.validate()
+    #        #print ('err, warn', err, warn)
+    #        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
 
-        master_line = list(self.get_master().itertuples())[0]
+        master_line = list(self.get_master(subswath).itertuples())[0]
         #print (master_line)
 
         # for master image
-        multistem, stem = self.multistem_stem(master_line.datetime)
+        multistem, stem = self.multistem_stem(subswath, master_line.datetime)
         path_stem = os.path.join(self.basedir, stem)
         path_multistem = os.path.join(self.basedir, multistem)
 
         # generate PRM, LED, SLC
-        self.make_s1a_tops(debug=debug)
+        self.make_s1a_tops(subswath, debug=debug)
 
         PRM.from_file(path_stem + '.PRM')\
             .set(input_file = path_multistem + '.raw')\
             .update(path_multistem + '.PRM', safe=True)
 
-        self.ext_orb_s1a(multistem, debug=debug)
+        self.ext_orb_s1a(subswath, multistem, debug=debug)
 
         # recalculate after ext_orb_s1a
         earth_radius = PRM.from_file(path_multistem + '.PRM')\
             .calc_dop_orb(inplace=True).update().get('earth_radius')
 
     # aligning for secondary image
-    def stack_rep(self, date=None, degrees=12.0/3600, debug=False):
+    def stack_rep(self, subswath, date=None, degrees=12.0/3600, debug=False):
         import xarray as xr
         import numpy as np
         import os
         from PRM import PRM
 
-        err, warn = self.validate()
-        #print ('err, warn', err, warn)
-        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
-
-        master_line = list(self.get_master().itertuples())[0]
-        multistem, stem = self.multistem_stem(master_line.datetime)
+        master_line = list(self.get_master(subswath).itertuples())[0]
+        multistem, stem = self.multistem_stem(subswath, master_line.datetime)
         #print (master_line)
 
         # define master image parameters
-        master = self.PRM().sel('earth_radius').set(stem=stem, multistem=multistem)
+        master = self.PRM(subswath).sel('earth_radius').set(stem=stem, multistem=multistem)
 
         # prepare coarse DEM for alignment
         # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
-        topo_llt = self.get_topo_llt(degrees=degrees)
+        topo_llt = self.get_topo_llt(subswath, degrees=degrees)
         #topo_llt.shape
 
-        line = list(self.get_aligned(date).itertuples())[0]
-        multistem, stem = self.multistem_stem(line.datetime)
+        line = list(self.get_aligned(subswath, date).itertuples())[0]
+        multistem, stem = self.multistem_stem(subswath, line.datetime)
         #print (line)
 
         # define relative filenames for PRM
@@ -987,7 +1122,7 @@ class SBAS:
         tmp_da = 0
 
         # generate PRM, LED
-        self.make_s1a_tops(date, debug=debug)
+        self.make_s1a_tops(subswath, date, debug=debug)
 
         # compute the time difference between first frame and the rest frames
         t1, prf = PRM.from_file(stem_prm).get('clock_start', 'PRF')
@@ -1056,7 +1191,8 @@ class SBAS:
         # generate the image with point-by-point shifts
         # note: it removes calc_dop_orb parameters from PRM file
         # generate PRM, LED
-        self.make_s1a_tops(date=line.Index, mode=1,
+        self.make_s1a_tops(subswath,
+                           date=line.Index, mode=1,
                            rshift_fromfile=f'{stem}_r.grd',
                            ashift_fromfile=f'{stem}_a.grd',
                            debug=debug)
@@ -1072,7 +1208,7 @@ class SBAS:
             .set(input_file = f'{multistem}.raw')\
             .update(mstem_prm, safe=True)
 
-        self.ext_orb_s1a(multistem, date=line.Index, debug=debug)
+        self.ext_orb_s1a(subswath, multistem, date=line.Index, debug=debug)
 
         # Restoring $tmp_da lines shift to the image... 
         PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
@@ -1092,29 +1228,40 @@ class SBAS:
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
-    
+
         if dates is None:
-            dates = list(self.get_aligned().index)
+            dates = list(self.get_aligned().index.unique())
+
+        subswaths = self.df.subswath.unique()
 
         # prepare master image
-        self.stack_ref()
+        #self.stack_ref()
+        with self.tqdm_joblib(notebook.tqdm(desc='Reference', total=len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.stack_ref)(subswath, **kwargs) for subswath in subswaths)
 
         # prepare secondary images
-        with self.tqdm_joblib(notebook.tqdm(desc='Aligning', total=len(dates))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.stack_rep)(date, **kwargs) for date in dates)
+        with self.tqdm_joblib(notebook.tqdm(desc='Aligning', total=len(dates)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.stack_rep)(subswath, date, **kwargs) \
+                                           for date in dates for subswath in subswaths)
 
-    def intf(self, pair, **kwargs):
+    def intf(self, subswath, pair, **kwargs):
         from PRM import PRM
         import os
 
         # extract dates from pair
         date1, date2 = pair
 
-        prm_ref = self.PRM(date1)
-        prm_rep = self.PRM(date2)
+        prm_ref = self.PRM(subswath, date1)
+        prm_rep = self.PRM(subswath, date2)
 
+        topo_ra_file = os.path.join(self.basedir, f'F{subswath}_topo_ra.grd')
         #print ('SBAS intf kwargs', kwargs)
-        prm_ref.intf(prm_rep, basedir=self.basedir, **kwargs)
+        prm_ref.intf(prm_rep,
+                     basedir=self.basedir,
+                     topo_ra_fromfile = topo_ra_file,
+                     **kwargs)
+        
+        # TODO: merge subswaths using merge_swath and return single merged record
 
     def intf_parallel(self, pairs, n_jobs=-1, **kwargs):
         import pandas as pd
@@ -1128,6 +1275,8 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
+        subswaths = self.df.subswath.unique()
+
         # this way does not work properly for long interferogram series
         #with self.tqdm_joblib(notebook.tqdm(desc='Interferograms', total=len(pairs))) as progress_bar:
         #    joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
@@ -1137,26 +1286,163 @@ class SBAS:
             n_jobs = joblib.cpu_count()
         n_chunks = int(np.ceil(len(pairs)/n_jobs))
         chunks = np.array_split(pairs, n_chunks)
-        with notebook.tqdm(desc='Interferograms', total=len(pairs)) as pbar:
+        #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
+        with notebook.tqdm(desc='Interferograms', total=len(pairs)*len(subswaths)) as pbar:
             for chunk in chunks:
                 loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
-                with joblib.parallel_backend('loky', n_jobs=len(chunk), inner_max_num_threads=1):
-                    joblib.Parallel()(joblib.delayed(self.intf)(pair, **kwargs) for pair in chunk)
-                pbar.update(len(chunk))
+                with joblib.parallel_backend('loky', n_jobs=n_jobs, inner_max_num_threads=1):
+                    joblib.Parallel()(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
+                        for subswath in subswaths for pair in chunk)
+                pbar.update(len(chunk)*len(subswaths))
 
+        # backward compatibility wrapper
+        # for a single subswath don't need to call SBAS.merge_parallel()
+        # for subswaths merging and total coordinate transformation matrices creation 
+        if len(subswaths) == 1:
+            # build DEM grid coordinates transform matrix
+            self.ra2ll(subswaths[0])
+            
+            # build radar coordinates transformation matrix for the interferograms grid stack
+            self.intf_ra2ll_matrix(subswaths[0], self.open_grids(pairs, 'phasefilt'))
+        
+        #if len(subswaths) > 1:
+        #    self.merge_parallel(pairs)
         # build radar coordinates transformation matrix
-        self.intf_ra2ll_matrix(self.open_grids(pairs, 'phasefilt'))
+        #self.intf_ra2ll_matrix(self.open_grids(pairs, 'phasefilt', subswath))
+
+    #        # build stack mask
+    #        filename_mask = os.path.join(self.basedir, 'mask.grd')
+    #        mask = self.open_grids(pairs, 'mask').mean('pair')
+    #        mask.to_netcdf(filename_mask, encoding={'z': self.compression})
+    #        
+    #        # build stack coherence
+    #        filename_corr = os.path.join(self.basedir, 'corr.grd')
+    #        corr = self.open_grids(pairs, 'corr').mean('pair')
+    #        corr.to_netcdf(filename_mask, encoding={'z': self.compression})     
+
+    # stem_tofile + '.PRM' generating
+    def merge_swath(self, conf, grid_tofile, stem_tofile, debug=False):
+        import subprocess
+
+        argv = ['merge_swath', '/dev/stdin', grid_tofile, stem_tofile]
+        #print ('argv', argv)
+        p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             encoding='ascii')
+        stdout_data, stderr_data = p.communicate(input=conf)
+        if len(stderr_data) > 0 and debug:
+            print ('merge_swath', stderr_data)
+        if len(stdout_data) > 0 and debug:
+            print ('merge_swath', stdout_data)
+
+        return
+
+    def merge(self, pair, grid, debug=False):
+        from PRM import PRM
+        import os
+
+        record2multistem = lambda record: self.multistem_stem(record.subswath, record.datetime)[0]
+        fullname = lambda filename: os.path.join(self.basedir, filename)
+
+        # extract dates from pair
+        date1, date2 = pair
+        #print (date1, date2)
+    
+        # records should be sorted by datetime that's equal to sorting by date and subswath
+        multistems1 = self.get_aligned(None, date1).apply(record2multistem, axis=1)
+        multistems2 = self.get_aligned(None, date2).apply(record2multistem, axis=1)
+        if len(multistems1) == 1:
+            # only one subswath found, merging is not possible
+            return
+    
+        config = []
+        subswaths = []
+        cleanup = []
+        for (multistem1, multistem2) in zip(multistems1, multistems2):
+            # F2_20220702_20220714_phasefilt.grd
+            prm1_filename = fullname(multistem1 + '.PRM')
+            prm2_filename = fullname(multistem1 + '.PRM')
+            prm_filename  = fullname(multistem1 + f'_{grid}.PRM')
         
-        # build stack mask
-        filename_mask = os.path.join(self.basedir, 'mask.grd')
-        mask = self.open_grids(pairs, 'mask').mean('pair')
-        mask.to_netcdf(filename_mask, encoding={'z': self.compression})
+            prm1 = PRM.from_file(prm1_filename)
+            prm2 = PRM.from_file(prm2_filename)
+            rshift = prm2.get('rshift')
+            #print ('rshift', rshift)
+            #assert rshift == 0, 'rshift is not equal to zero for master PRM'
+            fs1 = prm1.get('first_sample')
+            fs2 = prm2.get('first_sample')
+            #print ('fs1, fs2', fs1, fs2)
+            #assert fs1 == fs2, 'first_sample is not equal for master and repeat PRM'
+            prm = prm1.set(rshift=rshift, first_sample=fs2 if fs2 > fs1 else fs1).to_file(prm_filename)
+
+            subswath = int(multistem1[-1:])
+            subswaths.append(subswath)
+            dt1 = multistem1[3:11]
+            dt2 = multistem2[3:11]
+            #print (multistem1, multistem2, fullname(multistem1))
+            grid_fromfile = fullname(f'F{subswath}_{dt1}_{dt2}_{grid}.grd')
+            cleanup.append(grid_fromfile)
+            #print (prm_filename, grid_filename)
+            config.append(':'.join([prm_filename, grid_fromfile]))
+        config = '\n'.join(config)
+        subswaths = int(''.join(map(str,subswaths)))
+        # F23_20220702_20220714_phasefilt.grd
+        grid_tofile = fullname(f'F{subswaths}_{dt1}_{dt2}_{grid}.grd')
+        #print ('grid_tofile', grid_tofile)
+        #print (config)
+        # S1_20220702_ALL_F23 without extension
+        stem_tofile = fullname(f'S1_{dt1}_ALL_F{subswaths}')
         
-        # build stack coherence
-        filename_corr = os.path.join(self.basedir, 'corr.grd')
-        corr = self.open_grids(pairs, 'corr').mean('pair')
-        corr.to_netcdf(filename_mask, encoding={'z': self.compression})
+        self.merge_swath(config, grid_tofile, stem_tofile, debug=debug)
         
+        # cleanup - files should exists as these are processed above
+        for filename in cleanup:
+            os.remove(filename)
+
+    def merge_parallel(self, pairs, grids = ['phasefilt', 'corr', 'mask'], n_jobs=-1, **kwargs):
+        #def merge(self, pair, grid, debug=False):
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+        import pandas as pd
+        import geopandas as gpd
+
+        # merging is not applicable to a single subswath
+        # for this case coordinate transformation matrices already built in SBAS.intf_parallel()
+        subswaths = self.df.subswath.unique()
+        if len(subswaths) == 1:
+            return
+        
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+
+        with self.tqdm_joblib(notebook.tqdm(desc='Merging Subswaths', total=len(pairs)*len(grids))) as progress_bar:
+            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) \
+                                           for pair in pairs for grid in grids)
+
+        df = self.df.groupby(self.df.index).agg({'datetime': min, 'orbit': min, 'mission': min, 'polarization':min,
+                                            'subswath': lambda s: int(''.join(map(str,list(s)))),
+                                            'datapath': lambda p: list(p),
+                                            'metapath': lambda p: list(p),
+                                            'orbitpath': min,
+                                            'geometry': lambda g: g.unary_union
+                                           })
+        self.df = gpd.GeoDataFrame(df)
+    
+        # build geo transform matrices for the merged interferograms
+        subswaths = self.df.subswath.unique()
+        assert len(subswaths) == 1, 'Found multiple subswaths after subswath merging'
+        subswath = subswaths[0]
+        #print ('subswath', subswath)
+    
+        # biuld topo_ra for the merged subswaths
+        self.topo_ra(subswath)
+    
+        # build DEM grid coordinates transform matrix
+        self.ra2ll(subswath)
+
+        # build radar coordinates transformation matrix for the interferograms grid stack
+        self.intf_ra2ll_matrix(subswath, self.open_grids(pairs, 'phasefilt'))
 
     def baseline_table(self):
         import pandas as pd
@@ -1164,7 +1450,7 @@ class SBAS:
         prm_ref = self.PRM()
         data = []
         for date in self.df.index:
-            prm_rep = self.PRM(date)
+            prm_rep = self.PRM(None, date)
             ST0 = prm_rep.get('SC_clock_start')
             DAY = int(ST0 % 1000)
             YR = int(ST0/1000) - 2014
@@ -1274,16 +1560,21 @@ class SBAS:
 
         return (pd.DataFrame(data).sort_values(['A', 'B', 'C']))
 
-    def PRM(self, date=None, multi=True):
+    def PRM(self, subswath=None, date=None, multi=True):
         from PRM import PRM
         import os
+        
+        if subswath is None:
+            subswaths = self.df.subswath.unique()
+            assert len(subswaths) == 1, 'Backward-compatibility PRM() call works for a single subswath only'
+            subswath = subswaths[0]
 
         if date is None or date == self.master:
-            line = self.get_master()
+            line = self.get_master(subswath)
         else:
-            line = self.get_aligned(date)
+            line = self.get_aligned(subswath, date)
         #print (line)
-        multistem, stem = self.multistem_stem(line.datetime[0])
+        multistem, stem = self.multistem_stem(subswath, line.datetime[0])
         if multi:
             stem = multistem
         filename = os.path.join(self.basedir, f'{stem}.PRM')
@@ -1298,30 +1589,33 @@ class SBAS:
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
+        
+        subswaths = self.df.subswath.unique()
 
-        with self.tqdm_joblib(notebook.tqdm(desc='Unwrapping', total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.unwrap)(pair, **kwargs) for pair in pairs)
+        with self.tqdm_joblib(notebook.tqdm(desc='Unwrapping', total=len(pairs)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.unwrap)(subswath, pair, **kwargs) \
+                                           for subswath in subswaths for pair in pairs)
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
-    def unwrap(self, pair, threshold, conf=None, func=None, debug=False):
+    def unwrap(self, subswath, pair, threshold, conf=None, func=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
         import subprocess
 
         if conf is None:
-            conf = self.PRM().snaphu_config(defomax=0)
+            conf = self.PRM(subswath).snaphu_config(defomax=0)
 
         # extract dates from pair
         date1, date2 = pair
 
-        basename = os.path.join(self.basedir, f'{date1}_{date2}_').replace('-','')
+        basename = os.path.join(self.basedir, f'F{subswath}_{date1}_{date2}_').replace('-','')
         #print ('basename', basename)
 
         # invalid pixels mask
         mask = xr.open_dataarray(basename + 'mask.grd')
-    
+
         phase = xr.open_dataarray(basename + 'phasefilt.grd')
         phase_in = basename + 'unwrap.phase'
         phase.where(~np.isnan(phase),0).values.tofile(phase_in)
@@ -1331,11 +1625,11 @@ class SBAS:
         corr = (corr*mask).where(corr>=threshold)
         corr_in = basename + 'unwrap.corr'
         corr.where(~np.isnan(corr),0).values.tofile(corr_in)
-        
+
         # TEST
-        if os.path.exists(basename + 'corr.tmp.grd'):
-            os.remove(basename + 'corr.tmp.grd')
-        corr.where(~np.isnan(corr),0).to_netcdf(basename + 'corr.tmp.grd', encoding={'z': self.compression})
+        #if os.path.exists(basename + 'corr.tmp.grd'):
+        #    os.remove(basename + 'corr.tmp.grd')
+        #corr.where(~np.isnan(corr),0).to_netcdf(basename + 'corr.tmp.grd', encoding={'z': self.compression})
 
         unwrap_out = basename + 'unwrap.out'
 
@@ -1379,11 +1673,17 @@ class SBAS:
         return scale*unwraps
 
     # returns all grids in basedir by mask or grids by dates and name
-    def open_grids(self, pairs, name, geocode=False, mask=False, func=None, crop_valid=False):
+    # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
+    def open_grids(self, pairs, name, geocode=False, mask=None, func=None, crop_valid=False, add_subswath=True):
         import pandas as pd
         import xarray as xr
         import numpy as np
         import os
+
+        # for backward compatibility
+        if isinstance(mask, bool):
+            print ('NOTE: mask argument changed from boolean to dataarray for sbas.open_grid() function call')
+            mask = None
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
@@ -1401,74 +1701,111 @@ class SBAS:
         #                             preprocess=preprocess_dirname)['z']
         #    return ds
 
-        das = []
-        if len(pairs.shape) == 1:
-            for date in sorted(pairs):
-                filename = os.path.join(self.basedir, f'{name}_{date}.grd'.replace('-',''))
-                #print (date, filename)
-                da = xr.open_dataarray(filename)
-                if func is not None:
-                    da = func(da)
-                if mask:
-                    da = da*self.open_grid('mask')
-                das.append(da.expand_dims('date'))
-            das = xr.concat(das, dim='date')
-            das['date'] = sorted(pairs)
-        elif len(pairs.shape) == 2:
-            for pair in pairs:
-                filename = os.path.join(self.basedir, f'{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
-                #print (filename)
-                da = xr.open_dataarray(filename)
-                if func is not None:
-                    da = func(da)
-                if mask:
-                    da = da*self.open_grid('mask')
-                das.append(da.expand_dims('pair'))
-            das = xr.concat(das, dim='pair')
-            das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
-            das['ref']  = xr.DataArray([pair[0] for pair in pairs], dims='pair')
-            das['rep']  = xr.DataArray([pair[1] for pair in pairs], dims='pair')
-        else:
-            raise Exception('Use single or two columns Pandas dataset or array as "pairs" argument')
+        # iterate all the subswaths
+        subswaths = self.df.subswath.unique()
 
-        if geocode:
-            das = self.intf_ra2ll(das)
+        dass = []
+        for subswath in subswaths:
+            if add_subswath == True:
+                prefix = f'F{subswath}_'
+            else:
+                prefix = ''
 
-        # crop NaNs
-        if crop_valid:
-            dims = [dim for dim in das.dims if dim != 'pair']
-            assert len(dims) == 2, 'ERROR: interferogram should be 2D array'
-            da = das.min('pair')
-            indexer = {}
-            for dim in dims:
-                da = da.dropna(dim=dim, how='all')
-                dim_min, dim_max = da[dim].min().item(), da[dim].max().item()
-                indexer[dim] = slice(dim_min, dim_max)
-            #print ('indexer', indexer)
-            return das.loc[indexer]
+            das = []
+            if len(pairs.shape) == 1:
+                for date in sorted(pairs):
+                    filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
+                    #print (date, filename)
+                    da = xr.open_dataarray(filename)
+                    if func is not None:
+                        da = func(da)
+                    if mask is not None:
+                        #da = da*self.open_grids(subswath, 'mask')
+                        da = xr.where(~np.isnan(mask), da, np.nan)
+                    das.append(da.expand_dims('date'))
+                das = xr.concat(das, dim='date')
+                das['date'] = sorted(pairs)
+            elif len(pairs.shape) == 2:
+                for pair in pairs:
+                    filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
+                    #print (filename)
+                    da = xr.open_dataarray(filename)
+                    if func is not None:
+                        da = func(da)
+                    if mask is not None:
+                        #da = da*self.open_grids(subswath, 'mask')
+                        da = xr.where(~np.isnan(mask), da, np.nan)
+                    das.append(da.expand_dims('pair'))
+                das = xr.concat(das, dim='pair')
+                das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
+                das['ref']  = xr.DataArray([pair[0] for pair in pairs], dims='pair')
+                das['rep']  = xr.DataArray([pair[1] for pair in pairs], dims='pair')
+            else:
+                raise Exception('Use single or two columns Pandas dataset or array as "pairs" argument')
 
-        return das
+            if geocode:
+                das = self.intf_ra2ll(subswath, das)
 
-    def open_grid(self, name, geocode=False, mask=False, func=None):
+            # crop NaNs
+            if crop_valid:
+                dims = [dim for dim in das.dims if dim != 'pair']
+                assert len(dims) == 2, 'ERROR: interferogram should be 2D array'
+                da = das.min('pair')
+                indexer = {}
+                for dim in dims:
+                    da = da.dropna(dim=dim, how='all')
+                    dim_min, dim_max = da[dim].min().item(), da[dim].max().item()
+                    indexer[dim] = slice(dim_min, dim_max)
+                #print ('indexer', indexer)
+                return das.loc[indexer]
+            dass.append(das)
+
+        return dass[0] if len(dass) == 1 else dass
+
+    def open_grid(self, subswath, name=None, geocode=False, mask=None, func=None, add_subswath=True):
+        import numpy as np
         import pandas as pd
         import xarray as xr
         import os
 
-        filename = os.path.join(self.basedir, f'{name}.grd')
+        # for backward compatibility
+        if isinstance(mask, bool):
+            print ('NOTE: mask argument changed from boolean to dataarray for sbas.open_grid() function call')
+            mask = None
+
+        # Backward-compatible open_grid() returns list of grids fot the name or a single grid for a single subswath
+        if name is None:
+            name = subswath
+            subswaths = self.df.subswath.unique()
+            das = [self.open_grid(subswath, name, geocode=geocode, mask=mask, func=func, add_subswath=add_subswath) \
+                   for subswath in subswaths]
+            return das[0] if len(das) == 1 else das
+
+        if add_subswath == True:
+            prefix = f'F{subswath}_'
+        else:
+            prefix = ''
+        filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
+        #print ('filename', filename)
         da = xr.open_dataarray(filename)
         if func is not None:
             da = func(da)
-        if mask:
+        if mask is not None:
             #da = da*self.open_grid('mask')
-            da = da * self.open_grid('mask').interp_like(da, method='nearest')
+            #da = da * self.open_grid(subswath, 'mask').interp_like(da, method='nearest')
+            da = xr.where(~np.isnan(mask), da, np.nan)
         if geocode:
-            return self.intf_ra2ll(da)
+            return self.intf_ra2ll(subswath, da)
         return da
 
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
         import numpy as np
         import datetime
+
+        subswaths = self.df.subswath.unique()
+        assert len(subswaths) == 1, 'SBAS processing works for a single subswath only'
+        subswath = subswaths[0]
 
         outs = []
         for line in baseline_pairs.itertuples():
@@ -1478,7 +1815,7 @@ class SBAS:
             rep = line.rep_date.replace('-','')
             jrep = datetime.datetime.strptime(line.rep_date, '%Y-%m-%d').strftime('%Y%j')
             bperp = np.round(line.rep_baseline - line.ref_baseline, 2)
-            outs.append(f'{ref}_{rep}_unwrap.grd {ref}_{rep}_corr.grd {jref} {jrep} {bperp}')
+            outs.append(f'F{subswath}_{ref}_{rep}_unwrap.grd F{subswath}_{ref}_{rep}_corr.grd {jref} {jrep} {bperp}')
         return '\n'.join(outs) + '\n'
 
     def scenetab(self, baseline_pairs):
@@ -1543,8 +1880,7 @@ class SBAS:
             os.remove(filename)
 
         unwrap = self.open_grids(baseline_pairs[['ref_date', 'rep_date']][:1], 'unwrap')[0]
-        dem = self.get_dem()
-        geoloc = self.geoloc()
+        dem = self.get_dem(geoloc=True)
         prm = self.PRM()
 
         #N=$(wc -l intf.in   | cut -d ' ' -f1)
@@ -1554,8 +1890,9 @@ class SBAS:
         S = len(np.unique(list(baseline_pairs['ref_date']) + list(baseline_pairs['rep_date'])))
 
         #bounds = self.geoloc().dissolve().envelope.bounds.values[0]
-        lon0 = geoloc.longitude.mean()
-        lat0 = geoloc.latitude.mean()
+        llmin, ltmin, llmax, ltmax = self.get_master().dissolve().envelope.bounds.values[0].round(3)
+        lon0 = (llmin + llmax)/2
+        lat0 = (ltmin + ltmax)/2
         elevation0 = float(dem.sel(lat=lat0, lon=lon0, method='nearest'))
         #print ('coords',lon0, lat0, elevation0)
         _,_,_,look_E,look_N,look_U = prm.SAT_look([lon0, lat0, elevation0])[0]
