@@ -26,8 +26,8 @@ foreach intf (`awk '{print $0}' $1`)
    echo $intf > $infile
    echo "intf_tops.csh $infile $2 > $logfile" >> intf_tops.cmd
 end
-# long option --jobs is not supported on MacOSX
-parallel -j $ncores < intf_tops.cmd
+
+parallel --jobs $ncores < intf_tops.cmd
 
 set t2 = `date`
 set dir0 = `pwd`
