@@ -52,7 +52,7 @@ class SBAS:
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
     def __init__(self, datadir, dem_filename=None, basedir='.',
-                filter_orbit=None, filter_mission=None, filter_subswath=None, filter_polarization=None):
+                filter_orbit=None, filter_mission=None, filter_subswath=None, filter_polarization=None, force=True):
         import os
         import shutil
         from glob import glob
@@ -88,8 +88,8 @@ class SBAS:
         if basedir is None:
             self.basedir = '.'
         else:
-            # (re)create basedir
-            if os.path.exists(basedir):
+            # (re)create basedir only when force=True
+            if force and os.path.exists(basedir):
                 shutil.rmtree(basedir)
             os.makedirs(basedir, exist_ok=True)
             self.basedir = basedir
