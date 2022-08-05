@@ -240,10 +240,93 @@ class SBAS:
             self.dem_filename = None
         return self
 
+    # wrapper
+    def download_dem(self, backend=None, **kwargs):
+        if backend is None:
+            return self.download_dem_old(**kwargs)
+        elif backend == 'GMT':
+            return self.download_dem_gmt(**kwargs)
+        else:
+            raise Exception(f'Unknown backend {backend}. Use None or GMT')
+        
+
+    # buffer required to get correct (binary) results from SAT_llt2rat tool
+    # small margin produces insufficient DEM not covers the defined area
+    def download_dem_old(self, product='SRTM1', resolution_meters=60, method='cubic', buffer_degrees=0.02, debug=False):
+        """
+        Download SRTM3 90m or SRTM1 30 m DEM
+        Regrid the DEM to specified approximate resolution_meters 60m by default
+        Use resampling method 'cubic' by default (see gdalwarp documentation for -r <resampling_method>)
+        """
+        import urllib.request
+        import elevation
+        import os
+        import subprocess
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+        # 0.000833333333333 cell size for SRTM3 90m
+        # 0.000277777777778 cell size for SRTM1 30m
+        scale = 0.000833333333333/90
+        
+        if self.dem_filename is not None:
+            print ('NOTE: DEM exists, ignore the command. Use sbas.set_dem(None) to allow new DEM downloading')
+            return
+        
+        resolution_degrees = scale * resolution_meters
+
+        err, warn = self.validate()
+        #print ('err, warn', err, warn)
+        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
+
+        gtx_url = 'https://github.com/mobigroup/proj-datumgrid/blob/master/egm96_15.gtx?raw=true'
+        gtx_filename = os.path.join(self.basedir, 'egm96_15.gtx')
+        tif_filename = os.path.join(self.basedir, 'DEM_EGM96.tif')
+        grd_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
+
+        if not os.path.exists(gtx_filename):
+            with urllib.request.urlopen(gtx_url) as fin:
+                with open(gtx_filename, 'wb') as fout:
+                    fout.write(fin.read())
+
+        #if not os.path.exists(tif_filename):
+        # generate DEM for the full area
+        bounds = self.df.dissolve().envelope.bounds.values[0]
+        # show progress indicator
+        def func():
+            # left bottom right top
+            elevation.clip(bounds=bounds,
+                            product=product,
+                            margin=str(buffer_degrees),
+                            output=os.path.realpath(tif_filename))
+            elevation.clean()
+        with self.tqdm_joblib(notebook.tqdm(desc='Downloading', total=1)) as progress_bar:
+            _ = joblib.Parallel(n_jobs=1)(joblib.delayed(func)() for i in [1])
+
+        #if not os.path.exists(grd_filename):
+        # convert to WGS84 ellipsoidal heights
+        argv = ['gdalwarp', '-co', 'COMPRESS=DEFLATE',
+                '-r', method,
+                '-s_srs', f'+proj=longlat +datum=WGS84 +no_defs +geoidgrids=./egm96_15.gtx',
+                '-t_srs', '+proj=longlat +datum=WGS84 +no_def',
+                '-tr', str(resolution_degrees), str(resolution_degrees),
+                '-overwrite',
+                '-ot', 'Float32', '-of', 'NetCDF',
+                'DEM_EGM96.tif', 'DEM_WGS84.nc']
+        #print ('argv', argv)
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        stdout_data, stderr_data = p.communicate()
+        if len(stderr_data) > 0:
+            print ('download_dem', stderr_data.decode('ascii'))
+        if len(stdout_data) > 0 and debug:
+            print ('download_dem', stdout_data.decode('ascii'))
+
+        self.dem_filename = grd_filename
+
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
-    def download_dem(self, product='SRTM1', resolution_meters=60, method='cubic', buffer_degrees=0.02, debug=False):
+    def download_dem_gmt(self, product='SRTM1', resolution_meters=60, method='cubic', buffer_degrees=0.02, debug=False):
         """
         Use GMT server to download SRTM 1 or 3 arcsec data (@earth_relief_01s or @earth_relief_03s)
         Remove EGM96 geoid to make heights relative to WGS84
