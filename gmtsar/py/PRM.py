@@ -1010,12 +1010,12 @@ class PRM:
             os.remove(fullname('phasefilt.grd'))
         phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
 
-        mask = xr.DataArray(np.flipud(mask).astype(np.float32), coords, name='z')
-        if func is not None:
-            mask = func(mask)
-        if os.path.exists(fullname('mask.grd')):
-            os.remove(fullname('mask.grd'))
-        mask.to_netcdf(fullname('mask.grd'), encoding={'z': compression})
+        #mask = xr.DataArray(np.flipud(mask).astype(np.float32), coords, name='z')
+        #if func is not None:
+        #    mask = func(mask)
+        #if os.path.exists(fullname('mask.grd')):
+        #    os.remove(fullname('mask.grd'))
+        #mask.to_netcdf(fullname('mask.grd'), encoding={'z': compression})
 
         # cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
