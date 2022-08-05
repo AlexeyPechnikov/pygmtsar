@@ -1686,14 +1686,25 @@ class SBAS:
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
-    def unwrap(self, subswath, pair, threshold, conf=None, func=None, debug=False):
+    # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
+    def unwrap(self, subswath, pair, threshold=None, conf=None, func=None, mask=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
         import subprocess
 
+        if threshold is None:
+            # set to very low value but still exclude 0 (masked areas)
+            threshold = 1e-6
+    
+        # convert user-defined mask to binary mask (NaN values converted to 0)
+        if mask is not None:
+            binmask = xr.where(mask>0, 1, 0)
+        else:
+            binmask = 1
+
         if conf is None:
-            conf = self.PRM(subswath).snaphu_config(defomax=0)
+            conf = self.PRM(subswath).snaphu_config()
 
         # extract dates from pair
         date1, date2 = pair
@@ -1701,31 +1712,37 @@ class SBAS:
         basename = os.path.join(self.basedir, f'F{subswath}_{date1}_{date2}_').replace('-','')
         #print ('basename', basename)
 
-        # invalid pixels mask
-        mask = xr.open_dataarray(basename + 'mask.grd')
+        # input data grids
+        phase_filename = basename + 'phasefilt.grd'
+        corr_filename = basename + 'corr.grd'
+        # output data grids
+        unwrap_filename = basename + 'unwrap.grd'
+        conncomp_filename = basename + 'conncomp.grd'
 
-        phase = xr.open_dataarray(basename + 'phasefilt.grd')
+        # SNAPHU input files
         phase_in = basename + 'unwrap.phase'
-        phase.where(~np.isnan(phase),0).values.tofile(phase_in)
-
-        corr = xr.open_dataarray(basename + 'corr.grd')
-        # mask invalid pixels on correlation matrix
-        corr = (corr*mask).where(corr>=threshold)
         corr_in = basename + 'unwrap.corr'
-        corr.where(~np.isnan(corr),0).values.tofile(corr_in)
-
-        # TEST
-        #if os.path.exists(basename + 'corr.tmp.grd'):
-        #    os.remove(basename + 'corr.tmp.grd')
-        #corr.where(~np.isnan(corr),0).to_netcdf(basename + 'corr.tmp.grd', encoding={'z': self.compression})
-
+        # SNAPHU output files
         unwrap_out = basename + 'unwrap.out'
+        conncomp_out = basename + 'conncomp.out'
 
+        phase = xr.open_dataarray(phase_filename)
+        corr = xr.open_dataarray(corr_filename)
+
+        # prepare SNAPHU input files
+        # NaN values are not allowed for SNAPHU phase input file
+        phase.where(~np.isnan(phase),0).astype(np.float32).values.tofile(phase_in)
+        # apply threshold and binary mask
+        # NaN values are not allowed for SNAPHU correlation input file
+        corr_threshold = ~np.isnan(corr.where(corr>=threshold))
+        (binmask*corr).where(corr_threshold,0).astype(np.float32).values.tofile(corr_in)
+    
+        # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
         argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
-                '-f', '/dev/stdin', '-o', unwrap_out, '-d']
+                '-f', '/dev/stdin', '-o', unwrap_out, '-d', '-g', conncomp_out]
         if debug:
             argv.append('-v')
-        #print ('argv', argv)
+            print ('argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              encoding='ascii', bufsize=10*1000*1000)
@@ -1735,18 +1752,25 @@ class SBAS:
         if debug:
             print ('snaphu', stdout_data)
 
-        # read results
+        # convert to grid the connected components from SNAPHU output as is (UCHAR)
+        values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
+        conncomp = xr.DataArray(values, phase.coords, name='z')
+        if os.path.exists(conncomp_filename):
+            os.remove(conncomp_filename)
+        conncomp.to_netcdf(conncomp_filename, encoding={'z': self.compression})
+
+        # convert to grid unwrapped phase from SNAPHU output applying postprocessing
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
-        #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(mask.shape)
-        # mask invalid pixels on unwrapped results
-        unwrap = mask * xr.DataArray(values, phase.coords, name='z')
+        #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
+        unwrap = xr.DataArray(values, phase.coords, name='z')
         # apply user-defined function for post-processing
         if func is not None:
             unwrap = func(corr, unwrap)
-        if os.path.exists(basename + 'unwrap.grd'):
-            os.remove(basename + 'unwrap.grd')
-        # mask again when user-defined function applied
-        (mask * unwrap).to_netcdf(basename + 'unwrap.grd', encoding={'z': self.compression})
+        if os.path.exists(unwrap_filename):
+            os.remove(unwrap_filename)
+        # apply binary mask after the post-processing to completely exclude masked regions
+        # NaN values allowed in the output grid
+        unwrap.where(binmask>0).to_netcdf(unwrap_filename, encoding={'z': self.compression})
 
         for tmp_file in [phase_in, corr_in, unwrap_out]:
             #print ('tmp_file', tmp_file)
