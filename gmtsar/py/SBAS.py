@@ -51,7 +51,7 @@ class SBAS:
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
-    def __init__(self, datadir, dem_filename=None, basedir='.',
+    def __init__(self, datadir, dem_filename=None, basedir='.', landmask_filename=None,
                 filter_orbit=None, filter_mission=None, filter_subswath=None, filter_polarization=None, force=True):
         import os
         import shutil
@@ -77,12 +77,6 @@ class SBAS:
             'ERROR: use a single or sequential numbers 1, 2, 3, 12, 23, 123 for subswath filter'
         assert filter_polarization is None or filter_polarization in ['VV','VH','HH','HV'], \
             'ERROR: use VV or VH or HH or HV for polarization filter'
-
-        if dem_filename is None:
-            self.dem_filename = None
-        else:
-            self.dem_filename = os.path.relpath(dem_filename, '.')
-        #print ('dem_filename', self.dem_filename)
 
         # processing directory
         if basedir is None:
@@ -186,6 +180,9 @@ class SBAS:
         # set first image as master
         self.master = self.df.index[0]
         
+        self.set_dem(dem_filename)
+        self.set_landmask(landmask_filename)
+        
         # initialize empty pins list
         self.pins = []
 
@@ -238,6 +235,14 @@ class SBAS:
             self.dem_filename = os.path.relpath(dem_filename,'.')
         else:
             self.dem_filename = None
+        return self
+
+    def set_landmask(self, landmask_filename):
+        import os
+        if landmask_filename is not None:
+            self.landmask_filename = os.path.relpath(landmask_filename,'.')
+        else:
+            self.landmask_filename = None
         return self
 
     # wrapper
@@ -401,6 +406,50 @@ class SBAS:
     
         self.dem_filename = dem_filename
 
+    def download_landmask(self, backend='GMT', debug=False):
+        """
+        Use GMT local data or server to download and build landmask on interferogram DEM area
+        """
+        import os
+        import subprocess
+        #from tqdm import tqdm
+        from tqdm import notebook
+
+        if self.landmask_filename is not None:
+            print ('NOTE: landmask exists, ignore the command. Use SBAS.set_landmask(None) to allow new landmask downloading')
+            return
+
+        # generate the same as DEM grid
+        landmask_filename = os.path.join(self.basedir, 'landmask.nc')
+
+        dem = self.get_dem()
+        scale = dem.lon.diff('lon')[0].item()
+        llmin = dem.lon.min().item()
+        llmax = dem.lon.max().item()
+        ltmin = dem.lat.min().item()
+        ltmax = dem.lat.max().item()
+
+        # helper function to run external commands
+        def run_cmd(argv):
+            if debug:
+                print ('argv', argv)
+            cmd = subprocess.run(argv, capture_output=True)
+            if cmd.returncode != 0:
+                print (cmd.stderr)
+                raise Exception('DEM processing error using GMT backend')
+            if debug:
+                print (cmd.stderr)
+                print (cmd.stdout)
+
+        # use GMT commands pipeline to download and preprocess the DEM
+        with notebook.tqdm(desc='Landmask Downloading', total=1) as pbar:
+            argv = ['gmt', 'grdlandmask', f'-G{landmask_filename}',
+                    f'-R{llmin}/{llmax}/{ltmin}/{ltmax}', f'-I{scale}', '-V', '-NNaN/1', '-Df']
+            run_cmd(argv)
+            pbar.update(1)
+
+        self.landmask_filename = landmask_filename
+
     def backup(self, backup_dir):
         import os
         import shutil
@@ -408,12 +457,15 @@ class SBAS:
         os.makedirs(backup_dir, exist_ok=True)
     
         # prepare list of all the files including DEM file
-        filenames = [self.dem_filename]
+        filenames = [self.dem_filename, self.landmask_filename]
         for record in self.df.itertuples():
             for filename in [record.datapath, record.metapath, record.orbitpath]:
                 filenames += filename if isinstance(filename, list) else [filename]
     
         for filename in filenames:
+            # DEM , landmask and orbit files can be not defined
+            if filename is None:
+                continue
             shutil.copy2(filename, backup_dir)
 
         return
@@ -616,7 +668,7 @@ class SBAS:
         import os
         
         if self.dem_filename is None:
-            raise Exception('Set DEM filename first')
+            raise Exception('Set DEM first')
 
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
@@ -636,6 +688,37 @@ class SBAS:
         return dem.sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
                        lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
 
+    def get_landmask(self, geoloc=False, inverse_geocode=False, buffer_degrees=0.02):
+        import xarray as xr
+        import os
+
+        if self.landmask_filename is None:
+            raise Exception('Set landmask first')
+
+        subswath = None
+        
+        # open DEM file and find the elevation variable
+        # because sometimes grid includes 'crs' or other variables
+        landmask = xr.open_dataset(self.landmask_filename)
+        assert 'lat' in landmask.coords and 'lon' in landmask.coords
+        # define latlon array
+        z_array_name = [data_var for data_var in landmask.data_vars if len(landmask.data_vars[data_var].coords)==2]
+        assert len(z_array_name) == 1
+        # extract the array and fill missed values by nan (mostly ocean area)
+        landmask = landmask[z_array_name[0]].fillna(0)
+
+        if geoloc is False:
+            if inverse_geocode:
+                return self.intf_ll2ra(subswath, landmask)
+            return landmask
+
+        bounds = self.get_master(subswath).dissolve().envelope.bounds.values[0].round(3)
+        landmask = landmask.sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
+                            lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
+        if inverse_geocode:
+                return self.intf_ll2ra(subswath, landmask)
+        return landmask
+    
     def get_pins(self, subswath=None):
         """
         Return linear list of two pin coordinates for one or all subswaths. Use this list to easy plot the pins.
@@ -967,7 +1050,7 @@ class SBAS:
 
     # a single-step translation
     # see also two-step translation ra2ll & intf_ra2ll_matrix
-    def intf_ra2ll_matrix(self, subswath, intf_grids):
+    def intf_ll2ra_matrix(self, subswath, intf_grids):
         """
         Create geographic to radar coordinate transformation matrix for DEM grid (F?_trans_ra2ll.grd)
         """
@@ -1007,12 +1090,10 @@ class SBAS:
         #distance_limit = np.sqrt((dy/2.)**2 + (dx/2.)**2) + 1e-2
         distance_limit = 100
         d, inds = tree.query(intf_yxs, k = 1, distance_upper_bound=distance_limit, workers=8)
-    
-        #return
 
         # produce the same output array as dataset to be able to add global attributes
         trans_ll2ra = xr.zeros_like(intf_grid).rename('intf_ll2ra')
-        trans_ll2ra.values = np.flipud(np.where(~np.isinf(d), inds, -1).reshape(intf_grid.shape))
+        trans_ll2ra.values = np.where(~np.isinf(d), inds, -1).reshape(intf_grid.shape)
     
         undefined = (trans_ll2ra==-1).sum().item()
         assert undefined == 0, f'ERROR: inverse geocoding matrix has {undefined} undefined indices'
@@ -1023,7 +1104,7 @@ class SBAS:
     
         return
 
-    def intf_ll2ra(self, subswath, grids):
+    def intf_ll2ra(self, subswath=None, grids=None):
         """
         Inverse geocoding function based on interferogram geocode matrix to call from open_grids(inverse_geocode=True)
         """
@@ -1033,7 +1114,20 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
+        
+        # that's possible to miss the first argument subswath
+        assert subswath is not None or grids is not None, 'ERROR: define input grids'
+        if grids is None:
+            grids = subswath
+            subswath = None
 
+        if subswath is None:
+            # detect all the subswaths
+            subswaths = self.df.subswath.unique()
+            assert len(subswaths)==1, 'ERROR: inverse geocoding works for a single subswath only'
+            # define subswath
+            subswath = subswaths[0]
+            
         trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
         intf_ll2ra_file = os.path.join(self.basedir, f'F{subswath}_intf_ll2ra.grd')
 
@@ -1506,7 +1600,7 @@ class SBAS:
             # build radar coordinates transformation matrix for the interferograms grid stack
             self.intf_ra2ll_matrix(subswaths[0], grids)
             # build geographic coordinates transformation matrix for landmask and other grids
-            self.intf_ra2ll_matrix(subswaths[0], grids)
+            self.intf_ll2ra_matrix(subswaths[0], grids)
         
         #if len(subswaths) > 1:
         #    self.merge_parallel(pairs)
@@ -1640,12 +1734,14 @@ class SBAS:
     
         # biuld topo_ra for the merged subswaths
         self.topo_ra(subswath)
-    
         # build DEM grid coordinates transform matrix
         self.ra2ll(subswath)
 
+        grids = self.open_grids(pairs, 'phasefilt')
         # build radar coordinates transformation matrix for the interferograms grid stack
-        self.intf_ra2ll_matrix(subswath, self.open_grids(pairs, 'phasefilt'))
+        self.intf_ra2ll_matrix(subswath, grids)
+        # build geographic coordinates transformation matrix for landmask and other grids
+        self.intf_ll2ra_matrix(subswath, grids)
 
     def baseline_table(self):
         import pandas as pd
@@ -1901,12 +1997,14 @@ class SBAS:
 
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
-    def open_grids(self, pairs, name, geocode=False, mask=None, func=None, crop_valid=False, add_subswath=True):
+    def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None, crop_valid=False, add_subswath=True):
         import pandas as pd
         import xarray as xr
         import numpy as np
         import os
 
+        assert not(geocode and inverse_geocode), 'ERROR: Only single geocoding option can be applied'
+        
         # for backward compatibility
         if isinstance(mask, bool):
             print ('NOTE: mask argument changed from boolean to dataarray for sbas.open_grid() function call')
@@ -1972,6 +2070,8 @@ class SBAS:
 
             if geocode:
                 das = self.intf_ra2ll(subswath, das)
+            if inverse_geocode:
+                das = self.intf_ll2ra(subswath, das)
 
             # crop NaNs
             if crop_valid:
@@ -1989,11 +2089,13 @@ class SBAS:
 
         return dass[0] if len(dass) == 1 else dass
 
-    def open_grid(self, subswath, name=None, geocode=False, mask=None, func=None, add_subswath=True):
+    def open_grid(self, subswath, name=None, geocode=False, inverse_geocode=False, mask=None, func=None, add_subswath=True):
         import numpy as np
         import pandas as pd
         import xarray as xr
         import os
+
+        assert not(geocode and inverse_geocode), 'ERROR: Only single geocoding option can be applied'
 
         # for backward compatibility
         if isinstance(mask, bool):
@@ -2004,7 +2106,8 @@ class SBAS:
         if name is None:
             name = subswath
             subswaths = self.df.subswath.unique()
-            das = [self.open_grid(subswath, name, geocode=geocode, mask=mask, func=func, add_subswath=add_subswath) \
+            das = [self.open_grid(subswath, name, geocode=geocode, inverse_geocode=inverse_geocode,
+                   mask=mask, func=func, add_subswath=add_subswath) \
                    for subswath in subswaths]
             return das[0] if len(das) == 1 else das
 
@@ -2023,6 +2126,8 @@ class SBAS:
             da = xr.where(~np.isnan(mask), da, np.nan)
         if geocode:
             return self.intf_ra2ll(subswath, da)
+        if inverse_geocode:
+            return self.intf_ll2ra(subswath, da)
         return da
 
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
