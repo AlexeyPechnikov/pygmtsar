@@ -481,12 +481,12 @@ void baseline_parse_command_line(char **argv, int *nfiles, int *input_flag) {
 
 	if (strncmp(argv[1], "-input", 6) != 0) {
 
-		printf(stderr, "using command line\n");
+		fprintf(stderr, "using command line\n");
 		*nfiles = 2;
 	}
 	else {
 
-		printf(stderr, "using input file \n");
+		fprintf(stderr, "using input file \n");
 		*input_flag = 1;
 
 		if ((inputfile = fopen(argv[2], "r")) == NULL)

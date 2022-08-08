@@ -180,7 +180,7 @@ int calc_corr(void *API, char *amp1, char *amp2, unsigned int xdim, unsigned int
 }
 
 int phasefilt_parse_command_line(char **a, int na, char *USAGE, char *sre, char *sim, float *alp, int *ps, char *amp1, char *amp2,
-                                 int *dflag, int *comflag) {
+                                 int *dflag, int *comflag, char *phasefilt, char *corrfilt) {
 	int n;
 	int flag[4];
 
@@ -255,6 +255,22 @@ int phasefilt_parse_command_line(char **a, int na, char *USAGE, char *sre, char 
 		else if (!strcmp(a[n], "-debug")) {
 			verbose = 1;
 			debug = 1;
+		}
+		else if (!strncmp(a[n], "-phasefilt", strlen("-phasefilt"))) {
+			n++;
+			if (n == na)
+				die(" no option after -phasefilt!\n", "");
+			strncpy(phasefilt, a[n], 256);
+			if (verbose)
+				fprintf(stderr, "phasefilt %s \n", phasefilt);
+		}
+		else if (!strncmp(a[n], "-corrfilt", strlen("-corrfilt"))) {
+			n++;
+			if (n == na)
+				die(" no option after -corrfilt!\n", "");
+			strncpy(corrfilt, a[n], 256);
+			if (verbose)
+				fprintf(stderr, "corrfilt %s \n", corrfilt);
 		}
 		else {
 			fprintf(stderr, " %s *** option not recognized ***\n\n", a[n]);
@@ -334,6 +350,8 @@ int main(int argc, char **argv) {
 	struct FCOMPLEX *data = NULL, *fdata = NULL, *patch0 = NULL, *patch1 = NULL;
 	char sre[256], sim[256];
 	char amp1[256], amp2[256];
+	char phasefilt[256] = "filtphase.grd";
+	char corrfilt[256] = "filtcorr.grd";
 
 	void *API = NULL;                                  /* GMT API control structure */
 	struct GMT_GRID *RE = NULL, *IM = NULL, *T = NULL; /* Grid structure containing ->header and ->data */
@@ -350,7 +368,7 @@ int main(int argc, char **argv) {
 	psize = 32;   /* size of patch  # changed from 64 */
 	alpha = 0.5f; /* exponent */
 	dflag = 0;    /* write out difference */
-	phasefilt_parse_command_line(argv, argc, USAGE, sre, sim, &alpha, &psize, amp1, amp2, &dflag, &comflag);
+	phasefilt_parse_command_line(argv, argc, USAGE, sre, sim, &alpha, &psize, amp1, amp2, &dflag, &comflag, phasefilt, corrfilt);
 
 	/* patch size 		*/
 	/* currently square 	*/
@@ -459,10 +477,10 @@ int main(int argc, char **argv) {
 	for (i = 0; i < T->header->nm; i++)
 		outphase[i] = atan2f(fdata[i].i, fdata[i].r);
 
-	write_grdfile(API, T, "filtphase.grd", "phasefilt", "phase", outphase, verbose);
+	write_grdfile(API, T, phasefilt, "phasefilt", "phase", outphase, verbose);
 
 	if (corrflag)
-		write_grdfile(API, T, "filtcorr.grd", "phasefilt", "corr", corr, verbose);
+		write_grdfile(API, T, corrfilt, "phasefilt", "corr", corr, verbose);
 
 	if (comflag) {
 		for (i = 0; i < T->header->nm; i++)

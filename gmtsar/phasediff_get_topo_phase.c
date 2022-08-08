@@ -161,7 +161,8 @@ void fix_prm_params(struct PRM *p, char *s) {
 /*--------------------------------------------------------------*/
 /* read topo_ra and model files if provided			*/
 /* must be in GMT binary grd format					*/
-void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *topoflag, struct PRM *mp, int *modelflag) {
+void read_optional_args(void *API, int argc, char **argv, struct PRM *tp, int *topoflag, struct PRM *mp, int *modelflag,
+			char *imag_filename, char *real_filename) {
 	int i;
 	struct GMT_GRID *M = NULL, *T = NULL; /* Grid structures containing ->header and ->data */
 
@@ -246,7 +247,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "near range: %lf %lf \n", p1.near_range, p2.near_range);
 
 	if (argc > 3)
-		read_optional_args(API, argc, argv, &tp, &topoflag, &mp, &modelflag);
+		read_optional_args(API, argc, argv, &tp, &topoflag, &mp, &modelflag, NULL, NULL);
 
 	if (debug)
 		print_prm_params(p1, p2);
