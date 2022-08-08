@@ -2009,6 +2009,8 @@ class SBAS:
         if isinstance(mask, bool):
             print ('NOTE: mask argument changed from boolean to dataarray for sbas.open_grid() function call')
             mask = None
+        if mask is not None:
+            nanmask = xr.where(mask == 0, np.nan, 1)
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
@@ -2046,7 +2048,8 @@ class SBAS:
                         da = func(da)
                     if mask is not None:
                         #da = da*self.open_grids(subswath, 'mask')
-                        da = xr.where(~np.isnan(mask), da, np.nan)
+                        #da = xr.where(~np.isnan(mask), da, np.nan)
+                        da = nanmask * da
                     das.append(da.expand_dims('date'))
                 das = xr.concat(das, dim='date')
                 das['date'] = sorted(pairs)
@@ -2059,7 +2062,8 @@ class SBAS:
                         da = func(da)
                     if mask is not None:
                         #da = da*self.open_grids(subswath, 'mask')
-                        da = xr.where(~np.isnan(mask), da, np.nan)
+                        #da = xr.where(~np.isnan(mask), da, np.nan)
+                        da = nanmask * da
                     das.append(da.expand_dims('pair'))
                 das = xr.concat(das, dim='pair')
                 das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
@@ -2101,6 +2105,8 @@ class SBAS:
         if isinstance(mask, bool):
             print ('NOTE: mask argument changed from boolean to dataarray for sbas.open_grid() function call')
             mask = None
+        if mask is not None:
+            nanmask = xr.where(mask == 0, np.nan, 1)
 
         # Backward-compatible open_grid() returns list of grids fot the name or a single grid for a single subswath
         if name is None:
@@ -2123,7 +2129,8 @@ class SBAS:
         if mask is not None:
             #da = da*self.open_grid('mask')
             #da = da * self.open_grid(subswath, 'mask').interp_like(da, method='nearest')
-            da = xr.where(~np.isnan(mask), da, np.nan)
+            #da = xr.where(~np.isnan(mask), da, np.nan)
+            da = nanmask * da
         if geocode:
             return self.intf_ra2ll(subswath, da)
         if inverse_geocode:
