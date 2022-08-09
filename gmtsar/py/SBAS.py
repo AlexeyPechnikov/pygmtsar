@@ -1650,7 +1650,7 @@ class SBAS:
         for filename in cleanup:
             os.remove(filename)
 
-    def merge_parallel(self, pairs, grids = ['phasefilt', 'corr', 'mask'], n_jobs=-1, **kwargs):
+    def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=-1, **kwargs):
         #def merge(self, pair, grid, debug=False):
         #from tqdm import tqdm
         from tqdm import notebook
