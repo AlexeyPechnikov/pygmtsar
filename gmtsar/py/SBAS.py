@@ -214,6 +214,62 @@ class SBAS:
             print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
         return error, warning    
 
+    def backup(self, backup_dir):
+        import os
+        import shutil
+
+        os.makedirs(backup_dir, exist_ok=True)
+    
+        # prepare list of all the files including DEM file
+        filenames = [self.dem_filename, self.landmask_filename]
+        for record in self.df.itertuples():
+            for filename in [record.datapath, record.metapath, record.orbitpath]:
+                filenames += filename if isinstance(filename, list) else [filename]
+    
+        for filename in filenames:
+            # DEM , landmask and orbit files can be not defined
+            if filename is None:
+                continue
+            shutil.copy2(filename, backup_dir)
+
+        return
+    
+    def set_master(self, master):
+        """
+        Set master image date
+        """
+        if not master in self.df.index:
+            raise Exception('Master image not found')
+        self.master = master
+        return self
+
+    def get_master(self, subswath=None):
+        """
+        Return dataframe master record(s) for all or only selected subswath
+        """
+        df = self.df.loc[[self.master]]
+        if not subswath is None:
+            df = df[df.subswath == subswath]
+        assert len(df) > 0, f'Master record for subswath {subswath} not found'
+        return df
+
+    # enlist all the subswaths
+    def get_subswaths(self):
+        return self.df.subswath.unique()
+    
+    def get_subswath(self, subswath=None):
+        """
+        Check and return subswath or return an unique subswath to functions which work with a single subswath only.
+        """
+        # detect all the subswaths
+        subswaths = self.get_subswaths()
+        assert subswath is None or subswath in subswaths, f'ERROR: subswath {subswath} not found'
+        if subswath is not None:
+            return subswath
+        assert len(subswaths)==1, f'ERROR: multiple subswaths {subswaths} found, merge them first using SBAS.merge_parallel()'
+        # define subswath
+        return subswaths[0]
+        
     # for precision orbit there is only single orbit per day
     # for approximate orbit 2 and maybe more orbits per day are possible
     # so check orbit file for for each subswath
@@ -449,45 +505,6 @@ class SBAS:
             pbar.update(1)
 
         self.landmask_filename = landmask_filename
-
-    def backup(self, backup_dir):
-        import os
-        import shutil
-
-        os.makedirs(backup_dir, exist_ok=True)
-    
-        # prepare list of all the files including DEM file
-        filenames = [self.dem_filename, self.landmask_filename]
-        for record in self.df.itertuples():
-            for filename in [record.datapath, record.metapath, record.orbitpath]:
-                filenames += filename if isinstance(filename, list) else [filename]
-    
-        for filename in filenames:
-            # DEM , landmask and orbit files can be not defined
-            if filename is None:
-                continue
-            shutil.copy2(filename, backup_dir)
-
-        return
-    
-    def set_master(self, master):
-        """
-        Set master image date
-        """
-        if not master in self.df.index:
-            raise Exception('Master image not found')
-        self.master = master
-        return self
-
-    def get_master(self, subswath=None):
-        """
-        Return dataframe master record(s) for all or only selected subswath
-        """
-        df = self.df.loc[[self.master]]
-        if not subswath is None:
-            df = df[df.subswath == subswath]
-        assert len(df) > 0, f'Master record for subswath {subswath} not found'
-        return df
 
     def get_aligned(self, subswath=None, date=None):
         """
@@ -730,7 +747,7 @@ class SBAS:
             return self.pins
         else:
             # detect all the subswaths
-            subswaths = self.df.subswath.unique()
+            subswaths = self.get_subswaths()
             # check pins defined for all the subswaths
             assert len(self.pins)/4. == len(subswaths), f'ERROR: Pins are not defined for all the subswaths. \
                 Found {len(self.pins)} pins for {subswaths} subswathss'
@@ -759,7 +776,7 @@ class SBAS:
             return pin.x[0].round(3), pin.y[0].round(3)
 
         # detect all the subswaths
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
         if len(args) == 0:
             args = len(subswaths)*[None]
         # check input data to have a single argument for the each subswath
@@ -912,7 +929,7 @@ class SBAS:
         if dates is None:
             dates = self.df.index.unique().values
 
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
 
         # process all the scenes
         with self.tqdm_joblib(notebook.tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
@@ -920,8 +937,8 @@ class SBAS:
                                                      for date in dates for subswath in subswaths)
 
         self.df = pd.concat(records)
-
-    def intf_ra2ll(self, subswath, grids):
+    
+    def intf_ra2ll(self, subswath=None, grids=None):
         """
         Geocoding function based on interferogram geocode matrix to call from open_grids(geocode=True)
         """
@@ -931,6 +948,20 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
+        
+        # that's possible to miss the first argument subswath
+        assert subswath is not None or grids is not None, 'ERROR: define input grids'
+        if grids is None:
+            grids = subswath
+            subswath = None
+            
+        # helper check
+        if not 'y' in grids.dims and 'x' in grid.dims:
+            print ('NOTE: the grid is not in radar coordinates, miss geocoding')
+            return grids
+            
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
 
         intf_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_intf_ra2ll.grd')
 
@@ -1120,13 +1151,14 @@ class SBAS:
         if grids is None:
             grids = subswath
             subswath = None
+        
+        # helper check
+        if not 'lat' in grids.dims and 'lon' in grid.dims:
+            print ('NOTE: the grid is not in geograpphic coordinates, miss geocoding')
+            return grids
 
-        if subswath is None:
-            # detect all the subswaths
-            subswaths = self.df.subswath.unique()
-            assert len(subswaths)==1, 'ERROR: inverse geocoding works for a single subswath only'
-            # define subswath
-            subswath = subswaths[0]
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
             
         trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
         intf_ll2ra_file = os.path.join(self.basedir, f'F{subswath}_intf_ll2ra.grd')
@@ -1166,7 +1198,7 @@ class SBAS:
         import joblib
     
         # process all the subswaths
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
         with self.tqdm_joblib(notebook.tqdm(desc='Transforming Coordinates', total=len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.topo_ra)(subswath, **kwargs) \
                                                      for subswath in subswaths)
@@ -1174,10 +1206,8 @@ class SBAS:
     def topo_ra(self, subswath=None, method='cubic'):
         import os
     
-        if subswath is None:
-            subswaths = self.df.subswath.unique()
-            assert len(subswaths) == 1, 'Backward-compatibility topo_ra() call works for a single subswath only'
-            subswath = subswaths[0]
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
 
         # process selected subswaths 1,2,3 or 12, 23, 123
         #print ('subswath', subswath)
@@ -1526,7 +1556,7 @@ class SBAS:
         if dates is None:
             dates = list(self.get_aligned().index.unique())
 
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
 
         # prepare master image
         #self.stack_ref()
@@ -1569,7 +1599,7 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
 
         # this way does not work properly for long interferogram series
         #with self.tqdm_joblib(notebook.tqdm(desc='Interferograms', total=len(pairs))) as progress_bar:
@@ -1706,7 +1736,7 @@ class SBAS:
 
         # merging is not applicable to a single subswath
         # for this case coordinate transformation matrices already built in SBAS.intf_parallel()
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
         if len(subswaths) == 1:
             return
         
@@ -1727,10 +1757,8 @@ class SBAS:
         self.df = gpd.GeoDataFrame(df)
     
         # build geo transform matrices for the merged interferograms
-        subswaths = self.df.subswath.unique()
-        assert len(subswaths) == 1, 'Found multiple subswaths after subswath merging'
-        subswath = subswaths[0]
-        #print ('subswath', subswath)
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
     
         # biuld topo_ra for the merged subswaths
         self.topo_ra(subswath)
@@ -1863,10 +1891,8 @@ class SBAS:
         from PRM import PRM
         import os
         
-        if subswath is None:
-            subswaths = self.df.subswath.unique()
-            assert len(subswaths) == 1, 'Backward-compatibility PRM() call works for a single subswath only'
-            subswath = subswaths[0]
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
 
         if date is None or date == self.master:
             line = self.get_master(subswath)
@@ -1889,7 +1915,7 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
         
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
 
         with self.tqdm_joblib(notebook.tqdm(desc='Unwrapping', total=len(pairs)*len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.unwrap)(subswath, pair, **kwargs) \
@@ -1989,11 +2015,79 @@ class SBAS:
                 os.remove(tmp_file)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
-    def los_displacement_mm(self, unwraps):
+    def los_displacement_mm(self, unwraps, geocode=False):
         # constant is negative to make LOS = -1 * range change
         # constant is (1000 mm) / (4 * pi)
         scale = -79.58 * self.PRM().get('radar_wavelength')
-        return scale*unwraps
+        los_disp = scale*unwraps
+        if geocode:
+            return self.intf_ra2ll(los_disp)
+        else:
+            return los_disp
+
+    def SAT_look(self, subswath=None):
+        import xarray as xr
+        import numpy as np
+        import os
+        
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
+
+        intf_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_intf_ra2ll.grd')
+        grid_ll = xr.open_dataarray(intf_ra2ll_file)
+        lats, lons = xr.broadcast(grid_ll.lat, grid_ll.lon)
+    
+        dem = self.get_dem(subswath=1)
+        elevations = dem.sel(lat=xr.DataArray(lats.values.reshape(-1)),
+                             lon=xr.DataArray(lons.values.reshape(-1)),
+                             method='nearest')
+    
+        coords = np.column_stack([lons.values.reshape(-1), lats.values.reshape(-1), elevations.values.reshape(-1)])
+        # look_E look_N look_U
+        look_vector = self.PRM(subswath).SAT_look(coords, binary=True)[:,3:]
+        look_E = xr.DataArray(look_vector[:,0].reshape(grid_ll.shape), coords=grid_ll.coords, name='look_E')
+        look_N = xr.DataArray(look_vector[:,1].reshape(grid_ll.shape), coords=grid_ll.coords, name='look_N')
+        look_U = xr.DataArray(look_vector[:,2].reshape(grid_ll.shape), coords=grid_ll.coords, name='look_U')
+        return (look_E, look_N, look_U)
+
+    def incidence_angle(self, subswath=None, geocode=True):
+        import numpy as np
+    
+        (look_E, look_N, look_U) = self.SAT_look(subswath)
+        incidence_ll = np.arctan2(np.sqrt(look_E**2 + look_N**2), look_U)
+        if geocode:
+            return incidence_ll
+        else:
+            incidence_ra = self.intf_ll2ra(subswath, incidence_ll)
+            return incidence_ra
+
+    def vertical_displacement_mm(self, unwraps, geocode=True):
+        import numpy as np
+    
+        if not geocode:
+            print ('NOTE: double-geocoding produces single-pixel displacement for some pixels. Use geocode=True to better accuracy.')
+        #if 'lat' in unwraps.dims and 'lon' in unwraps.dims:
+        #    inverse_geocode = False
+        #elif 'y' in unwraps.dims and 'x' in unwraps.dims:
+        #    inverse_geocode = True
+    
+        los_disp = self.los_displacement_mm(unwraps, geocode)
+        incidence = self.incidence_angle(geocode=geocode)
+        return los_disp/np.cos(incidence)
+
+    def eastwest_displacement_mm(self, unwraps, geocode=True):
+        import numpy as np
+    
+        # this displacement is not symmetrical for the orbits due to scene geometries
+        orbit = sbas.df.orbit.unique()[0]
+        sign = 1 if orbit == 'D' else -1
+    
+        if not geocode:
+            print ('NOTE: double-geocoding produces single-pixel displacement for some pixels. Use geocode=True to better accuracy.')
+
+        los_disp = self.los_displacement_mm(unwraps, geocode)
+        incidence = self.incidence_angle(geocode=geocode)
+        return sign * los_disp/np.sin(incidence)
 
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
@@ -2029,7 +2123,7 @@ class SBAS:
         #    return ds
 
         # iterate all the subswaths
-        subswaths = self.df.subswath.unique()
+        subswaths = self.get_subswaths()
 
         dass = []
         for subswath in subswaths:
@@ -2059,7 +2153,7 @@ class SBAS:
                     #print (filename)
                     da = xr.open_dataarray(filename)
                     if func is not None:
-                        da = func(da)
+                        da = func(da, geocode=geocode)
                     if mask is not None:
                         #da = da*self.open_grids(subswath, 'mask')
                         #da = xr.where(~np.isnan(mask), da, np.nan)
@@ -2072,7 +2166,7 @@ class SBAS:
             else:
                 raise Exception('Use single or two columns Pandas dataset or array as "pairs" argument')
 
-            if geocode:
+            if not func and geocode:
                 das = self.intf_ra2ll(subswath, das)
             if inverse_geocode:
                 das = self.intf_ll2ra(subswath, das)
@@ -2111,7 +2205,7 @@ class SBAS:
         # Backward-compatible open_grid() returns list of grids fot the name or a single grid for a single subswath
         if name is None:
             name = subswath
-            subswaths = self.df.subswath.unique()
+            subswaths = self.get_subswaths()
             das = [self.open_grid(subswath, name, geocode=geocode, inverse_geocode=inverse_geocode,
                    mask=mask, func=func, add_subswath=add_subswath) \
                    for subswath in subswaths]
@@ -2125,13 +2219,13 @@ class SBAS:
         #print ('filename', filename)
         da = xr.open_dataarray(filename)
         if func is not None:
-            da = func(da)
+            da = func(da, geocode=geocode)
         if mask is not None:
             #da = da*self.open_grid('mask')
             #da = da * self.open_grid(subswath, 'mask').interp_like(da, method='nearest')
             #da = xr.where(~np.isnan(mask), da, np.nan)
             da = nanmask * da
-        if geocode:
+        if not func and geocode:
             return self.intf_ra2ll(subswath, da)
         if inverse_geocode:
             return self.intf_ll2ra(subswath, da)
@@ -2142,9 +2236,8 @@ class SBAS:
         import numpy as np
         import datetime
 
-        subswaths = self.df.subswath.unique()
-        assert len(subswaths) == 1, 'SBAS processing works for a single subswath only'
-        subswath = subswaths[0]
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
 
         outs = []
         for line in baseline_pairs.itertuples():
