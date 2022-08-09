@@ -2236,8 +2236,8 @@ class SBAS:
         import numpy as np
         import datetime
 
-        # check if subswath exists or return a single subswath for None
-        subswath = self.get_subswath(subswath)
+        # return a single subswath for None
+        subswath = self.get_subswath()
 
         outs = []
         for line in baseline_pairs.itertuples():
