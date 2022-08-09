@@ -519,32 +519,6 @@ class SBAS:
             return df
         return df[df.subswath == subswath]
 
-#    def to_file(self, filename):
-#        """
-#        Save data.in file like to prep_data_linux.csh & prep_data.csh tools
-#        """
-#        if self.master is None:
-#            raise Exception('Set master image first')
-#        line = '\n'.join(self.get_master().apply(lambda row: f'{row.filename}:{row.orbitfile}', axis=1).values)
-#        lines = '\n'.join(self.get_aligned().apply(lambda row: f'{row.filename}:{row.orbitfile}', axis=1).values)
-#        with open(filename, 'wt') as f:
-#            f.write(line+'\n'+lines+'\n')
-#        return self
-
-#    def multistem_stem(self, dt=None):
-#        """
-#        Define stem and multistem using datetime    
-#        """
-#        from datetime import datetime
-#
-#        # master datetime
-#        if dt is None:
-#            dt = self.df.loc[self.master, 'datetime']
-#
-#        stem = f'S1_{dt.strftime("%Y%m%d_%H%M%S")}_F1'
-#        multistem = f'S1_{dt.strftime("%Y%m%d")}_ALL_F1'
-#        return (multistem, stem)
-    # todo: use subswath
     def multistem_stem(self, subswath, dt=None):
         """
         Define stem and multistem using datetime    
@@ -573,36 +547,6 @@ class SBAS:
             doc = xmltodict.parse(fd.read().replace('/></','></'))
         return doc
 
-#    def orbit(self, date=None):
-#        """
-#        Get orbit from XML scene annotation as single symbol 'A' | 'D'
-#        """
-#        
-#        if date is None:
-#            date = self.master
-#       
-#        filename = self.df.loc[date,'metapath']
-#        doc = self.annotation(filename)
-#        return doc['product']['generalAnnotation']['productInformation']['pass'][:1]
-
-#    def geoloc(self, date=None):
-#        """
-#        Get GCPs from XML scene annotation as DataFrame
-#        """
-#       import pandas as pd
-#        
-#       if date is None:
-#            date = self.master
-#        
-#        filename = self.df.loc[date,'metapath']
-#        doc = self.annotation(filename)
-#        #doc['geolocationGrid']
-#        geoloc = doc['product']['geolocationGrid']['geolocationGridPointList']
-#        # check data consistency
-#        assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
-#        geoloc_df = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
-#        return geoloc_df
-
     def geoloc(self, filename=None):
         """
         Build approximate scene polygons using GCPs from XML scene annotation
@@ -625,57 +569,6 @@ class SBAS:
         gcps = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
         # return approximate location as set of GCP
         return gpd.GeoDataFrame(gcps, geometry=gpd.points_from_xy(x=gcps.longitude, y=gcps.latitude))
-
-#    # produce cropped frame using two pins
-#    def geoloc_frame(self, pins):
-#        """
-#        Estimate framed area using two pins using Sentinel-1 GCPs with accuracy about 1 km.
-#        The pins should be defined in any order as 1D or 2D array like to
-#            [x1, y1, x2, y2] or [x2, y2, x1, y1] or [[x1, y1], [x2, y2]] or [[x2, y2], [x1, y1]]
-#        The pins automatically reordered properly for ascending and descending orbits and returned in the true order.
-#        """
-#        import numpy as np
-#        import geopandas as gpd
-#        from shapely.geometry import LineString, Point, MultiPoint
-#        from shapely.ops import split
-#
-#        def pin2line(pin, lons, lats):
-#            coeffs = np.polyfit(lons, lats, 1)
-#            poly = np.poly1d(coeffs)
-#            dy = poly(pin.x) - pin.y
-#            return LineString([Point(-180, poly(-180)-dy), Point( 180, poly( 180)-dy)])
-#
-#        date = self.master
-#        
-#        assert len(pins) == 4 or len(pins) == 2, 'Define two pins as two pairs of lat,lon coordinates'
-#        orbit = self.orbit(self.master)
-#        # convert to 1D array if needed
-#        pins = np.array(pins).flatten()
-#        assert len(pins) == 4, 'Define two pins as two pairs of lat,lon coordinates'
-#        # swap pins if needed
-#        if orbit == 'A' and pins[1] < pins[3]:
-#            pin1 = Point(pins[:2])
-#            pin2 = Point(pins[2:])
-#        else:
-#            pin1 = Point(pins[2:])
-#            pin2 = Point(pins[:2])
-#        df = self.geoloc()
-#        area = MultiPoint(points=list(zip(df.lon, df.lat))).convex_hull
-#        
-#        line1 = pin2line(pin1,
-#                         df[df.line==df.line.min()].lon,
-#                         df[df.line==df.line.min()].lat)
-#        line2 = pin2line(pin2,
-#                         df[df.line==df.line.max()].lon,
-#                         df[df.line==df.line.max()].lat)
-#
-#        diag = LineString([pin1,pin2])
-#        geoms = [area.intersection(geom1).intersection(geom2) for geom1 in split(area, line1)
-#                                                             for geom2 in split(area, line2)
-#                if geom1.buffer(-1e-3).intersects(diag) and geom2.intersects(diag)
-#                ]
-#        assert len(geoms) > 0, 'Frame cannot be defined between the two pins. Hint: change the pins coordinates'
-#        return gpd.GeoDataFrame({'name':['GCP','pin','pin','frame']},geometry=gpd.GeoSeries([area,pin1,pin2,geoms[0]]))
 
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small buffer produces incomplete area coverage and restricted NaNs
@@ -1224,10 +1117,60 @@ class SBAS:
                            trans_dat_tofile=trans_dat_file,
                            topo_ra_tofile=topo_ra_file,
                            method=method)
-        
-        # build DEM grid coordinates transform matrix
-#        self.ra2ll()
 
+    def incidence_angle_matrix(self, subswath=None):
+        import numpy as np
+        import os
+
+        subswath = self.get_subswath(subswath)
+        incidence_file   = os.path.join(self.basedir, f'F{subswath}_incidence_angle.grd')
+    
+        (look_E, look_N, look_U) = self.SAT_look(subswath)
+        incidence_ll = np.arctan2(np.sqrt(look_E**2 + look_N**2), look_U).rename('incidence_angle')
+         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
+        incidence_ll.attrs['node_offset'] = 1
+        # save to NetCDF file
+        incidence_ll.to_netcdf(incidence_file, encoding={'incidence_angle': self.compression})
+    
+    def incidence_angle(self, subswath=None, geocode=True):
+        import xarray as xr
+        import numpy as np
+        import os
+
+        subswath = self.get_subswath(subswath)
+        incidence_file   = os.path.join(self.basedir, f'F{subswath}_incidence_angle.grd')
+        incidence_ll = xr.open_dataarray(incidence_file)
+        if geocode:
+            return incidence_ll
+        # use inverse geocoding to produce radar coordinates from the original geographic
+        incidence_ra = self.intf_ll2ra(subswath, incidence_ll)
+        return incidence_ra
+    
+    def transforms(self, subswath=None, pairs=None, topo_ra=False):
+    
+        assert pairs is not None or subswath is not None, 'ERROR: define pairs argument'
+        if pairs is None and subswath is not None:
+            pairs = subswath
+            subswath = None
+        
+        subswath = self.get_subswath(subswath)
+
+        # biuld topo_ra for the merged subswaths
+        if topo_ra:
+            self.topo_ra(subswath)
+        # build DEM grid coordinates transform matrix
+        self.ra2ll(subswath)
+    
+        # transforms for interferogram grid
+        grids = self.open_grids(pairs, 'phasefilt')
+        # build radar coordinates transformation matrix for the interferograms grid stack
+        self.intf_ra2ll_matrix(subswath, grids)
+        # build geographic coordinates transformation matrix for landmask and other grids
+        self.intf_ll2ra_matrix(subswath, grids)
+        
+        # build incidence angles grid
+        self.incidence_angle_matrix(subswath)
+    
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
     # use median decimation instead of average
     def get_topo_llt(self, subswath, degrees, geoloc=True):
@@ -1584,8 +1527,6 @@ class SBAS:
                      basedir=self.basedir,
                      topo_ra_fromfile = topo_ra_file,
                      **kwargs)
-        
-        # TODO: merge subswaths using merge_swath and return single merged record
 
     def intf_parallel(self, pairs, n_jobs=-1, **kwargs):
         import pandas as pd
@@ -1623,30 +1564,9 @@ class SBAS:
         # for a single subswath don't need to call SBAS.merge_parallel()
         # for subswaths merging and total coordinate transformation matrices creation 
         if len(subswaths) == 1:
-            # build DEM grid coordinates transform matrix
-            self.ra2ll(subswaths[0])
-            
-            grids = self.open_grids(pairs, 'phasefilt')
-            # build radar coordinates transformation matrix for the interferograms grid stack
-            self.intf_ra2ll_matrix(subswaths[0], grids)
-            # build geographic coordinates transformation matrix for landmask and other grids
-            self.intf_ll2ra_matrix(subswaths[0], grids)
+            # build geo transform matrices for interferograms
+            self.transforms(pairs, topo_ra=False)
         
-        #if len(subswaths) > 1:
-        #    self.merge_parallel(pairs)
-        # build radar coordinates transformation matrix
-        #self.intf_ra2ll_matrix(self.open_grids(pairs, 'phasefilt', subswath))
-
-    #        # build stack mask
-    #        filename_mask = os.path.join(self.basedir, 'mask.grd')
-    #        mask = self.open_grids(pairs, 'mask').mean('pair')
-    #        mask.to_netcdf(filename_mask, encoding={'z': self.compression})
-    #        
-    #        # build stack coherence
-    #        filename_corr = os.path.join(self.basedir, 'corr.grd')
-    #        corr = self.open_grids(pairs, 'corr').mean('pair')
-    #        corr.to_netcdf(filename_mask, encoding={'z': self.compression})     
-
     # stem_tofile + '.PRM' generating
     def merge_swath(self, conf, grid_tofile, stem_tofile, debug=False):
         import subprocess
@@ -1756,20 +1676,8 @@ class SBAS:
                                            })
         self.df = gpd.GeoDataFrame(df)
     
-        # build geo transform matrices for the merged interferograms
-        # check if subswath exists or return a single subswath for None
-        subswath = self.get_subswath(subswath)
-    
-        # biuld topo_ra for the merged subswaths
-        self.topo_ra(subswath)
-        # build DEM grid coordinates transform matrix
-        self.ra2ll(subswath)
-
-        grids = self.open_grids(pairs, 'phasefilt')
-        # build radar coordinates transformation matrix for the interferograms grid stack
-        self.intf_ra2ll_matrix(subswath, grids)
-        # build geographic coordinates transformation matrix for landmask and other grids
-        self.intf_ll2ra_matrix(subswath, grids)
+        # build topo_ra and geo transform matrices for the merged interferograms
+        self.transforms(pairs, topo_ra=True)
 
     def baseline_table(self):
         import pandas as pd
@@ -2050,26 +1958,11 @@ class SBAS:
         look_U = xr.DataArray(look_vector[:,2].reshape(grid_ll.shape), coords=grid_ll.coords, name='look_U')
         return (look_E, look_N, look_U)
 
-    def incidence_angle(self, subswath=None, geocode=True):
-        import numpy as np
-    
-        (look_E, look_N, look_U) = self.SAT_look(subswath)
-        incidence_ll = np.arctan2(np.sqrt(look_E**2 + look_N**2), look_U)
-        if geocode:
-            return incidence_ll
-        else:
-            incidence_ra = self.intf_ll2ra(subswath, incidence_ll)
-            return incidence_ra
-
     def vertical_displacement_mm(self, unwraps, geocode=True):
         import numpy as np
     
         if not geocode:
             print ('NOTE: double-geocoding produces single-pixel displacement for some pixels. Use geocode=True to better accuracy.')
-        #if 'lat' in unwraps.dims and 'lon' in unwraps.dims:
-        #    inverse_geocode = False
-        #elif 'y' in unwraps.dims and 'x' in unwraps.dims:
-        #    inverse_geocode = True
     
         los_disp = self.los_displacement_mm(unwraps, geocode)
         incidence = self.incidence_angle(geocode=geocode)
@@ -2110,17 +2003,6 @@ class SBAS:
             pairs = pairs.values
         else:
             pairs = np.asarray(pairs)
-
-        #if pairs is None:
-        #    # stack by filepath for xr.open_mfdataset
-        #    def preprocess_dirname(ds):
-        #        pair = os.path.basename(ds.encoding['source'])[:17]
-        #        #print (ds.encoding['source'], '->', pair)
-        #        return ds.assign(pair=pair)
-        #    filenames = os.path.join(self.basedir, f'*_{name}.grd')
-        #    ds = xr.open_mfdataset(filenames, concat_dim='pair', combine='nested',
-        #                             preprocess=preprocess_dirname)['z']
-        #    return ds
 
         # iterate all the subswaths
         subswaths = self.get_subswaths()
@@ -2378,9 +2260,3 @@ class SBAS:
             #print (jdate, date)
 
         return
-
-#filelist = SBAS('raw_orig').set_master(MASTER)
-#filelist.df
-#filelist.get_master()
-#filelist.get_aligned()
-#filelist.to_file('raw/data.in.new')
