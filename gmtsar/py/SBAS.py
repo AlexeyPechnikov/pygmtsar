@@ -43,14 +43,34 @@ class SBAS:
             return dt
         return dt.date()
 
-    def nearest_grid(self, in_grid, search_radius_pixels=300, geocode=False):
+    @staticmethod
+    def is_ra(grid):
+        dims = grid.dims
+        if 'y' in dims and 'x' in dims:
+            return True
+        return False
+
+    @staticmethod
+    def is_geo(grid):
+        dims = grid.dims
+        if 'lat' in dims and 'lon' in dims:
+            return True
+        return False
+
+    @staticmethod
+    def is_same(grid1, grid2):
+        dims1 = grid1.dims
+        dims2 = grid2.dims
+        if 'lat' in dims1 and 'lon' in dims1 and 'lat' in dims2 and 'lon' in dims2:
+            return True
+        if 'y' in dims1 and 'x' in dims1 and 'y' in dims2 and 'x' in dims2:
+            return True
+        return False
+
+    @staticmethod
+    def nearest_grid(in_grid, search_radius_pixels=300):
         from PRM import PRM
-        
-        grid = PRM.nearest_grid(in_grid, search_radius_pixels)
-        if geocode:
-            return self.intf_ra2ll(grid)
-        else:
-            return grid
+        return PRM.nearest_grid(in_grid, search_radius_pixels)
 
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
@@ -1135,21 +1155,7 @@ class SBAS:
         incidence_ll.attrs['node_offset'] = 1
         # save to NetCDF file
         incidence_ll.to_netcdf(incidence_file, encoding={'incidence_angle': self.compression})
-    
-    def incidence_angle(self, subswath=None, geocode=True):
-        import xarray as xr
-        import numpy as np
-        import os
 
-        subswath = self.get_subswath(subswath)
-        incidence_file   = os.path.join(self.basedir, f'F{subswath}_incidence_angle.grd')
-        incidence_ll = xr.open_dataarray(incidence_file)
-        if geocode:
-            return incidence_ll
-        # use inverse geocoding to produce radar coordinates from the original geographic
-        incidence_ra = self.intf_ll2ra(subswath, incidence_ll)
-        return incidence_ra
-    
     def transforms(self, subswath=None, pairs=None, topo_ra=False):
     
         assert pairs is not None or subswath is not None, 'ERROR: define pairs argument'
@@ -1927,15 +1933,12 @@ class SBAS:
                 os.remove(tmp_file)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
-    def los_displacement_mm(self, unwraps, geocode=False):
+    def los_displacement_mm(self, unwraps):
         # constant is negative to make LOS = -1 * range change
         # constant is (1000 mm) / (4 * pi)
         scale = -79.58 * self.PRM().get('radar_wavelength')
         los_disp = scale*unwraps
-        if geocode:
-            return self.intf_ra2ll(los_disp)
-        else:
-            return los_disp
+        return los_disp
 
     def SAT_look(self, subswath=None):
         import xarray as xr
@@ -1962,29 +1965,34 @@ class SBAS:
         look_U = xr.DataArray(look_vector[:,2].reshape(grid_ll.shape), coords=grid_ll.coords, name='look_U')
         return (look_E, look_N, look_U)
 
-    def vertical_displacement_mm(self, unwraps, geocode=True):
+    def incidence_angle(self, subswath=None):
+        import xarray as xr
+        import numpy as np
+        import os
+
+        subswath = self.get_subswath(subswath)
+        incidence_file   = os.path.join(self.basedir, f'F{subswath}_incidence_angle.grd')
+        incidence_ll = xr.open_dataarray(incidence_file)
+        return incidence_ll
+
+    def vertical_displacement_mm(self, unwraps):
         import numpy as np
     
-        if not geocode:
-            print ('NOTE: double-geocoding produces single-pixel displacement for some pixels. Use geocode=True to better accuracy.')
-    
-        los_disp = self.los_displacement_mm(unwraps, geocode)
-        incidence = self.incidence_angle(geocode=geocode)
-        return los_disp/np.cos(incidence)
+        assert self.is_geo(unwraps), 'ERROR: unwrapped phase defined in radar coordinates'
+        
+        los_disp = self.los_displacement_mm(unwraps)
+        incidence_ll = self.incidence_angle()
+        return los_disp/np.cos(incidence_ll)
 
-    def eastwest_displacement_mm(self, unwraps, geocode=True):
+    def eastwest_displacement_mm(self, unwraps):
         import numpy as np
     
         # this displacement is not symmetrical for the orbits due to scene geometries
         orbit = self.df.orbit.unique()[0]
         sign = 1 if orbit == 'D' else -1
-    
-        if not geocode:
-            print ('NOTE: double-geocoding produces single-pixel displacement for some pixels. Use geocode=True to better accuracy.')
-
-        los_disp = self.los_displacement_mm(unwraps, geocode)
-        incidence = self.incidence_angle(geocode=geocode)
-        return sign * los_disp/np.sin(incidence)
+        los_disp = self.los_displacement_mm(unwraps)
+        incidence_ll = self.incidence_angle()
+        return sign * los_disp/np.sin(incidence_ll)
 
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
@@ -1996,21 +2004,34 @@ class SBAS:
 
         assert not(geocode and inverse_geocode), 'ERROR: Only single geocoding option can be applied'
         
+        # iterate all the subswaths
+        subswaths = self.get_subswaths()
+        
         # for backward compatibility
         if isinstance(mask, bool):
             print ('NOTE: mask argument changed from boolean to dataarray for SBAS.open_grid() function call')
             mask = None
         if mask is not None:
-            nanmask = xr.where(mask == 0, np.nan, 1)
+            assert len(subswaths) == 1, 'ERROR: mask can be applied to a single subswath only'
+            nanmask = xr.where((mask == 0)|(np.isnan(mask)), np.nan, 1)
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
         else:
             pairs = np.asarray(pairs)
 
-        # iterate all the subswaths
-        subswaths = self.get_subswaths()
-
+        def postprocess(da, subswath):
+            if self.is_ra(da) and geocode:
+                da = self.intf_ra2ll(subswath, da)
+            elif self.is_geo(da) and inverse_geocode:
+                da = self.intf_ll2ra(subswath, da)
+            if func is not None:
+                da = func(da)
+            if mask is not None:
+                assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
+                da = nanmask * da
+            return da
+            
         dass = []
         for subswath in subswaths:
             if add_subswath == True:
@@ -2024,12 +2045,7 @@ class SBAS:
                     filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
                     #print (date, filename)
                     da = xr.open_dataarray(filename)
-                    if func is not None:
-                        da = func(da)
-                    if mask is not None:
-                        #da = da*self.open_grids(subswath, 'mask')
-                        #da = xr.where(~np.isnan(mask), da, np.nan)
-                        da = nanmask * da
+                    da = postprocess(da, subswath)
                     das.append(da.expand_dims('date'))
                 das = xr.concat(das, dim='date')
                 das['date'] = sorted(pairs)
@@ -2038,12 +2054,7 @@ class SBAS:
                     filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
                     #print (filename)
                     da = xr.open_dataarray(filename)
-                    if func is not None:
-                        da = func(da, geocode=geocode)
-                    if mask is not None:
-                        #da = da*self.open_grids(subswath, 'mask')
-                        #da = xr.where(~np.isnan(mask), da, np.nan)
-                        da = nanmask * da
+                    da = postprocess(da, subswath)
                     das.append(da.expand_dims('pair'))
                 das = xr.concat(das, dim='pair')
                 das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
@@ -2051,11 +2062,6 @@ class SBAS:
                 das['rep']  = xr.DataArray([pair[1] for pair in pairs], dims='pair')
             else:
                 raise Exception('Use single or two columns Pandas dataset or array as "pairs" argument')
-
-            if not func and geocode:
-                das = self.intf_ra2ll(subswath, das)
-            if inverse_geocode:
-                das = self.intf_ll2ra(subswath, das)
 
             # crop NaNs
             if crop_valid:
@@ -2086,7 +2092,7 @@ class SBAS:
             print ('NOTE: mask argument changed from boolean to dataarray for SBAS.open_grid() function call')
             mask = None
         if mask is not None:
-            nanmask = xr.where(mask == 0, np.nan, 1)
+            nanmask = xr.where((mask == 0)|(np.isnan(mask)), np.nan, 1)
 
         # Backward-compatible open_grid() returns list of grids fot the name or a single grid for a single subswath
         if name is None:
@@ -2104,17 +2110,15 @@ class SBAS:
         filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
         #print ('filename', filename)
         da = xr.open_dataarray(filename)
+        if self.is_ra(da) and geocode:
+            da = self.intf_ra2ll(subswath, da)
+        elif self.is_geo(da) and inverse_geocode:
+            da = self.intf_ll2ra(subswath, da)
         if func is not None:
-            da = func(da, geocode=geocode)
+            da = func(da)
         if mask is not None:
-            #da = da*self.open_grid('mask')
-            #da = da * self.open_grid(subswath, 'mask').interp_like(da, method='nearest')
-            #da = xr.where(~np.isnan(mask), da, np.nan)
+            assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
             da = nanmask * da
-        if not func and geocode:
-            return self.intf_ra2ll(subswath, da)
-        if inverse_geocode:
-            return self.intf_ll2ra(subswath, da)
         return da
 
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
