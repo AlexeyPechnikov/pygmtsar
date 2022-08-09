@@ -331,7 +331,7 @@ class SBAS:
         scale = 0.000833333333333/90
         
         if self.dem_filename is not None:
-            print ('NOTE: DEM exists, ignore the command. Use sbas.set_dem(None) to allow new DEM downloading')
+            print ('NOTE: DEM exists, ignore the command. Use SBAS.set_dem(None) to allow new DEM downloading')
             return
         
         resolution_degrees = scale * resolution_meters
@@ -402,7 +402,7 @@ class SBAS:
         scale = 0.000833333333333/90
 
         if self.dem_filename is not None:
-            print ('NOTE: DEM exists, ignore the command. Use sbas.set_dem(None) to allow new DEM downloading')
+            print ('NOTE: DEM exists, ignore the command. Use SBAS.set_dem(None) to allow new DEM downloading')
             return
 
         if product == 'SRTM1':
@@ -559,7 +559,7 @@ class SBAS:
     
         # for backward compatibility
         if filename is None:
-            print ('NOTE: sbas.geoloc() command is outdated. Use sbas.to_dataframe().plot()')
+            print ('NOTE: SBAS.geoloc() command is outdated. Use SBAS.to_dataframe().plot()')
             return pd.DataFrame({'longitude': [], 'latitude': [], 'pixel': ''})
 
         doc = self.annotation(filename)
@@ -1972,7 +1972,7 @@ class SBAS:
         import numpy as np
     
         # this displacement is not symmetrical for the orbits due to scene geometries
-        orbit = sbas.df.orbit.unique()[0]
+        orbit = self.df.orbit.unique()[0]
         sign = 1 if orbit == 'D' else -1
     
         if not geocode:
@@ -1994,7 +1994,7 @@ class SBAS:
         
         # for backward compatibility
         if isinstance(mask, bool):
-            print ('NOTE: mask argument changed from boolean to dataarray for sbas.open_grid() function call')
+            print ('NOTE: mask argument changed from boolean to dataarray for SBAS.open_grid() function call')
             mask = None
         if mask is not None:
             nanmask = xr.where(mask == 0, np.nan, 1)
@@ -2079,7 +2079,7 @@ class SBAS:
 
         # for backward compatibility
         if isinstance(mask, bool):
-            print ('NOTE: mask argument changed from boolean to dataarray for sbas.open_grid() function call')
+            print ('NOTE: mask argument changed from boolean to dataarray for SBAS.open_grid() function call')
             mask = None
         if mask is not None:
             nanmask = xr.where(mask == 0, np.nan, 1)
