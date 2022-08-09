@@ -32,9 +32,13 @@ class SBAS:
             tqdm_object.close()
 
     @staticmethod
-    def nearest_grid(in_grid, search_radius_pixels=300):
+    def nearest_grid(in_grid, search_radius_pixels=300, geocode=False):
         from PRM import PRM
-        return PRM.nearest_grid(in_grid, search_radius_pixels)
+        grid = PRM.nearest_grid(in_grid, search_radius_pixels)
+        if geocode:
+            return self.intf_ra2ll(grid)
+        else:
+            return grid
 
     #text2date('V20171110T225942'), text2date('20171117t145927')
     @staticmethod
