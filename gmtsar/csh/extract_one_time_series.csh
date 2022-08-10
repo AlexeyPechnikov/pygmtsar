@@ -61,7 +61,7 @@ set ii = 1
 
 while ($ii <= $N)
   #set name = `echo $ii | awk '{printf("disp_%.3d.grd",$1)}'`
-  set name = `awk 'NR=='$ii'{print $1}' scene.tab | awk '{printf("disp_%d.grd",$1)}'`
+  set name = `awk 'NR=='$ii'{print $1}' $5 | awk '{printf("disp_%d.grd",$1)}'`
   echo "Working on date $name"
   gmt grdcut $name -Gtmp_cut.grd -R$RR
   gmt grdinfo tmp_cut.grd -L2 -C | awk '{print $12,$13}' >> $output
