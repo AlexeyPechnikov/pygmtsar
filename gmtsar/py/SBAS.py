@@ -886,9 +886,17 @@ class SBAS:
 
         matrix_ra2ll = xr.open_dataarray(intf_ra2ll_file)
 
+        # conversion works for a different 1st grid dimension size
         def ra2ll(grid):
-            return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll], np.nan),
-                coords=matrix_ra2ll.coords)
+            # some interferograms have different y dimension and matrix has the largest
+            # crop matrix y dimension when it is larger than current interferogram
+            matrix_ra2ll_valid = xr.where(matrix_ra2ll<grid.size, matrix_ra2ll, -1)
+            return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll_valid], np.nan),
+                coords=matrix_ra2ll_valid.coords)
+
+#        def ra2ll(grid):
+#            return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll], np.nan),
+#                coords=matrix_ra2ll.coords)
 
         # process single 2D raster
         if len(grids.dims) == 2:
@@ -917,7 +925,8 @@ class SBAS:
         import os
     
         # use 2D grid grom the pairs stack
-        intf_grid = intf_grids[0]
+        # sometimes interferogram grids are different for one azimuth line so use the largest grid
+        intf_grid = intf_grids.min('pair')
 
         trans_dat_file   = os.path.join(self.basedir, f'F{subswath}_trans.dat')
         trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
@@ -950,9 +959,12 @@ class SBAS:
         # produce the same output array
         intf_ra2ll = xr.zeros_like(trans_ra2ll).rename('intf_ra2ll')
         intf_ra2ll.values = np.where(trans_ra2ll>=0, intf2trans[trans_ra2ll], -1)
+        assert intf_grid.size - 1 == intf_ra2ll.max(), 'ERROR: transform matrix and interferograms largest grid are different'
         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
         intf_ra2ll.attrs['node_offset'] = 1
         # save to NetCDF file
+        if os.path.exists(intf_ra2ll_file):
+            os.remove(intf_ra2ll_file)
         intf_ra2ll.to_netcdf(intf_ra2ll_file, encoding={'intf_ra2ll': self.compression})
 
     def ra2ll(self, subswath):
@@ -1010,7 +1022,8 @@ class SBAS:
         import os
 
         # use 2D grid grom the pairs stack
-        intf_grid = intf_grids[0]
+        # sometimes interferogram grids are different for one azimuth line so use the largest grid
+        intf_grid = intf_grids.min('pair')
     
         trans_dat_file   = os.path.join(self.basedir, f'F{subswath}_trans.dat')
         trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
@@ -1166,6 +1179,7 @@ class SBAS:
             subswath = None
         
         subswath = self.get_subswath(subswath)
+        print (f'NOTE: build translation matrices for direct and inverse geocoding for subswath {subswath}')
 
         # biuld topo_ra for the merged subswaths
         if topo_ra:
@@ -2049,6 +2063,17 @@ class SBAS:
                     da = xr.open_dataarray(filename)
                     da = postprocess(da, subswath)
                     das.append(da.expand_dims('date'))
+                
+                # 2nd dimension sizes must be the same
+                sizes = len(np.unique([da[0].shape[1] for da in das]))
+                assert sizes==1, f'Dates grids have different {da.dims[0]} dimensions'
+                # 1st dimension can be different a bit, use minimal size
+                #sizes = np.unique([da[0].shape[0] for da in das])
+                #das = xr.concat(das, dim='date')[:,:sizes[0],:]
+                
+                # allow stack to be extended to largest 1st dimension size
+                # to be sure all code work well for this case
+                # so user is able to load grids by his own way
                 das = xr.concat(das, dim='date')
                 das['date'] = sorted(pairs)
             elif len(pairs.shape) == 2:
@@ -2058,6 +2083,19 @@ class SBAS:
                     da = xr.open_dataarray(filename)
                     da = postprocess(da, subswath)
                     das.append(da.expand_dims('pair'))
+                    
+                # 2nd dimension sizes must be the same
+                sizes = len(np.unique([da[0].shape[1] for da in das]))
+                assert sizes==1, f'Pairs grids have different {da.dims[0]} dimensions'
+                
+                # 1st dimension can be different a bit, use minimal size
+                # this works but it is not robust if user loads grids by other way
+                #sizes = np.unique([da[0].shape[0] for da in das])
+                #das = xr.concat(das, dim='pair')[:,:sizes[0],:]
+                
+                # allow stack to be extended to largest 1st dimension size
+                # to be sure all code work well for this case
+                # so user is able to load grids by his own way
                 das = xr.concat(das, dim='pair')
                 das['pair'] = [f'{pair[0]} {pair[1]}' for pair in pairs]
                 das['ref']  = xr.DataArray([pair[0] for pair in pairs], dims='pair')
