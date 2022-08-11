@@ -611,7 +611,7 @@ class SBAS:
         # define latlon array
         z_array_name = [data_var for data_var in dem.data_vars if len(dem.data_vars[data_var].coords)==2]
         assert len(z_array_name) == 1
-        # extract the array and fill missed values by nan (mostly ocean area)
+        # extract the array and fill missed values (mostly water surfaces)
         dem = dem[z_array_name[0]].fillna(0)
         
         if geoloc is False:
@@ -619,7 +619,9 @@ class SBAS:
         
         bounds = self.get_master(subswath).dissolve().envelope.bounds.values[0].round(3)
         #print ('xmin, xmax', xmin, xmax)
-        return dem.sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
+        return dem\
+                   .transpose('lat','lon')\
+                   .sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
                        lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
 
     def get_landmask(self, geoloc=False, inverse_geocode=False, buffer_degrees=0.02):
