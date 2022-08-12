@@ -75,6 +75,38 @@ class SBAS:
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
+    def dump(self, to_path=None):
+        import pickle
+
+        if to_path is None:
+            sbas_pickle = os.path.join(self.basedir, 'SBAS.pickle')
+        else:
+            if os.path.isdir(to_path):
+                sbas_pickle = os.path.join(to_path, 'SBAS.pickle')
+            else:
+                sbas_pickle = to_path
+    
+        print (f'NOTE: save state to file {sbas_pickle}')
+        pickle.dump(self, open(sbas_pickle, 'wb'))
+
+        return
+
+    @staticmethod
+    def restore(from_path=None):
+        import pickle
+        import os
+    
+        if from_path is None:
+            sbas_pickle = 'SBAS.pickle'
+        else:
+            if os.path.isdir(from_path):
+                sbas_pickle = os.path.join(from_path, 'SBAS.pickle')
+            else:
+                sbas_pickle = from_path
+
+        print (f'NOTE: load state from file {sbas_pickle}')
+        return pickle.load(open(sbas_pickle, 'rb'))
+
     def __init__(self, datadir, dem_filename=None, basedir='.', landmask_filename=None,
                 filter_orbit=None, filter_mission=None, filter_subswath=None, filter_polarization=None, force=True):
         import os
