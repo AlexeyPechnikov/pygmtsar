@@ -77,6 +77,7 @@ class SBAS:
 
     def dump(self, to_path=None):
         import pickle
+        import os
 
         if to_path is None:
             sbas_pickle = os.path.join(self.basedir, 'SBAS.pickle')
