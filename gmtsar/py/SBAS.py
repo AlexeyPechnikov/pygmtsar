@@ -2072,17 +2072,21 @@ class SBAS:
 
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
-    def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None, crop_valid=False, add_subswath=True):
+    def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None,
+                   crop_valid=False, add_subswath=True, n_jobs=-1):
         import pandas as pd
         import xarray as xr
         import numpy as np
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
         import os
 
         assert not(geocode and inverse_geocode), 'ERROR: Only single geocoding option can be applied'
-        
+
         # iterate all the subswaths
         subswaths = self.get_subswaths()
-        
+
         # for backward compatibility
         if isinstance(mask, bool):
             print ('NOTE: mask argument changed from boolean to dataarray for SBAS.open_grid() function call')
@@ -2111,7 +2115,7 @@ class SBAS:
                 assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
                 da = nanmask * da
             return da
-            
+
         dass = []
         for subswath in subswaths:
             if add_subswath == True:
@@ -2121,42 +2125,60 @@ class SBAS:
 
             das = []
             if len(pairs.shape) == 1:
+                # read all the grids from files
                 for date in sorted(pairs):
                     filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
                     #print (date, filename)
                     da = xr.open_dataarray(filename)
-                    da = postprocess(da, subswath)
-                    das.append(da.expand_dims('date'))
+                    das.append(da)
+                    #da = postprocess(da, subswath)
+                    #das.append(da.expand_dims('date'))
                 
+                # post-processing on a set of 2D rasters
+                with self.tqdm_joblib(notebook.tqdm(desc='Postprocessing', total=len(das))) as progress_bar:
+                    das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
+            
+                # prepare to stacking
+                das = [da.expand_dims('date') for da in das]
+
                 # 2nd dimension sizes must be the same
                 sizes = len(np.unique([da[0].shape[1] for da in das]))
                 assert sizes==1, f'Dates grids have different {da.dims[0]} dimensions'
                 # 1st dimension can be different a bit, use minimal size
                 #sizes = np.unique([da[0].shape[0] for da in das])
                 #das = xr.concat(das, dim='date')[:,:sizes[0],:]
-                
+
                 # allow stack to be extended to largest 1st dimension size
                 # to be sure all code work well for this case
                 # so user is able to load grids by his own way
                 das = xr.concat(das, dim='date')
                 das['date'] = sorted(pairs)
             elif len(pairs.shape) == 2:
+                # read all the grids from files
                 for pair in pairs:
                     filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
                     #print (filename)
                     da = xr.open_dataarray(filename)
-                    da = postprocess(da, subswath)
-                    das.append(da.expand_dims('pair'))
-                    
+                    das.append(da)
+                    #da = postprocess(da, subswath)
+                    #das.append(da.expand_dims('pair'))
+
+                # post-processing on a set of 2D rasters
+                with self.tqdm_joblib(notebook.tqdm(desc='Postprocessing', total=len(das))) as progress_bar:
+                    das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
+            
+                # prepare to stacking
+                das = [da.expand_dims('pair') for da in das]
+
                 # 2nd dimension sizes must be the same
                 sizes = len(np.unique([da[0].shape[1] for da in das]))
                 assert sizes==1, f'Pairs grids have different {da.dims[0]} dimensions'
-                
+
                 # 1st dimension can be different a bit, use minimal size
                 # this works but it is not robust if user loads grids by other way
                 #sizes = np.unique([da[0].shape[0] for da in das])
                 #das = xr.concat(das, dim='pair')[:,:sizes[0],:]
-                
+
                 # allow stack to be extended to largest 1st dimension size
                 # to be sure all code work well for this case
                 # so user is able to load grids by his own way
@@ -2180,7 +2202,7 @@ class SBAS:
                 #print ('indexer', indexer)
                 return das.loc[indexer]
             dass.append(das)
-
+            
         return dass[0] if len(dass) == 1 else dass
 
     def open_grid(self, subswath, name=None, geocode=False, inverse_geocode=False, mask=None, func=None, add_subswath=True):
@@ -2235,7 +2257,7 @@ class SBAS:
         """
         import xarray as xr
         import numpy as np
-        from sklearn.svm import LinearSVR
+        from sklearn.linear_model import LinearRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
@@ -2256,7 +2278,7 @@ class SBAS:
         Y = y[~nanmask]
 
         # build model
-        regr = make_pipeline(StandardScaler(), LinearSVR(random_state=0, tol=1e-5))
+        regr = make_pipeline(StandardScaler(), LinearRegression())
         regr.fit(X, Y)
         model = np.nan * xr.zeros_like(da)
         model.values.reshape(-1)[~nanmask] = regr.predict(X)
