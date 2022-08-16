@@ -1204,6 +1204,7 @@ class SBAS:
                            method=method)
 
     def get_topo_ra(self, subswath=None):
+        import xarray as xr
         import os
 
         # check if subswath exists or return a single subswath for None
