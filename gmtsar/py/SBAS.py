@@ -1203,6 +1203,19 @@ class SBAS:
                            topo_ra_tofile=topo_ra_file,
                            method=method)
 
+    def get_topo_ra(self, subswath=None):
+        import os
+
+        # check if subswath exists or return a single subswath for None
+        subswath = self.get_subswath(subswath)
+
+        prefix = f'F{subswath}_'
+        topo_ra_file = os.path.join(self.basedir, prefix + 'topo_ra.grd')
+
+        # topography stored flipped vertically
+        topo = xr.open_dataarray(topo_ra_file)
+        return self.flipud(topo)
+
     def incidence_angle_matrix(self, subswath=None):
         import numpy as np
         import os
