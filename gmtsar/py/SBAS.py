@@ -900,36 +900,40 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
-        
+
         # that's possible to miss the first argument subswath
         assert subswath is not None or grids is not None, 'ERROR: define input grids'
         if grids is None:
             grids = subswath
             subswath = None
-            
+
         # helper check
         if not 'y' in grids.dims and 'x' in grid.dims:
             print ('NOTE: the grid is not in radar coordinates, miss geocoding')
             return grids
-            
+
         # check if subswath exists or return a single subswath for None
         subswath = self.get_subswath(subswath)
 
         intf_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_intf_ra2ll.grd')
+        intf_ll2ra_file = os.path.join(self.basedir, f'F{subswath}_intf_ll2ra.grd')
 
         matrix_ra2ll = xr.open_dataarray(intf_ra2ll_file)
+        matrix_ll2ra = xr.open_dataarray(intf_ll2ra_file)
 
         # conversion works for a different 1st grid dimension size
         def ra2ll(grid):
+            # input and transform grids should be the same
+            grid = grid.reindex_like(matrix_ll2ra, method='nearest')
             # some interferograms have different y dimension and matrix has the largest
             # crop matrix y dimension when it is larger than current interferogram
             matrix_ra2ll_valid = xr.where(matrix_ra2ll<grid.size, matrix_ra2ll, -1)
             return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll_valid], np.nan),
                 coords=matrix_ra2ll_valid.coords)
 
-#        def ra2ll(grid):
-#            return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll], np.nan),
-#                coords=matrix_ra2ll.coords)
+    #        def ra2ll(grid):
+    #            return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll], np.nan),
+    #                coords=matrix_ra2ll.coords)
 
         # process single 2D raster
         if len(grids.dims) == 2:
