@@ -72,6 +72,15 @@ class SBAS:
         from PRM import PRM
         return PRM.nearest_grid(in_grid, search_radius_pixels)
 
+    @staticmethod
+    def flipud(da):
+        """
+        Flip dataset vertically required for topography grid because it stored flipped for GMTSAR compatibility reasons. 
+        """
+        import numpy as np
+        da.values = np.flipud(da.values)
+        return da
+    
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
