@@ -2075,7 +2075,11 @@ class SBAS:
             elif self.is_geo(da) and inverse_geocode:
                 da = self.intf_ll2ra(subswath, da)
             if func is not None:
-                da = func(da)
+                if isinstance(func, list):
+                    for f in func:
+                        da = f(da)
+                else:
+                    da = func(da)
             if mask is not None:
                 assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
                 da = nanmask * da
@@ -2188,7 +2192,11 @@ class SBAS:
         elif self.is_geo(da) and inverse_geocode:
             da = self.intf_ll2ra(subswath, da)
         if func is not None:
-            da = func(da)
+            if isinstance(func, list):
+                for f in func:
+                    da = f(da)
+            else:
+                da = func(da)
         if mask is not None:
             assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
             da = nanmask * da
