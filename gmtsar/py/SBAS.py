@@ -2229,6 +2229,40 @@ class SBAS:
             da = nanmask * da
         return da
 
+    def detrend(self, da):
+        """
+        Detrend unwrapped interferogram in radar coordinates, see for details https://github.com/gmtsar/gmtsar/issues/98
+        """
+        import xarray as xr
+        import numpy as np
+        from sklearn.svm import LinearSVR
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        # prepare data
+        y = da.values.reshape(-1)
+
+        yy, xx = xr.broadcast(da.y, da.x)
+        ys = yy.values.reshape(-1)
+        xs = xx.values.reshape(-1)
+
+        topo = self.get_topo_ra().reindex_like(da, method='nearest')
+        zs = topo.values.reshape(-1)
+        zys = zs*ys
+        zxs = zs*xs
+
+        nanmask = np.isnan(y) | np.isnan(xs) | np.isnan(zs) | np.isnan(ys)
+        X = np.column_stack([zys[~nanmask], zxs[~nanmask], ys[~nanmask], xs[~nanmask], zs[~nanmask]])
+        Y = y[~nanmask]
+
+        # build model
+        regr = make_pipeline(StandardScaler(), LinearSVR(random_state=0, tol=1e-5))
+        regr.fit(X, Y)
+        model = np.nan * xr.zeros_like(da)
+        model.values.reshape(-1)[~nanmask] = regr.predict(X)
+
+        return da - model
+    
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
         import numpy as np
