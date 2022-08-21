@@ -1009,8 +1009,7 @@ int main(int argc, char **argv) {
 	char **gfile = NULL, **cfile = NULL;
 	int64_t i, j, m, n, nrhs = 1, xdim, lwork, ydim, k1, k2;
 	int64_t N, S;
-	//int64_t ldb, lda, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
-	int64_t ldb, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
+	int64_t ldb, lda, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
 	int64_t flag_rms = 0, flag_dem = 0, flag_mmap = 0, flag_robust = 0;
 	float *phi = NULL, *tmp_phi = NULL, sf, *disp = NULL, *res = NULL, *dem = NULL, *bperp = NULL, *vel = NULL, *screen = NULL,
 	      *tmp_screen = NULL;
