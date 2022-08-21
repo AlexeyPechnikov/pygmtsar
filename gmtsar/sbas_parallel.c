@@ -97,7 +97,8 @@ char *USAGE = "USAGE: sbas_parallel intf.tab scene.tab N S xdim ydim [-atm ni] [
               "  -rms                 --  output velocity uncertainty grids (mm/yr): "
               "rms.grd\n"
               "  -dem                 --  output DEM error (m): dem.grd \n"
-              "  -mmap                --  use mmap to allocate disk space for less use of memory \n\n"
+              "  -mmap                --  use mmap to allocate disk space for less use of memory \n"
+              "  -robust        --  only work with -atm turnned on, estimate velocity with records that has atm correction\n\n"
               " output: \n"
               "  disp_##.grd          --  cumulative displacement time series (mm) "
               "grids\n"
@@ -132,7 +133,7 @@ void dgelsy_(const int64_t *m, const int64_t *n, const int64_t *nrhs, double *G,
              const int64_t *info);
 
 int parse_command_ts(int64_t agc, char **agv, float *sf, double *wl, double *theta, double *rng, int64_t *flag_rms,
-                     int64_t *flag_dem, int64_t *atm, int64_t *flag_mmap) {
+                     int64_t *flag_dem, int64_t *atm, int64_t *flag_mmap, int64_t *flag_robust) {
 
 	int64_t i;
 
@@ -173,6 +174,10 @@ int parse_command_ts(int64_t agc, char **agv, float *sf, double *wl, double *the
             *flag_mmap = 1;
             fprintf(stderr, "mmap disk space for less use of memory\n");
         }  
+        else if (!strcmp(agv[i], "-robust")) {
+            *flag_robust = 1;
+            fprintf(stderr, "using robust velocity estimate (require -atm)\n");
+        } 
 		else if (!strcmp(agv[i], "-atm")) {
 			i++;
 			if (i == agc)
@@ -418,7 +423,7 @@ int init_G_ts(double *G, double *Gs, int64_t N, int64_t S, int64_t m, int64_t n,
 int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64_t *flag, double *d, double *ds, double *time,
                       double *G, double *Gs, double *A, float *var, float *phi, int64_t N, int64_t S, int64_t m, int64_t n,
                       double *work, int64_t lwork, int64_t flag_dem, float *dem, int64_t flag_rms, float *res, int64_t *jpvt,
-                      double wl, double *atm_rms) {
+                      double wl, double *atm_rms, int64_t flag_robust) {
 
     // float new,old;
     int64_t lda, ldb, zz;
@@ -548,7 +553,7 @@ int64_t lsqlin_sov_ts(int64_t xdim, int64_t ydim, float *disp, float *vel, int64
 				sumx = 0;
 				sumy = 0;
 				sumyy = 0;
-				if (count > 2) {
+				if (count > 2 && flag_robust == 1) {
 					for (i = 2; i < S - 2; i++) {
 						if (atm_rms[i] != 0.0) {
 							sumxy = sumxy + time[i] * disp[i * xdim * ydim + j * ydim + k];
@@ -1004,8 +1009,9 @@ int main(int argc, char **argv) {
 	char **gfile = NULL, **cfile = NULL;
 	int64_t i, j, m, n, nrhs = 1, xdim, lwork, ydim, k1, k2;
 	int64_t N, S;
-	int64_t ldb, lda, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
-	int64_t flag_rms = 0, flag_dem = 0, flag_mmap = 0;
+	//int64_t ldb, lda, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
+	int64_t ldb, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
+	int64_t flag_rms = 0, flag_dem = 0, flag_mmap = 0, flag_robust = 0;
 	float *phi = NULL, *tmp_phi = NULL, sf, *disp = NULL, *res = NULL, *dem = NULL, *bperp = NULL, *vel = NULL, *screen = NULL,
 	      *tmp_screen = NULL;
 	float *var = NULL;
@@ -1071,7 +1077,7 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "\n");
 
 	/* read in the parameters from command line */
-	parse_command_ts(argc, argv, &sf, &wl, &theta, &rng, &flag_rms, &flag_dem, &n_atm, &flag_mmap);
+	parse_command_ts(argc, argv, &sf, &wl, &theta, &rng, &flag_rms, &flag_dem, &n_atm, &flag_mmap, &flag_robust);
 
 	/* setting up some parameters */
 	scale = 4.0 * M_PI / wl / rng / sin(theta / 180.0 * M_PI);
@@ -1126,6 +1132,7 @@ int main(int argc, char **argv) {
 	printf("%.6f %.6f %.6f %.6f\n", sf, scale, time[0], bperp[0]);
 
 	if (n_atm == 0) {
+        flag_robust = 0;
 		atm_rms = (double *)malloc(S * sizeof(double));
 		for (i = 0; i < S; i++)
 			atm_rms[i] = 0.0;
@@ -1136,7 +1143,7 @@ int main(int argc, char **argv) {
 		for (i = 0; i < xdim * ydim * S; i++)
 			disp[i] = 0.0;
 		lsqlin_sov_ts(xdim, ydim, disp, vel, flag, d, ds, time, G, Gs, A, var, phi, N, S, m, n, work, lwork, flag_dem, dem,
-		              flag_rms, res, jpvt, wl, atm_rms);
+		              flag_rms, res, jpvt, wl, atm_rms, flag_robust);
 	}
 	else {
 		fprintf(stderr, "\n\nApplying atmospheric correction by common point stacking...\n\n");
@@ -1238,7 +1245,7 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "Computing deformation time-series...\n");
 			// progam below is paralleled
 			lsqlin_sov_ts(xdim, ydim, disp, vel, flag, d, ds, time, G, Gs, A, var, tmp_phi, N, S, m, n, work, lwork, flag_dem,
-			              dem, flag_rms, res, jpvt, wl, atm_rms);
+			              dem, flag_rms, res, jpvt, wl, atm_rms, flag_robust);
 			// remove the very smooth deformation signal from the data
 			if (kk > 1)
 				for (i = 0; i < xdim * ydim * N; i++)
@@ -1307,7 +1314,7 @@ int main(int argc, char **argv) {
 		for (i = 0; i < xdim * ydim * S; i++)
 			disp[i] = 0.0;
 		lsqlin_sov_ts(xdim, ydim, disp, vel, flag, d, ds, time, G, Gs, A, var, tmp_phi, N, S, m, n, work, lwork, flag_dem, dem,
-		              flag_rms, res, jpvt, wl, atm_rms);
+		              flag_rms, res, jpvt, wl, atm_rms, flag_robust);
 	}
 
 	// write output
