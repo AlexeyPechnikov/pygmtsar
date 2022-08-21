@@ -5,7 +5,7 @@
 #include<stdio.h>
 #include"gmt.h"
 
-int parse_command_ts(int64_t, char **, float *, double *, double *, double *, int64_t *, int64_t *, int64_t *, int64_t *);
+int parse_command_ts(int64_t, char **, float *, double *, double *, double *, int64_t *, int64_t *, int64_t *, int64_t *, int64_t *);
 int allocate_memory_ts(int64_t **, double **, double **, double **, float **, char ***, char ***, int64_t **, double **,
                        int64_t **, double **, double **, double **, int64_t **, float **, float **, float **, float **, float **,
                        float **, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t **, int64_t, int64_t);
@@ -15,7 +15,7 @@ int read_table_data_ts(void *, FILE *, FILE *, char **, char **, int64_t *, floa
 int init_G_ts(double *, double *, int64_t, int64_t, int64_t, int64_t, int64_t *, int64_t *, double *, float, float *, double);
 int lsqlin_sov_ts(int64_t, int64_t, float *, float *, int64_t *, double *, double *, double *, double *, double *, double *,
                   float *, float *, int64_t, int64_t, int64_t, int64_t, double *, int64_t, int64_t, float *, int64_t, float *,
-                  int64_t *, double, double *);
+                  int64_t *, double, double *, int64_t);
 int write_output_ts(void *, struct GMT_GRID *, int64_t, char **, int64_t, int64_t, int64_t, int64_t, int64_t, float *, float *,
                     float *, float *, float *, double, int64_t, int64_t *);
 int free_memory_ts(int64_t, float *, float *, char **, char **, float *, double *, double *, double *, int64_t *, double *,
