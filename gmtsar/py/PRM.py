@@ -970,7 +970,7 @@ class PRM:
         # we need to flip vertically results from the command line tools
         realfilt = xr.open_dataarray(fullname('realfilt.grd'))
         imagfilt = xr.open_dataarray(fullname('imagfilt.grd'))
-        amp = xr.ufuncs.sqrt(realfilt**2 + imagfilt**2)
+        amp = np.sqrt(realfilt**2 + imagfilt**2)
 
         amp1 = xr.open_dataarray(fullname('amp1.grd'))
         amp2 = xr.open_dataarray(fullname('amp2.grd'))
@@ -982,7 +982,7 @@ class PRM:
         # making correlation
         tmp = amp1 * amp2
         mask = xr.where(tmp >= thresh, 1, np.nan)
-        tmp2 = ((amp/xr.ufuncs.sqrt(tmp)) * mask)
+        tmp2 = ((amp/np.sqrt(tmp)) * mask)
         conv = signal.convolve2d(tmp2, fill_3x3/fill_3x3.sum(), mode='same', boundary='symm')
         corr = xr.DataArray(np.flipud(conv).astype(np.float32), coords, name='z')
         if func is not None:
