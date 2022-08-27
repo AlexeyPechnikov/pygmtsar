@@ -1092,6 +1092,32 @@ class PRM:
                 out = np.fromstring(stdout_data, dtype=float, sep=' ')
             return out if out.size==5 else out.reshape(-1,6)
 
+    def pixel_spacing(self):
+        """
+        Calculate azimuth and range pixel spacing in meters
+        Note: see make_gaussian_filter.c for the original code
+        """
+        import numpy as np
+        from scipy.constants import speed_of_light
+
+        # compute the range and azimuth pixel size
+        RE, vel, ht, prf, fs, near_range, num_rng_bins = \
+            self.get('earth_radius','SC_vel', 'SC_height', 'PRF', 'rng_samp_rate', 'near_range', 'num_rng_bins')
+        #ER, vel, ht, prf, fs, near_range, num_rng_bins
+        # real_vel/prf
+        azi_px_size = vel / np.sqrt(1 + ht / RE) / prf
+        rng_px_size = speed_of_light / fs / 2.0
+        # compute the cosine of the looking angle and the surface deviate angle
+        a = ht + RE
+        far_range = near_range + rng_px_size * num_rng_bins
+        rng = (near_range + far_range) / 2.0
+        cost = (np.power(a, 2.0) + np.power(rng, 2.0) - np.power(RE, 2.0)) / 2.0 / a / rng
+        cosa = (np.power(a, 2.0) + np.power(RE, 2.0) - np.power(rng, 2.0)) / 2.0 / a / RE
+        # compute the ground range pixel size
+        rng_px_size = rng_px_size / np.sin(np.arccos(cost) + np.arccos(cosa))
+        # ground spacing in meters
+        return (azi_px_size, rng_px_size)
+
     # TODO: use PRM parameters to define config parameters
     def snaphu_config(self, defomax=0, **kwargs):
         import os
