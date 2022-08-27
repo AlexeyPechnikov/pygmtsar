@@ -1006,8 +1006,8 @@ class SBAS:
         intf_ra2ll = xr.zeros_like(trans_ra2ll).rename('intf_ra2ll')
         intf_ra2ll.values = np.where(trans_ra2ll>=0, intf2trans[trans_ra2ll], -1)
         #assert intf_grid.size - 1 == intf_ra2ll.max(), 'ERROR: transform matrix and interferograms largest grid are different'
-        assert intf_grid.size - 1 == intf_ra2ll.max(), \
-            f'ERROR: transform matrix size {intf_grid.size} and interferograms largest index {intf_ra2ll.max()} are not unified'
+        assert intf_grid.size > intf_ra2ll.max(), \
+            f'ERROR: transform matrix size {intf_grid.size} is too small for interferograms largest index {intf_ra2ll.max()}'
         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
         intf_ra2ll.attrs['node_offset'] = 1
         # save to NetCDF file
