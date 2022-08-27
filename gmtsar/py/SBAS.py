@@ -2287,7 +2287,21 @@ class SBAS:
         model.values.reshape(-1)[~nanmask] = regr.predict(X)
 
         return da - model
-    
+
+    def make_gaussian_filter(self, range_dec, azi_dec, wavelength, debug=False):
+        """
+        Wrapper for PRM.make_gaussian_filter() and sonamed command line tool. Added for development purposes only.
+        """
+        import numpy as np
+
+        gauss_dec, gauss_string = self.PRM().make_gaussian_filter(range_dec, azi_dec, wavelength, debug=debug)
+        coeffs = [item for line in gauss_string.split('\n') for item in line.split('\t') if item != '']
+        # x,y dims order
+        shape = np.array(coeffs[0].split(' ')).astype(int)
+        # y,x dims order
+        matrix = np.array(coeffs[1:]).astype(float).reshape((shape[1],shape[0]))
+        return (gauss_dec, matrix)
+
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
         import numpy as np
