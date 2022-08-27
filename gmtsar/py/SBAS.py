@@ -2254,25 +2254,69 @@ class SBAS:
             da = nanmask * da
         return da
 
-    def detrend(self, da):
+    def detrend(self, da, wavelengths=None, truncate=3.0, fit_intercept=False):
         """
-        Detrend unwrapped interferogram in radar coordinates, see for details https://github.com/gmtsar/gmtsar/issues/98
+        Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
+            https://github.com/gmtsar/gmtsar/issues/98
+            https://github.com/gmtsar/gmtsar/issues/411
         """
         import xarray as xr
         import numpy as np
         from sklearn.linear_model import LinearRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
+        from scipy.ndimage import gaussian_filter
 
-        # prepare data
-        y = da.values.reshape(-1)
+        assert self.is_ra(da), 'ERROR: raster should be defined in radar coordinates'
 
+        # topography grid defined in radar coordinates for larger area and different spacing
+        topo_ra = self.get_topo_ra()
+    
+        # raster pixel spacing
+        dy = da.y.diff('y')[0].item()
+        dx = da.x.diff('x')[0].item()
+        ty = topo_ra.y.diff('y')[0].item()
+        tx = topo_ra.x.diff('x')[0].item()
+    
+        # unify topo grid
+        topo = topo_ra\
+            .coarsen({'y': int(dy/ty), 'x': int(dx/tx)}, boundary='pad').mean()\
+            .reindex_like(da, method='nearest')
+        # output filtered raster
+        out = da.copy(deep=True)
+    
+        # fill NaN values by nearest ones
+        da_values = self.nearest_grid(da).values
+        topo_values = topo.values
+        if wavelengths is not None:
+            azi_px_size, rng_px_size = self.PRM().pixel_spacing()
+            #dy = da.y.diff('y')[0].item() * azi_px_size
+            #dx = da.x.diff('x')[0].item() * rng_px_size
+            #print ('dx, dy', dx, dy)
+            # remove long wavelengths to fit gaussian filtering input raster
+            sigmay = wavelengths[1] / dy / azi_px_size
+            sigmax = wavelengths[1] / dx / rng_px_size
+            #print ('sigmay, sigmax', sigmay, sigmax)
+            da_values   -= gaussian_filter(da_values,   sigma=(sigmay,sigmax), truncate=truncate)
+            topo_values -= gaussian_filter(topo_values, sigma=(sigmay,sigmax), truncate=truncate)
+            # prepare output filtered raster
+            out.values = da_values
+            # remove short wavelengths to prevent overfitting
+            # raster is already filtered with 200m gaussian filter by default
+            sigmay = wavelengths[0] / dy / azi_px_size
+            sigmax = wavelengths[0] / dx / rng_px_size
+            #print ('sigmay, sigmax', sigmay, sigmax)
+            da_values   = gaussian_filter(da_values,   sigma=(sigmay,sigmax), truncate=truncate)
+            topo_values = gaussian_filter(topo_values, sigma=(sigmay,sigmax), truncate=truncate)
+
+        # prepare raster
+        y = da_values.reshape(-1)
         yy, xx = xr.broadcast(da.y, da.x)
         ys = yy.values.reshape(-1)
         xs = xx.values.reshape(-1)
-
-        topo = self.get_topo_ra().reindex_like(da, method='nearest')
-        zs = topo.values.reshape(-1)
+    
+        # prepare topo
+        zs = topo_values.reshape(-1)
         zys = zs*ys
         zxs = zs*xs
 
@@ -2280,13 +2324,13 @@ class SBAS:
         X = np.column_stack([zys[~nanmask], zxs[~nanmask], ys[~nanmask], xs[~nanmask], zs[~nanmask]])
         Y = y[~nanmask]
 
-        # build model
-        regr = make_pipeline(StandardScaler(), LinearRegression())
+        # build prediction model
+        regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
         regr.fit(X, Y)
         model = np.nan * xr.zeros_like(da)
         model.values.reshape(-1)[~nanmask] = regr.predict(X)
 
-        return da - model
+        return (out - model).where(~np.isnan(da))
 
     def make_gaussian_filter(self, range_dec, azi_dec, wavelength, debug=False):
         """
