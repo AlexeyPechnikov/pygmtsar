@@ -1932,6 +1932,7 @@ class SBAS:
     
         # convert user-defined mask to binary mask (NaN values converted to 0)
         if mask is not None:
+            assert self.is_ra(mask), 'ERROR: mask should be defined in radar coordinates'
             binmask = xr.where(mask>0, 1, 0)
         else:
             binmask = 1
