@@ -2254,7 +2254,21 @@ class SBAS:
             da = nanmask * da
         return da
 
-    def detrend(self, da, wavelengths=None, truncate=3.0, fit_intercept=False):
+    def pixel_spacing(self, grid=(2, 8)):
+        import xarray as xr
+        import numpy as np
+    
+        # pixel size in meters
+        azi_px_size, rng_px_size = self.PRM().pixel_spacing()
+        # raster pixels decimation
+        if isinstance(grid, xr.DataArray):
+            dy = grid.y.diff('y')[0].item()
+            dx = grid.x.diff('x')[0].item()
+        else:
+            dy, dx = grid
+        return (np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1))
+
+    def detrend(self, da, wavelengths=None, truncate=3.0, fit_intercept=False, debug=False):
         """
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
@@ -2273,14 +2287,16 @@ class SBAS:
         topo_ra = self.get_topo_ra()
     
         # raster pixel spacing
-        dy = da.y.diff('y')[0].item()
-        dx = da.x.diff('x')[0].item()
-        ty = topo_ra.y.diff('y')[0].item()
-        tx = topo_ra.x.diff('x')[0].item()
+        dy, dx = self.pixel_spacing(da)
+        ty, tx = self.pixel_spacing(topo_ra)
     
         # unify topo grid
+        dec_topo_y = int(np.round(dy/ty))
+        dec_topo_x = int(np.round(dx/tx))
+        if debug:
+            print ('Decimate topo grid y, x', dec_topo_y, dec_topo_x)
         topo = topo_ra\
-            .coarsen({'y': int(dy/ty), 'x': int(dx/tx)}, boundary='pad').mean()\
+            .coarsen({'y': dec_topo_y, 'x': dec_topo_x}, boundary='pad').mean()\
             .reindex_like(da, method='nearest')
         # output filtered raster
         out = da.copy(deep=True)
@@ -2289,23 +2305,22 @@ class SBAS:
         da_values = self.nearest_grid(da).values
         topo_values = topo.values
         if wavelengths is not None:
-            azi_px_size, rng_px_size = self.PRM().pixel_spacing()
-            #dy = da.y.diff('y')[0].item() * azi_px_size
-            #dx = da.x.diff('x')[0].item() * rng_px_size
             #print ('dx, dy', dx, dy)
             # remove long wavelengths to fit gaussian filtering input raster
-            sigmay = wavelengths[1] / dy / azi_px_size
-            sigmax = wavelengths[1] / dx / rng_px_size
-            #print ('sigmay, sigmax', sigmay, sigmax)
+            sigmay = int(np.round(wavelengths[1] / dy))
+            sigmax = int(np.round(wavelengths[1] / dx))
+            if debug:
+                print ('Long wave sigmay, sigmax', sigmay, sigmax)
             da_values   -= gaussian_filter(da_values,   sigma=(sigmay,sigmax), truncate=truncate)
             topo_values -= gaussian_filter(topo_values, sigma=(sigmay,sigmax), truncate=truncate)
             # prepare output filtered raster
             out.values = da_values
             # remove short wavelengths to prevent overfitting
             # raster is already filtered with 200m gaussian filter by default
-            sigmay = wavelengths[0] / dy / azi_px_size
-            sigmax = wavelengths[0] / dx / rng_px_size
-            #print ('sigmay, sigmax', sigmay, sigmax)
+            sigmay = np.round(wavelengths[0] / dy, 1)
+            sigmax = np.round(wavelengths[0] / dx, 1)
+            if debug:
+                print ('Short wave sigmay, sigmax', sigmay, sigmax)
             da_values   = gaussian_filter(da_values,   sigma=(sigmay,sigmax), truncate=truncate)
             topo_values = gaussian_filter(topo_values, sigma=(sigmay,sigmax), truncate=truncate)
 
@@ -2384,7 +2399,7 @@ class SBAS:
         return '\n'.join([out for out in outs if out.split(' ')[0]==mst]) + '\n' + \
                '\n'.join([out for out in outs if out.split(' ')[0]!=mst]) + '\n'
 
-    def sbas(self, baseline_pairs, smooth=0, debug=False):
+    def sbas(self, baseline_pairs, smooth=0, atm=0, debug=False):
         """
          USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] [-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]
 
@@ -2468,8 +2483,9 @@ class SBAS:
         #print ('descriptor 2', str(pipe2[0]))
 
         argv = ['sbas', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}',
-                str(N), str(S), str(xdim), str(ydim), '-smooth', str(smooth),
-                '-wavelength', str(wavelength), '-incidence', str(incidence), '-range', str(rng), '-rms', '-dem']
+                str(N), str(S), str(xdim), str(ydim), '-atm', str(atm), '-smooth', str(smooth),
+                '-wavelength', str(wavelength), '-incidence', str(incidence), '-range', str(rng),
+                '-rms', '-dem']
         if debug:
             print (' '.join(argv))
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
