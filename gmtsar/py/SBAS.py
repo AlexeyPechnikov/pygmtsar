@@ -1209,15 +1209,24 @@ class SBAS:
         import xarray as xr
         import os
 
-        # check if subswath exists or return a single subswath for None
-        subswath = self.get_subswath(subswath)
+        if subswath is None:
+            # process all the subswaths
+            subswaths = self.get_subswaths()
+        else:
+            # process only one subswath
+            subswaths = [subswath]
 
-        prefix = f'F{subswath}_'
-        topo_ra_file = os.path.join(self.basedir, prefix + 'topo_ra.grd')
+        topos = []
+        for subswath in subswaths:
+            prefix = f'F{subswath}_'
+            topo_ra_file = os.path.join(self.basedir, prefix + 'topo_ra.grd')
 
-        # topography stored flipped vertically
-        topo = xr.open_dataarray(topo_ra_file)
-        return self.flipud(topo)
+            # topography stored flipped vertically
+            topo = xr.open_dataarray(topo_ra_file)
+            topo_fixed = self.flipud(topo)
+            topos.append(topo_fixed)
+            
+        return topos[0] if len(topos)==1 else topos
 
     def incidence_angle_matrix(self, subswath=None):
         import numpy as np
