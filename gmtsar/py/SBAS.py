@@ -2328,6 +2328,59 @@ class SBAS:
         matrix = np.array(coeffs[1:]).astype(float).reshape((shape[1],shape[0]))
         return (gauss_dec, matrix)
 
+    def sbas_parallel(self, baseline_pairs, unwrap_stack, corr_stack):
+        import xarray as xr
+        import numpy as np
+    
+        # here are one row for every interferogram and one column for every date 
+        matrix = []
+        for pair in baseline_pairs.itertuples():
+            mrow = [date>pair.ref_date and date<=pair.rep_date for date in self.df.index]
+            matrix.append(mrow)
+        matrix = np.stack(matrix).astype(int)
+        #print (matrix)
+    
+        # single-pixel processing function
+        def fit(x, w, matrix):
+            #return np.zeros(5)
+            # ignore pixels where correlation is not defined
+            if np.any(np.isnan(w)):
+                return np.nan * np.zeros(matrix.shape[1])
+            # fill nans as zeroes and set corresponding weight to 0
+            nanmask = np.where(np.isnan(x))
+            if nanmask[0].size > 0:
+                # function arguments are read-only
+                x = x.copy()
+                w = w.copy()
+                x[nanmask] = 0
+                w[nanmask] = 0
+                # check if x has enough valid values
+                if x.size - nanmask[0].size < matrix.shape[1]:
+                    return np.nan * np.zeros(matrix.shape[1])
+            # least squares solution
+            W = (w/np.sqrt(1-w**2))
+            model = np.linalg.lstsq(matrix * W[:,np.newaxis], x * W, rcond=None)
+            #print ('model', model)
+            return model[0]
+
+        # xarray wrapper
+        models = xr.apply_ufunc(
+            fit,
+            unwrap_stack,
+            corr_stack,
+            input_core_dims=[['pair'],['pair']],
+            exclude_dims=set(('pair',)),
+            dask='parallelized',
+            vectorize=True,
+            output_dtypes=[np.float32],
+            output_core_dims=[['date']],
+            dask_gufunc_kwargs={'output_sizes': {'date': len(self.df.index)}},
+            kwargs={'matrix': matrix}
+        )
+        # define dates axis
+        models['date'] = self.df.index
+        return models
+
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
         import numpy as np
