@@ -1850,39 +1850,6 @@ class SBAS:
                     data.append({'A': date_a_ref, 'B': date_a_rep, 'C': date_b_rep})
         return pd.DataFrame(data).sort_values(['A', 'B', 'C'])
 
-    @staticmethod
-    def baseline_triplets_analysis(baseline_triplets, grids):
-        import pandas as pd
-        import numpy as np
-
-        data = []
-        for triplet in baseline_triplets.itertuples():
-            #print (triplet)
-            pair_a = f'{triplet.A} {triplet.B}'
-            pair_b = f'{triplet.B} {triplet.C}'
-            pair_c = f'{triplet.A} {triplet.C}'
-            #print (pair_a, pair_b, pair_c)
-            grid_a = grids.sel(pair=pair_a)
-            grid_b = grids.sel(pair=pair_b)
-            grid_c = grids.sel(pair=pair_c)
-            grid_abc = (grid_a + grid_b - grid_c)
-            diff_abc = float(np.round(grid_abc.mean() % np.pi,3))
-            delta_pi = int(np.round(grid_abc.mean() / np.pi,0))
-
-            a = grid_a.values.ravel()
-            b = grid_b.values.ravel()
-            c = grid_c.values.ravel()
-            mask = np.isnan(a)|np.isnan(b)|np.isnan(c)
-
-            corr_a = (np.corrcoef(a[~mask], b[~mask])[1,0].round(2))
-            corr_b = (np.corrcoef(b[~mask], c[~mask])[1,0].round(2))
-            corr_c = (np.corrcoef(a[~mask], c[~mask])[1,0].round(2))
-
-            data.append({'A': triplet.A, 'B': triplet.B, 'C': triplet.C,
-                         'corr_AB': corr_a, 'corr_BC': corr_b, 'corr_CA' :corr_c, 'delta_pi': delta_pi})
-
-        return (pd.DataFrame(data).sort_values(['A', 'B', 'C']))
-
     def PRM(self, subswath=None, date=None, multi=True):
         from PRM import PRM
         import os
