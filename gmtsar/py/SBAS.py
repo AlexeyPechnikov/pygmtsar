@@ -2428,7 +2428,8 @@ class SBAS:
         )
         # define dates axis
         models['date'] = self.df.index
-        return models
+        # set the stack index to be first
+        return models.transpose('date',...)
 
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
