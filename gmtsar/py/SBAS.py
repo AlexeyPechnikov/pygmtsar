@@ -1926,7 +1926,7 @@ class SBAS:
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
-    def unwrap(self, subswath, pair, threshold=None, conf=None, func=None, mask=None, debug=False):
+    def unwrap(self, subswath, pair, threshold=None, conf=None, func=None, mask=None, conncomp=False, debug=False):
         import xarray as xr
         import numpy as np
         import os
@@ -1979,7 +1979,10 @@ class SBAS:
     
         # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
         argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
-                '-f', '/dev/stdin', '-o', unwrap_out, '-d', '-g', conncomp_out]
+                '-f', '/dev/stdin', '-o', unwrap_out, '-d']
+        if conncomp:
+            argv.append('-g')
+            argv.append(conncomp_out)
         if debug:
             argv.append('-v')
             print ('argv', argv)
@@ -1992,12 +1995,13 @@ class SBAS:
         if debug:
             print ('snaphu', stdout_data)
 
-        # convert to grid the connected components from SNAPHU output as is (UCHAR)
-        values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
-        conncomp = xr.DataArray(values, phase.coords, name='z')
-        if os.path.exists(conncomp_filename):
-            os.remove(conncomp_filename)
-        conncomp.to_netcdf(conncomp_filename, encoding={'z': self.compression})
+        if conncomp:
+            # convert to grid the connected components from SNAPHU output as is (UCHAR)
+            values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
+            conncomp = xr.DataArray(values, phase.coords, name='z')
+            if os.path.exists(conncomp_filename):
+                os.remove(conncomp_filename)
+            conncomp.to_netcdf(conncomp_filename, encoding={'z': self.compression})
 
         # convert to grid unwrapped phase from SNAPHU output applying postprocessing
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
@@ -2012,7 +2016,7 @@ class SBAS:
         # NaN values allowed in the output grid
         unwrap.where(binmask>0).to_netcdf(unwrap_filename, encoding={'z': self.compression})
 
-        for tmp_file in [phase_in, corr_in, unwrap_out]:
+        for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
             #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
                 os.remove(tmp_file)
