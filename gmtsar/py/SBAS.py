@@ -94,7 +94,7 @@ class SBAS:
             indexer[dim] = slice(dim_min, dim_max)
         #print ('indexer', indexer)
         return das.loc[indexer]
-
+    
     def gaussian(self, da, wavelength, truncate=3.0, threshold=1/3., debug=False):
         import xarray as xr
         import numpy as np
@@ -110,7 +110,7 @@ class SBAS:
         kernel = PRM.gaussian_kernel((int(truncate*sigmay),int(truncate*sigmax)), (sigmay,sigmax))
         values   = PRM.nanconvolve2d(da.values, kernel, threshold=threshold)
         return xr.DataArray(values, coords=da.coords)
-
+    
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
@@ -1289,7 +1289,7 @@ class SBAS:
         self.ra2ll(subswath)
     
         # transforms for interferogram grid
-        grids = self.open_grids(pairs, 'phasefilt')
+        grids = self.open_grids(pairs[:1], 'phasefilt')
         # build radar coordinates transformation matrix for the interferograms grid stack
         self.intf_ra2ll_matrix(subswath, grids)
         # build geographic coordinates transformation matrix for landmask and other grids
@@ -2278,7 +2278,7 @@ class SBAS:
             dy, dx = grid
         return (np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1))
 
-    def detrend(self, da, wavelengths=None, truncate=3.0, fit_intercept=False, debug=False):
+    def detrend(self, da, wavelength=None, topo_ra=None, truncate=3.0, threshold=1/3., fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
         """
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
@@ -2293,69 +2293,75 @@ class SBAS:
 
         assert self.is_ra(da), 'ERROR: raster should be defined in radar coordinates'
 
-        # topography grid defined in radar coordinates for larger area and different spacing
-        topo_ra = self.get_topo_ra()
+        # do not modify the original data array
+        grid = da.copy()
     
+        # topography grid defined in radar coordinates for larger area and different spacing
+        if topo_ra is None:
+            topo_ra = self.get_topo_ra()
+
         # raster pixel spacing
         dy, dx = self.pixel_spacing(da)
         ty, tx = self.pixel_spacing(topo_ra)
-    
+
         # unify topo grid
         dec_topo_y = int(np.round(dy/ty))
         dec_topo_x = int(np.round(dx/tx))
         if debug:
-            print ('Decimate topo grid y, x', dec_topo_y, dec_topo_x)
+            print ('NOTE: Decimate topography to data grid dec_y, dec_x', dec_topo_y, dec_topo_x)
         topo = topo_ra\
             .coarsen({'y': dec_topo_y, 'x': dec_topo_x}, boundary='pad').mean()\
             .reindex_like(da, method='nearest')
-        # output filtered raster
-        out = da.copy(deep=True)
-    
-        # fill NaN values by nearest ones
-        da_values = self.nearest_grid(da).values
-        topo_values = topo.values
-        if wavelengths is not None:
-            #print ('dx, dy', dx, dy)
-            # remove long wavelengths to fit gaussian filtering input raster
-            sigmay = int(np.round(wavelengths[1] / dy))
-            sigmax = int(np.round(wavelengths[1] / dx))
-            if debug:
-                print ('Long wave sigmay, sigmax', sigmay, sigmax)
-            da_values   -= gaussian_filter(da_values,   sigma=(sigmay,sigmax), truncate=truncate)
-            topo_values -= gaussian_filter(topo_values, sigma=(sigmay,sigmax), truncate=truncate)
-            # prepare output filtered raster
-            out.values = da_values
-            # remove short wavelengths to prevent overfitting
-            # raster is already filtered with 200m gaussian filter by default
-            sigmay = np.round(wavelengths[0] / dy, 1)
-            sigmax = np.round(wavelengths[0] / dx, 1)
-            if debug:
-                print ('Short wave sigmay, sigmax', sigmay, sigmax)
-            da_values   = gaussian_filter(da_values,   sigma=(sigmay,sigmax), truncate=truncate)
-            topo_values = gaussian_filter(topo_values, sigma=(sigmay,sigmax), truncate=truncate)
+
+        if wavelength is not None:
+            grid -= self.gaussian(grid, wavelength, truncate=truncate, threshold=threshold, debug=debug)
+            topo -= self.gaussian(topo, wavelength, truncate=truncate, threshold=threshold, debug=debug)
 
         # prepare raster
-        y = da_values.reshape(-1)
-        yy, xx = xr.broadcast(da.y, da.x)
-        ys = yy.values.reshape(-1)
-        xs = xx.values.reshape(-1)
-    
-        # prepare topo
-        zs = topo_values.reshape(-1)
-        zys = zs*ys
-        zxs = zs*xs
-
-        nanmask = np.isnan(y) | np.isnan(xs) | np.isnan(zs) | np.isnan(ys)
-        X = np.column_stack([zys[~nanmask], zxs[~nanmask], ys[~nanmask], xs[~nanmask], zs[~nanmask]])
+        y = grid.values.reshape(-1)
+        nanmask = np.isnan(y)
+        # prepare regression variable
         Y = y[~nanmask]
+        if fit_coords or fit_dem:
+            # prepare coordinates for X regression variable
+            yy, xx = xr.broadcast(da.y, da.x)
+            ys = yy.values.reshape(-1)
+            xs = xx.values.reshape(-1)
 
-        # build prediction model
+        if fit_dem:
+            # prepare topography for X regression variable
+            zs = topo.values.reshape(-1)
+            zys = zs*ys
+            zxs = zs*xs
+
+        if fit_dem and fit_coords:
+            if debug:
+                print ('NOTE: Detrend topography and coordinates')
+            X = np.column_stack([zys[~nanmask], zxs[~nanmask], ys[~nanmask], xs[~nanmask], zs[~nanmask]])
+        elif fit_dem:
+            if debug:
+                print ('NOTE: Detrend topography only')
+            X = np.column_stack([zys[~nanmask], zxs[~nanmask], zs[~nanmask]])
+        elif fit_coords:
+            if debug:
+                print ('NOTE: Detrend coordinates only')
+            X = np.column_stack([ys[~nanmask], xs[~nanmask]])
+        elif fit_intercept:
+            if debug:
+                print ('NOTE: Remove mean value only')
+            return grid - grid.mean()
+        else:
+            if debug:
+                print ('NOTE: No detrending')
+            return grid
+
+        # build prediction model with or without plane removal (fit_intercept)
         regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
         regr.fit(X, Y)
         model = np.nan * xr.zeros_like(da)
         model.values.reshape(-1)[~nanmask] = regr.predict(X)
 
-        return (out - model).where(~np.isnan(da))
+        return (grid - model)
 
     def make_gaussian_filter(self, range_dec, azi_dec, wavelength, debug=False):
         """
