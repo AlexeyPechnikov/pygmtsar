@@ -80,7 +80,21 @@ class SBAS:
         import numpy as np
         da.values = np.flipud(da.values)
         return da
-    
+ 
+    def cropna(self, das):
+        # crop NaNs
+        dims = [dim for dim in das.dims if dim != 'pair' and dim != 'date']
+        dim0 = [dim for dim in das.dims if dim in ['pair', 'date']]
+        assert len(dims) == 2, 'ERROR: interferogram should be 2D array'
+        da = das.min(dim0)
+        indexer = {}
+        for dim in dims:
+            da = da.dropna(dim=dim, how='all')
+            dim_min, dim_max = da[dim].min().item(), da[dim].max().item()
+            indexer[dim] = slice(dim_min, dim_max)
+        #print ('indexer', indexer)
+        return das.loc[indexer]
+
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
