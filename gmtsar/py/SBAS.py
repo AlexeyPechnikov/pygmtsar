@@ -95,6 +95,22 @@ class SBAS:
         #print ('indexer', indexer)
         return das.loc[indexer]
 
+    def gaussian(self, da, wavelength, truncate=3.0, threshold=1/3., debug=False):
+        import xarray as xr
+        import numpy as np
+        from PRM import PRM
+    
+        # raster pixel spacing
+        dy, dx = self.pixel_spacing(da)
+        # gaussian kernel
+        sigmay = int(np.round(wavelength / dy))
+        sigmax = int(np.round(wavelength / dx))
+        if debug:
+            print ('NOTE: Gaussian filtering sigmay, sigmax', sigmay, sigmax)
+        kernel = PRM.gaussian_kernel((int(truncate*sigmay),int(truncate*sigmax)), (sigmay,sigmax))
+        values   = PRM.nanconvolve2d(da.values, kernel, threshold=threshold)
+        return xr.DataArray(values, coords=da.coords)
+
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
