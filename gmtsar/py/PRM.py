@@ -10,14 +10,32 @@ class PRM:
     # gauss5x5 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/gauss5x5',skip_header=True)
     # gaussian_kernel(5,1) ~= gauss5x5
     @staticmethod
-    def gaussian_kernel(size=5, std=1):
+    def gaussian_kernel(size=(5,5), std=(1,1)):
         """Make 2D Gaussian kernel matrix"""
         import numpy as np
         from scipy import signal
-        matrix1d = signal.gaussian(size, std=std).reshape(size, 1)
-        matrix2d = np.outer(matrix1d, matrix1d)
+        matrix1 = signal.gaussian(size[0], std=std[0]).reshape(size[0], 1)
+        matrix2 = signal.gaussian(size[1], std=std[1]).reshape(size[1], 1)
+        matrix2d = np.outer(matrix1, matrix2)
         return matrix2d
 
+    @staticmethod
+    def nanconvolve2d(data, kernel, threshold=1/3.):
+        import numpy as np
+        import scipy.signal
+        # np.complex128 includes np.float64 real and imagine part
+        vals = data.astype(np.complex128)
+        vals[np.isnan(data)] = 0
+        vals[~np.isnan(data)] += 1j
+
+        conv = scipy.signal.convolve2d(vals, 
+                                      kernel.astype(np.complex128), 
+                                      mode='same', boundary='symm'
+                                     )
+        # suppress warning
+        np.seterr(invalid='ignore')
+        return np.where(conv.imag >= threshold*np.sum(kernel), np.divide(conv.real, conv.imag), np.nan)
+    
     @staticmethod
     def nearest_grid(in_grid, search_radius_pixels=300):
         """
