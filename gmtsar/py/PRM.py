@@ -6,6 +6,10 @@
 
 class PRM:
 
+    # NetCDF options
+    netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(256,256))
+    netcdf_engine = 'h5netcdf'
+
     # replacement for GMTSAR gaussians
     # gauss5x5 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/gauss5x5',skip_header=True)
     # gaussian_kernel(5,1) ~= gauss5x5
@@ -32,7 +36,7 @@ class PRM:
                                       kernel.astype(np.complex128), 
                                       mode='same', boundary='symm'
                                      )
-        # suppress warning
+        # suppress incorrect division warning
         np.seterr(invalid='ignore')
         return np.where(conv.imag >= threshold*np.sum(kernel), np.divide(conv.real, conv.imag), np.nan)
     
@@ -672,8 +676,7 @@ class PRM:
             return topo
 
         # save to NetCDF file
-        compression = dict(zlib=True, complevel=3, chunksizes=[256,256])
-        topo.to_netcdf(topo_ra_tofile, encoding={'z': compression})
+        topo.to_netcdf(topo_ra_tofile, encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # save file for debug and raise error after that
         if np.any(np.isnan(topo)):
@@ -894,9 +897,6 @@ class PRM:
         # constant from GMTSAR code
         thresh = 5.e-21
 
-        # options to save as NetCDF file
-        compression = dict(zlib=True, complevel=3, chunksizes=[256,256])
-
         if not isinstance(other, PRM):
             raise Exception('Argument "other" should be PRM class instance')
 
@@ -986,12 +986,12 @@ class PRM:
 
         # Python post-processing
         # we need to flip vertically results from the command line tools
-        realfilt = xr.open_dataarray(fullname('realfilt.grd'))
-        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'))
+        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=self.netcdf_engine)
+        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=self.netcdf_engine)
         amp = np.sqrt(realfilt**2 + imagfilt**2)
 
-        amp1 = xr.open_dataarray(fullname('amp1.grd'))
-        amp2 = xr.open_dataarray(fullname('amp2.grd'))
+        amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=self.netcdf_engine)
+        amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=self.netcdf_engine)
 
         # use the same coordinates for all output grids
         # use .values to remove existing attributes from the axes
@@ -1007,7 +1007,7 @@ class PRM:
             corr = func(corr)
         if os.path.exists(fullname('corr.grd')):
             os.remove(fullname('corr.grd'))
-        corr.to_netcdf(fullname('corr.grd'), encoding={'z': compression})
+        corr.to_netcdf(fullname('corr.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # making phase - this file is not used later, miss it
         #phase = xr.ufuncs.arctan2(imagfilt, realfilt) * mask
@@ -1016,24 +1016,24 @@ class PRM:
         #    phase = func(phase)
         #if os.path.exists(fullname('phase.grd')):
         #    os.remove(fullname('phase.grd'))
-        #phase.to_netcdf(fullname('phase.grd'), encoding={'z': compression})
+        #phase.to_netcdf(fullname('phase.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # make the Werner/Goldstein filtered phase
-        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'))
+        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.netcdf_engine)
         phasefilt = phasefilt_phase * mask
         phasefilt = xr.DataArray(np.flipud(phasefilt).astype(np.float32), coords, name='z')
         if func is not None:
             phasefilt = func(phasefilt)
         if os.path.exists(fullname('phasefilt.grd')):
             os.remove(fullname('phasefilt.grd'))
-        phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': compression})
+        phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
         #mask = xr.DataArray(np.flipud(mask).astype(np.float32), coords, name='z')
         #if func is not None:
         #    mask = func(mask)
         #if os.path.exists(fullname('mask.grd')):
         #    os.remove(fullname('mask.grd'))
-        #mask.to_netcdf(fullname('mask.grd'), encoding={'z': compression})
+        #mask.to_netcdf(fullname('mask.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
