@@ -2353,7 +2353,9 @@ class SBAS:
         # build prediction model with or without plane removal (fit_intercept)
         regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
         regr.fit(X, Y)
-        model = np.nan * xr.zeros_like(da)
+        #model = np.nan * xr.zeros_like(da)
+        # even for input dask array return numpy array
+        model = xr.DataArray(np.nan * np.zeros(da.shape), coords=da.coords)
         model.values.reshape(-1)[~nanmask] = regr.predict(X)
 
         return (grid - model)
@@ -2375,7 +2377,7 @@ class SBAS:
     def sbas_parallel(self, baseline_pairs, unwrap_stack, corr_stack):
         import xarray as xr
         import numpy as np
-    
+
         # here are one row for every interferogram and one column for every date 
         matrix = []
         for pair in baseline_pairs.itertuples():
@@ -2383,7 +2385,7 @@ class SBAS:
             matrix.append(mrow)
         matrix = np.stack(matrix).astype(int)
         #print (matrix)
-    
+
         # single-pixel processing function
         def fit(x, w, matrix):
             #return np.zeros(5)
@@ -2410,8 +2412,8 @@ class SBAS:
         # xarray wrapper
         models = xr.apply_ufunc(
             fit,
-            unwrap_stack,
-            corr_stack,
+            unwrap_stack.chunk(dict(pair=-1)),
+            corr_stack.chunk(dict(pair=-1)),
             input_core_dims=[['pair'],['pair']],
             exclude_dims=set(('pair',)),
             dask='parallelized',
