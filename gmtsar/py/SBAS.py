@@ -964,7 +964,7 @@ class SBAS:
         # conversion works for a different 1st grid dimension size
         def ra2ll(grid):
             # input and transform grids should be the same
-            grid = grid.reindex_like(matrix_ll2ra, method='nearest')
+            grid = grid.reindex_like(matrix_ll2ra)
             # some interferograms have different y dimension and matrix has the largest
             # crop matrix y dimension when it is larger than current interferogram
             matrix_ra2ll_valid = xr.where(matrix_ra2ll<grid.size, matrix_ra2ll, -1)
