@@ -1914,14 +1914,23 @@ class SBAS:
         #from tqdm import tqdm
         from tqdm import notebook
         import joblib
+        import os
+
+        def unwrap(subswath, pair, **kwargs):
+            # define unique tiledir name for parallel processing
+            if 'conf' in kwargs:
+                dirname = f'F{subswath}_{"_".join(pair).replace("-","")}_snaphu_tiledir'
+                dirpath = os.path.join(self.basedir, dirname)
+                kwargs['conf'] += f'    TILEDIR {dirpath}'
+            return self.unwrap(subswath, pair, **kwargs)
 
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
-        
+
         subswaths = self.get_subswaths()
 
         with self.tqdm_joblib(notebook.tqdm(desc='Unwrapping', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.unwrap)(subswath, pair, **kwargs) \
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap)(subswath, pair, **kwargs) \
                                            for subswath in subswaths for pair in pairs)
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
