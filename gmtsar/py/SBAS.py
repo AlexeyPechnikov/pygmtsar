@@ -1948,7 +1948,8 @@ class SBAS:
         # convert user-defined mask to binary mask (NaN values converted to 0)
         if mask is not None:
             assert self.is_ra(mask), 'ERROR: mask should be defined in radar coordinates'
-            binmask = xr.where(mask>0, 1, 0)
+            # crop mask to minimum extent
+            binmask = self.cropna(xr.where(mask>0, 1, np.nan)).fillna(0).astype(bool)
         else:
             binmask = 1
 
@@ -1977,6 +1978,9 @@ class SBAS:
 
         phase = xr.open_dataarray(phase_filename, engine=self.netcdf_engine)
         corr = xr.open_dataarray(corr_filename, engine=self.netcdf_engine)
+        if mask is not None:
+            phase = phase.reindex_like(binmask)
+            corr = corr.reindex_like(binmask)
 
         # cleanup from previous runs
         for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out,
@@ -1992,7 +1996,7 @@ class SBAS:
         corrmasked = corr.where(binmask & (corr>=threshold))
         # NaN values are not allowed for SNAPHU correlation input file
         corrmasked.fillna(0).astype(np.float32).values.tofile(corr_in)
-
+    
         # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
         argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
                 '-f', '/dev/stdin', '-o', unwrap_out, '-d']
