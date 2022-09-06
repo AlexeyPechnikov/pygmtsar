@@ -96,11 +96,11 @@ class SBAS:
         #print ('indexer', indexer)
         return das.loc[indexer]
     
-    def gaussian(self, da, wavelength, truncate=3.0, threshold=1/3., debug=False):
+    def gaussian(self, da, wavelength, truncate=3.0, debug=False):
         import xarray as xr
         import numpy as np
         from PRM import PRM
-    
+
         # raster pixel spacing
         dy, dx = self.pixel_spacing(da)
         # gaussian kernel
@@ -108,10 +108,9 @@ class SBAS:
         sigmax = int(np.round(wavelength / dx))
         if debug:
             print ('NOTE: Gaussian filtering sigmay, sigmax', sigmay, sigmax)
-        kernel = PRM.gaussian_kernel((int(truncate*sigmay),int(truncate*sigmax)), (sigmay,sigmax))
-        values   = PRM.nanconvolve2d(da.values, kernel, threshold=threshold)
+        values   = PRM.nanconvolve2d_gaussian(da.values, (sigmay,sigmax), truncate=truncate)
         return xr.DataArray(values, coords=da.coords)
-    
+
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
@@ -2282,7 +2281,7 @@ class SBAS:
             dy, dx = grid
         return (np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1))
 
-    def detrend(self, da, wavelength=None, topo_ra=None, truncate=3.0, threshold=1/3., fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
+    def detrend(self, da, wavelength=None, topo_ra=None, truncate=3.0, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
         """
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
@@ -2293,7 +2292,6 @@ class SBAS:
         from sklearn.linear_model import LinearRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
-        from scipy.ndimage import gaussian_filter
 
         assert self.is_ra(da), 'ERROR: raster should be defined in radar coordinates'
 
@@ -2318,8 +2316,8 @@ class SBAS:
             .reindex_like(da, method='nearest')
 
         if wavelength is not None:
-            grid -= self.gaussian(grid, wavelength, truncate=truncate, threshold=threshold, debug=debug)
-            topo -= self.gaussian(topo, wavelength, truncate=truncate, threshold=threshold, debug=debug)
+            grid -= self.gaussian(grid, wavelength, truncate=truncate, debug=debug)
+            topo -= self.gaussian(topo, wavelength, truncate=truncate, debug=debug)
 
         # prepare raster
         y = grid.values.reshape(-1)
