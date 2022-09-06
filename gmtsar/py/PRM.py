@@ -25,12 +25,18 @@ class PRM:
 
     @staticmethod
     def nanconvolve2d(data, kernel, threshold=1/3.):
+        """
+        Convolution using generic kernel on a 2D array with NaNs
+        """
         import numpy as np
         import scipy.signal
         # np.complex128 includes np.float64 real and imagine part
         vals = data.astype(np.complex128)
-        vals[np.isnan(data)] = 0
-        vals[~np.isnan(data)] += 1j
+        #vals[np.isnan(data)] = 0
+        #vals[~np.isnan(data)] += 1j
+        nanmask = np.isnan(data)
+        vals[nanmask] = 0
+        vals[~nanmask] += 1j
 
         conv = scipy.signal.convolve2d(vals, 
                                       kernel.astype(np.complex128), 
@@ -39,7 +45,27 @@ class PRM:
         # suppress incorrect division warning
         np.seterr(invalid='ignore')
         return np.where(conv.imag >= threshold*np.sum(kernel), np.divide(conv.real, conv.imag), np.nan)
+
+    @staticmethod
+    def nanconvolve2d_gaussian(data, sigmas, truncate):
+        """
+        Convolution using Gaussian kernel on a 2D array with NaNs
+        """
+        import numpy as np
+        from scipy.ndimage import gaussian_filter
+
+        # np.complex128 includes np.float64 real and imagine part
+        vals = data.astype(np.complex128)
+        nanmask = np.isnan(data)
+        vals[nanmask] = 0
+        vals[~nanmask] += 1j
+
+        conv = gaussian_filter(vals, sigma=sigmas, truncate=truncate)
     
+        # suppress incorrect division warning
+        np.seterr(invalid='ignore')
+        return np.divide(conv.real, conv.imag)
+
     @staticmethod
     def nearest_grid(in_grid, search_radius_pixels=300):
         """
