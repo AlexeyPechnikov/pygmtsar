@@ -93,7 +93,7 @@ char *USAGE = "USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth s
               "the interferogram (m) default=866000 \n"
               "  -rms                 --  output velocity uncertainty grids (mm/yr): "
               "rms.grd\n"
-              "  -dem                 --  output DEM error (m): dem.grd \n"
+              "  -dem                 --  output DEM error (m): dem_err.grd \n"
               "  -mmap                --  use mmap to allocate disk space for less use of memory \n"
               "  -robust        --  only work with -atm turnned on, estimate velocity with records that has atm correction\n\n"
               " output: \n"

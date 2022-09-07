@@ -96,7 +96,7 @@ char *USAGE = "USAGE: sbas_parallel intf.tab scene.tab N S xdim ydim [-atm ni] [
               "the interferogram (m) default=866000 \n"
               "  -rms                 --  output velocity uncertainty grids (mm/yr): "
               "rms.grd\n"
-              "  -dem                 --  output DEM error (m): dem.grd \n"
+              "  -dem                 --  output DEM error (m): dem_err.grd \n"
               "  -mmap                --  use mmap to allocate disk space for less use of memory \n"
               "  -robust        --  only work with -atm turnned on, estimate velocity with records that has atm correction\n\n"
               " output: \n"
@@ -680,7 +680,7 @@ int write_output_ts(void *API, struct GMT_GRID *Out, int64_t agc, char **agv, in
 
 	if (flag_dem == 1) {
 		Out->data = dem;
-		sprintf(outfile, "dem.grd");
+		sprintf(outfile, "dem_err.grd");
 		strcpy(Out->header->title, "");
 		strcpy(Out->header->remark, "");
 		if (GMT_Set_Comment(API, GMT_IS_GRID, GMT_COMMENT_IS_REMARK, "DEM error estimated from SBAS (m)", Out))

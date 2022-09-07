@@ -75,7 +75,7 @@ char *sbas_USAGE = " \n\nUSAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] 
                    "-range rng         --  range distance from the radar to the center of the "
                    "interferogram (m) default=866000 \n"
                    "-rms           --  output RMS of the data misfit grids (mm): rms.grd\n"
-                   "-dem           --  output DEM error (m): dem.grd \n"
+                   "-dem           --  output DEM error (m): dem_err.grd \n"
                    "-robust        --  only work with -atm turnned on, estimate velocity with records that has atm correction\n\n"
                    " output: \n"
                    "disp_##.grd        --  cumulative displacement time series (mm) grids\n"
@@ -607,7 +607,7 @@ int write_output_ts(void *API, struct GMT_GRID *Out, int64_t agc, char **agv, in
 
 	if (flag_dem == 1) {
 		Out->data = dem;
-		sprintf(outfile, "dem.grd");
+		sprintf(outfile, "dem_err.grd");
 		strcpy(Out->header->title, "");
 		strcpy(Out->header->remark, "");
 		if (GMT_Set_Comment(API, GMT_IS_GRID, GMT_COMMENT_IS_REMARK, "DEM error estimated from SBAS (m)", Out))
