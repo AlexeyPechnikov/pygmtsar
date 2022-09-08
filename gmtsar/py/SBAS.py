@@ -947,7 +947,7 @@ class SBAS:
             subswath = None
 
         # helper check
-        if not 'y' in grids.dims and 'x' in grid.dims:
+        if not 'y' in grids.dims and 'x' in grids.dims:
             print ('NOTE: the grid is not in radar coordinates, miss geocoding')
             return grids
 
