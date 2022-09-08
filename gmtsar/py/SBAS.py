@@ -2024,13 +2024,13 @@ class SBAS:
         # convert to grid unwrapped phase from SNAPHU output applying postprocessing
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
         #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
-        unwrap = xr.DataArray(values, phase.coords, name='z')
+        unwrap = xr.DataArray(values, phase.coords, name='phase')
         # apply user-defined function for post-processing
         if func is not None:
             unwrap = func(corrmasked, unwrap)
         # apply binary mask after the post-processing to completely exclude masked regions
         # NaN values allowed in the output grid
-        unwrap.where(binmask>0).to_netcdf(unwrap_filename, encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
+        unwrap.where(binmask>0).to_netcdf(unwrap_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
         for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
             #print ('tmp_file', tmp_file)
