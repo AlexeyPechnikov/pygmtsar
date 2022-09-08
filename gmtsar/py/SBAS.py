@@ -2099,10 +2099,37 @@ class SBAS:
         incidence_ll = self.incidence_angle()
         return sign * los_disp/np.sin(incidence_ll)
 
+    # TODO: use the function for open_grids() and do the same for open_grid() too
+    def get_filenames(self, subswath, pairs, name, add_subswath=True):
+        import pandas as pd
+        import numpy as np
+        import os
+
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+        else:
+            pairs = np.asarray(pairs)
+
+        if add_subswath == True:
+            prefix = f'F{subswath}_'
+        else:
+            prefix = ''
+
+        filenames = []
+        if len(pairs.shape) == 1:
+            for date in sorted(pairs):
+                filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
+                filenames.append(filename)
+        elif len(pairs.shape) == 2:
+            for pair in pairs:
+                filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
+                filenames.append(filename)
+        return filenames
+    
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
     def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None,
-                   crop_valid=False, add_subswath=True, n_jobs=-1):
+                   crop_valid=False, add_subswath=True, chunks='auto', n_jobs=-1):
         import pandas as pd
         import xarray as xr
         import numpy as np
@@ -2158,7 +2185,7 @@ class SBAS:
                 for date in sorted(pairs):
                     filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
                     #print (date, filename)
-                    da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks='auto')
+                    da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
                     das.append(da)
                     #da = postprocess(da, subswath)
                     #das.append(da.expand_dims('date'))
@@ -2187,7 +2214,7 @@ class SBAS:
                 for pair in pairs:
                     filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
                     #print (filename)
-                    da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks='auto')
+                    da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
                     das.append(da)
                     #da = postprocess(da, subswath)
                     #das.append(da.expand_dims('pair'))
@@ -2423,8 +2450,8 @@ class SBAS:
         # xarray wrapper
         models = xr.apply_ufunc(
             fit,
-            unwrap_stack.chunk(dict(pair=-1)),
-            corr_stack.chunk(dict(pair=-1)),
+            unwrap_stack.chunk(dict(y=256, x=256, pair=-1)),
+            corr_stack.chunk(dict(y=256, x=256, pair=-1)),
             input_core_dims=[['pair'],['pair']],
             exclude_dims=set(('pair',)),
             dask='parallelized',
