@@ -2436,17 +2436,47 @@ class SBAS:
         matrix = np.array(coeffs[1:]).astype(float).reshape((shape[1],shape[0]))
         return (gauss_dec, matrix)
 
-    def sbas_parallel(self, baseline_pairs, unwrap_stack, corr_stack):
+    def sbas_parallel(self, pairs, mask=None, detrended=True, n_jobs=-1):
         import xarray as xr
         import numpy as np
+        import pandas as pd
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+        import os
 
-        # here are one row for every interferogram and one column for every date 
+        # compress 3d output following the processing blocks
+        netcdf_compression = self.netcdf_compression.copy()
+        netcdf_compression['chunksizes'] = (1, self.netcdf_chunksize, self.netcdf_chunksize)
+
+        model_filename = os.path.join(self.basedir, 'disp.grd')
+    
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+        else:
+            pairs = np.asarray(pairs)
+        # define all the dates as unique reference and repeat dates
+        dates = np.unique(pairs.flatten())
+    
+        # source grids lazy loading
+        corr_stack = self.open_grids(pairs, 'corr', chunks=self.netcdf_chunksize).chunk(dict(pair=-1))
+        gridname = 'detrend' if detrended else 'unwrap'
+        unwrap_stack = self.open_grids(pairs, gridname, chunks=self.netcdf_chunksize).chunk(dict(pair=-1))
+
+        # crop correlation grid like to unwrap grid which may be defined smaller
+        corr_stack = corr_stack.reindex_like(unwrap_stack)
+        
+        # mask can be sparse and limit work area
+        if mask is not None:
+            unwrap_stack = xr.where(mask>0, unwrap_stack.reindex_like(mask), np.nan)
+            corr_stack   = xr.where(mask>0, corr_stack.reindex_like(mask),   np.nan)
+    
+        # here are one row for every interferogram and one column for every date
         matrix = []
-        for pair in baseline_pairs.itertuples():
-            mrow = [date>pair.ref_date and date<=pair.rep_date for date in self.df.index]
+        for pair in pairs:
+            mrow = [date>pair[0] and date<=pair[1] for date in dates]
             matrix.append(mrow)
         matrix = np.stack(matrix).astype(int)
-        #print (matrix)
 
         # single-pixel processing function
         def fit(x, w, matrix):
@@ -2474,21 +2504,78 @@ class SBAS:
         # xarray wrapper
         models = xr.apply_ufunc(
             fit,
-            unwrap_stack.chunk(dict(y=256, x=256, pair=-1)),
-            corr_stack.chunk(dict(y=256, x=256, pair=-1)),
+            unwrap_stack.chunk(dict(pair=-1)),
+            corr_stack.chunk(dict(pair=-1)),
             input_core_dims=[['pair'],['pair']],
             exclude_dims=set(('pair',)),
             dask='parallelized',
             vectorize=True,
             output_dtypes=[np.float32],
             output_core_dims=[['date']],
-            dask_gufunc_kwargs={'output_sizes': {'date': len(self.df.index)}},
+            dask_gufunc_kwargs={'output_sizes': {'date': len(dates)}},
             kwargs={'matrix': matrix}
         )
         # define dates axis
-        models['date'] = self.df.index
+        models['date'] = dates
         # set the stack index to be first
-        return models.transpose('date',...).compute()
+        models = models.transpose('date',...)
+        # cleanup
+        if os.path.exists(model_filename):
+            os.remove(model_filename)
+    
+        ts, ys, xs = models.data.blocks.shape
+        assert ts == 1, 'Date chunks count should be equal to 1'
+        tchunks, ychunks, xchunks = models.chunks
+        coordt = models.date
+        coordy = np.array_split(models.y, np.cumsum(ychunks))
+        coordx = np.array_split(models.x, np.cumsum(xchunks))
+    
+        def func(iy, ix):
+            chunk_filename = os.path.join(self.basedir, f'disp_chunk_{iy}_{ix}.grd')
+            if os.path.exists(chunk_filename):
+                os.remove(chunk_filename)
+            # lazy dask array
+            data = models.data.blocks[0,iy,ix]
+            # wrap the array
+            da = xr.DataArray(data,
+                              dims=['date','y','x'],
+                              coords={'date': coordt, 'y':coordy[iy], 'x':coordx[ix]})\
+                 .rename('displacement')
+            # compute and save to NetCDF using chunks of original coordinates
+            da.to_netcdf(chunk_filename,
+                         unlimited_dims=['y','x'],
+                         encoding={'displacement': netcdf_compression},
+                         engine=self.netcdf_engine)
+            return chunk_filename
+    
+        # process all the chunks
+        with self.tqdm_joblib(notebook.tqdm(desc='Computing', total=ys*xs)) as progress_bar:
+            filenames = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(iy, ix) \
+                                                     for iy in range(ys) for ix in range(xs))
+    
+        # rebuild the datasets to user-friendly format
+        das = [xr.open_dataarray(f, chunks='auto', engine=self.netcdf_engine) for f in filenames]
+        das = xr.combine_by_coords(das)
+
+        # add subswath prefix
+        subswath = self.get_subswath()
+
+        def output(dt):
+            filename = os.path.join(self.basedir, f'F{subswath}_disp_{dt}.grd'.replace('-',''))
+            if os.path.exists(filename):
+                os.remove(filename)
+            das.sel(date=dt).to_netcdf(filename,
+                        encoding={'displacement': self.netcdf_compression},
+                        engine=self.netcdf_engine)
+
+        # saving all the grids
+        with self.tqdm_joblib(notebook.tqdm(desc='Saving', total=len(das.date))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date)
+
+        # cleanup
+        for filename in filenames:
+            if os.path.exists(filename):
+                os.remove(filename)
 
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
