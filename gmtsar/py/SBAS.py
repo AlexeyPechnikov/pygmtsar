@@ -58,6 +58,23 @@ class SBAS:
             return True
         return False
 
+    def as_geo(self, da):
+        """
+        Add spatial attributes to allow use rioxarray functions like to .rio.clip([geometry])
+        """
+        import sys
+        assert 'rioxarray' in sys.modules, 'rioxarray module is not found'
+        if self.is_geo(da):
+            epsg = 4326
+            y_dim = 'lat'
+            x_dim = 'lon'
+        else:
+            # fake metrical coordinate system just to perform spatial operations
+            epsg = 3857
+            y_dim = 'y'
+            x_dim = 'x'
+        return da.rio.write_crs(epsg).rio.set_spatial_dims(y_dim=y_dim, x_dim=x_dim)
+
     @staticmethod
     def is_same(grid1, grid2):
         dims1 = grid1.dims
