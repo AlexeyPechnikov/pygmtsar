@@ -300,6 +300,8 @@ class SBAS:
         self.pins = []
 
     def validate(self, df=None):
+        import numpy as np
+
         if df is None:
             df = self.df
         error = False
@@ -311,10 +313,11 @@ class SBAS:
         if not len(missions) == 0:
             error = True
             print ('ERROR: Found multiple scenes for a single date from different missions')
-        subswaths = int(''.join(map(str,df.subswath.unique())))
+        # note: df.unique() returns unsorted values so it would be 21 instead of expected 12
+        subswaths = int(''.join(map(str,np.unique(df.subswath))))
         if not int(subswaths) in [1, 2, 3, 12, 23, 123]:
             error = True
-            print ('ERROR: Subswhats list incorrect. Allowed a single or sequential subswath numbers 1, 2, 3, 12, 23, 123')
+            print (f'ERROR: Subswhats list {subswaths} incorrect. Allowed a single or sequential subswath numbers 1, 2, 3, 12, 23, 123')
         if not len(df.orbit.unique()) <= 1:
             error = True
             print ('ERROR: Only single orbit processing supported. Use any one ascending or descending')
@@ -325,7 +328,7 @@ class SBAS:
         if daily_scenes > 1:
             warning = True
             print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
-        return error, warning    
+        return error, warning
 
     def backup(self, backup_dir):
         import os
@@ -368,7 +371,9 @@ class SBAS:
 
     # enlist all the subswaths
     def get_subswaths(self):
-        return self.df.subswath.unique()
+        import numpy as np
+        # note: df.unique() returns unsorted values so it would be 21 instead of expected 12
+        return np.unique(self.df.subswath)
     
     def get_subswath(self, subswath=None):
         """
