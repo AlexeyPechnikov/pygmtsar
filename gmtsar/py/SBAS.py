@@ -2336,7 +2336,7 @@ class SBAS:
             dy, dx = grid
         return (np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1))
 
-    def detrend(self, da, wavelength=None, topo_ra=None, truncate=3.0, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
+    def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
         """
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
@@ -2347,18 +2347,30 @@ class SBAS:
         from sklearn.linear_model import LinearRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
+        import os
 
-        assert self.is_ra(da), 'ERROR: raster should be defined in radar coordinates'
-
-        # do not modify the original data array
-        grid = da.copy()
+        if pair is None:
+            pair = subswath
+            subswath = self.get_subswath()
     
+        # extract dates from pair
+        date1, date2 = pair
+        basename = os.path.join(self.basedir, f'F{subswath}_{date1}_{date2}_').replace('-','')
+
+        # input data grid
+        phase_filename = basename + 'unwrap.grd'
+        # output data grid
+        detrend_filename = basename + 'detrend.grd'
+    
+        #print ('basename', basename)
+        phase = xr.open_dataarray(phase_filename, engine=self.netcdf_engine)
+
         # topography grid defined in radar coordinates for larger area and different spacing
         if topo_ra is None:
             topo_ra = self.get_topo_ra()
 
         # raster pixel spacing
-        dy, dx = self.pixel_spacing(da)
+        dy, dx = self.pixel_spacing(phase)
         ty, tx = self.pixel_spacing(topo_ra)
 
         # unify topo grid
@@ -2366,22 +2378,23 @@ class SBAS:
         dec_topo_x = int(np.round(dx/tx))
         if debug:
             print ('NOTE: Decimate topography to data grid dec_y, dec_x', dec_topo_y, dec_topo_x)
+        # use xr.zeros_like to prevent the target grid coordinates modifying
         topo = topo_ra\
             .coarsen({'y': dec_topo_y, 'x': dec_topo_x}, boundary='pad').mean()\
-            .reindex_like(da, method='nearest')
+            .reindex_like(xr.zeros_like(phase), method='nearest')
 
         if wavelength is not None:
-            grid -= self.gaussian(grid, wavelength, truncate=truncate, debug=debug)
-            topo -= self.gaussian(topo, wavelength, truncate=truncate, debug=debug)
+            phase.values -= self.gaussian(phase, wavelength, truncate=truncate, debug=debug)
+            topo.values  -= self.gaussian(topo,  wavelength, truncate=truncate, debug=debug)
 
         # prepare raster
-        y = grid.values.reshape(-1)
+        y = phase.values.reshape(-1)
         nanmask = np.isnan(y)
         # prepare regression variable
         Y = y[~nanmask]
         if fit_coords or fit_dem:
             # prepare coordinates for X regression variable
-            yy, xx = xr.broadcast(da.y, da.x)
+            yy, xx = xr.broadcast(phase.y, phase.x)
             ys = yy.values.reshape(-1)
             xs = xx.values.reshape(-1)
 
@@ -2406,21 +2419,29 @@ class SBAS:
         elif fit_intercept:
             if debug:
                 print ('NOTE: Remove mean value only')
-            return grid - grid.mean()
+            return phase - phase.mean()
         else:
             if debug:
                 print ('NOTE: No detrending')
-            return grid
+            return phase
 
         # build prediction model with or without plane removal (fit_intercept)
         regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
         regr.fit(X, Y)
         #model = np.nan * xr.zeros_like(da)
         # even for input dask array return numpy array
-        model = xr.DataArray(np.nan * np.zeros(da.shape), coords=da.coords)
+        model = xr.DataArray(np.nan * np.zeros(phase.shape), coords=phase.coords)
         model.values.reshape(-1)[~nanmask] = regr.predict(X)
 
-        return (grid - model)
+        # calculate output
+        out = (phase - model).rename('phase')
+
+        # save to NetCDF file
+        if os.path.exists(detrend_filename):
+            os.remove(detrend_filename)
+        out.to_netcdf(detrend_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
+    
+        return out
 
     def make_gaussian_filter(self, range_dec, azi_dec, wavelength, debug=False):
         """
