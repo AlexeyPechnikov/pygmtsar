@@ -1834,11 +1834,14 @@ class SBAS:
 
     def baseline_table(self):
         import pandas as pd
-        
-        prm_ref = self.PRM()
+
+        # use any subswath (actually, the 1st one) to produce the table
+        subswath = self.get_subswaths()[0]
+    
+        prm_ref = self.PRM(subswath)
         data = []
         for date in self.df.index:
-            prm_rep = self.PRM(None, date)
+            prm_rep = self.PRM(subswath, date)
             ST0 = prm_rep.get('SC_clock_start')
             DAY = int(ST0 % 1000)
             YR = int(ST0/1000) - 2014
