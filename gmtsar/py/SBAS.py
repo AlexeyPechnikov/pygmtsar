@@ -7,7 +7,8 @@
 class SBAS:
 
     # NetCDF options
-    netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(256,256))
+    netcdf_chunksize = 256
+    netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(netcdf_chunksize,netcdf_chunksize))
     netcdf_engine = 'h5netcdf'
     
     import contextlib
@@ -330,7 +331,7 @@ class SBAS:
         if daily_scenes > 1:
             warning = True
             print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
-        return error, warning
+        return error, warning   
 
     def backup(self, backup_dir):
         import os
@@ -991,8 +992,9 @@ class SBAS:
             # some interferograms have different y dimension and matrix has the largest
             # crop matrix y dimension when it is larger than current interferogram
             matrix_ra2ll_valid = xr.where(matrix_ra2ll<grid.size, matrix_ra2ll, -1)
-            return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll_valid], np.nan),
+            da_ll = xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll_valid], np.nan),
                 coords=matrix_ra2ll_valid.coords)
+            return da_ll
 
     #        def ra2ll(grid):
     #            return xr.DataArray(np.where(matrix_ra2ll>=0, grid.values.reshape(-1)[matrix_ra2ll], np.nan),
@@ -2060,6 +2062,9 @@ class SBAS:
             #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
                 os.remove(tmp_file)
+                
+        # use it to map the result immediately
+        return unwrap.where(binmask>0)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, unwraps):
@@ -2215,7 +2220,7 @@ class SBAS:
                     #das.append(da.expand_dims('date'))
                 
                 # post-processing on a set of 2D rasters
-                with self.tqdm_joblib(notebook.tqdm(desc='Postprocessing', total=len(das))) as progress_bar:
+                with self.tqdm_joblib(notebook.tqdm(desc='Loading', total=len(das))) as progress_bar:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
             
                 # prepare to stacking
@@ -2244,7 +2249,7 @@ class SBAS:
                     #das.append(da.expand_dims('pair'))
 
                 # post-processing on a set of 2D rasters
-                with self.tqdm_joblib(notebook.tqdm(desc='Postprocessing', total=len(das))) as progress_bar:
+                with self.tqdm_joblib(notebook.tqdm(desc='Loading', total=len(das))) as progress_bar:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
             
                 # prepare to stacking
