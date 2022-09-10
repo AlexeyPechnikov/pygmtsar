@@ -96,6 +96,8 @@ class SBAS:
         Flip dataset vertically required for topography grid because it stored flipped for GMTSAR compatibility reasons. 
         """
         import numpy as np
+        # prevent input variable modification
+        da = da.copy()
         da.values = np.flipud(da.values)
         return da
  
