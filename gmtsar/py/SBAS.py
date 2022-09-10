@@ -2336,6 +2336,22 @@ class SBAS:
             dy, dx = grid
         return (np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1))
 
+    def detrend_parallel(self, pairs, n_jobs=-1, **kwargs):
+        #from tqdm import tqdm
+        from tqdm import notebook
+        import joblib
+        import pandas as pd
+
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+
+        subswaths = self.get_subswaths()
+
+        # process all the scenes
+        with self.tqdm_joblib(notebook.tqdm(desc='Detrending', total=len(pairs)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, **kwargs) \
+                                                     for subswath in subswaths for pair in pairs)
+
     def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
         """
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
