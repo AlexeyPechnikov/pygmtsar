@@ -1747,14 +1747,14 @@ class SBAS:
         # extract dates from pair
         date1, date2 = pair
         #print (date1, date2)
-    
+
         # records should be sorted by datetime that's equal to sorting by date and subswath
         multistems1 = self.get_aligned(None, date1).apply(record2multistem, axis=1)
         multistems2 = self.get_aligned(None, date2).apply(record2multistem, axis=1)
         if len(multistems1) == 1:
             # only one subswath found, merging is not possible
             return
-    
+
         config = []
         subswaths = []
         cleanup = []
@@ -1763,7 +1763,7 @@ class SBAS:
             prm1_filename = fullname(multistem1 + '.PRM')
             prm2_filename = fullname(multistem1 + '.PRM')
             prm_filename  = fullname(multistem1 + f'_{grid}.PRM')
-        
+
             prm1 = PRM.from_file(prm1_filename)
             prm2 = PRM.from_file(prm2_filename)
             rshift = prm2.get('rshift')
@@ -1788,13 +1788,18 @@ class SBAS:
         subswaths = int(''.join(map(str,subswaths)))
         # F23_20220702_20220714_phasefilt.grd
         grid_tofile = fullname(f'F{subswaths}_{dt1}_{dt2}_{grid}.grd')
+        # F23_20220702_20220714_phasefilt
+        tmp_stem_tofile = fullname(f'F{subswaths}_{dt1}_{dt2}_{grid}')
         #print ('grid_tofile', grid_tofile)
         #print (config)
         # S1_20220702_ALL_F23 without extension
         stem_tofile = fullname(f'S1_{dt1}_ALL_F{subswaths}')
-        
-        self.merge_swath(config, grid_tofile, stem_tofile, debug=debug)
-        
+
+        # use temporary well-qualified stem file name to prevent parallel processing conflicts
+        self.merge_swath(config, grid_tofile, tmp_stem_tofile, debug=debug)
+        # different pairs and grids generate the same PRM file, replace it silently
+        os.replace(f'{tmp_stem_tofile}.PRM', f'{stem_tofile}.PRM')
+
         # cleanup - files should exists as these are processed above
         for filename in cleanup:
             os.remove(filename)
