@@ -2028,7 +2028,7 @@ class SBAS:
         corrmasked = corr.where(binmask & (corr>=threshold))
         # NaN values are not allowed for SNAPHU correlation input file
         corrmasked.fillna(0).astype(np.float32).values.tofile(corr_in)
-    
+
         # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
         argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
                 '-f', '/dev/stdin', '-o', unwrap_out, '-d']
@@ -2050,27 +2050,29 @@ class SBAS:
         if conncomp:
             # convert to grid the connected components from SNAPHU output as is (UCHAR)
             values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
-            conncomp = xr.DataArray(values, phase.coords, name='z')
-            conncomp.to_netcdf(conncomp_filename, encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
+            conncomp = xr.DataArray(values, phase.coords, name='conncomp')
+            conncomp.to_netcdf(conncomp_filename, encoding={'conncomp': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # convert to grid unwrapped phase from SNAPHU output applying postprocessing
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
         #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
-        unwrap = xr.DataArray(values, phase.coords, name='phase')
+        unwrap = xr.DataArray(values, phase.coords)
         # apply user-defined function for post-processing
         if func is not None:
             unwrap = func(corrmasked, unwrap)
         # apply binary mask after the post-processing to completely exclude masked regions
-        # NaN values allowed in the output grid
-        unwrap.where(binmask>0).to_netcdf(unwrap_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
+        # NaN values allowed in the output grid, assign userfriendly name for the output grid
+        unwrap = unwrap.where(binmask>0).rename('phase')
+        # save to NetCDF file
+        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
         for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
             #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
                 os.remove(tmp_file)
-                
+
         # use it to map the result immediately
-        return unwrap.where(binmask>0)
+        return unwrap
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, unwraps):
