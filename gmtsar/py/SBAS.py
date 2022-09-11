@@ -1834,13 +1834,16 @@ class SBAS:
 
     def baseline_table(self):
         import pandas as pd
+        import numpy as np
 
         # use any subswath (actually, the 1st one) to produce the table
         subswath = self.get_subswaths()[0]
-    
+        # select unique dates to process multiple subswaths
+        dates = np.unique(self.df.index)
+
         prm_ref = self.PRM(subswath)
         data = []
-        for date in self.df.index:
+        for date in dates:
             prm_rep = self.PRM(subswath, date)
             ST0 = prm_rep.get('SC_clock_start')
             DAY = int(ST0 % 1000)
