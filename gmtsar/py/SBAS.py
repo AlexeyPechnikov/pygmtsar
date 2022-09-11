@@ -1846,10 +1846,12 @@ class SBAS:
         # select unique dates to process multiple subswaths
         dates = np.unique(self.df.index)
 
-        prm_ref = self.PRM(subswath)
+        # after merging use unmerged subswath PRM files
+        prm_ref = self.PRM(subswath, singleswath=True)
         data = []
         for date in dates:
-            prm_rep = self.PRM(subswath, date)
+            # after merging use unmerged subswath PRM files
+            prm_rep = self.PRM(subswath, date, singleswath=True)
             ST0 = prm_rep.get('SC_clock_start')
             DAY = int(ST0 % 1000)
             YR = int(ST0/1000) - 2014
@@ -1926,10 +1928,15 @@ class SBAS:
                     data.append({'A': date_a_ref, 'B': date_a_rep, 'C': date_b_rep})
         return pd.DataFrame(data).sort_values(['A', 'B', 'C'])
 
-    def PRM(self, subswath=None, date=None, multi=True):
+    def PRM(self, subswath=None, date=None, multi=True, singleswath=False):
+        """
+        multi=True/False - open multistem or stem file
+        singleswath=False/True - open a single-digit subswath instead of a multi-digit (merged) one
+            single-digit subswath exists always while multi-digit exists only for interferogram pair references
+        """
         from PRM import PRM
         import os
-        
+
         # check if subswath exists or return a single subswath for None
         subswath = self.get_subswath(subswath)
 
@@ -1938,6 +1945,9 @@ class SBAS:
         else:
             line = self.get_aligned(subswath, date)
         #print (line)
+        # to build sbas table and pairs after merging use unmerged subswath PRM files
+        if singleswath and len(str(subswath))>1:
+            subswath = int(str(subswath)[0])
         multistem, stem = self.multistem_stem(subswath, line.datetime[0])
         if multi:
             stem = multistem
