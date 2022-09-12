@@ -2385,6 +2385,7 @@ class SBAS:
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
             https://github.com/gmtsar/gmtsar/issues/411
+        TODO: decimate grid for long-wavelength filtering for faster calculation.
         """
         import xarray as xr
         import numpy as np
