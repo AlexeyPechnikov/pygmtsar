@@ -2364,7 +2364,7 @@ class SBAS:
             da = nanmask * da
         return da
 
-    def pixel_spacing(self, grid=(2, 8)):
+    def pixel_spacing(self, grid=(1, 4)):
         import xarray as xr
         import numpy as np
     
