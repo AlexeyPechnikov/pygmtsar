@@ -1515,6 +1515,9 @@ class SBAS:
         import numpy as np
         import os
         from PRM import PRM
+        
+        # temporary filenames to be removed
+        cleanup = []
 
         master_line = list(self.get_master(subswath).itertuples())[0]
         multistem, stem = self.multistem_stem(subswath, master_line.datetime)
@@ -1603,10 +1606,16 @@ class SBAS:
         a_xyz = offset_dat[:,[0,2,3]]
 
         r_grd = self.offset2shift(r_xyz, rmax, amax)
-        r_grd.to_netcdf(stem_prm[:-4]+'_r.grd')
+        r_grd_filename = stem_prm[:-4]+'_r.grd'
+        r_grd.to_netcdf(r_grd_filename)
+        # drop the temporary file at the end of the function
+        cleanup.append(r_grd_filename)
 
         a_grd = self.offset2shift(a_xyz, rmax, amax)
-        a_grd.to_netcdf(stem_prm[:-4]+'_a.grd')
+        a_grd_filename = stem_prm[:-4]+'_a.grd'
+        a_grd.to_netcdf(a_grd_filename)
+        # drop the temporary file at the end of the function
+        cleanup.append(a_grd_filename)
 
         # generate the image with point-by-point shifts
         # note: it removes calc_dop_orb parameters from PRM file
@@ -1643,6 +1652,11 @@ class SBAS:
         PRM.from_file(mstem_prm).set(PRM.fitoffset(3, 3, par_tmp)).update()
 
         PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True, debug=debug).update()
+        
+        # cleanup
+        for filename in cleanup:
+            #if os.path.exists(filename):
+            os.remove(filename)
 
     def stack_parallel(self, dates=None, n_jobs=-1, **kwargs):
         #from tqdm import tqdm
