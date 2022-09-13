@@ -2673,7 +2673,12 @@ class SBAS:
     
         # rebuild the datasets to user-friendly format
         das = [xr.open_dataarray(f, chunks='auto', engine=self.netcdf_engine) for f in filenames]
-        das = xr.combine_by_coords(das)
+        if xr.__version__ == '0.19.0':
+            # for Google Colab
+            das = xr.merge(das)
+        else:
+            # for modern xarray versions
+            das = xr.combine_by_coords(das)
 
         # add subswath prefix
         subswath = self.get_subswath()
@@ -2688,7 +2693,7 @@ class SBAS:
 
         # saving all the grids
         with self.tqdm_joblib(notebook.tqdm(desc='Saving', total=len(das.date))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date)
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date.values)
 
         # cleanup
         for filename in filenames:
