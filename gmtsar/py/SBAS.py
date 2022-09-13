@@ -116,7 +116,17 @@ class SBAS:
         #print ('indexer', indexer)
         return das.loc[indexer]
     
-    def gaussian(self, da, wavelength, truncate=3.0, debug=False):
+    def gaussian(self, da, wavelength, truncate=3.0, approximate=False, debug=False):
+        """
+        Gaussian filter for arrays with NaN values.
+            da - input dataarray with NaNs allowed,
+            wavelength - cut-off wavelength [m],
+            truncate - filter window size [sigma],
+            approximate - boolean flag to use approximate calculation based on filtering on decimated array,
+            debug - pront debug information.
+        Returns filtered dataarray with the same coordinates as input one.
+        Fast approximate calculation silently skipped when sigma is less than 64 so the result is always exact for small filters.
+        """
         import xarray as xr
         import numpy as np
         from PRM import PRM
@@ -124,11 +134,37 @@ class SBAS:
         # raster pixel spacing
         dy, dx = self.pixel_spacing(da)
         # gaussian kernel
-        sigmay = int(np.round(wavelength / dy))
-        sigmax = int(np.round(wavelength / dx))
+        sigma_y = np.round(wavelength / dy)
+        sigma_x = np.round(wavelength / dx)
+    
         if debug:
-            print ('NOTE: Gaussian filtering sigmay, sigmax', sigmay, sigmax)
-        values   = PRM.nanconvolve2d_gaussian(da.values, (sigmay,sigmax), truncate=truncate)
+            print ('NOTE: Gaussian filtering sigma_y, sigma_x', sigma_y, sigma_x)
+    
+        # there is a compromise between accuracy and speed
+        dec = 32
+        # ignore decimation when it is less than or equal to 1
+        dec_y = int(np.floor(sigma_y/dec))
+        dec_x = int(np.floor(sigma_x/dec))
+        
+        if approximate and dec_y > 1 and dec_x > 1:
+            # filter decimated array for faster and less accurate processing
+            if debug:
+                print ('NOTE: Gaussian filtering decimation dec_y, dec_x', dec_y, dec_x)
+        
+            # decimate and filter
+            da_dec = da.coarsen({'y': dec_y, 'x': dec_x}, boundary='pad').mean()
+            values  = PRM.nanconvolve2d_gaussian(da_dec.values,
+                                                      (sigma_y/dec_y, sigma_x/dec_x),
+                                                      truncate=truncate)
+            da_dec = xr.DataArray(values, coords=da_dec.coords)
+
+            # scale to original grid and filter with small kerkel equal to the decimation
+            da_dec = da_dec.interp_like(da, method='nearest')
+            values   = PRM.nanconvolve2d_gaussian(da_dec.values,
+                                                  (dec_y, dec_x),
+                                                  truncate=truncate)
+        else:
+            values   = PRM.nanconvolve2d_gaussian(da.values, (sigma_y,sigma_x), truncate=truncate)
         return xr.DataArray(values, coords=da.coords)
 
     def __repr__(self):
@@ -2394,7 +2430,7 @@ class SBAS:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, **kwargs) \
                                                      for subswath in subswaths for pair in pairs)
 
-    def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
+    def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, approximate=True, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
         """
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
@@ -2443,8 +2479,10 @@ class SBAS:
             .reindex_like(xr.zeros_like(phase), method='nearest')
 
         if wavelength is not None:
-            phase.values -= self.gaussian(phase, wavelength, truncate=truncate, debug=debug)
-            topo.values  -= self.gaussian(topo,  wavelength, truncate=truncate, debug=debug)
+            if debug:
+                print ('NOTE: Gaussian filtering for the both data and topography')
+            phase.values -= self.gaussian(phase, wavelength, truncate=truncate, approximate=approximate, debug=debug)
+            topo.values  -= self.gaussian(topo,  wavelength, truncate=truncate, approximate=approximate, debug=debug)
 
         # prepare raster
         y = phase.values.reshape(-1)
