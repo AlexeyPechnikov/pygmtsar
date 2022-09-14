@@ -88,7 +88,7 @@ class SBAS:
 
     @staticmethod
     def nearest_grid(in_grid, search_radius_pixels=300):
-        from PRM import PRM
+        from pygmtsar import PRM
         return PRM.nearest_grid(in_grid, search_radius_pixels)
 
     @staticmethod
@@ -129,7 +129,7 @@ class SBAS:
         """
         import xarray as xr
         import numpy as np
-        from PRM import PRM
+        from pygmtsar import PRM
 
         # raster pixel spacing
         dy, dx = self.pixel_spacing(da)
@@ -550,6 +550,7 @@ class SBAS:
         Remove EGM96 geoid to make heights relative to WGS84
         Regrid to specified approximate resolution_meters (60m by default)
         """
+        from pygmtsar import PRM
         import os
         import subprocess
         #from tqdm import tqdm
@@ -581,7 +582,8 @@ class SBAS:
         # generate DEM for the full area using GMT extent as W E S N
         minx, miny, maxx, maxy = self.df.dissolve().envelope.buffer(buffer_degrees).bounds.values[0]
     
-        geoid_filename = os.path.join(os.environ['GMTSAR'],'share','gmtsar','geoid_egm96_icgem.grd')
+        gmtsar_sharedir = PRM().gmtsar_sharedir()
+        geoid_filename = os.path.join(gmtsar_sharedir, 'geoid_egm96_icgem.grd')
         ortho_filename = os.path.join(self.basedir, 'dem_ortho.grd')
         ortho_resamp_filename = os.path.join(self.basedir, 'dem_ortho_resamp.grd')
         geoid_resamp_filename = os.path.join(self.basedir, 'geoid_resamp.grd')
@@ -708,7 +710,7 @@ class SBAS:
         """
         Build approximate scene polygons using GCPs from XML scene annotation
         """
-        from PRM import PRM
+        from pygmtsar import PRM
         import numpy as np
         import pandas as pd
         import geopandas as gpd
@@ -908,7 +910,7 @@ class SBAS:
         """
         Estimate framed area using two pins using Sentinel-1 GCPs approximation.
         """
-        from PRM import PRM
+        from pygmtsar import PRM
         import numpy as np
         import shapely
         import os
@@ -1518,7 +1520,7 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
-        from PRM import PRM
+        from pygmtsar import PRM
 
     #        err, warn = self.validate()
     #        #print ('err, warn', err, warn)
@@ -1550,7 +1552,7 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
-        from PRM import PRM
+        from pygmtsar import PRM
         
         # temporary filenames to be removed
         cleanup = []
@@ -1715,7 +1717,7 @@ class SBAS:
                                            for date in dates for subswath in subswaths)
 
     def intf(self, subswath, pair, **kwargs):
-        from PRM import PRM
+        from pygmtsar import PRM
         import os
 
         # extract dates from pair
@@ -1788,7 +1790,7 @@ class SBAS:
         return
 
     def merge(self, pair, grid, debug=False):
-        from PRM import PRM
+        from pygmtsar import PRM
         import os
 
         record2multistem = lambda record: self.multistem_stem(record.subswath, record.datetime)[0]
@@ -1984,7 +1986,7 @@ class SBAS:
         singleswath=False/True - open a single-digit subswath instead of a multi-digit (merged) one
             single-digit subswath exists always while multi-digit exists only for interferogram pair references
         """
-        from PRM import PRM
+        from pygmtsar import PRM
         import os
 
         # check if subswath exists or return a single subswath for None

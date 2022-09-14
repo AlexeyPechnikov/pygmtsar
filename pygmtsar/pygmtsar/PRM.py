@@ -10,6 +10,25 @@ class PRM:
     netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(256,256))
     netcdf_engine = 'h5netcdf'
 
+    @staticmethod
+    def gmtsar_sharedir():
+        """
+        Call GMTSAR tool to obtain GMTSAR shared directory location
+        """
+        import os
+        import subprocess
+
+        argv = ['gmtsar_sharedir.csh']
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout_data, stderr_data = p.communicate()
+
+        stderr_data = stderr_data.decode('utf8')
+        if stderr_data is not None and len(stderr_data):
+            print ('gmtsar_sharedir', stderr_data)
+        data = stdout_data.decode('utf8').strip()
+
+        return data
+    
     # replacement for GMTSAR gaussians
     # gauss5x5 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/gauss5x5',skip_header=True)
     # gaussian_kernel(5,1) ~= gauss5x5
@@ -937,11 +956,14 @@ class PRM:
 
         # make full file name
         fullname = lambda name: os.path.join(basedir, basename + name)
+        gmtsar_sharedir = self.gmtsar_sharedir()
 
+        filename_fill_3x3  = os.path.join(gmtsar_sharedir, 'filters', 'fill.3x3')
+        filename_boxcar3x5 = os.path.join(gmtsar_sharedir, 'filters', 'boxcar.3x5')
+        filename_gauss5x5  = os.path.join(gmtsar_sharedir, 'filters', 'gauss5x5')
+        
         #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
-        fill_3x3 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/fill.3x3', skip_header=1)
-        filename_boxcar3x5 = os.path.join(os.environ['GMTSAR'],'share','gmtsar','filters','boxcar.3x5')
-        filename_gauss5x5 = os.path.join(os.environ['GMTSAR'],'share','gmtsar','filters','gauss5x5')
+        fill_3x3 = np.genfromtxt(filename_fill_3x3, skip_header=1)
         gauss_dec, gauss_string = self.make_gaussian_filter(2, 1, wavelength=wavelength)
         #print (gauss_matrix_astext)
 
