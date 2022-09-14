@@ -1,1 +1,1 @@
-../../pygmtsar/PRM.py
+../../pygmtsar/pygmtsar/PRM.py

@@ -1,1 +1,1 @@
-../../pygmtsar/SBAS.py
+../../pygmtsar/pygmtsar/SBAS.py
