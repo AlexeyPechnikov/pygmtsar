@@ -2,10 +2,17 @@
 
 from setuptools import setup
 
+# read the contents of your README file
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name='pygmtsar',
     version='2022.09.14',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/mobigroup/gmtsar',
     author='Alexey Pechnikov',
     author_email='pechnikov@mobigroup.ru',
@@ -15,6 +22,7 @@ setup(
                       'numpy',
                       'pandas',
                       'geopandas',
+                      'dask',
                       'joblib',
                       'tqdm',
                       'sentineleof',
@@ -22,7 +30,8 @@ setup(
                       'shapely',
                       'sklearn',
                       'elevation',
-                      'xmltodict'
+                      'xmltodict',
+                      'rioxarray'
                       ],
 
     classifiers=[
