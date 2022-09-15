@@ -48,9 +48,21 @@ See a separate GitHub repository for Yamchi Dam area dynamic model [YamchiDam](h
 
 <img src="https://user-images.githubusercontent.com/7342379/144747743-a24d72ec-8875-4272-91f9-ec1f937bb798.gif" width="50%">
 
-### Installation on MacOS
+### Installation
 
-The installation is straightforward, run the same commands for BigSur on Intel chips and Monterey on Apple Silicon chips:
+PyGMTSAR project includes binary tools plus Python library. PyGMTSAR binary project is compatible to GMTSAR because all the required changes merged into upstream GMTSAR.
+
+### Python Library Installation
+
+That's easy to install the library using PIP packages manager:
+```
+pip3 install pygmtsar
+from pygmtsar import PRM, SBAS
+```
+
+### Binaries Installation on MacOS
+
+Use GitHub repositories or packages for your operation system to install the recent version of PyGMTSAR or GMTSAR by your choice. The installation is straightforward, run the same commands for BigSur on Intel chips and Monterey on Apple Silicon chips:
 
 ```
 # create installation directory
@@ -68,9 +80,7 @@ make
 make install
 ```
 
-Also, that's possible to install PyGMTSAR to /opt directory instead. For this case we need to change "GMTSAR" path in the notebooks. Nevertheless, for compatibility reasons I save it the same for all the supported platforms.
-
-Use your preferred way to install all the required Python libraries listed in the notebooks (via PIP, Conda, HomeBrew packages and so on).
+Note: that's possible to install PyGMTSAR to /opt directory instead and for this case we need to change "GMTSAR" path in the notebooks. Nevertheless, for compatibility reasons I save it the same for all the supported platforms.
 
 ### Installation on Debian and Ubuntu Linux
 
