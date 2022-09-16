@@ -101,6 +101,9 @@ class SBAS:
         da = da.copy()
         da.values = np.flipud(da.values)
         return da
+
+    def snaphu_config(self, defomax=0, **kwargs):
+        return self.PRM().snaphu_config(defomax, **kwargs)
  
     def cropna(self, das):
         # crop NaNs
