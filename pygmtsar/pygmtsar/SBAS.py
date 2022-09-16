@@ -2294,8 +2294,7 @@ class SBAS:
                 # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
                 filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
                 #print ('filename', filename)
-                da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
-                das.append(da)
+                das = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
             elif len(pairs.shape) == 1:
                 # read all the grids from files
                 for date in sorted(pairs):
