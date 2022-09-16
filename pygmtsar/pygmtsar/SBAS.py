@@ -2258,7 +2258,10 @@ class SBAS:
             assert len(subswaths) == 1, 'ERROR: mask can be applied to a single subswath only'
             nanmask = xr.where((mask == 0)|(np.isnan(mask)), np.nan, 1)
 
-        if isinstance(pairs, pd.DataFrame):
+        if pairs is None:
+            # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
+            pass
+        elif isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
         else:
             pairs = np.asarray(pairs)
@@ -2278,7 +2281,7 @@ class SBAS:
                 assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
                 da = nanmask * da
             return da
-
+    
         dass = []
         for subswath in subswaths:
             if add_subswath == True:
@@ -2287,20 +2290,27 @@ class SBAS:
                 prefix = ''
 
             das = []
-            if len(pairs.shape) == 1:
+            if pairs is None:
+                # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
+                filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
+                #print ('filename', filename)
+                da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
+                das.append(da)
+            elif len(pairs.shape) == 1:
                 # read all the grids from files
                 for date in sorted(pairs):
                     filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
                     #print (date, filename)
                     da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
+                    da = postprocess(da, subswath)
                     das.append(da)
                     #da = postprocess(da, subswath)
                     #das.append(da.expand_dims('date'))
-                
+
                 # post-processing on a set of 2D rasters
                 with self.tqdm_joblib(notebook.tqdm(desc='Loading', total=len(das))) as progress_bar:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
-            
+
                 # prepare to stacking
                 das = [da.expand_dims('date') for da in das]
 
@@ -2329,7 +2339,7 @@ class SBAS:
                 # post-processing on a set of 2D rasters
                 with self.tqdm_joblib(notebook.tqdm(desc='Loading', total=len(das))) as progress_bar:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
-            
+
                 # prepare to stacking
                 das = [da.expand_dims('pair') for da in das]
 
@@ -2356,54 +2366,8 @@ class SBAS:
             if crop_valid:
                 das = self.cropna(das)
             dass.append(das)
-            
+
         return dass[0] if len(dass) == 1 else dass
-
-    def open_grid(self, subswath, name=None, geocode=False, inverse_geocode=False, mask=None, func=None, add_subswath=True):
-        import numpy as np
-        import pandas as pd
-        import xarray as xr
-        import os
-
-        assert not(geocode and inverse_geocode), 'ERROR: Only single geocoding option can be applied'
-
-        # for backward compatibility
-        if isinstance(mask, bool):
-            print ('NOTE: mask argument changed from boolean to dataarray for SBAS.open_grid() function call')
-            mask = None
-        if mask is not None:
-            nanmask = xr.where((mask == 0)|(np.isnan(mask)), np.nan, 1)
-
-        # Backward-compatible open_grid() returns list of grids fot the name or a single grid for a single subswath
-        if name is None:
-            name = subswath
-            subswaths = self.get_subswaths()
-            das = [self.open_grid(subswath, name, geocode=geocode, inverse_geocode=inverse_geocode,
-                   mask=mask, func=func, add_subswath=add_subswath) \
-                   for subswath in subswaths]
-            return das[0] if len(das) == 1 else das
-
-        if add_subswath == True:
-            prefix = f'F{subswath}_'
-        else:
-            prefix = ''
-        filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
-        #print ('filename', filename)
-        da = xr.open_dataarray(filename, engine=self.netcdf_engine)
-        if self.is_ra(da) and geocode:
-            da = self.intf_ra2ll(subswath, da)
-        elif self.is_geo(da) and inverse_geocode:
-            da = self.intf_ll2ra(subswath, da)
-        if func is not None:
-            if isinstance(func, list):
-                for f in func:
-                    da = f(da)
-            else:
-                da = func(da)
-        if mask is not None:
-            assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
-            da = nanmask * da
-        return da
 
     def pixel_spacing(self, grid=(1, 4)):
         import xarray as xr
