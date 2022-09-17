@@ -9,6 +9,9 @@ this.img.style.cssText = 'width: 100%';
 this.img.src = "https://user-images.githubusercontent.com/7342379/190416030-5388bf04-e322-4616-9d33-adf84247d976.png";
 src = document.querySelector("p.view");
 src.appendChild(this.img);
+// change layout
+document.querySelector("div.wrapper").style.width='1080px';
+document.querySelector("section").style.width='720px';
 </script>
 
 
