@@ -1120,8 +1120,6 @@ After that the installation is straightforward, run the same commands for BigSur
 # create installation directory
 sudo mkdir /usr/local/GMTSAR
 sudo chown $(whoami) /usr/local/GMTSAR
-# prepare system dependencies
-brew install libtiff hdf5 gmt ghostscript
 # install recent GMTSAR
 cd /usr/local
 git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
