@@ -6,6 +6,8 @@ The goal of the project is easy and fast satellite interferometry (InSAR) proces
 
 PyGMTSAR automatically downloads Sentinel-1 orbit files and SRTM DEM (and converts it to ellispoidal heights using EGM96 model) and even Sentinel-1 raw scenes using Alaska Satellite Facility (ASF) datastore.
 
+The project documentation including installation instructions available by the link: https://mobigroup.github.io/gmtsar/
+
 ### Live Examples on Google Colab - just click on the links to run the processing in your own browser without any software installation
 
 The notebooks include as common static plots as additional interactive plots which can't be processing on Google Colab. Run the notebooks on MacOS or Linux Debian/Ubuntu to visualize all the content. Note: I work locally on Apple Silicon and Intel MacOS and use Debian and Ubuntu Linux on cloud servers so PyGMTSAR is well tested on all of them. 
@@ -47,44 +49,6 @@ The notebooks processing more than a single subswath or scene. It's possible on 
 See a separate GitHub repository for Yamchi Dam area dynamic model [YamchiDam](https://github.com/mobigroup/YamchiDam) Here two of my software tools [PyGMTSAR](https://github.com/mobigroup/gmtsar) [N-Cube ParaView plugin for 3D/4D GIS Data Visualization](https://github.com/mobigroup/ParaView-plugins) are combined together for 4D analysis and visualization:
 
 <img src="https://user-images.githubusercontent.com/7342379/144747743-a24d72ec-8875-4272-91f9-ec1f937bb798.gif" width="50%">
-
-### Installation
-
-PyGMTSAR project includes binary tools plus Python library. PyGMTSAR binary project is compatible to GMTSAR because all the required changes merged into upstream GMTSAR.
-
-### Python Library Installation
-
-That's easy to install the library using PIP packages manager:
-```
-pip3 install pygmtsar
-from pygmtsar import PRM, SBAS
-```
-
-### Binaries Installation on MacOS
-
-Use GitHub repositories or packages for your operation system to install the recent version of PyGMTSAR or GMTSAR by your choice. The installation is straightforward, run the same commands for BigSur on Intel chips and Monterey on Apple Silicon chips:
-
-```
-# create installation directory
-sudo mkdir /usr/local/GMTSAR
-sudo chown $(whoami) /usr/local/GMTSAR
-# prepare system dependencies
-brew install libtiff hdf5 gmt ghostscript
-# install recent PyGMTSAR
-cd /usr/local
-git clone --branch master https://github.com/mobigroup/gmtsar GMTSAR
-cd /usr/local/GMTSAR
-autoconf
-./configure --with-orbits-dir=/tmp
-make
-make install
-```
-
-Note: that's possible to install PyGMTSAR to /opt directory instead and for this case we need to change "GMTSAR" path in the notebooks. Nevertheless, for compatibility reasons I save it the same for all the supported platforms.
-
-### Installation on Debian and Ubuntu Linux
-
-See the notebooks above where the installation commands included. Also, there is the cloud initialization scripit [GMTSAR.install.debian10.sh](https://github.com/mobigroup/gmtsar/blob/master/gmtsar/sh/GMTSAR.install.debian10.sh) to install and configure all the dependencies and GMTSAR on cloud and local Debian 10 hosts.
 
 ### About me
 
