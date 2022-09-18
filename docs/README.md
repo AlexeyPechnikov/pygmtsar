@@ -5,15 +5,15 @@ document.querySelector("header h1").textContent = 'PyGMTSAR'
 document.querySelector("header p").textContent = 'Easy and Fast Satellite Interferometry For Everyone'
 //document.querySelector("header p a").textContent = 'View on GitHub mobigroup/gmtsar'
 this.img = document.createElement("img");
-this.img.style.cssText = 'width: 100%';
+this.img.style.cssText = 'width: 200px';
 this.img.src = "https://user-images.githubusercontent.com/7342379/190416030-5388bf04-e322-4616-9d33-adf84247d976.png";
 src = document.querySelector("p.view");
 src.appendChild(this.img);
 // change layout
 document.querySelector("div.wrapper").style.width='980px';
 document.querySelector("section").style.width='720px';
-document.querySelector("header").style.width='220px';
-document.querySelector("footer").style.width='220px';
+document.querySelector("header").style.width='230px';
+document.querySelector("footer").style.width='230px';
 </script>
 
 
