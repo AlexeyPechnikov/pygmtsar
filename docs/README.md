@@ -1,22 +1,3 @@
-<!-- Setup title and logo -->
-
-<script>
-document.querySelector("header h1").textContent = 'PyGMTSAR'
-document.querySelector("header p").textContent = 'Easy and Fast Satellite Interferometry For Everyone'
-//document.querySelector("header p a").textContent = 'View on GitHub mobigroup/gmtsar'
-this.img = document.createElement("img");
-this.img.style.cssText = 'width: 200px';
-this.img.src = "https://user-images.githubusercontent.com/7342379/190416030-5388bf04-e322-4616-9d33-adf84247d976.png";
-src = document.querySelector("p.view");
-src.appendChild(this.img);
-// change layout
-document.querySelector("div.wrapper").style.width='980px';
-document.querySelector("section").style.width='720px';
-document.querySelector("header").style.width='230px';
-document.querySelector("footer").style.width='230px';
-</script>
-
-
 ## About
 
 PyGMTSAR (Python GMTSAR) is an open source project and Python package that provides easy and fast Sentinel-1 Satellite Interferometry for everyone! While it's pure Python package under the hood it uses GMTSAR binary tools which should be installed.
@@ -1003,13 +984,9 @@ All other packages installation is straightforward:
 ```
 python3 -m pip install \
     h5py netcdf4 h5netcdf \
-    rasterio rioxarray numpy \
-    scikit-image scipy sklearn \
-    xarray dask distributed zarr nc-time-axis \
-    pandas geopandas \
-    sentineleof elevation \
-    matplotlib seaborn geoviews hvplot datashader bokeh \
-    xmltodict joblib tqdm
+    rasterio scikit-image \
+    distributed zarr nc-time-axis \
+    matplotlib seaborn geoviews hvplot datashader bokeh
 ```
 
 Note: SciPy does not support [Apple Accelerate Framework](https://developer.apple.com/documentation/accelerate) on MacOS and SciPy custom compilation is useless.
@@ -1068,13 +1045,9 @@ python3 -m pip install install scipy==1.7.1   1>/dev/null 2>/dev/null
 
 python3 -m pip install \
     h5py netcdf4 h5netcdf \
-    rasterio rioxarray numpy \
-    scikit-image scipy sklearn \
-    xarray dask distributed zarr nc-time-axis \
-    pandas geopandas \
-    sentineleof elevation \
-    matplotlib seaborn geoviews hvplot datashader bokeh \
-    xmltodict joblib tqdm 1>/dev/null 2>/dev/null
+    rasterio scikit-image \
+    distributed zarr nc-time-axis \
+    matplotlib seaborn geoviews hvplot datashader bokeh
 ```
 
 Install the library using PIP packages manager as
@@ -1201,3 +1174,22 @@ GMTSAR compilation is possible on any POSIX-compatible Unix/Linux/BSD system whi
 
 
 ### @ Alexey Pechnikov, September, 2022
+
+<!-- Setup title and logo -->
+<script>
+document.querySelector("header h1").textContent = 'PyGMTSAR'
+document.querySelector("header p").textContent = 'Easy and Fast Satellite Interferometry For Everyone'
+//document.querySelector("header p a").textContent = 'View on GitHub mobigroup/gmtsar'
+this.img = document.createElement("img");
+this.img.style.cssText = 'width: 200px';
+this.img.src = "https://user-images.githubusercontent.com/7342379/190416030-5388bf04-e322-4616-9d33-adf84247d976.png";
+src = document.querySelector("p.view");
+src.appendChild(this.img);
+</script>
+
+<style>
+div.wrapper {width: 960px;}
+section {width: 720px;}
+header {width: 230px;}
+footer {width: 230px;}
+</style>
