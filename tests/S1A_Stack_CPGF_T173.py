@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# download dataset from GMTSAR official site:
+#wget -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
+#tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
+
 from pygmtsar import SBAS
 import numpy as np
 
