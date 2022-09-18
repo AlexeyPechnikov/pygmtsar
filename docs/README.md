@@ -10,8 +10,10 @@ this.img.src = "https://user-images.githubusercontent.com/7342379/190416030-5388
 src = document.querySelector("p.view");
 src.appendChild(this.img);
 // change layout
-document.querySelector("div.wrapper").style.width='1080px';
+document.querySelector("div.wrapper").style.width='980px';
 document.querySelector("section").style.width='720px';
+document.querySelector("header").style.width='220px';
+document.querySelector("footer").style.width='220px';
 </script>
 
 
