@@ -31,7 +31,7 @@ jobs:
         #BRANCH=master
 
         # prepare system
-        #sudo apt update
+        sudo apt update
         #sudo apt -y upgrade
         #sudo apt install -y locales
         # Uncomment en_US.UTF-8 for inclusion in generation
