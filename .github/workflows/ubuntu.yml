@@ -23,26 +23,11 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         uname -a
-        #GMTSAR=/usr/local/GMTSAR
-        #GIT=https://github.com/gmtsar/gmtsar
-        #BRANCH=master
-
         # prepare system
         sudo apt update
-        #sudo apt -y upgrade
-        #sudo apt install -y locales
-        # Uncomment en_US.UTF-8 for inclusion in generation
-        #sudo sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
-        # Generate locale
-        #sudo locale-gen en_US.UTF-8
-        # Export env vars
-        #sudo echo "export LC_ALL=en_US.UTF-8" >> /root/.bashrc
-        #sudo echo "export LANG=en_US.UTF-8" >> /root/.bashrc
-        #sudo echo "export LANGUAGE=en_US.UTF-8" >> /root/.bashrc
-
         # https://github.com/gmtsar/gmtsar/wiki/GMTSAR-Wiki-Page
         sudo apt install -y csh subversion autoconf libtiff5-dev libhdf5-dev wget
         sudo apt install -y liblapack-dev
@@ -66,7 +51,6 @@ jobs:
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
       run: |
-        #export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
         # upgrade package to resolve dependencies
         pip3 install click --upgrade
         pip3 install -e ./pygmtsar/
@@ -80,7 +64,4 @@ jobs:
       working-directory: tests
       run: |
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
-        #echo "Start gmtsar_sharedir.csh"
-        #gmtsar_sharedir.csh
-        #echo "Start S1A_Stack_CPGF_T173.py"
         python3 ./S1A_Stack_CPGF_T173.py
