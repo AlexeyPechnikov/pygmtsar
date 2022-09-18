@@ -1,3 +1,6 @@
+![Linux tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)
+[![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
+
 ## About
 
 PyGMTSAR (Python GMTSAR) is an open source project and Python package that provides easy and fast Sentinel-1 Satellite Interferometry for everyone! While it's pure Python package under the hood it uses GMTSAR binary tools which should be installed.
