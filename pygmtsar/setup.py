@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='pygmtsar',
-    version='2022.9.17.3',
+    version='2022.9.18',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -31,7 +31,9 @@ setup(
                       'sklearn',
                       'elevation',
                       'xmltodict',
-                      'rioxarray'
+                      'rioxarray',
+                      'ipywidgets',
+                      'h5netcdf'
                       ],
 
     classifiers=[
