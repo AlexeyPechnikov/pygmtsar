@@ -9,7 +9,7 @@ The goal of the project is easy and fast satellite interferometry (InSAR) proces
 
 ### Live Examples on Google Colab - just click on the links to run the processing in your own browser without any software installation
 
-The notebooks are interactive examples available directly in your web browser. All the steps automated including the software installation on Google Colab cloud host and downloading of Sentinel-1 orbit files, SRTM DEM (with convertation to ellispoidal heights using EGM96 model), landmask (to mask low-coherence water surfaces), Sentinel-1 raw scenes from Alaska Satellite Facility (ASF) datastore and, of course, the complete interferometry processing and the results mapping.
+The notebooks are interactive examples available directly in your web browser. All the steps automated including the software installation on Google Colab cloud host and downloading of Sentinel-1 orbit files, SRTM DEM (and its conversion to ellispoidal heights using EGM96 model), a landmask (to mask low-coherence water surfaces), Sentinel-1 raw scenes from Alaska Satellite Facility (ASF) datastore and, of course, the complete interferometry processing and the results mapping.
 
 #### Simple Notebooks on Google Colab to Compare Results to GMTSAR, SNAP and GAMMA Software
 
