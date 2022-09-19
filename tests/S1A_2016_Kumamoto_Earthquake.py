@@ -38,7 +38,8 @@ print (sbas.get_landmask())
 # Unwrapping
 landmask_ra = sbas.get_landmask(inverse_geocode=True)
 cleaner = lambda corr, unwrap: xr.where(corr>=CORRLIMIT, unwrap, np.nan)
-sbas.unwrap_parallel(pairs, threshold=CORRLIMIT, mask=landmask_ra, func=cleaner)
+conf = sbas.snaphu_config(NTILEROW=2, NTILECOL=2, ROWOVRLP=200, COLOVRLP=200)
+sbas.unwrap_parallel(pairs, threshold=CORRLIMIT, mask=landmask_ra, func=cleaner, conf=conf)
 print (sbas.open_grids(pairs, 'unwrap', geocode=True)[0])
 print (sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm, geocode=True)[0])
 # Incidence angle
