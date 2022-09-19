@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  S1A_2016_Kumamoto_Earthquake:
+  S1AB_2021_Crete_Earthquake:
 
     runs-on: ubuntu-latest
 
@@ -59,9 +59,9 @@ jobs:
       run: |
         # download iCloud datasets
         cat > icloud_urls.txt <<- END
-        https://www.icloud.com/iclouddrive/04946wsi9N5g0W6beTl_KUvQg#S1A_IW_SLC__1SSV_20160408T091355_20160408T091430_010728_01001F_83EB.zip
-        https://www.icloud.com/iclouddrive/059EHU1iazg_CDEBWd7CPjXnQ#S1A_IW_SLC__1SSV_20160420T091355_20160420T091423_010903_010569_F9CE.zip
-        https://www.icloud.com/iclouddrive/042d2NP0tDVFz_N39jCu5yyVA#S1A_Kumamoto_Earthquake_ESA_Sentinel_1_Toolbox.jpg
+        https://www.icloud.com/iclouddrive/060EcVsMZF5o5nDoyAxHZ-JgQ#S1A_IW_SLC__1SDV_20210929T162245_20210929T162312_039899_04B89A_651D.zip
+        https://www.icloud.com/iclouddrive/0bcQQkK2QDSiX76_y1O6zfd_Q#S1B_IW_SLC__1SDV_20210923T162204_20210923T162231_028828_0370C4_681D.zip
+        https://www.icloud.com/iclouddrive/085_X__5ZszrqcnP--SGCH-tw#S1AB_Crete_Earthquake_vs_geObsevatory.jpg
         END
         cut -f5 -d '/' icloud_urls.txt | cut -f1 -d '#' | sed -E 's/(.*)/{"shortGUIDs":[{"value":"\1"}]}/' > requests.txt
         cut -f5 -d '/' icloud_urls.txt | cut -f2 -d '#' > fnames.txt
@@ -75,15 +75,15 @@ jobs:
             curl -so "${fname}" "${url}"
         done
         # unpack to data directory
-        mkdir -p data
-        unzip -j -n S1A_IW_SLC__1SSV_20160408T091355_20160408T091430_010728_01001F_83EB.zip \
-            '*.SAFE/*/s1?-iw1-slc-vv-*-001.xml' -d data
-        unzip -j -n S1A_IW_SLC__1SSV_20160408T091355_20160408T091430_010728_01001F_83EB.zip \
-            '*.SAFE/*/s1?-iw1-slc-vv-*-001.tiff' -d data
-        unzip -j -n S1A_IW_SLC__1SSV_20160420T091355_20160420T091423_010903_010569_F9CE.zip \
-            '*.SAFE/*/s1?-iw1-slc-vv-*-001.xml' -d data
-        unzip -j -n S1A_IW_SLC__1SSV_20160420T091355_20160420T091423_010903_010569_F9CE.zip \
-            '*.SAFE/*/s1?-iw1-slc-vv-*-001.tiff' -d data
+        !mkdir -p data
+        !unzip -j -n S1A_IW_SLC__1SDV_20210929T162245_20210929T162312_039899_04B89A_651D.zip \
+            '*.SAFE/*/s1?-iw3-slc-vv-*-006.xml' -d data
+        !unzip -j -n S1A_IW_SLC__1SDV_20210929T162245_20210929T162312_039899_04B89A_651D.zip \
+            '*.SAFE/*/s1?-iw3-slc-vv-*-006.tiff' -d data
+        !unzip -j -n S1B_IW_SLC__1SDV_20210923T162204_20210923T162231_028828_0370C4_681D.zip \
+        '*.SAFE/*/s1?-iw3-slc-vv-*-006.xml' -d data
+        !unzip -j -n S1B_IW_SLC__1SDV_20210923T162204_20210923T162231_028828_0370C4_681D.zip \
+        '*.SAFE/*/s1?-iw3-slc-vv-*-006.tiff' -d data
         # cleanup
         rm *.zip
         # check
@@ -93,4 +93,4 @@ jobs:
       working-directory: tests
       run: |
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
-        python3 ./S1A_2016_Kumamoto_Earthquake.py
+        python3 ./S1AB_2021_Crete_Earthquake.py
