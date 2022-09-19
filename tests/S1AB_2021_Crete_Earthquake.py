@@ -22,7 +22,7 @@ sbas.reframe_parallel()
 print (sbas.get_pins())
 sbas.to_dataframe()
 # Download DEM
-sbas.download_dem(backend='GMT')
+sbas.download_dem(backend='GMT', product='SRTM3')
 print (sbas.get_dem())
 # Align a Stack of Images
 sbas.stack_parallel()
