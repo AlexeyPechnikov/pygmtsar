@@ -17,7 +17,8 @@ print (sbas.to_dataframe())
 sbas.download_orbits()
 print (sbas.to_dataframe())
 # Download DEM
-sbas.download_dem(backend='GMT')
+#sbas.download_dem(backend='GMT')
+sbas.download_dem(product='SRTM1')
 print (sbas.get_dem())
 # Align a Stack of Images
 sbas.stack_parallel()
