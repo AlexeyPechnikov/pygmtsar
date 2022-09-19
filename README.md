@@ -3,6 +3,7 @@
 ![MacOS tests](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml/badge.svg)
 ![Ubuntu tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
+![Build docs](https://github.com/mobigroup/gmtsar/actions/workflows/pages/pages-build-deployment/badge.svg)
 
 This repository based on forked original GMTSAR and extended by my patches to binary tools and Python library PyGMTSAR. I commit my changes to binary tools to GMTSAR upstream and so it's possible to use the original GMTSAR master branch installation plus PyGMTSAR Python package via PIP. The project documentation including installation instructions available by the link: https://mobigroup.github.io/gmtsar/
 
