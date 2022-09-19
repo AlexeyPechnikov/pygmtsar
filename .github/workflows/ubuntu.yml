@@ -92,6 +92,8 @@ jobs:
         sudo apt install -y gmt
         # add missed package
         sudo apt install -y make
+        # for old DEM downloading backend
+        sudo apt install -y gdal-bin
     - name: Compile GMTSAR
       run: |
         autoconf
