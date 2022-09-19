@@ -75,15 +75,15 @@ jobs:
             curl -so "${fname}" "${url}"
         done
         # unpack to data directory
-        !mkdir -p data
-        !unzip -j -n S1A_IW_SLC__1SDV_20210929T162245_20210929T162312_039899_04B89A_651D.zip \
+        mkdir -p data
+        unzip -j -n S1A_IW_SLC__1SDV_20210929T162245_20210929T162312_039899_04B89A_651D.zip \
             '*.SAFE/*/s1?-iw3-slc-vv-*-006.xml' -d data
-        !unzip -j -n S1A_IW_SLC__1SDV_20210929T162245_20210929T162312_039899_04B89A_651D.zip \
+        unzip -j -n S1A_IW_SLC__1SDV_20210929T162245_20210929T162312_039899_04B89A_651D.zip \
             '*.SAFE/*/s1?-iw3-slc-vv-*-006.tiff' -d data
-        !unzip -j -n S1B_IW_SLC__1SDV_20210923T162204_20210923T162231_028828_0370C4_681D.zip \
-        '*.SAFE/*/s1?-iw3-slc-vv-*-006.xml' -d data
-        !unzip -j -n S1B_IW_SLC__1SDV_20210923T162204_20210923T162231_028828_0370C4_681D.zip \
-        '*.SAFE/*/s1?-iw3-slc-vv-*-006.tiff' -d data
+        unzip -j -n S1B_IW_SLC__1SDV_20210923T162204_20210923T162231_028828_0370C4_681D.zip \
+            '*.SAFE/*/s1?-iw3-slc-vv-*-006.xml' -d data
+        unzip -j -n S1B_IW_SLC__1SDV_20210923T162204_20210923T162231_028828_0370C4_681D.zip \
+            '*.SAFE/*/s1?-iw3-slc-vv-*-006.tiff' -d data
         # cleanup
         rm *.zip
         # check
