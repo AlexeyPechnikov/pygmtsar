@@ -483,8 +483,7 @@ class SBAS:
         import elevation
         import os
         import subprocess
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         # 0.000833333333333 cell size for SRTM3 90m
         # 0.000277777777778 cell size for SRTM1 30m
@@ -521,7 +520,7 @@ class SBAS:
                             margin=str(buffer_degrees),
                             output=os.path.realpath(tif_filename))
             elevation.clean()
-        with self.tqdm_joblib(notebook.tqdm(desc='Downloading', total=1)) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Downloading', total=1)) as progress_bar:
             _ = joblib.Parallel(n_jobs=1)(joblib.delayed(func)() for i in [1])
 
         #if not os.path.exists(grd_filename):
@@ -556,8 +555,7 @@ class SBAS:
         from pygmtsar import PRM
         import os
         import subprocess
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         # 0.000833333333333 cell size for SRTM3 90m
         # 0.000277777777778 cell size for SRTM1 30m
         scale = 0.000833333333333/90
@@ -604,7 +602,7 @@ class SBAS:
                 print (cmd.stdout)
 
         # use GMT commands pipeline to download and preprocess the DEM
-        with notebook.tqdm(desc='DEM Downloading', total=1) as pbar:
+        with tqdm(desc='DEM Downloading', total=1) as pbar:
             # get srtm data
             argv = ['gmt', 'grdcut', gridname, f'-R{minx}/{maxx}/{miny}/{maxy}', f'-G{ortho_filename}', '-V']
             run_cmd(argv)
@@ -630,8 +628,7 @@ class SBAS:
         """
         import os
         import subprocess
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
 
         if self.landmask_filename is not None:
             print ('NOTE: landmask exists, ignore the command. Use SBAS.set_landmask(None) to allow new landmask downloading')
@@ -660,7 +657,7 @@ class SBAS:
                 print (cmd.stdout)
 
         # use GMT commands pipeline to download and preprocess the DEM
-        with notebook.tqdm(desc='Landmask Downloading', total=1) as pbar:
+        with tqdm(desc='Landmask Downloading', total=1) as pbar:
             argv = ['gmt', 'grdlandmask', f'-G{landmask_filename}',
                     f'-R{llmin}/{llmax}/{ltmin}/{ltmax}', f'-I{scale}', '-V', '-NNaN/1', '-Df']
             run_cmd(argv)
@@ -974,8 +971,7 @@ class SBAS:
         return df
 
     def reframe_parallel(self, dates=None, n_jobs=-1, **kwargs):
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import pandas as pd
 
@@ -989,7 +985,7 @@ class SBAS:
         subswaths = self.get_subswaths()
 
         # process all the scenes
-        with self.tqdm_joblib(notebook.tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
             records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe)(subswath, date, **kwargs) \
                                                      for date in dates for subswath in subswaths)
 
@@ -999,8 +995,7 @@ class SBAS:
         """
         Geocoding function based on interferogram geocode matrix to call from open_grids(geocode=True)
         """
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import xarray as xr
         import numpy as np
@@ -1046,7 +1041,7 @@ class SBAS:
             return ra2ll(grids)
 
         # process a set of 2D rasters
-        with self.tqdm_joblib(notebook.tqdm(desc='Geocoding', total=len(grids))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Geocoding', total=len(grids))) as progress_bar:
             grids_ll = joblib.Parallel(n_jobs=-1)(joblib.delayed(ra2ll)(grids[item]) for item in range(len(grids)))
         grids_ll = xr.concat(grids_ll, dim=grids.dims[0])
 
@@ -1216,8 +1211,7 @@ class SBAS:
         """
         Inverse geocoding function based on interferogram geocode matrix to call from open_grids(inverse_geocode=True)
         """
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import xarray as xr
         import numpy as np
@@ -1258,7 +1252,7 @@ class SBAS:
             return ll2ra(grids)
 
         # process a set of 2D rasters
-        with self.tqdm_joblib(notebook.tqdm(desc='Geocoding', total=len(grids))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Geocoding', total=len(grids))) as progress_bar:
             grids_ll = joblib.Parallel(n_jobs=-1)(joblib.delayed(ll2ra)(grids[item]) for item in range(len(grids)))
         grids_ll = xr.concat(grids_ll, dim=grids.dims[0])
 
@@ -1271,12 +1265,12 @@ class SBAS:
         return grids_ll
 
     def topo_ra_parallel(self, n_jobs=-1, **kwargs):
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
     
         # process all the subswaths
         subswaths = self.get_subswaths()
-        with self.tqdm_joblib(notebook.tqdm(desc='Transforming Coordinates', total=len(subswaths))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Transforming Coordinates', total=len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.topo_ra)(subswath, **kwargs) \
                                                      for subswath in subswaths)
 
@@ -1700,8 +1694,7 @@ class SBAS:
             os.remove(filename)
 
     def stack_parallel(self, dates=None, n_jobs=-1, **kwargs):
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
 
         if dates is None:
@@ -1711,11 +1704,11 @@ class SBAS:
 
         # prepare master image
         #self.stack_ref()
-        with self.tqdm_joblib(notebook.tqdm(desc='Reference', total=len(subswaths))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Reference', total=len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.stack_ref)(subswath, **kwargs) for subswath in subswaths)
 
         # prepare secondary images
-        with self.tqdm_joblib(notebook.tqdm(desc='Aligning', total=len(dates)*len(subswaths))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Aligning', total=len(dates)*len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.stack_rep)(subswath, date, **kwargs) \
                                            for date in dates for subswath in subswaths)
 
@@ -1739,8 +1732,7 @@ class SBAS:
     def intf_parallel(self, pairs, n_jobs=-1, **kwargs):
         import pandas as pd
         import numpy as np
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         from joblib.externals import loky
         import os
@@ -1751,7 +1743,7 @@ class SBAS:
         subswaths = self.get_subswaths()
 
         # this way does not work properly for long interferogram series
-        #with self.tqdm_joblib(notebook.tqdm(desc='Interferograms', total=len(pairs))) as progress_bar:
+        #with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs))) as progress_bar:
         #    joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
 
         # start a set of jobs together but not more than available cpu cores at once
@@ -1760,7 +1752,7 @@ class SBAS:
         n_chunks = int(np.ceil(len(pairs)/n_jobs))
         chunks = np.array_split(pairs, n_chunks)
         #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
-        with notebook.tqdm(desc='Interferograms', total=len(pairs)*len(subswaths)) as pbar:
+        with tqdm(desc='Interferograms', total=len(pairs)*len(subswaths)) as pbar:
             for chunk in chunks:
                 loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
                 with joblib.parallel_backend('loky', n_jobs=n_jobs, inner_max_num_threads=1):
@@ -1860,9 +1852,7 @@ class SBAS:
             os.remove(filename)
 
     def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=-1, **kwargs):
-        #def merge(self, pair, grid, debug=False):
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import pandas as pd
         import geopandas as gpd
@@ -1876,7 +1866,7 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-        with self.tqdm_joblib(notebook.tqdm(desc='Merging Subswaths', total=len(pairs)*len(grids))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Merging Subswaths', total=len(pairs)*len(grids))) as progress_bar:
             records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) \
                                            for pair in pairs for grid in grids)
 
@@ -2012,8 +2002,7 @@ class SBAS:
 
     def unwrap_parallel(self, pairs, n_jobs=-1, **kwargs):
         import pandas as pd
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import os
 
@@ -2030,7 +2019,7 @@ class SBAS:
 
         subswaths = self.get_subswaths()
 
-        with self.tqdm_joblib(notebook.tqdm(desc='Unwrapping', total=len(pairs)*len(subswaths))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Unwrapping', total=len(pairs)*len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap)(subswath, pair, **kwargs) \
                                            for subswath in subswaths for pair in pairs)
 
@@ -2240,8 +2229,7 @@ class SBAS:
         import pandas as pd
         import xarray as xr
         import numpy as np
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import os
 
@@ -2308,7 +2296,7 @@ class SBAS:
                     #das.append(da.expand_dims('date'))
 
                 # post-processing on a set of 2D rasters
-                with self.tqdm_joblib(notebook.tqdm(desc='Loading', total=len(das))) as progress_bar:
+                with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
 
                 # prepare to stacking
@@ -2337,7 +2325,7 @@ class SBAS:
                     #das.append(da.expand_dims('pair'))
 
                 # post-processing on a set of 2D rasters
-                with self.tqdm_joblib(notebook.tqdm(desc='Loading', total=len(das))) as progress_bar:
+                with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
 
                 # prepare to stacking
@@ -2384,8 +2372,7 @@ class SBAS:
         return (np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1))
 
     def detrend_parallel(self, pairs, n_jobs=-1, **kwargs):
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import pandas as pd
 
@@ -2395,7 +2382,7 @@ class SBAS:
         subswaths = self.get_subswaths()
 
         # process all the scenes
-        with self.tqdm_joblib(notebook.tqdm(desc='Detrending', total=len(pairs)*len(subswaths))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Detrending', total=len(pairs)*len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, **kwargs) \
                                                      for subswath in subswaths for pair in pairs)
 
@@ -2527,8 +2514,7 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import pandas as pd
-        #from tqdm import tqdm
-        from tqdm import notebook
+        from tqdm.auto import tqdm
         import joblib
         import os
 
@@ -2636,7 +2622,7 @@ class SBAS:
             return chunk_filename
     
         # process all the chunks
-        with self.tqdm_joblib(notebook.tqdm(desc='Computing', total=ys*xs)) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Computing', total=ys*xs)) as progress_bar:
             filenames = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(iy, ix) \
                                                      for iy in range(ys) for ix in range(xs))
     
@@ -2661,7 +2647,7 @@ class SBAS:
                         engine=self.netcdf_engine)
 
         # saving all the grids
-        with self.tqdm_joblib(notebook.tqdm(desc='Saving', total=len(das.date))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Saving', total=len(das.date))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date.values)
 
         # cleanup
