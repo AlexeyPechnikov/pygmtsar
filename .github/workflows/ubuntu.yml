@@ -54,6 +54,12 @@ jobs:
         # upgrade package to resolve dependencies
         pip3 install click --upgrade
         pip3 install -e ./pygmtsar/
+    - name: Cache dataset
+      uses: actions/cache@v3
+      with:
+        path: tests/S1A_Stack_CPGF_T173.tar.gz
+        key: S1A_Stack_CPGF_T173.tar.gz
+        restore-keys: S1A_Stack_CPGF_T173.tar.gz
     - name: Download dataset
       working-directory: tests
       run: |
