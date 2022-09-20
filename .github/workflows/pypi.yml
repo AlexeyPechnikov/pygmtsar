@@ -57,8 +57,8 @@ jobs:
     - name: Cache dataset
       uses: actions/cache@v3
       with:
-        path: |
-          tests/S1A_Stack_CPGF_T173.tar.gz
+        path: tests/S1A_Stack_CPGF_T173.tar.gz
+        key: S1A_Stack_CPGF_T173.tar.gz
     - name: Download dataset
       working-directory: tests
       run: |
