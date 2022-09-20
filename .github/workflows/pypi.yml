@@ -65,7 +65,6 @@ jobs:
       run: |
         wget -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
         tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
-        rm -f S1A_Stack_CPGF_T173.tar.gz
     - name: Run test
       working-directory: tests
       run: |
