@@ -2,6 +2,7 @@
 ![Ubuntu tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
 [![Build docs](https://github.com/mobigroup/gmtsar/actions/workflows/pages/pages-build-deployment/badge.svg)](https://mobigroup.github.io/gmtsar/)
+![PyPI tests](https://github.com/mobigroup/gmtsar/actions/workflows/pypi.yml/badge.svg)
 
 ## PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone
 
