@@ -15,14 +15,17 @@ permissions:
 jobs:
   S1A_Stack_CPGF_T173:
 
-    runs-on: macos-latest
-
+    strategy:
+      matrix:
+        os: [macos-12, macos-11]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.10
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
-        python-version: "3.10"
+        python-version: ${{ matrix.python-version }}
     - name: Install system dependencies
       run: |
         uname -a
@@ -48,7 +51,7 @@ jobs:
       with:
         path: tests/S1A_Stack_CPGF_T173.tar.gz
         key: S1A_Stack_CPGF_T173.tar.gz
-        restore-keys: S1A_Stack_CPGF_T173.tar.gz
+        restore-keys: S1A_Stack_CPGF_T173
     - name: Download dataset
       working-directory: tests
       run: |
