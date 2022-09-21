@@ -16,6 +16,7 @@ jobs:
   S1A_Stack_CPGF_T173:
 
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-12, macos-11]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
