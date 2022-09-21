@@ -16,8 +16,9 @@ jobs:
   S1A_Stack_CPGF_T173:
 
     strategy:
+      fail-fast: false
       matrix:
-        os: ["ubuntu-22.04", "ubuntu-20.04", "ubuntu-18.04"]
+        os: ["ubuntu-20.04", "ubuntu-18.04"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
     runs-on: ${{ matrix.os }}
     steps:
