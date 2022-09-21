@@ -2290,10 +2290,7 @@ class SBAS:
                     filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
                     #print (date, filename)
                     da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
-                    da = postprocess(da, subswath)
                     das.append(da)
-                    #da = postprocess(da, subswath)
-                    #das.append(da.expand_dims('date'))
 
                 # post-processing on a set of 2D rasters
                 with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
@@ -2321,8 +2318,6 @@ class SBAS:
                     #print (filename)
                     da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
                     das.append(da)
-                    #da = postprocess(da, subswath)
-                    #das.append(da.expand_dims('pair'))
 
                 # post-processing on a set of 2D rasters
                 with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
