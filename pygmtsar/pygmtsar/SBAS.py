@@ -2378,10 +2378,11 @@ class SBAS:
 
         # process all the scenes
         with self.tqdm_joblib(tqdm(desc='Detrending', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, **kwargs) \
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, interactive=False, **kwargs) \
                                                      for subswath in subswaths for pair in pairs)
 
-    def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, approximate=True, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
+    def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, approximate=True,
+                fit_intercept=True, fit_dem=True, fit_coords=True, interactive=True, debug=False):
         """
         Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
@@ -2414,6 +2415,15 @@ class SBAS:
         # topography grid defined in radar coordinates for larger area and different spacing
         if topo_ra is None:
             topo_ra = self.get_topo_ra()
+
+        def postprocessing(out):
+            #print ('interactive', interactive)
+            if interactive:
+                return out.rename('phase')
+            # save to NetCDF file
+            if os.path.exists(detrend_filename):
+                os.remove(detrend_filename)
+            out.rename('phase').to_netcdf(detrend_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # raster pixel spacing
         dy, dx = self.pixel_spacing(phase)
@@ -2467,11 +2477,11 @@ class SBAS:
         elif fit_intercept:
             if debug:
                 print ('NOTE: Remove mean value only')
-            return phase - phase.mean()
+            return postprocessing(phase - phase.mean())
         else:
             if debug:
                 print ('NOTE: No detrending')
-            return phase
+            return postprocessing(phase)
 
         # build prediction model with or without plane removal (fit_intercept)
         regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
@@ -2481,15 +2491,7 @@ class SBAS:
         model = xr.DataArray(np.nan * np.zeros(phase.shape), coords=phase.coords)
         model.values.reshape(-1)[~nanmask] = regr.predict(X)
 
-        # calculate output
-        out = (phase - model).rename('phase')
-
-        # save to NetCDF file
-        if os.path.exists(detrend_filename):
-            os.remove(detrend_filename)
-        out.to_netcdf(detrend_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
-    
-        return out
+        return postprocessing(phase - model)
 
     def make_gaussian_filter(self, range_dec, azi_dec, wavelength, debug=False):
         """
