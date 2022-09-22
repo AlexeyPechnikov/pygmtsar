@@ -2110,8 +2110,7 @@ class SBAS:
         if conncomp:
             # convert to grid the connected components from SNAPHU output as is (UCHAR)
             values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
-            conncomp = xr.DataArray(values, phase.coords, name='conncomp')
-            conncomp.to_netcdf(conncomp_filename, encoding={'conncomp': self.netcdf_compression}, engine=self.netcdf_engine)
+            conn = xr.DataArray(values, phase.coords, name='conncomp')
 
         # convert to grid unwrapped phase from SNAPHU output applying postprocessing
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
@@ -2130,7 +2129,11 @@ class SBAS:
                 os.remove(tmp_file)
 
         if interactive:
-            return unwrap
+            return (unwrap, conn) if conncomp else unwrap
+
+        # not interactive mode, save all the results to disk
+        if conncomp:
+            conn.to_netcdf(conncomp_filename, encoding={'conncomp': self.netcdf_compression}, engine=self.netcdf_engine)
         # save to NetCDF file
         unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
