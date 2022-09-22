@@ -2020,13 +2020,14 @@ class SBAS:
         subswaths = self.get_subswaths()
 
         with self.tqdm_joblib(tqdm(desc='Unwrapping', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap)(subswath, pair, **kwargs) \
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap)(subswath, pair, interactive=False, **kwargs) \
                                            for subswath in subswaths for pair in pairs)
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
-    def unwrap(self, subswath, pair, threshold=None, conf=None, func=None, mask=None, conncomp=False, debug=False):
+    def unwrap(self, subswath, pair, threshold=None, conf=None, func=None, mask=None, conncomp=False,
+               interactive=True, debug=False):
         import xarray as xr
         import numpy as np
         import os
@@ -2122,16 +2123,16 @@ class SBAS:
         # apply binary mask after the post-processing to completely exclude masked regions
         # NaN values allowed in the output grid, assign userfriendly name for the output grid
         unwrap = unwrap.where(binmask>0).rename('phase')
-        # save to NetCDF file
-        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
         for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
             #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
                 os.remove(tmp_file)
 
-        # use it to map the result immediately
-        return unwrap
+        if interactive:
+            return unwrap
+        # save to NetCDF file
+        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, unwraps):
