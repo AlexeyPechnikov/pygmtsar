@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-20.04", "ubuntu-18.04"]
+        os: ["ubuntu-22.04", "ubuntu-20.04", "ubuntu-18.04"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
     runs-on: ${{ matrix.os }}
     steps:
@@ -46,8 +46,8 @@ jobs:
     - name: Compile GMTSAR
       run: |
         autoconf
-        ./configure --with-orbits-dir=/tmp
-        make
+        ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+        make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
         # check installation
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin

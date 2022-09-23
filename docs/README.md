@@ -1127,16 +1127,6 @@ BRANCH=master
 
 # prepare system
 apt update
-apt -y upgrade
-apt install -y locales
-# Uncomment en_US.UTF-8 for inclusion in generation
-sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
-# Generate locale
-locale-gen en_US.UTF-8
-# Export env vars
-echo "export LC_ALL=en_US.UTF-8" >> /root/.bashrc
-echo "export LANG=en_US.UTF-8" >> /root/.bashrc
-echo "export LANGUAGE=en_US.UTF-8" >> /root/.bashrc
 
 # https://github.com/gmtsar/gmtsar/wiki/GMTSAR-Wiki-Page
 apt install -y csh subversion autoconf libtiff5-dev libhdf5-dev wget
@@ -1147,7 +1137,7 @@ apt install -y libgmt-dev
 apt install -y gmt-dcw gmt-gshhg
 # gmt-gshhg-full should be installed automatically (it is required to use GMTSAR landmask)
 apt install -y gmt
-# fix for missed "gs" utility and git and make tools
+# fix for missed git and make tools
 apt install -y git make
 
 cd $(dirname "$GMTSAR")
@@ -1159,19 +1149,21 @@ make
 make install
 ```
 
-### Install GMTSAR binaries on Ubuntu 18.04 (bionic)
-
-This operation system is installed on Google Colab platform and the Live Google Colab notebooks include the installation commands.
+### Install GMTSAR binaries on Ubuntu 18.04, 20.04, 22.04
 
 ```
 apt install -y csh autoconf gfortran \
-    libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt > /dev/null
-cd /usr/local && git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR > /dev/null
-cd /usr/local/GMTSAR && autoconf > /dev/null
-cd /usr/local/GMTSAR && ./configure --with-orbits-dir=/tmp > /dev/null
-cd /usr/local/GMTSAR && make 1>/dev/null 2>/dev/null
-cd /usr/local/GMTSAR && make install >/dev/null
+    libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt
+cd /usr/local && git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
+cd /usr/local/GMTSAR && autoconf
+cd /usr/local/GMTSAR && ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+cd /usr/local/GMTSAR && make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+cd /usr/local/GMTSAR && make install
 ```
+
+Note: only Ubuntu 22.04 requires additional flags "-z muldefs" while these are safe to add on any Ubuntu version.
+
+Note: Ubuntu 18.04 (bionic) operation system installed on Google Colab platform and the Live Google Colab notebooks include the installation commands.
 
 ### Install GMTSAR binaries on some other operation system
 
