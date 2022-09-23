@@ -1,0 +1,75 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: TODO
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  S1A_Stack_CPGF_T173:
+
+    strategy:
+      matrix:
+        os: ["ubuntu-22.04", "ubuntu-20.04", "ubuntu-18.04"]
+        python-version: ["3.10"]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install system dependencies
+      run: |
+        uname -a
+        # prepare system
+        sudo apt update
+        # https://github.com/gmtsar/gmtsar/wiki/GMTSAR-Wiki-Page
+        sudo apt install -y csh subversion autoconf libtiff5-dev libhdf5-dev wget
+        sudo apt install -y liblapack-dev
+        sudo apt install -y gfortran
+        sudo apt install -y g++
+        sudo apt install -y libgmt-dev
+        sudo apt install -y gmt-dcw gmt-gshhg
+        # gmt-gshhg-full should be installed automatically (it is required to use GMTSAR landmask)
+        sudo apt install -y gmt
+        # add missed package
+        sudo apt install -y make
+    - name: Compile GMTSAR
+      run: |
+        autoconf
+        ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+        make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+        make install
+        # check installation
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        echo "Start gmtsar_sharedir.csh"
+        gmtsar_sharedir.csh
+    - name: Install PyGMTSAR
+      run: |
+        # upgrade package to resolve dependencies
+        pip3 install click --upgrade
+        pip3 install pygmtsar
+    - name: Cache dataset
+      uses: actions/cache@v3
+      with:
+        path: tests/S1A_Stack_CPGF_T173.tar.gz
+        key: S1A_Stack_CPGF_T173.tar.gz
+        restore-keys: S1A_Stack_CPGF_T173
+    - name: Download dataset
+      working-directory: tests
+      run: |
+        wget -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
+        tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
+    - name: Run test
+      working-directory: tests
+      run: |
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        python3 ./S1A_Stack_CPGF_T173.py
