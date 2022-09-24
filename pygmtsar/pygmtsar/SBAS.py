@@ -372,26 +372,43 @@ class SBAS:
             print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
         return error, warning   
 
-    def backup(self, backup_dir):
+    def backup(self, backup_dir, copy=False):
         import os
         import shutil
 
         os.makedirs(backup_dir, exist_ok=True)
-    
-        # prepare list of all the files including DEM file
+
+        # this optional file is dumped state, copy it if exists
+        # auto-generated file can't be a symlink but user-defined symlink target should be copied
+        filename = os.path.join(self.basedir, 'SBAS.pickle')
+        if os.path.exists(filename):
+            shutil.copy2(filename, backup_dir, follow_symlinks=True)
+
+        # these files required to continue the processing, do not remove and copy only
         filenames = [self.dem_filename, self.landmask_filename]
+        for filename in filenames:
+            # DEM and landmask can be not defined
+            if filename is None:
+                continue
+            shutil.copy2(filename, backup_dir, follow_symlinks=True)
+
+        # these files are large and are not required to continue the processing
+        filenames = []
         for record in self.df.itertuples():
             for filename in [record.datapath, record.metapath, record.orbitpath]:
                 filenames += filename if isinstance(filename, list) else [filename]
-    
         for filename in filenames:
-            # DEM , landmask and orbit files can be not defined
+            # orbit files can be not defined
             if filename is None:
                 continue
-            shutil.copy2(filename, backup_dir)
+            # copy and delete the original later to prevent cross-device links issues
+            shutil.copy2(filename, backup_dir, follow_symlinks=True)
+            if not copy and self.basedir == os.path.dirname(filename):
+                # when copy is not needed then delete files in work directory only
+                os.remove(filename)
 
         return
-    
+
     def set_master(self, master):
         """
         Set master image date

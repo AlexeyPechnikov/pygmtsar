@@ -851,13 +851,14 @@ def restore(from_path=None):
 ```
 
 ```
-def backup(self, backup_dir):
+def backup(self, backup_dir, copy=False, follow_symlinks=False):
     
 		Backup framed SBAS scenes, orbits, DEM and landmask files to build a minimal reproducible dataset.
 		
 	Args:
-			backup_dir: backup directory.      
-	
+			backup_dir: backup directory.
+      copy: boolean flag to make a copy of scene and orbit files and remove the originals in work directory only when copy=False. DEM and landmask files are always copied. Attention: avoid copy=True when possible because these files are not required to continue the processing but large.
+
 		Returns:
 	    None
 	

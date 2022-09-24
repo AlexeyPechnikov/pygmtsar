@@ -5,8 +5,11 @@
 
 from pygmtsar import SBAS
 import numpy as np
+import xarray as xr
+import os
 
 #Define Parameters
+BACKUPDIR    = 'backup'
 MASTER       = '2015-04-03'
 WORKDIR      = 'raw'
 DATADIR      = 'raw_orig'
@@ -70,3 +73,40 @@ def interp(da):
 dates = np.unique(pairs.values.flatten())
 disps = sbas.open_grids(dates, 'disp', func=[sbas.los_displacement_mm, interp])
 print (sbas.cropna(sbas.intf_ra2ll(disps.cumsum('date').sel(x=slice(9000,12000), y=slice(1800,2700)))))
+# dump current state
+sbas.dump()
+# backup
+sbas.backup('backup')
+
+# test results
+# https://github.com/mobigroup/gmtsar/issues/2
+xr.testing.assert_allclose(
+    sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm),
+    sbas.los_displacement_mm(sbas.open_grids(pairs, 'unwrap'))
+)
+xr.testing.assert_allclose(
+    sbas.open_grids(pairs, 'unwrap', geocode=True, func=sbas.los_displacement_mm),
+    sbas.intf_ra2ll(sbas.los_displacement_mm(sbas.open_grids(pairs, 'unwrap')))
+)
+xr.testing.assert_allclose(
+    sbas.open_grids(None, 'vel', geocode=True, add_subswath=False),
+    sbas.intf_ra2ll(sbas.open_grids(None, 'vel', add_subswath=False))
+)
+
+# test dump and dump backup
+assert os.path.exists(os.path.join(WORKDIR,   'SBAS.pickle')), 'State file not found'
+assert os.path.exists(os.path.join(BACKUPDIR, 'SBAS.pickle')), 'Backup state file not found'
+
+# test backup
+scenes = sbas.df.datapath.apply(lambda fn: os.path.splitext(os.path.split(fn)[-1])[0]).values
+for scene in scenes:
+    for ext in ['.tiff', '.xml']:
+        assert os.path.exists(os.path.join(BACKUPDIR,   scene+ext)), 'Backup file not found'
+        assert os.path.exists(os.path.join(DATADIR,     scene+ext)), 'Original file not found'
+        assert not os.path.exists(os.path.join(WORKDIR, scene+ext)), 'Excessive file found'
+
+orbits = sbas.df.orbitpath.apply(lambda fn: os.path.split(fn)[-1]).values
+for orbit in orbits:
+    assert os.path.exists(os.path.join(BACKUPDIR,   orbit)), 'Backup file not found'
+    assert os.path.exists(os.path.join(DATADIR,     orbit)), 'Original file not found'
+    assert not os.path.exists(os.path.join(WORKDIR, orbit)), 'Excessive file found'
