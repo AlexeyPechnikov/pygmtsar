@@ -1119,8 +1119,6 @@ Note: that's possible to install GMTSAR to /opt directory instead on Apple Silic
 
 ### Install GMTSAR binaries on Debian 10
 
-There is the cloud initialisation scripit [GMTSAR.install.debian10.sh](https://github.com/mobigroup/gmtsar/blob/master/gmtsar/sh/GMTSAR.install.debian10.sh) to install and configure all the dependencies and GMTSAR on cloud Debian 10 hosts.
-
 ```
 GMTSAR=/usr/local/GMTSAR
 GIT=https://github.com/gmtsar/gmtsar
