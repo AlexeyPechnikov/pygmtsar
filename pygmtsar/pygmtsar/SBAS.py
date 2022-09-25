@@ -913,6 +913,10 @@ class SBAS:
                 #pin2 = [llmax, ltmax]
                 pin2 = pip2pin(geom, llmax, ltmax)
 
+            # check pins order
+            if pin1[1] >= pin2[1]:
+                print (f'ERROR subswath {subswath}: pin1 is upper than pin2. Fix to set pin1 at bottom and pin2 at top.')
+                error = True
             # swap pins for Descending orbit
             if orbit == 'A':
                 allpins += [pin1[0], pin1[1], pin2[0], pin2[1]]
