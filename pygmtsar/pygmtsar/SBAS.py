@@ -372,7 +372,7 @@ class SBAS:
             print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
         return error, warning   
 
-    def backup(self, backup_dir, copy=False):
+    def backup(self, backup_dir, copy=False, debug=False):
         import os
         import shutil
 
@@ -382,6 +382,8 @@ class SBAS:
         # auto-generated file can't be a symlink but user-defined symlink target should be copied
         filename = os.path.join(self.basedir, 'SBAS.pickle')
         if os.path.exists(filename):
+            if debug:
+                print ('DEBUG: copy', filename, backup_dir)
             shutil.copy2(filename, backup_dir, follow_symlinks=True)
 
         # these files required to continue the processing, do not remove and copy only
@@ -390,6 +392,8 @@ class SBAS:
             # DEM and landmask can be not defined
             if filename is None:
                 continue
+            if debug:
+                print ('DEBUG: copy', filename, backup_dir)
             shutil.copy2(filename, backup_dir, follow_symlinks=True)
 
         # these files are large and are not required to continue the processing
@@ -402,11 +406,19 @@ class SBAS:
             if filename is None:
                 continue
             # copy and delete the original later to prevent cross-device links issues
+            if debug:
+                print ('DEBUG: copy', filename, backup_dir)
             shutil.copy2(filename, backup_dir, follow_symlinks=True)
             if not copy and self.basedir == os.path.dirname(filename):
                 # when copy is not needed then delete files in work directory only
+                if debug:
+                    print ('DEBUG: remove', filename)
                 os.remove(filename)
 
+        if not copy:
+            # mark as empty all the removed files
+            for col in ['datapath','metapath','orbitpath']:
+                self.df[col] = None
         return
 
     def set_master(self, master):
