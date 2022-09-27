@@ -35,7 +35,7 @@ jobs:
         sudo apt install -y libgmt-dev
         sudo apt install -y gmt-dcw gmt-gshhg
         # gmt-gshhg-full should be installed automatically (it is required to use GMTSAR landmask)
-        sudo apt install -y gmt
+        sudo apt install -y gmt ghostscript
         # add missed package
         sudo apt install -y make
     - name: Compile GMTSAR
@@ -51,16 +51,14 @@ jobs:
     - name: Cache dataset
       uses: actions/cache@v3
       with:
-        path: tests/S1A_Stack_CPGF_T173.tar.gz
+        path: S1A_Stack_CPGF_T173.tar.gz
         key: S1A_Stack_CPGF_T173.tar.gz
         restore-keys: S1A_Stack_CPGF_T173
     - name: Download dataset
-      working-directory: tests
       run: |
         wget -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
         tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
     - name: Run test
-      working-directory: tests
       run: |
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
         ./README_prep.txt
@@ -94,16 +92,14 @@ jobs:
     - name: Cache dataset
       uses: actions/cache@v3
       with:
-        path: tests/S1A_Stack_CPGF_T173.tar.gz
+        path: S1A_Stack_CPGF_T173.tar.gz
         key: S1A_Stack_CPGF_T173.tar.gz
         restore-keys: S1A_Stack_CPGF_T173
     - name: Download dataset
-      working-directory: tests
       run: |
         wget -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
         tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
     - name: Run test
-      working-directory: tests
       run: |
         export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/bin
         ./README_prep.txt
