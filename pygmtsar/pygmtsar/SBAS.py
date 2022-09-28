@@ -1370,28 +1370,6 @@ class SBAS:
             # save to NetCDF file
             topo_ra.to_netcdf(topo_ra_file, encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
-    def topo_ra(self, subswath=None, method='cubic'):
-        import os
-    
-        # check if subswath exists or return a single subswath for None
-        subswath = self.get_subswath(subswath)
-
-        # process selected subswaths 1,2,3 or 12, 23, 123
-        #print ('subswath', subswath)
-        prefix = f'F{subswath}_'
-        trans_dat_file = os.path.join(self.basedir, prefix + 'trans.dat')
-        topo_ra_file = os.path.join(self.basedir, prefix + 'topo_ra.grd')
-
-        # cleanup before createing the new files
-        for filename in [trans_dat_file, topo_ra_file]:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-        self.PRM(subswath).topo_ra(self.get_dem(subswath, geoloc=True),
-                           trans_dat_tofile=trans_dat_file,
-                           topo_ra_tofile=topo_ra_file,
-                           method=method)
-
     def get_topo_ra(self, subswath=None):
         import xarray as xr
         import os
@@ -1429,7 +1407,7 @@ class SBAS:
         # save to NetCDF file
         incidence_ll.to_netcdf(incidence_file, encoding={'incidence_angle': self.netcdf_compression}, engine=self.netcdf_engine)
 
-    def transforms(self, subswath=None, pairs=None, topo_ra=False):
+    def transforms(self, subswath=None, pairs=None):
     
         assert pairs is not None or subswath is not None, 'ERROR: define pairs argument'
         if pairs is None and subswath is not None:
@@ -1439,9 +1417,6 @@ class SBAS:
         subswath = self.get_subswath(subswath)
         print (f'NOTE: build translation matrices for direct and inverse geocoding for subswath {subswath}')
 
-        # biuld topo_ra for the merged subswaths
-        if topo_ra:
-            self.topo_ra(subswath)
         # build DEM grid coordinates transform matrix
         self.ra2ll(subswath)
     
@@ -1861,7 +1836,7 @@ class SBAS:
         # for subswaths merging and total coordinate transformation matrices creation 
         if len(subswaths) == 1:
             # build geo transform matrices for interferograms
-            self.transforms(pairs, topo_ra=False)
+            self.transforms(subswaths[0], pairs)
         
     # stem_tofile + '.PRM' generating
     def merge_swath(self, conf, grid_tofile, stem_tofile, debug=False):
@@ -1976,7 +1951,8 @@ class SBAS:
         self.df = gpd.GeoDataFrame(df)
     
         # build topo_ra and geo transform matrices for the merged interferograms
-        self.transforms(pairs, topo_ra=True)
+        self.topo_ra_parallel()
+        self.transforms(pairs)
 
     def baseline_table(self):
         import pandas as pd
