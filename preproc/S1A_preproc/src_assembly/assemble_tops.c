@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 	}
 
 	// modify xml_tree[0] to get parameters from other xml_trees
-	edit_tree(nfiles, nlmx, xml_tree, azi_1, azi_2, &nb_start, &nb_end);
+	edit_tree(nfiles, nlmx, xml_tree, (int)azi_1, (int)azi_2, &nb_start, &nb_end);
 	printf("Output burst from #%d to #%d ...\n", nb_start, nb_end);
 
 	strcpy(tmp_str, argv[argc - 1]);
