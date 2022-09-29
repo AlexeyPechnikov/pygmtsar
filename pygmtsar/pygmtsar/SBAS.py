@@ -1024,7 +1024,7 @@ class SBAS:
 
         self.df = pd.concat(records)
     
-    def intf_ra2ll(self, subswath=None, grids=None):
+    def intf_ra2ll(self, subswath=None, grids=None, debug=False):
         """
         Geocoding function based on interferogram geocode matrix to call from open_grids(geocode=True)
         """
@@ -1086,7 +1086,7 @@ class SBAS:
 
         return grids_ll
 
-    def intf_ra2ll_matrix(self, subswath, intf_grids):
+    def intf_ra2ll_matrix(self, subswath, intf_grids, debug=False):
         """
         Build interferogram geocoding matrix after interferogram processing required for open_grids(geocode=True)
         """
@@ -1140,7 +1140,7 @@ class SBAS:
             os.remove(intf_ra2ll_file)
         intf_ra2ll.to_netcdf(intf_ra2ll_file, encoding={'intf_ra2ll': self.netcdf_compression}, engine=self.netcdf_engine)
 
-    def ra2ll(self, subswath):
+    def ra2ll(self, subswath, debug=False):
         """
         Create radar to geographic coordinate transformation matrix for DEM grid using geocoding table trans.dat
         """
@@ -1185,7 +1185,7 @@ class SBAS:
 
     # a single-step translation
     # see also two-step translation ra2ll & intf_ra2ll_matrix
-    def intf_ll2ra_matrix(self, subswath, intf_grids):
+    def intf_ll2ra_matrix(self, subswath, intf_grids, debug=False):
         """
         Create geographic to radar coordinate transformation matrix for DEM grid (F?_trans_ra2ll.grd)
         """
@@ -1197,7 +1197,7 @@ class SBAS:
         # use 2D grid grom the pairs stack
         # sometimes interferogram grids are different for one azimuth line so use the largest grid
         intf_grid = intf_grids.min('pair')
-    
+
         trans_dat_file   = os.path.join(self.basedir, f'F{subswath}_trans.dat')
         trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
         intf_ll2ra_file  = os.path.join(self.basedir, f'F{subswath}_intf_ll2ra.grd')
@@ -1230,14 +1230,16 @@ class SBAS:
         # produce the same output array as dataset to be able to add global attributes
         trans_ll2ra = xr.zeros_like(intf_grid).rename('intf_ll2ra')
         trans_ll2ra.values = np.where(~np.isinf(d), inds, -1).reshape(intf_grid.shape)
-    
-        undefined = (trans_ll2ra==-1).sum().item()
-        assert undefined == 0, f'ERROR: inverse geocoding matrix has {undefined} undefined indices'
+
+        if debug:
+            # possible for merged subswaths due to subswaths offset
+            undefined = (trans_ll2ra==-1).sum().item()
+            print (f'DEBUG: inverse geocoding matrix has {undefined} undefined indices')
         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
         trans_ll2ra.attrs['node_offset'] = 1
         # save to NetCDF file
         trans_ll2ra.to_netcdf(intf_ll2ra_file, encoding={'intf_ll2ra': self.netcdf_compression}, engine=self.netcdf_engine)
-    
+
         return
 
     def intf_ll2ra(self, subswath=None, grids=None):
@@ -1407,7 +1409,7 @@ class SBAS:
         # save to NetCDF file
         incidence_ll.to_netcdf(incidence_file, encoding={'incidence_angle': self.netcdf_compression}, engine=self.netcdf_engine)
 
-    def transforms(self, subswath=None, pairs=None):
+    def transforms(self, subswath=None, pairs=None, debug=False):
     
         assert pairs is not None or subswath is not None, 'ERROR: define pairs argument'
         if pairs is None and subswath is not None:
@@ -1415,17 +1417,18 @@ class SBAS:
             subswath = None
         
         subswath = self.get_subswath(subswath)
-        print (f'NOTE: build translation matrices for direct and inverse geocoding for subswath {subswath}')
+        if debug:
+            print (f'DEBUG: build translation matrices for direct and inverse geocoding for subswath {subswath}')
 
         # build DEM grid coordinates transform matrix
-        self.ra2ll(subswath)
+        self.ra2ll(subswath, debug=debug)
     
         # transforms for interferogram grid
         grids = self.open_grids(pairs[:1], 'phasefilt')
         # build radar coordinates transformation matrix for the interferograms grid stack
-        self.intf_ra2ll_matrix(subswath, grids)
+        self.intf_ra2ll_matrix(subswath, grids, debug=debug)
         # build geographic coordinates transformation matrix for landmask and other grids
-        self.intf_ll2ra_matrix(subswath, grids)
+        self.intf_ll2ra_matrix(subswath, grids, debug=debug)
         
         # build incidence angles grid
         self.incidence_angle_matrix(subswath)
