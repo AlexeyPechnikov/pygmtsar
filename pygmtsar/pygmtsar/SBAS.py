@@ -562,7 +562,8 @@ class SBAS:
                 '-overwrite',
                 '-ot', 'Float32', '-of', 'NetCDF',
                 'DEM_EGM96.tif', 'DEM_WGS84.nc']
-        #print ('argv', argv)
+        if debug:
+            print ('argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0:
@@ -1511,7 +1512,8 @@ class SBAS:
         azi_2 = np.round(azi_2).astype(int).astype(str)
 
         argv = ['assemble_tops', azi_1, azi_2] + datapaths + [stem]
-        #print ('argv', argv)
+        if debug:
+            print ('argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
@@ -1533,7 +1535,8 @@ class SBAS:
         orbit = os.path.relpath(df['orbitpath'][0], self.basedir)
 
         argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
-        #print ('argv', argv)
+        if debug:
+            print ('argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
@@ -1574,7 +1577,8 @@ class SBAS:
             argv.append(rshift_fromfile)
         if ashift_fromfile is not None:
             argv.append(ashift_fromfile)
-        #print ('argv', argv)
+        if debug:
+            print ('argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
@@ -1846,7 +1850,8 @@ class SBAS:
         import subprocess
 
         argv = ['merge_swath', '/dev/stdin', grid_tofile, stem_tofile]
-        #print ('argv', argv)
+        if debug:
+            print ('argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              encoding='ascii')
@@ -2857,7 +2862,7 @@ class SBAS:
                 '-wavelength', str(wavelength), '-incidence', str(incidence), '-range', str(rng),
                 '-rms', '-dem']
         if debug:
-            print (' '.join(argv))
+            print ('argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
                              cwd=self.basedir, encoding='ascii')
