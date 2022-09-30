@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# S1A_IW_SLC__1SSV_20160408T091355_20160408T091430_010728_01001F_83EB.zip
+# S1A_IW_SLC__1SSV_20160420T091355_20160420T091423_010903_010569_F9CE.zip
 
 from pygmtsar import SBAS
 import numpy as np
@@ -27,7 +29,9 @@ sbas.topo_ra_parallel()
 print (sbas.get_topo_ra())
 #Interferograms
 pairs = [sbas.to_dataframe().index]
-decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
+#decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
+# use the DEM default resolution 60 m
+decimator = sbas.pixel_decimator(resolution_meters=60, debug=True)
 sbas.intf_parallel(pairs, func=decimator)
 print (pairs)
 print (sbas.open_grids(pairs, 'phasefilt'))
