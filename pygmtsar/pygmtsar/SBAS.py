@@ -1950,9 +1950,10 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-        with self.tqdm_joblib(tqdm(desc='Merging Subswaths', total=len(pairs)*len(grids))) as progress_bar:
-            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) \
-                                           for pair in pairs for grid in grids)
+        # process all the grids sequentially to prevent processing conflicts (if any) and better progress indication
+        for grid in grids:
+            with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths {grid}', total=len(pairs))) as progress_bar:
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) for pair in pairs)
 
         df = self.df.groupby(self.df.index).agg({'datetime': min, 'orbit': min, 'mission': min, 'polarization':min,
                                             'subswath': lambda s: int(''.join(map(str,list(s)))),
