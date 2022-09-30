@@ -134,8 +134,8 @@ class SBAS:
         import numpy as np
         from pygmtsar import PRM
 
-        # raster pixel spacing
-        dy, dx = self.pixel_spacing(da)
+        # ground pixel size
+        dy, dx = self.pixel_size(da)
         # gaussian kernel
         sigma_y = np.round(wavelength / dy)
         sigma_x = np.round(wavelength / dx)
@@ -2442,19 +2442,38 @@ class SBAS:
 
         return dass[0] if len(dass) == 1 else dass
 
-    def pixel_spacing(self, grid=(1, 4)):
+    def pixel_size(self, grid=(1, 4), average=True):
         import xarray as xr
         import numpy as np
-    
-        # pixel size in meters
-        azi_px_size, rng_px_size = self.PRM().pixel_spacing()
-        # raster pixels decimation
-        if isinstance(grid, xr.DataArray):
-            dy = grid.y.diff('y')[0].item()
-            dx = grid.x.diff('x')[0].item()
+
+        outs = []
+        for subswath in self.get_subswaths():
+            # pixel size in meters
+            azi_px_size, rng_px_size = self.PRM(subswath).pixel_size()
+            # raster pixels decimation
+            if isinstance(grid, xr.DataArray):
+                dy = grid.y.diff('y')[0].item()
+                dx = grid.x.diff('x')[0].item()
+            else:
+                dy, dx = grid
+            outs.append((np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1)))
+        if average:
+            pxs = np.asarray(outs)
+            return (pxs[:,0].mean(), pxs[:,1].mean())
         else:
-            dy, dx = grid
-        return (np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1))
+            return outs[0] if len(outs) == 1 else outs
+
+    #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
+    def pixel_decimator(self, resolution_meters=60, debug=False):
+        import numpy as np
+    
+        dy, dx = self.pixel_size()
+        yy, xx = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
+        if debug:
+            print (f'DEBUG: average per subswaths ground pixel size in meters: y={dy}, x={dx}')
+        if debug:
+            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yy}, 'x': {xx}}}, boundary='trim').mean()")
+        return lambda da: da.coarsen({'y': yy, 'x': xx}, boundary='trim').mean()
 
     def detrend_parallel(self, pairs, n_jobs=-1, **kwargs):
         from tqdm.auto import tqdm
@@ -2516,8 +2535,8 @@ class SBAS:
             out.rename('phase').to_netcdf(detrend_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # raster pixel spacing
-        dy, dx = self.pixel_spacing(phase)
-        ty, tx = self.pixel_spacing(topo_ra)
+        dy, dx = self.pixel_size(phase)
+        ty, tx = self.pixel_size(topo_ra)
 
         # unify topo grid
         dec_topo_y = int(np.round(dy/ty))

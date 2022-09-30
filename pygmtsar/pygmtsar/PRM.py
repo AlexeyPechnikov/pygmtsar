@@ -1085,9 +1085,9 @@ class PRM:
                 out = np.fromstring(stdout_data, dtype=float, sep=' ')
             return out if out.size==5 else out.reshape(-1,6)
 
-    def pixel_spacing(self):
+    def pixel_size(self):
         """
-        Calculate azimuth and range pixel spacing in meters
+        Calculate azimuth and range pixel size in meters
         Note: see make_gaussian_filter.c for the original code
         """
         import numpy as np

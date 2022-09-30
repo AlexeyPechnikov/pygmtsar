@@ -388,6 +388,24 @@ def intf_parallel(self, pairs, n_jobs=-1, wavelength=200, psize=32, func=None):
     		sbas.intf_parallel(pairs, func=decimator)
 ```
 
+```
+def pixel_decimator(self, resolution_meters=60, debug=False):
+    
+		Return function for pixel decimation to the specified output resolution.
+		
+	Args:
+			resolution_meters: DEM grid resolution in meters. The same grid is ised for geocoded results output.
+			debug: boolean flag to print debug information.
+	
+		Returns:
+	    Post-processing function for SBAS.ints() and SBAS.intf_parallel().
+	
+	Examples:
+			Decimate computed interferorgrams to default DEM resolution 60 meters:
+			decimator = sbas.pixel_decimator()
+			sbas.intf_parallel(pairs, func=decimator)
+```
+
 #### Merging (GMTSAR wrapper)
 
 ```
@@ -872,23 +890,28 @@ def backup(self, backup_dir, copy=False, follow_symlinks=False):
 #### Helpers (PyGMTSAR original)
 
 ```
-def pixel_spacing(self, grid=(1, 4)):
+def pixel_size(self, grid=(1, 4), average=True):
     
-		Compute pixel size in meters for the default processing grid or a current one.
+		Compute ground pixel size in meters for the default processing grid or the defined one.
 		
 	Args:
-			grid: a pair of x,y grid decimation coefficients or 2D or 3D Xarray Dataarray.      
+			grid: a pair of x,y grid decimation coefficients or 2D or 3D Xarray Dataarray.
+      average: boolean flag to calculate average per subswaths resolution.
 	
 		Returns:
-	    Pair of float numbers.
+	    Pair of float numbers or list of the pairs.
 	
 	Examples:
-			Get default pixel spacing:
-			sbas.pixel_spacing()
-			>>> (14.0, 14.8)
+			Get default average ground pixel size:
+			sbas.pixel_size()
+			>>> (14.0, 15.7)
 			
-			Get unwrapped phase grid actual pixel spacing for interferogram decimation {'y': 2, 'x': 2}:
-			sbas.pixel_spacing(unwraps)
+			Get default ground pixel size per subswaths:
+			sbas.pixel_size(average=False)
+			>>> [(14.0, 16.7), (14.0, 14.7)]
+			
+			Get unwrapped phase grid ground pixel size for interferogram decimation {'y': 2, 'x': 2}:
+			sbas.pixel_size(unwraps)
 			>>> (27.9, 29.5)
 ```
 
