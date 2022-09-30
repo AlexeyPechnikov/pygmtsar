@@ -35,7 +35,9 @@ sbas.topo_ra_parallel()
 print (sbas.get_topo_ra())
 #Interferograms
 pairs = baseline_pairs[['ref_date', 'rep_date']]
-decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
+#decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
+# use the DEM resolution SRTM3 (3 sec, 90 m)
+decimator = sbas.pixel_decimator(resolution_meters=90, debug=True)
 sbas.intf_parallel(pairs, wavelength=400, func=decimator)
 # output
 print (pairs)
