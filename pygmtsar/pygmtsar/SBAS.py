@@ -1852,6 +1852,7 @@ class SBAS:
         argv = ['merge_swath', '/dev/stdin', grid_tofile, stem_tofile]
         if debug:
             print ('argv', argv)
+            print ('conf:', f'\n{conf}')
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              encoding='ascii')
@@ -1924,10 +1925,14 @@ class SBAS:
         # use temporary well-qualified stem file name to prevent parallel processing conflicts
         self.merge_swath(config, grid_tofile, tmp_stem_tofile, debug=debug)
         # different pairs and grids generate the same PRM file, replace it silently
+        if debug:
+            print ('replace', f'{tmp_stem_tofile}.PRM', f'{stem_tofile}.PRM')
         os.replace(f'{tmp_stem_tofile}.PRM', f'{stem_tofile}.PRM')
 
         # cleanup - files should exists as these are processed above
         for filename in cleanup:
+            if debug:
+                print ('remove', filename)
             os.remove(filename)
 
     def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=-1, **kwargs):
