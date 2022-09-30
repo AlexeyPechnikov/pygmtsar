@@ -400,7 +400,7 @@ class PRM:
         stdout_data, stderr_data = p.communicate(input=self.to_str())
         #print ('stdout_data', stdout_data)
         if len(stderr_data) > 0 and debug:
-            print ('calc_dop_orb', stderr_data)
+            print ('DEBUG: calc_dop_orb', stderr_data)
         prm = PRM.from_str(stdout_data)
         if inplace:
             return self.set(prm)
@@ -455,7 +455,7 @@ class PRM:
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
         if len(stderr_data) > 0 and debug:
-            print ('SAT_baseline', stderr_data)
+            print ('DEBUG: SAT_baseline', stderr_data)
         prm = PRM.from_str(stdout_data)
         # replacement for SAT_baseline $1 $2 | tail -n9
         if tail is not None:
@@ -525,7 +525,7 @@ class PRM:
             print ('Error: SAT_llt2rat processing stopped due to invalid coordinates for one of input points')
             return None
         if stderr_data is not None and len(stderr_data) and debug:
-            print ('SAT_llt2rat', stderr_data)
+            print ('DEBUG: SAT_llt2rat', stderr_data)
 
         if tofile is not None:
             with open(tofile, 'wb') as f:
@@ -581,7 +581,7 @@ class PRM:
 
         # print errors and notifications
         if len(stderr_data) > 0 and debug:
-            print ('resamp', stderr_data.decode('ascii'))
+            print ('DEBUG: resamp', stderr_data.decode('ascii'))
 
         # save big SLC binary file
         with open(alignedSLC_tofile, 'wb') as f:
@@ -715,7 +715,7 @@ class PRM:
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
         if len(stderr_data) > 0 and debug:
-            print ('phasediff', stderr_data)
+            print ('DEBUG: phasediff', stderr_data)
         return
 
     # Usage: make_gaussian_filter name_of_PRM_file RNG_DEC AZI_DEC WAVELENGTH(m)
@@ -744,8 +744,8 @@ class PRM:
                              cwd=cwd, encoding='ascii')
         stdout_data, stderr_data = p.communicate(self.to_str())
         if len(stderr_data) > 0 and debug:
-            print ('make_gaussian_filter', stderr_data)
-            print ('make_gaussian_filter', stdout_data)
+            print ('DEBUG: make_gaussian_filter', stderr_data)
+            print ('DEBUG: make_gaussian_filter', stdout_data)
 
         data = os.read(pipe1[0],int(10e6)).decode('ascii')
         return [np.fromstring(stdout_data, dtype=int, sep=' '), data]
@@ -809,7 +809,7 @@ class PRM:
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', len(stdout_data))
         if len(stderr_data) > 0 and debug:
-            print ('conv', stderr_data.decode('ascii'))
+            print ('DEBUG: conv', stderr_data.decode('ascii'))
         return
 
     # actually, -alpha command line argument is useless
@@ -854,7 +854,7 @@ class PRM:
         p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=cwd)
         stderr_data = p.communicate()[1]
         if len(stderr_data) > 0 and debug:
-            print ('phasefilt', stderr_data.decode('ascii'))
+            print ('DEBUG: phasefilt', stderr_data.decode('ascii'))
         return
 
     # see about correlation filter
@@ -1072,7 +1072,7 @@ class PRM:
 
         stderr_data = stderr_data.decode('ascii')
         if stderr_data is not None and len(stderr_data) and debug:
-            print ('SAT_look', stderr_data)
+            print ('DEBUG: SAT_look', stderr_data)
             return None
 
         if tofile is not None:

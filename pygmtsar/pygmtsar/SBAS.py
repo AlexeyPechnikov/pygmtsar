@@ -141,7 +141,7 @@ class SBAS:
         sigma_x = np.round(wavelength / dx)
     
         if debug:
-            print ('NOTE: Gaussian filtering sigma_y, sigma_x', sigma_y, sigma_x)
+            print ('DEBUG: Gaussian filtering sigma_y, sigma_x', sigma_y, sigma_x)
     
         # there is a compromise between accuracy and speed
         dec = 32
@@ -152,7 +152,7 @@ class SBAS:
         if approximate and dec_y > 1 and dec_x > 1:
             # filter decimated array for faster and less accurate processing
             if debug:
-                print ('NOTE: Gaussian filtering decimation dec_y, dec_x', dec_y, dec_x)
+                print ('DEBUG: Gaussian filtering decimation dec_y, dec_x', dec_y, dec_x)
         
             # decimate and filter
             da_dec = da.coarsen({'y': dec_y, 'x': dec_x}, boundary='pad').mean()
@@ -563,13 +563,13 @@ class SBAS:
                 '-ot', 'Float32', '-of', 'NetCDF',
                 'DEM_EGM96.tif', 'DEM_WGS84.nc']
         if debug:
-            print ('argv', argv)
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
-        if len(stderr_data) > 0:
-            print ('download_dem', stderr_data.decode('ascii'))
+        if len(stderr_data) > 0 and debug:
+            print ('DEBUG: download_dem', stderr_data.decode('ascii'))
         if len(stdout_data) > 0 and debug:
-            print ('download_dem', stdout_data.decode('ascii'))
+            print ('DEBUG: download_dem', stdout_data.decode('ascii'))
 
         self.dem_filename = grd_filename
 
@@ -623,7 +623,7 @@ class SBAS:
         # helper function to run external commands
         def run_cmd(argv):
             if debug:
-                print ('argv', argv)
+                print ('DEBUG: argv', argv)
             cmd = subprocess.run(argv, capture_output=True)
             if cmd.returncode != 0:
                 print (cmd.stderr)
@@ -677,7 +677,7 @@ class SBAS:
         # helper function to run external commands
         def run_cmd(argv):
             if debug:
-                print ('argv', argv)
+                print ('DEBUG: argv', argv)
             cmd = subprocess.run(argv, capture_output=True)
             if cmd.returncode != 0:
                 print (cmd.stderr)
@@ -1513,13 +1513,13 @@ class SBAS:
 
         argv = ['assemble_tops', azi_1, azi_2] + datapaths + [stem]
         if debug:
-            print ('argv', argv)
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
-            print ('assemble_tops', stderr_data.decode('ascii'))
+            print ('DEBUG: assemble_tops', stderr_data.decode('ascii'))
         if len(stdout_data) > 0 and debug:
-            print ('assemble_tops', stdout_data.decode('ascii'))
+            print ('DEBUG: assemble_tops', stdout_data.decode('ascii'))
 
         return
 
@@ -1536,13 +1536,13 @@ class SBAS:
 
         argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
         if debug:
-            print ('argv', argv)
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
-            print ('ext_orb_s1a', stderr_data.decode('ascii'))
+            print ('DEBUG: ext_orb_s1a', stderr_data.decode('ascii'))
         if len(stdout_data) > 0 and debug:
-            print ('ext_orb_s1a', stdout_data.decode('ascii'))
+            print ('DEBUG: ext_orb_s1a', stdout_data.decode('ascii'))
 
         return
     
@@ -1578,13 +1578,13 @@ class SBAS:
         if ashift_fromfile is not None:
             argv.append(ashift_fromfile)
         if debug:
-            print ('argv', argv)
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
-            print ('make_s1a_tops', stderr_data.decode('ascii'))
+            print ('DEBUG: make_s1a_tops', stderr_data.decode('ascii'))
         if len(stdout_data) > 0 and debug:
-            print ('make_s1a_tops', stdout_data.decode('ascii'))
+            print ('DEBUG: make_s1a_tops', stdout_data.decode('ascii'))
 
         self.ext_orb_s1a(subswath, stem, date, debug=debug)
 
@@ -1851,16 +1851,16 @@ class SBAS:
 
         argv = ['merge_swath', '/dev/stdin', grid_tofile, stem_tofile]
         if debug:
-            print ('argv', argv)
-            print ('conf:', f'\n{conf}')
+            print ('DEBUG: argv', argv)
+            print ('DEBUG: conf:', f'\n{conf}')
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              encoding='ascii')
         stdout_data, stderr_data = p.communicate(input=conf)
         if len(stderr_data) > 0 and debug:
-            print ('merge_swath', stderr_data)
+            print ('DEBUG: merge_swath', stderr_data)
         if len(stdout_data) > 0 and debug:
-            print ('merge_swath', stdout_data)
+            print ('DEBUG: merge_swath', stdout_data)
 
         return
 
@@ -1926,13 +1926,13 @@ class SBAS:
         self.merge_swath(config, grid_tofile, tmp_stem_tofile, debug=debug)
         # different pairs and grids generate the same PRM file, replace it silently
         if debug:
-            print ('replace', f'{tmp_stem_tofile}.PRM', f'{stem_tofile}.PRM')
+            print ('DEBUG: replace', f'{tmp_stem_tofile}.PRM', f'{stem_tofile}.PRM')
         os.replace(f'{tmp_stem_tofile}.PRM', f'{stem_tofile}.PRM')
 
         # cleanup - files should exists as these are processed above
         for filename in cleanup:
             if debug:
-                print ('remove', filename)
+                print ('DEBUG: remove', filename)
             os.remove(filename)
 
     def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=-1, **kwargs):
@@ -1950,10 +1950,9 @@ class SBAS:
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-        # process all the grids sequentially to prevent processing conflicts (if any) and better progress indication
-        for grid in grids:
-            with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths {grid}', total=len(pairs))) as progress_bar:
-                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) for pair in pairs)
+        with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(pairs)*len(grids))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) \
+                                           for pair in pairs for grid in grids)
 
         df = self.df.groupby(self.df.index).agg({'datetime': min, 'orbit': min, 'mission': min, 'polarization':min,
                                             'subswath': lambda s: int(''.join(map(str,list(s)))),
@@ -2165,6 +2164,8 @@ class SBAS:
                          conncomp_filename, unwrap_filename]:
             #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
+                if debug:
+                    print ('DEBUG: remove', tmp_file)
                 os.remove(tmp_file)
 
         # prepare SNAPHU input files
@@ -2183,15 +2184,15 @@ class SBAS:
             argv.append(conncomp_out)
         if debug:
             argv.append('-v')
-            print ('argv', argv)
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              encoding='ascii', bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=conf)
         if len(stderr_data) > 0 and debug:
-            print ('snaphu', stderr_data)
+            print ('DEBUG: snaphu', stderr_data)
         if debug:
-            print ('snaphu', stdout_data)
+            print ('DEBUG: snaphu', stdout_data)
 
         if conncomp:
             # convert to grid the connected components from SNAPHU output as is (UCHAR)
@@ -2210,8 +2211,9 @@ class SBAS:
         unwrap = unwrap.where(binmask>0).rename('phase')
 
         for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
-            #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
+                if debug:
+                    print ('DEBUG: remove', tmp_file)
                 os.remove(tmp_file)
 
         if interactive:
@@ -2542,7 +2544,7 @@ class SBAS:
         dec_topo_y = int(np.round(dy/ty))
         dec_topo_x = int(np.round(dx/tx))
         if debug:
-            print ('NOTE: Decimate topography to data grid dec_y, dec_x', dec_topo_y, dec_topo_x)
+            print ('DEBUG: Decimate topography to data grid dec_y, dec_x', dec_topo_y, dec_topo_x)
         # use xr.zeros_like to prevent the target grid coordinates modifying
         topo = topo_ra\
             .coarsen({'y': dec_topo_y, 'x': dec_topo_x}, boundary='pad').mean()\
@@ -2550,7 +2552,7 @@ class SBAS:
 
         if wavelength is not None:
             if debug:
-                print ('NOTE: Gaussian filtering for the both data and topography')
+                print ('DEBUG: Gaussian filtering for the both data and topography')
             phase.values -= self.gaussian(phase, wavelength, truncate=truncate, approximate=approximate, debug=debug)
             topo.values  -= self.gaussian(topo,  wavelength, truncate=truncate, approximate=approximate, debug=debug)
 
@@ -2573,23 +2575,23 @@ class SBAS:
 
         if fit_dem and fit_coords:
             if debug:
-                print ('NOTE: Detrend topography and coordinates')
+                print ('DEBUG: Detrend topography and coordinates')
             X = np.column_stack([zys[~nanmask], zxs[~nanmask], ys[~nanmask], xs[~nanmask], zs[~nanmask]])
         elif fit_dem:
             if debug:
-                print ('NOTE: Detrend topography only')
+                print ('DEBUG: Detrend topography only')
             X = np.column_stack([zys[~nanmask], zxs[~nanmask], zs[~nanmask]])
         elif fit_coords:
             if debug:
-                print ('NOTE: Detrend coordinates only')
+                print ('DEBUG: Detrend coordinates only')
             X = np.column_stack([ys[~nanmask], xs[~nanmask]])
         elif fit_intercept:
             if debug:
-                print ('NOTE: Remove mean value only')
+                print ('DEBUG: Remove mean value only')
             return postprocessing(phase - phase.mean())
         else:
             if debug:
-                print ('NOTE: No detrending')
+                print ('DEBUG: No detrending')
             return postprocessing(phase)
 
         # build prediction model with or without plane removal (fit_intercept)
@@ -2887,16 +2889,16 @@ class SBAS:
                 '-wavelength', str(wavelength), '-incidence', str(incidence), '-range', str(rng),
                 '-rms', '-dem']
         if debug:
-            print ('argv', argv)
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
                              cwd=self.basedir, encoding='ascii')
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
         if len(stderr_data) > 0 and debug:
-            print ('sbas', stderr_data)
+            print ('DEBUG: sbas', stderr_data)
         if len(stdout_data) > 0 and debug:
-            print ('sbas', stdout_data)
+            print ('DEBUG: sbas', stdout_data)
 
         # fix output grid filenames
         for date in np.unique(np.concatenate([baseline_pairs.ref_date,baseline_pairs.rep_date])):
@@ -2905,6 +2907,8 @@ class SBAS:
             filename1 = os.path.join(self.basedir, f'disp_{jdate}.grd')
             filename2 = os.path.join(self.basedir, f'disp_{date}.grd')
             if os.path.exists(filename1):
+                if debug:
+                    print ('DEBUG: rename', filename1, filename2)
                 os.rename(filename1, filename2)
             #print (jdate, date)
 
