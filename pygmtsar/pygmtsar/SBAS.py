@@ -190,17 +190,15 @@ class SBAS:
 
         return
 
-    def restore(self, from_path=None):
+    @staticmethod
+    def restore(from_path):
         import pickle
         import os
 
-        if from_path is None:
-            sbas_pickle = os.path.join(self.basedir, 'SBAS.pickle')
+        if os.path.isdir(from_path):
+            sbas_pickle = os.path.join(from_path, 'SBAS.pickle')
         else:
-            if os.path.isdir(from_path):
-                sbas_pickle = os.path.join(from_path, 'SBAS.pickle')
-            else:
-                sbas_pickle = from_path
+            sbas_pickle = from_path
 
         print (f'NOTE: load state from file {sbas_pickle}')
         return pickle.load(open(sbas_pickle, 'rb'))
