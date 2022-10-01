@@ -1,8 +1,8 @@
-![MacOS tests](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml/badge.svg)
-![Ubuntu tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)
-![PyPI tests](https://github.com/mobigroup/gmtsar/actions/workflows/pypi.yml/badge.svg)
+[![GMTSAR tests](https://github.com/mobigroup/gmtsar/actions/workflows/gmtsar.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/gmtsar.yml)
+[![MacOS tests](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml)
+[![Ubuntu tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml)
+[![PyPI tests](https://github.com/mobigroup/gmtsar/actions/workflows/pypi.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/pypi.yml)
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
-[![Build docs](https://github.com/mobigroup/gmtsar/actions/workflows/pages/pages-build-deployment/badge.svg)](https://mobigroup.github.io/gmtsar/)
 
 ## About
 
