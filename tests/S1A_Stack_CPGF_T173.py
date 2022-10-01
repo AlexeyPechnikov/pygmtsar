@@ -91,8 +91,9 @@ xr.testing.assert_allclose(
     sbas.intf_ra2ll(sbas.open_grids(None, 'vel', add_subswath=False))
 )
 
-# dump current state
+# dump and restore current state
 sbas.dump()
+sbas = SBAS.restore(WORKDIR)
 assert os.path.exists(os.path.join(WORKDIR,   'SBAS.pickle')), 'State file not found'
 
 # backup (copy)
