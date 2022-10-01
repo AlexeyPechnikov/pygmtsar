@@ -138,7 +138,7 @@ endif
 # plotting
 # 
   gmt grd2cpt topo_ra.grd -Cgray $V -Z > topo_ra.cpt 
-  gmt grdimage topo_ra.grd $scale -P -Ctopo_ra.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen $V -K > topo_ra.ps
+  gmt grdimage topo_ra.grd $scale -P -Ctopo_ra.cpt -Bxaf+lRange -Byaf+l"Reversed Azimuth" -BWSen $V -K > topo_ra.ps
   gmt psscale -Rtopo_ra.grd -J -DJTC+w5i/0.2i+h -Ctopo_ra.cpt -Bxaf -By+lm -O >> topo_ra.ps
   gmt psconvert -Tf -P -A -Z topo_ra.ps
   echo "Topo range/azimuth map: topo_ra.pdf"

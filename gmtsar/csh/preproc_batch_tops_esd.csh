@@ -24,7 +24,7 @@
     echo "    s1a-iw1-slc-vv-20150715...001:s1a-iw1-slc-vv-20150715...001:s1a-iw1-slc-vv-20150715...001:S1A_OPER_AUX_POEORB_V20150625_20150627.EOF"
     echo ""
     echo "  outputs:"
-    echo "    baseline.ps align_table.ra (contains info for precise geomatric alignment)"
+    echo "    baseline.ps (mode 1)"
     echo "    *.PRM *.LED *.SLC(mode 2)"
     echo ""
     echo "  esd_mode:"

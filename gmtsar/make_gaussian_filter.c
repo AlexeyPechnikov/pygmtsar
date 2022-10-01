@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 	double azi_px_size, rng_px_size, x, y;
 	double c_speed = 299792458.0;
 	double sig_azi, sig_rng, a, rng, cost, cosa;
-	double g[50][50];
+	double g[1024][1024];
 	char out_name[128] = "gauss_";
 
 	if (argc < 4)

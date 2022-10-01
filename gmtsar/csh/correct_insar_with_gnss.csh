@@ -98,7 +98,7 @@ errormessage:
 #  now blockmedian and surface the data at this resolution
 #
   gmt blockmedian ins-gps_diff.rad -Rtmp.grd > tmp.rad
-  gmt surface tmp.rad -Rtmp.grd -Gtmp1.grd 
+  gmt surface tmp.rad -Rtmp.grd -T0.1 -Gtmp1.grd 
 #
 # ----------------------
 # FILTER THE CORRECTION GRID
@@ -112,10 +112,13 @@ errormessage:
 #
   gmt grdfilter tmp1.grd -Dp -Fg17 -Gtmp2.grd
 #
-# upsample to the original size
+# upsample to the original size using gmt surface
+# gmt grd2xyz tmp2.grd | gmt surface -R$insar -T0.1 -Gcorrection.grd
 #
-  gmt grdsample tmp2.grd -Gtmp3.grd
-  gmt grd2xyz tmp3.grd | gmt surface -R$insar -T0.5 -Gcorrection.grd
+# upsample to original grid size using grdsample instead
+echo "...using grdsample to upsample the correction grid..."
+set incre = `  gmt grdinfo -Cn $insar | awk '{printf "%d+n/%d+n \n",$9,$10}' `
+gmt grdsample tmp2.grd -I$incre -Gcorrection.grd
 #
 # ----------------------
 # PERFORM THE CORRECTION

@@ -93,8 +93,9 @@ char *USAGE = "USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth s
               "the interferogram (m) default=866000 \n"
               "  -rms                 --  output velocity uncertainty grids (mm/yr): "
               "rms.grd\n"
-              "  -dem                 --  output DEM error (m): dem.grd \n"
-              "  -mmap                --  use mmap to allocate disk space for less use of memory \n\n"
+              "  -dem                 --  output DEM error (m): dem_err.grd \n"
+              "  -mmap                --  use mmap to allocate disk space for less use of memory \n"
+              "  -robust        --  only work with -atm turnned on, estimate velocity with records that has atm correction\n\n"
               " output: \n"
               "  disp_##.grd          --  cumulative displacement time series (mm) "
               "grids\n"
@@ -130,8 +131,9 @@ int main(int argc, char **argv) {
 	char **gfile = NULL, **cfile = NULL;
 	int64_t i, j, m, n, nrhs = 1, xdim, lwork, ydim, k1, k2;
 	int64_t N, S;
-	int64_t ldb, lda, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
-	int64_t flag_rms = 0, flag_dem = 0, flag_mmap = 0;
+	//int64_t ldb, lda, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
+	int64_t ldb, *flag = NULL, *jpvt = NULL, *H = NULL, *L = NULL, *hit = NULL, *mark = NULL;
+	int64_t flag_rms = 0, flag_dem = 0, flag_mmap = 0, flag_robust = 0;
 	float *phi = NULL, *tmp_phi = NULL, sf, *disp = NULL, *res = NULL, *dem = NULL, *bperp = NULL, *vel = NULL, *screen = NULL,
 	      *tmp_screen = NULL;
 	float *var = NULL;
@@ -178,14 +180,14 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "\n");
 
 	/* read in the parameters from command line */
-	parse_command_ts(argc, argv, &sf, &wl, &theta, &rng, &flag_rms, &flag_dem, &n_atm, &flag_mmap);
+	parse_command_ts(argc, argv, &sf, &wl, &theta, &rng, &flag_rms, &flag_dem, &n_atm, &flag_mmap, &flag_robust);
 
 	/* setting up some parameters */
 	scale = 4.0 * M_PI / wl / rng / sin(theta / 180.0 * M_PI);
 	m = N + S - 2; // number of rows in the G matrix
 	n = S;         // number of columns in the G matrix
 	lwork = max(1, m * n + max(m * n, nrhs) * 16);
-	lda = max(1, m);
+	//lda = max(1, m);
 	ldb = max(1, max(m, n));
 
 	/* memory allocation */ // also malloc for atm(nx,ny,S), hit(N,S), sum_vec(N)
@@ -222,6 +224,7 @@ int main(int argc, char **argv) {
 	printf("%.6f %.6f %.6f %.6f\n", sf, scale, time[0], bperp[0]);
 
 	if (n_atm == 0) {
+        flag_robust = 0;
 		atm_rms = (double *)malloc(S * sizeof(double));
 		for (i = 0; i < S; i++)
 			atm_rms[i] = 0.0;
@@ -232,7 +235,7 @@ int main(int argc, char **argv) {
 		for (i = 0; i < xdim * ydim * S; i++)
 			disp[i] = 0.0;
 		lsqlin_sov_ts(xdim, ydim, disp, vel, flag, d, ds, time, G, Gs, A, var, phi, N, S, m, n, work, lwork, flag_dem, dem,
-		              flag_rms, res, jpvt, wl, atm_rms);
+		              flag_rms, res, jpvt, wl, atm_rms, flag_robust);
 	}
 	else {
 		fprintf(stderr, "\n\nApplying atmospheric correction by common point stacking...\n\n");
@@ -333,7 +336,7 @@ int main(int argc, char **argv) {
 
 			fprintf(stderr, "Computing deformation time-series...\n");
 			lsqlin_sov_ts(xdim, ydim, disp, vel, flag, d, ds, time, G, Gs, A, var, tmp_phi, N, S, m, n, work, lwork, flag_dem,
-			              dem, flag_rms, res, jpvt, wl, atm_rms);
+			              dem, flag_rms, res, jpvt, wl, atm_rms, flag_robust);
 			// remove the very smooth deformation signal from the data
 			if (kk > 1)
 				for (i = 0; i < xdim * ydim * N; i++)
@@ -401,7 +404,7 @@ int main(int argc, char **argv) {
 		for (i = 0; i < xdim * ydim * S; i++)
 			disp[i] = 0.0;
 		lsqlin_sov_ts(xdim, ydim, disp, vel, flag, d, ds, time, G, Gs, A, var, tmp_phi, N, S, m, n, work, lwork, flag_dem, dem,
-		              flag_rms, res, jpvt, wl, atm_rms);
+		              flag_rms, res, jpvt, wl, atm_rms, flag_robust);
 	}
 
 	// write output
