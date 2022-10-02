@@ -1306,7 +1306,7 @@ class SBAS:
         import os
 
         def SAT_llt2rat(subswath, chunk):
-                return self.PRM(subswath).SAT_llt2rat(chunk, precise=1, binary=True)
+                return self.PRM(subswath).SAT_llt2rat(chunk, precise=1, binary=True).reshape(-1,5)
 
         # start a set of jobs together but not more than available cpu cores at once
         if n_jobs == -1:
