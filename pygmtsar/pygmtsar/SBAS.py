@@ -2395,8 +2395,8 @@ class SBAS:
                 das = [da.expand_dims('date') for da in das]
 
                 # 2nd dimension sizes must be the same
-                sizes = len(np.unique([da[0].shape[1] for da in das]))
-                assert sizes==1, f'Dates grids have different {da.dims[0]} dimensions'
+                #sizes = len(np.unique([da[0].shape[1] for da in das]))
+                #assert sizes==1, f'Dates grids have different {da.dims[0]} dimensions'
                 # 1st dimension can be different a bit, use minimal size
                 #sizes = np.unique([da[0].shape[0] for da in das])
                 #das = xr.concat(das, dim='date')[:,:sizes[0],:]
@@ -2422,8 +2422,8 @@ class SBAS:
                 das = [da.expand_dims('pair') for da in das]
 
                 # 2nd dimension sizes must be the same
-                sizes = len(np.unique([da[0].shape[1] for da in das]))
-                assert sizes==1, f'Pairs grids have different {da.dims[0]} dimensions'
+                #sizes = len(np.unique([da[0].shape[1] for da in das]))
+                #assert sizes==1, f'Pairs grids have different {da.dims[0]} dimensions'
 
                 # 1st dimension can be different a bit, use minimal size
                 # this works but it is not robust if user loads grids by other way
