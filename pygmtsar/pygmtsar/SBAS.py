@@ -881,7 +881,7 @@ class SBAS:
             pin1 = pins[0]
             pin2 = pins[1]
 
-            df = self.df[self.df.subswath==subswath]
+            df = self.get_master(subswath)
             geom = df['geometry'].unary_union
             orbit = df['orbit'][0]
 
