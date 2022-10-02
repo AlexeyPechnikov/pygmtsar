@@ -881,18 +881,16 @@ class SBAS:
             pin1 = pins[0]
             pin2 = pins[1]
 
-            df = self.get_master(subswath)
-            area = df['geometry'].unary_union
+            df = self.df[self.df.subswath==subswath]
+            geom = df['geometry'].unary_union
             orbit = df['orbit'][0]
 
             # check the pins validity
-            #llmin, ltmin, llmax, ltmax = self.get_master(subswath).dissolve().envelope.bounds.values[0].round(3)
-            geom = self.get_master(subswath).dissolve()
-            llmin, ltmin, llmax, ltmax = geom.envelope.bounds.values[0]
-            if not np.all(pin1) is None and not area.intersects(Point(pin1[0], pin1[1])):
+            llmin, ltmin, llmax, ltmax = geom.envelope.bounds
+            if not np.all(pin1) is None and not geom.intersects(Point(pin1[0], pin1[1])):
                 print (f'ERROR subswath {subswath}: pin1 lays outside of master frame. Move the pin or set it to None and try again.')
                 error = True
-            if not np.all(pin2) is None and not area.intersects(Point(pin2[0], pin2[1])):
+            if not np.all(pin2) is None and not geom.intersects(Point(pin2[0], pin2[1])):
                 print (f'ERROR subswath {subswath}: pin2 lays outside of master frame. Move the pin or set it to None and try again.')
                 error = True
 
