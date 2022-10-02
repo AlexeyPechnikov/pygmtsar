@@ -953,17 +953,21 @@ class SBAS:
         old_filename = os.path.join(self.basedir, f'{stem}')
         #print ('old_filename', old_filename)
 
-        self.make_s1a_tops(subswath, date, debug)
+        self.make_s1a_tops(subswath, date, debug=debug)
 
         prm = PRM.from_file(old_filename+'.PRM')
-        azi1 = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1)[1]
-        azi2 = prm.SAT_llt2rat([pins[2], pins[3], 0], precise=1)[1]
-        #print ('azi1', azi1, 'azi2', azi2)
-        prm.shift_atime(azi1, inplace=True).update()
+        tmpazi = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1)[1]
+        if debug:
+            print ('DEBUG: ','tmpazi', tmpazi)
+        prm.shift_atime(tmpazi, inplace=True).update()
+        azi1 = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1)[1] + tmpazi
+        azi2 = prm.SAT_llt2rat([pins[2], pins[3], 0], precise=1)[1] + tmpazi
+        if debug:
+                print ('DEBUG: ','azi1', azi1, 'azi2', azi2)
 
         # Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2)...
         #print ('assemble_tops', subswath, date, azi1, azi2, debug)
-        self.assemble_tops(subswath, date, azi1, azi2, debug)
+        self.assemble_tops(subswath, date, azi1, azi2, debug=debug)
 
         # Parse new .xml to define new scene name
         # like to 's1b-iw3-slc-vv-20171117t145922-20171117t145944-008323-00ebab-006'
@@ -980,12 +984,16 @@ class SBAS:
 
         # rename xml and tiff
         for ext in ['.tiff', '.xml']:
+            if debug:
+                print('DEBUG: rename', old_filename+ext, new_filename+ext)
             os.rename(old_filename+ext, new_filename+ext)
 
         # cleanup
         for fname in [old_filename+'.LED', old_filename+'.PRM']:
             if not os.path.exists(fname):
                 continue
+            if debug:
+                print ('DEBUG: remove', fname)
             os.remove(fname)
 
         # update and return only one record
