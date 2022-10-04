@@ -2945,7 +2945,7 @@ class SBAS:
         lat0 = (ltmin + ltmax)/2
         elevation0 = float(dem.sel(lat=lat0, lon=lon0, method='nearest'))
         #print ('coords',lon0, lat0, elevation0)
-        _,_,_,look_E,look_N,look_U = prm.SAT_look([lon0, lat0, elevation0])[0]
+        _,_,_,look_E,look_N,look_U = prm.SAT_look([lon0, lat0, elevation0])
         #print ('satlook', _,_,_,look_E,look_N,look_U)
         incidence = math.atan2(math.sqrt(float(look_E)**2 + float(look_N)**2), float(look_U))*180/np.pi
 
