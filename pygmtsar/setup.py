@@ -23,6 +23,7 @@ setup(
                       'pandas',
                       'geopandas',
                       'dask',
+                      'dask_image',
                       'joblib',
                       'tqdm',
                       'sentineleof',
