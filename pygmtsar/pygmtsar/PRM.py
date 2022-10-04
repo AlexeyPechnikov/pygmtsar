@@ -7,7 +7,8 @@
 class PRM:
 
     # NetCDF options
-    netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(256,256))
+    netcdf_chunksize = 256
+    netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(netcdf_chunksize,netcdf_chunksize))
     netcdf_engine = 'h5netcdf'
 
     @staticmethod
@@ -860,11 +861,14 @@ class PRM:
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
     # use_boxcar_filter=True for ISCE-type boxcar and multilook filter
-    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, use_boxcar_filter=False, func=None):
+    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32,
+             use_boxcar_filter=False, func=None, chunks='auto'):
         import os
         import numpy as np
         import xarray as xr
-        from scipy import signal
+        #from scipy import signal
+        import dask_image.ndfilters
+        import dask.array
 
         # constant from GMTSAR code
         thresh = 5.e-21
@@ -961,12 +965,12 @@ class PRM:
 
         # Python post-processing
         # we need to flip vertically results from the command line tools
-        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=self.netcdf_engine)
-        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=self.netcdf_engine)
+        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=self.netcdf_engine, chunks=chunks)
+        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=self.netcdf_engine, chunks=chunks)
         amp = np.sqrt(realfilt**2 + imagfilt**2)
 
-        amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=self.netcdf_engine)
-        amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=self.netcdf_engine)
+        amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=self.netcdf_engine, chunks=chunks)
+        amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=self.netcdf_engine, chunks=chunks)
 
         # use the same coordinates for all output grids
         # use .values to remove existing attributes from the axes
@@ -975,40 +979,33 @@ class PRM:
         # making correlation
         tmp = amp1 * amp2
         mask = xr.where(tmp >= thresh, 1, np.nan)
-        tmp2 = ((amp/np.sqrt(tmp)) * mask)
-        conv = signal.convolve2d(tmp2, fill_3x3/fill_3x3.sum(), mode='same', boundary='symm')
-        corr = xr.DataArray(np.flipud(conv).astype(np.float32), coords, name='z')
+        tmp2 = mask * (amp/np.sqrt(tmp))
+
+        #conv = signal.convolve2d(tmp2, fill_3x3/fill_3x3.sum(), mode='same', boundary='symm')
+        # use dask rolling window for the same convolution - 1 border pixel is NaN here
+        #kernel = xr.DataArray(fill_3x3, dims=['i', 'j'])/fill_3x3.sum()
+        #conv = tmp2.rolling(y=3, x=3, center={'y': True, 'x': True}).construct(lat='j', lon='i').dot(kernel)
+        # use dask_image package
+        kernel = xr.DataArray(fill_3x3, dims=['y', 'x'])/fill_3x3.sum()
+        conv = dask_image.ndfilters.convolve(tmp2.data, kernel.data, mode='reflect')
+        
+        # wrap dask or numpy array to dataarray
+        corr = xr.DataArray(dask.array.flipud(conv.astype(np.float32)), coords, name='z')
         if func is not None:
             corr = func(corr)
         if os.path.exists(fullname('corr.grd')):
             os.remove(fullname('corr.grd'))
         corr.to_netcdf(fullname('corr.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
-        # making phase - this file is not used later, miss it
-        #phase = xr.ufuncs.arctan2(imagfilt, realfilt) * mask
-        #phase = xr.DataArray(np.flipud(phase).astype(np.float32), coords, name='z')
-        #if func is not None:
-        #    phase = func(phase)
-        #if os.path.exists(fullname('phase.grd')):
-        #    os.remove(fullname('phase.grd'))
-        #phase.to_netcdf(fullname('phase.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
-
         # make the Werner/Goldstein filtered phase
-        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.netcdf_engine)
+        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.netcdf_engine, chunks=chunks)
         phasefilt = phasefilt_phase * mask
-        phasefilt = xr.DataArray(np.flipud(phasefilt).astype(np.float32), coords, name='z')
+        phasefilt = xr.DataArray(dask.array.flipud(phasefilt.astype(np.float32)), coords, name='z')
         if func is not None:
             phasefilt = func(phasefilt)
         if os.path.exists(fullname('phasefilt.grd')):
             os.remove(fullname('phasefilt.grd'))
         phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
-
-        #mask = xr.DataArray(np.flipud(mask).astype(np.float32), coords, name='z')
-        #if func is not None:
-        #    mask = func(mask)
-        #if os.path.exists(fullname('mask.grd')):
-        #    os.remove(fullname('mask.grd'))
-        #mask.to_netcdf(fullname('mask.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
@@ -1083,7 +1080,7 @@ class PRM:
                 out = (np.frombuffer(stdout_data, dtype=np.dtype(np.float64)))
             else:
                 out = np.fromstring(stdout_data, dtype=float, sep=' ')
-            return out if out.size==5 else out.reshape(-1,6)
+            return out if out.size==6 else out.reshape(-1,6)
 
     def pixel_size(self):
         """
