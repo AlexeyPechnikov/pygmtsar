@@ -211,7 +211,7 @@ def download_dem(self, backend=None, product='SRTM1', resolution_meters=60, meth
 ```
 def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.02):
 
-		Return WGS84 DEM in geographic coordinates as just one or list of Xarray Daraarray.
+		Return WGS84 DEM in geographic coordinates as just one or list of Xarray Dataarray.
 		
     Args:
     		subswath - optional subswath number. 
@@ -219,7 +219,7 @@ def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.02):
         buffer_degrees: when geoloc=True add some buffer area around the master scene approximate extent.
 
     Returns:
-        2D Xarray Daraarray object or list of 2D Xarray Daraarray object.
+        2D Xarray Dataarray object or list of 2D Xarray Dataarray object.
 
     Examples:
     		Get DEM for all the processed subswaths:
@@ -252,19 +252,19 @@ def topo_ra_parallel(self, n_jobs=-1, method='cubic'):
 ```
 def get_topo_ra(self, subswath=None):
 
-		Return WGS84 DEM in radar coordinates as just one or list of Xarray Daraarray.
+		Return WGS84 DEM in radar coordinates as just one or list of Xarray Dataarray.
 		
     Args:
     		subswath - optional subswath number.
 
     Returns:
-        2D Xarray Daraarray object or list of 2D Xarray Daraarray object.
+        2D Xarray Dataarray object or list of 2D Xarray Dataarray object.
 
     Examples:
     		Get DEM for all the processed subswaths:
         topo_ra = sbas.get_topo_ra()
         
-        Get DEM for single subswath IW1:
+        Get DEM for a single subswath IW1:
         topo_ra = sbas.get_topo_ra(1)
 ```
 
@@ -463,7 +463,7 @@ def download_landmask(self, backend='GMT', debug=False):
 ```
 def get_landmask(self, geoloc=False, inverse_geocode=False, buffer_degrees=0.02):
 
-		Return WGS84 land mask in geographic coordinates as Xarray Daraarray.
+		Return WGS84 land mask in geographic coordinates as Xarray Dataarray.
 		
     Args:
     		geoloc: boolen flag to crop the land mask using the master scene approximate extent.
@@ -472,7 +472,7 @@ def get_landmask(self, geoloc=False, inverse_geocode=False, buffer_degrees=0.02)
         buffer_degrees: when geoloc=True add some buffer area around the master scene approximate extent.
 
     Returns:
-        2D Xarray Daraarray object.
+        2D Xarray Dataarray object.
 
     Examples:
     		Get land mask in geographic coordinates:
@@ -656,21 +656,55 @@ def sbas_parallel(self, pairs, mask=None, detrended=True, n_jobs=-1):
     		sbas.sbas_parallel()
 ```
 
-#### Incidence angle (PyGMTSAR original)
+#### Look vectors and Incidence angle (PyGMTSAR original)
+
+```
+def sat_look_parallel(self, n_jobs=-1):
+
+		Build satellite look vectors in geographic coordinates.
+
+    Args:
+    		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
+
+		Returns:
+    		None
+
+    Examples:
+    		sbas.sat_look_parallel()
+```
+
+```
+def get_sat_look(self, subswath=None):
+
+		Return satellite look vectors in geographic coordinates as just one or list of Xarray Datasets.
+
+    Args:
+    		subswath - optional subswath number.
+
+    Returns:
+    		2D Xarray Dataset object or list of 2D Xarray Dataset object.
+
+    Examples:
+    		Get satellite look vectors for all the processed subswaths:
+    		sat_look_ll = sbas.get_sat_look()
+
+    		Get satellite look vectors for a single subswath IW1:
+    		sat_look_ll = sbas.get_sat_look(1)
+```
 
 ```
 def incidence_angle(self, subswath=None):
 
 		Compute incidence angle grid in geographic coordinates. 
-		
+
     Args:
     		subswath: optional subswath number.
 
 		Returns:
-        2D Xarray Dataaarray.
+    		2D Xarray Dataaarray.
 
     Examples:
-    		da_ll = sbas.incidence_angle()
+    		inc_angle_ll = sbas.incidence_angle()
 ```
 
 #### Displacements (PyGMTSAR original)
