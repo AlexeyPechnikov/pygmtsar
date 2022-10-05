@@ -2619,11 +2619,11 @@ class SBAS:
         def postprocessing(out):
             #print ('interactive', interactive)
             if interactive:
-                return out.rename('phase')
+                return out.astype(np.float32).rename('phase')
             # save to NetCDF file
             if os.path.exists(detrend_filename):
                 os.remove(detrend_filename)
-            out.rename('phase').to_netcdf(detrend_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
+            out.astype(np.float32).rename('phase').to_netcdf(detrend_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
 
         # raster pixel spacing
         dy, dx = self.pixel_size(phase)
