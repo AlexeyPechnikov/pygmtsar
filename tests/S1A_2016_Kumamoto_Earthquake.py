@@ -48,6 +48,7 @@ sbas.unwrap_parallel(pairs, threshold=CORRLIMIT, mask=landmask_ra, func=cleaner,
 print (sbas.open_grids(pairs, 'unwrap', geocode=True)[0])
 print (sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm, geocode=True)[0])
 # Incidence angle
+sbas.sat_look_parallel()
 print (sbas.incidence_angle())
 # Displacements
 print (sbas.open_grids(pairs, 'unwrap', func=[sbas.vertical_displacement_mm, sbas.nearest_grid], mask=sbas.intf_ra2ll(landmask_ra), geocode=True)[0])
