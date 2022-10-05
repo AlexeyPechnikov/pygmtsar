@@ -843,7 +843,7 @@ class SBAS:
         # project pin location to boundary geometry
         def pip2pin(geom, lon, lat):
             pin = geom.boundary.interpolate(geom.boundary.project(Point(lon, lat)))
-            return pin.x[0].round(3), pin.y[0].round(3)
+            return np.round(pin.x, 3), np.round(pin.y, 3)
 
         # detect all the subswaths
         subswaths = self.get_subswaths()
