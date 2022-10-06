@@ -171,9 +171,9 @@ foreach aligned (`cat aligned.list`)
 #
 #  cleanup the mess
 #  
-# rm tmp*
-# rm *old
-# rm *resamp
-# rm *.raw *.LED *.PRM0
+  rm tmp*
+  rm *old
+  rm *resamp
+  rm *.raw *.LED *.PRM0
 end
 cd ..
