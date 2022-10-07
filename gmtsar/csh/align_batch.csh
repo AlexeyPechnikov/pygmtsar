@@ -175,5 +175,5 @@ end
   rm tmp*
   rm *old
   rm *resamp
-  rm *.raw *.LED *.PRM0
+  rm *.raw *.PRM0
 cd ..
