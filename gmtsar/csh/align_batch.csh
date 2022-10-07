@@ -168,6 +168,7 @@ foreach aligned (`cat aligned.list`)
 #
 #   cp $aligned.PRMresamp $aligned.PRM
   endif
+end
 #
 #  cleanup the mess
 #  
@@ -175,5 +176,4 @@ foreach aligned (`cat aligned.list`)
   rm *old
   rm *resamp
   rm *.raw *.LED *.PRM0
-end
 cd ..
