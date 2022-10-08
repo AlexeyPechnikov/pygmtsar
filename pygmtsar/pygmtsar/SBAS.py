@@ -775,15 +775,13 @@ class SBAS:
                    .sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
                        lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
 
-    def get_landmask(self, geoloc=False, inverse_geocode=False, buffer_degrees=0.02):
+    def get_landmask(self, subswath=None, geoloc=False, buffer_degrees=0.02, inverse_geocode=False):
         import xarray as xr
         import os
 
         if self.landmask_filename is None:
             raise Exception('Set landmask first')
 
-        subswath = None
-        
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
         landmask = xr.open_dataset(self.landmask_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
@@ -791,20 +789,14 @@ class SBAS:
         # define latlon array
         z_array_name = [data_var for data_var in landmask.data_vars if len(landmask.data_vars[data_var].coords)==2]
         assert len(z_array_name) == 1
-        # extract the array and fill missed values by nan (mostly ocean area)
+        # extract the array and fill missed values by zero (mostly ocean area)
         landmask = landmask[z_array_name[0]].fillna(0)
 
-        if geoloc is False:
-            if inverse_geocode:
-                return self.intf_ll2ra(subswath, landmask)
-            return landmask
-
-        bounds = self.get_master(subswath).dissolve().envelope.bounds.values[0].round(3)
-        landmask = landmask.sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
-                            lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
         if inverse_geocode:
-                return self.intf_ll2ra(subswath, landmask)
-        return landmask
+            return self.intf_ll2ra(subswath, landmask)
+
+        dem = self.get_dem(subswath, geoloc, buffer_degrees)
+        return landmask.reindex_like(dem, method='nearest')
     
     def get_pins(self, subswath=None):
         """
