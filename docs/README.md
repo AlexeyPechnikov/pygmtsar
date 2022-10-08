@@ -1,8 +1,8 @@
-[![GMTSAR tests](https://github.com/mobigroup/gmtsar/actions/workflows/gmtsar.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/gmtsar.yml)
 [![MacOS tests](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml)
 [![Ubuntu tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml)
 [![PyPI tests](https://github.com/mobigroup/gmtsar/actions/workflows/pypi.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/pypi.yml)
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
+[![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar)
 
 ## About
 
@@ -10,13 +10,13 @@ PyGMTSAR (Python GMTSAR) is an open source project and Python package that provi
 
 Initially, PyGMTSAR is forked from GMTSAR GitHub repository and lot's of changes are made to seamlessly call all the binary tools from Python API. For now, all the changes developed for PyGMTSAR project merged into GMTSAR and the both projects are binary compatible. To prevent confusing, below PyGMTSAR means the Python package only and GMTSAR means the binary core tools (while these are available in PyGMTSAR GitHub repository too). 
 
-The goal of the project is easy and fast satellite interferometry (InSAR) interactive and batch processing in Python scripts and Jupyter Notebooks for Sentinel-1 radar scenes everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and even on free of charge cloud environment Google Colab. 
+The goal of the project is easy and fast satellite interferometry (InSAR) interactive and batch processing in Python scripts and Jupyter Notebooks for Sentinel-1 SLC scenes everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and even on free of charge cloud environment Google Colab. 
 
 ## Why PyGMTSAR?
 
 PyGMTSAR itself combines powerful Python instrumentary for sophisticated multidementional processing (xarray library) and lazy calculations (dask library) plus parallel computing (dask and joblib libraries) to perform fast and interactive processing on huge datasets. And the best algorithms and numerical computation approaches applied for all the processing steps. There are progressbars and preview plots for the every step and that's easy to save intermediate results and continue work later on the same or other host. And (thanks to joblib library) that's safe to interrupt the execution at any time without memory leaks (common for dask-based solutions).
 
-Thanks to all the powerful Python libraries and the best used algorithms PyGMTSAR is really fast and that's possible to complete SBAS analysis for 5 years on 800 interferograms in just one day even on Apple Air or Apple iMac (8 cores and 16 GB RAM) using 2 TB raw Sentinel-1 scenes. See the live Google Colab notebooks to find how dramatically PyGMTSAR enhaces the results in comparision to GMTSAR output for the same case.
+Thanks to all the powerful Python libraries and the best used algorithms PyGMTSAR is really fast and that's possible to complete SBAS analysis for 5 years on 800 interferograms in just one day even on Apple Air or Apple iMac (8 cores and 16 GB RAM) using 2 TB Sentinel-1 SLC scenes. See the live Google Colab notebooks to find how dramatically PyGMTSAR enhaces the results in comparision to GMTSAR output for the same case.
 
 And PyGMTSAR is user-friendly providing functions to download the required satellite orbit files and DEM and so on. 
 
@@ -26,15 +26,17 @@ Although PyGMTSAR and GMTSAR are binary compatible PyGMTSAR build rich Python AP
 
 Satellite interferometry is a complex field of knowledge and usually that's requires a lot of time to understood it enough to build the meaningful results. Really, there is a big gap between GMTSAR github cloning and, for an example, valid SBAS + PSI results computation. PyGMTSAR resolves the software-related complexity providing high-level functions running in Live Jupyter notebooks on Google Colab so you have immediate access to the ready to use and working interactive examples which can be easily modified to produce your own results without hassle with software installation and configuration. You'd start from the self-documented Live Google Colab examples and view PyGMTSAR functions documentation and GMTSAR installation instructions  later.
 
+See the project sources and bug tracker on [PyGMTSAR GitHub](https://github.com/mobigroup/gmtsar) and documentation on [PyGMTSAR GitHub Pages](https://mobigroup.github.io/gmtsar/)
+
 ## Tutorials: Live Examples on Google Colab
 
-Click on the links below to run the processing in your own browser without any software installation. That's like to magic and it works.
+Click on the examples below to run the processing in your own browser without any software installation. That's like to magic and it works.
 
-* [ASF Downloading 2017 Iran–Iraq Earthquake vs GMTSAR GAMMA SNAP Co-Seismic Interferogram](https://colab.research.google.com/drive/12LJqlZNBUmvLlRl98rRFCbKveVPg9Ami?usp=sharing). The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** and **compares the results to GMTSAR, SNAP and GAMMA Software**. Note: replace the scene names to produce an **interferogram** and **LOS displacement** for your area of interest.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12LJqlZNBUmvLlRl98rRFCbKveVPg9Ami?usp=sharing) **ASF Downloading 2017 Iran–Iraq Earthquake vs GMTSAR GAMMA SNAP Co-Seismic Interferogram** The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** and **compares the results to GMTSAR, SNAP and GAMMA Software**. Note: replace the scene names to produce an **interferogram** and **LOS displacement** for your area of interest.
 
 <img src="https://user-images.githubusercontent.com/7342379/177748605-788889e5-9afd-44d8-bc3c-dc6efe920ea0.png" width="50%">
 
-* [Live Example S1A_2016_Kumamoto Earthquake_Co-Seismic Interferogram vs ESA Sentinel 1 Toolbox on Alaska Satellite Facility](https://colab.research.google.com/drive/1PyYcxvuyzhh-g4NQEbKjcfTDQhREZInn?usp=sharing). This is a single subswath processing with **landmask** applied to **interferogram**, **unwapped phase**, and **LOS, east-west, vertical displacement** results.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1PyYcxvuyzhh-g4NQEbKjcfTDQhREZInn?usp=sharing) **Live Example S1A_2016_Kumamoto Earthquake_Co-Seismic Interferogram vs ESA Sentinel 1 Toolbox on Alaska Satellite Facility**. This is a single subswath processing with **landmask** applied to **interferogram**, **unwapped phase**, and **LOS, east-west, vertical displacement** results.
 
 <img src="https://user-images.githubusercontent.com/7342379/183805898-d7c1ad76-822e-428e-9259-f19cc9e7540e.jpg" width="50%">
 
@@ -42,25 +44,23 @@ Click on the links below to run the processing in your own browser without any s
 
 <img src="https://user-images.githubusercontent.com/7342379/183649417-7fcb7f3f-8c8d-45e8-a2c9-9293498ebada.png" width="50%">
 
-* [Live Example S1AB 2021 Crete Earthquake Co-Seismic Interferogram vs Centre of EO Research & Satellite Remote Sensing, Greece Report](https://colab.research.google.com/drive/1ZTPV4HY-UoLvDYVx0UGh_Z3B12scSh9E?usp=sharing) This is a single **cropped subswath** processing with **landmask** applied to **interferogram**, **unwapped phase**, and **LOS, east-west, vertical displacement** results.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZTPV4HY-UoLvDYVx0UGh_Z3B12scSh9E?usp=sharing) **Live Example S1AB 2021 Crete Earthquake Co-Seismic Interferogram vs Centre of EO Research & Satellite Remote Sensing, Greece Report** This is a single **cropped subswath** processing with **landmask** applied to **interferogram**, **unwapped phase**, and **LOS, east-west, vertical displacement** results.
 
 <img src="https://user-images.githubusercontent.com/7342379/177004287-cdd4351c-0834-42ae-8e46-9da5e8b124bf.jpg" width="50%">
 
 <img src="https://user-images.githubusercontent.com/7342379/183645260-f8529ff3-b014-499e-ba2f-ebea4937b2c2.png" width="50%">
 
-* [GMTSAR example dataset S1A_Stack_CPGF_T173](https://colab.research.google.com/drive/1sljxm2jAMGXynq4EYam6Siz8OLcPLN0h?usp=sharing) This example illustrates **SBAS** and **PSI** analyses and **detrending** approach to remove **atmospheric noise** to produce much better results.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1sljxm2jAMGXynq4EYam6Siz8OLcPLN0h?usp=sharing) **GMTSAR example dataset S1A_Stack_CPGF_T173** This example illustrates **SBAS** and **PSI** analyses and **detrending** approach to remove **atmospheric noise** to produce much better results.
 
 <img src="https://user-images.githubusercontent.com/7342379/135814732-aa0eb142-ae54-4a57-b271-c33b5174a28e.png" width="50%">
 
 <img src="https://user-images.githubusercontent.com/7342379/189961167-bf3901e5-417c-41ce-a5ca-d1c74c239a04.png" width="50%">
 
-* [ASF Downloading 2020 Ardabil, Iran Earthquake Co-Seismic Interferogram and LOS Displacement](https://colab.research.google.com/drive/1ZBVwlkiXMhSDS96oojpWrzTyRFIxv8Rp?usp=sharing). The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** to **crop the area** and **merge subswaths** and **detrend** results. Note: replace the scene names to produce an interferogram for your area of interest.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZBVwlkiXMhSDS96oojpWrzTyRFIxv8Rp?usp=sharing) **ASF Downloading 2020 Ardabil, Iran Earthquake Co-Seismic Interferogram and LOS Displacement** The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** to **crop the area** and **merge subswaths** and **detrend** results. Note: replace the scene names to produce an interferogram for your area of interest.
 
 <img src="https://user-images.githubusercontent.com/7342379/190452115-fd703b7f-1e9b-49e5-9d17-8d9fae563aae.png" width="50%">
 
 <img src="https://user-images.githubusercontent.com/7342379/190451656-386d6cb8-f536-447c-8274-71d4f0435408.png" width="50%">
-
-
 
 ## Reference
 
