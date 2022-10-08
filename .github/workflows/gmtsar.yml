@@ -42,7 +42,7 @@ jobs:
       run: |
         autoconf
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
-        make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+        make
         make install
         # check installation
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
