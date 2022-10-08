@@ -639,7 +639,7 @@ def sbas(self, pairs, smooth=0, atm=0, debug=False):
 #### SBAS (PyGMTSAR original)
 
 ```
-def sbas_parallel(self, pairs, mask=None, detrended=True, n_jobs=-1):
+def sbas_parallel(self, pairs, mask=None, detrended=True, data_stack=None, corr_stack=None, n_jobs=-1):
 
 		SBAS unwrapped and detrended interferograms timeseries analysis using pixel-wise correlation-weighted least squares approach. 
 		
@@ -647,13 +647,15 @@ def sbas_parallel(self, pairs, mask=None, detrended=True, n_jobs=-1):
     		pairs: list of dates pairs (baseline pairs).
     		mask: Xarray Dataarray mask for valid pixels.
     		detrended: optional boolean flag to use detrended unwrapped phase or unwrapped phase itself.
+    		data_stack: stack of unwrapped phase grids as 3D Xarray dataarray. When it's not defined SBAS.open_grids(pairs, 'unwrap') for detrended=False or SBAS.open_grids(pairs, 'detrend') for detrended=True  used.
+    		corr_stack: stack of correlation grids as 3D Xarray dataarray. When it's not defined SBAS.open_grids(pairs, 'corr') used.
     		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
 
 		Returns:
         None
 
     Examples:
-    		sbas.sbas_parallel()
+    		sbas.sbas_parallel(pairs)
 ```
 
 #### Look vectors and Incidence angle (PyGMTSAR original)
@@ -1208,13 +1210,18 @@ make install
 ### Install GMTSAR binaries on Ubuntu 18.04, 20.04, 22.04
 
 ```
-apt install -y csh autoconf gfortran \
+apt install -y git csh autoconf make gfortran \
     libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt
 cd /usr/local && git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
-cd /usr/local/GMTSAR && autoconf
-cd /usr/local/GMTSAR && ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
-cd /usr/local/GMTSAR && make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
-cd /usr/local/GMTSAR && make install
+cd /usr/local/GMTSAR \
+&& autoconf \
+&& ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs' \
+&& make \
+&& make install
+# add the binaries search path
+export PATH=/usr/local/GMTSAR/bin:$PATH
+# to install PyGMTSAR
+apt install -y python3 python3-pip gdal-bin libgdal-dev
 ```
 
 Note: only Ubuntu 22.04 requires additional flags "-z muldefs" while these are safe to add on any Ubuntu version.
