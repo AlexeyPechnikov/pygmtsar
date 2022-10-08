@@ -7,7 +7,7 @@
 class SBAS:
 
     # NetCDF options
-    netcdf_chunksize = 256
+    netcdf_chunksize = 512
     netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(netcdf_chunksize,netcdf_chunksize))
     netcdf_engine = 'h5netcdf'
     
@@ -2707,7 +2707,7 @@ class SBAS:
         matrix = np.array(coeffs[1:]).astype(float).reshape((shape[1],shape[0]))
         return (gauss_dec, matrix)
 
-    def sbas_parallel(self, pairs, mask=None, detrended=True, n_jobs=-1):
+    def sbas_parallel(self, pairs, mask=None, detrended=True, data_stack=None, corr_stack=None, n_jobs=-1):
         import xarray as xr
         import numpy as np
         import pandas as pd
@@ -2729,16 +2729,18 @@ class SBAS:
         dates = np.unique(pairs.flatten())
     
         # source grids lazy loading
-        corr_stack = self.open_grids(pairs, 'corr').chunk(dict(pair=-1))
-        gridname = 'detrend' if detrended else 'unwrap'
-        unwrap_stack = self.open_grids(pairs, gridname).chunk(dict(pair=-1))
+        if corr_stack is None:
+            corr_stack = self.open_grids(pairs, 'corr')
+        if data_stack is None:
+            gridname = 'detrend' if detrended else 'unwrap'
+            data_stack = self.open_grids(pairs, gridname)
 
         # crop correlation grid like to unwrap grid which may be defined smaller
-        corr_stack = corr_stack.reindex_like(unwrap_stack)
+        corr_stack = corr_stack.reindex_like(data_stack)
         
         # mask can be sparse and limit work area
         if mask is not None:
-            unwrap_stack = xr.where(mask>0, unwrap_stack.reindex_like(mask), np.nan)
+            data_stack = xr.where(mask>0, data_stack.reindex_like(mask), np.nan)
             corr_stack   = xr.where(mask>0, corr_stack.reindex_like(mask),   np.nan)
     
         # here are one row for every interferogram and one column for every date
@@ -2774,7 +2776,7 @@ class SBAS:
         # xarray wrapper
         models = xr.apply_ufunc(
             fit,
-            unwrap_stack.chunk(dict(pair=-1)),
+            data_stack.chunk(dict(pair=-1)),
             corr_stack.chunk(dict(pair=-1)),
             input_core_dims=[['pair'],['pair']],
             exclude_dims=set(('pair',)),
@@ -2815,7 +2817,8 @@ class SBAS:
             da.to_netcdf(chunk_filename,
                          unlimited_dims=['y','x'],
                          encoding={'displacement': netcdf_compression},
-                         engine=self.netcdf_engine)
+                         engine=self.netcdf_engine,
+                         compute=True)
             return chunk_filename
     
         # process all the chunks

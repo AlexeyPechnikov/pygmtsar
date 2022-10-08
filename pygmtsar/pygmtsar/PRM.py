@@ -7,7 +7,7 @@
 class PRM:
 
     # NetCDF options
-    netcdf_chunksize = 256
+    netcdf_chunksize = 512
     netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(netcdf_chunksize,netcdf_chunksize))
     netcdf_engine = 'h5netcdf'
 
