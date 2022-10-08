@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='pygmtsar',
-    version='2022.10.5',
+    version='2022.10.8',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -19,7 +19,7 @@ setup(
     license='GPL-3.0',
     packages=['pygmtsar'],
     install_requires=['xarray>=0.19.0',
-                      'importlib-metadata<5.0',
+                      'importlib-metadata<=4.12.0',
                       'numpy',
                       'pandas',
                       'geopandas',
@@ -35,7 +35,8 @@ setup(
                       'xmltodict',
                       'rioxarray',
                       'ipywidgets',
-                      'h5netcdf'
+                      'h5netcdf',
+                      'nc-time-axis'
                       ],
 
     classifiers=[
