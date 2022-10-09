@@ -11,7 +11,21 @@ This repository based on forked original GMTSAR and extended by my patches to bi
 
 The goal of the project is easy and fast satellite interferometry (InSAR) processing everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and on free of charge cloud environment Google Colab. We have 3-10 times faster processing and more accurate results due to massive parallelization and better algorithms.
 
-### Live Examples on Google Colab - just click on the links to run the processing in your own browser without any software installation
+### Live Examples in Docker image
+
+Configure your Docker runtime (Preferences -> Resources tab for Docker Desktop) to use 2 CPU cores and 8 GB RAM or 4 CPU cores and 16 GB RAM and so on. Download the Docker image (or build it yourself using the Dockerfile in the repository) and run the container forwarding port 8888 to JupyterLab using this commands inside your command line terminal window:
+
+```
+docker pull mobigroup/pygmtsar
+
+docker run -dp 8888:8888 --name pygmtsar docker.io/mobigroup/pygmtsar
+
+docker logs pygmtsar
+```
+
+See the output for the JupyterLab link and copy and past it into your web browser address line. Also, the donwloaded Docker image can be started in Docker Desktop app - press "RUN" button and define the container name and the port in the opened dialog window (see "Optional settings" for the port number input field) and click on the newly created container to launch it and see the output log with the clickable link.
+
+### Live Examples on Google Colab - click on the links below to run the processing in your own browser without any software installation
 
 The notebooks are interactive examples available directly in your web browser. All the steps automated including the software installation on Google Colab cloud host and downloading of Sentinel-1 orbit files, SRTM DEM (and its conversion to ellispoidal heights using EGM96 model), a landmask (to mask low-coherence water surfaces), Sentinel-1 SLC scenes from Alaska Satellite Facility (ASF) datastore and, of course, the complete interferometry processing and the results mapping.
 

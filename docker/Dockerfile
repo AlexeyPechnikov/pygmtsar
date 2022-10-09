@@ -1,6 +1,6 @@
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html
 # https://github.com/jupyter/docker-stacks/blob/main/base-notebook/Dockerfile
-FROM jupyter/scipy-notebook
+FROM jupyter/scipy-notebook:ubuntu-22.04
 
 USER root
 
