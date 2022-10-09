@@ -14,7 +14,9 @@ class PRM:
     @staticmethod
     def gmtsar_sharedir():
         """
-        Call GMTSAR tool to obtain GMTSAR shared directory location
+        Call GMTSAR tool to obtain GMTSAR shared directory location.
+        Note: Docker builds on Apple Silicon for linux/amd64 platform produce weird issue
+        when gmtsar_sharedir.csh output switches to stderr in joblib calls with n_jobs > 1
         """
         import os
         import subprocess
@@ -23,11 +25,12 @@ class PRM:
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout_data, stderr_data = p.communicate()
 
-        stderr_data = stderr_data.decode('utf8')
+        stderr_data = stderr_data.decode('utf8').strip()
         if stderr_data is not None and len(stderr_data):
             print ('gmtsar_sharedir', stderr_data)
         data = stdout_data.decode('utf8').strip()
-
+        if data == '':
+            return stderr_data
         return data
     
     # replacement for GMTSAR gaussians
