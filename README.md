@@ -25,7 +25,7 @@ docker logs pygmtsar
 
 See the output for the JupyterLab link and copy and past it into your web browser address line. Also, the donwloaded Docker image can be started in Docker Desktop app - press "RUN" button and define the container name and the port in the opened dialog window (see "Optional settings" for the port number input field) and click on the newly created container to launch it and see the output log with the clickable link.
 
-### Live Examples on Google Colab - click on the links below to run the processing in your own browser without any software installation
+### Live Examples on Google Colab
 
 The notebooks are interactive examples available directly in your web browser. All the steps automated including the software installation on Google Colab cloud host and downloading of Sentinel-1 orbit files, SRTM DEM (and its conversion to ellispoidal heights using EGM96 model), a landmask (to mask low-coherence water surfaces), Sentinel-1 SLC scenes from Alaska Satellite Facility (ASF) datastore and, of course, the complete interferometry processing and the results mapping.
 
