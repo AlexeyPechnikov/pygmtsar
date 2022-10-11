@@ -8,7 +8,7 @@
 
 The goal of the project is easy and fast satellite interferometry (InSAR) processing for Sentinel-1 radar scenes everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and on free of charge cloud environment Google Colab and in Docker images. GMTSAR binary command line tools are used under the hood but all GMTSAR scripts and GMT command replaced by Python code using modern and robust algorithms.
 
-<img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" width="40%" />
+<img src="https://user-images.githubusercontent.com/7342379/195076831-5a1eece1-16d5-4a44-96f8-e34a69432c1b.jpg" width="40%" />
 
 ## Why PyGMTSAR?
 
