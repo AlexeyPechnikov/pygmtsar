@@ -6,21 +6,17 @@
 
 ## About
 
-PyGMTSAR (Python GMTSAR) is an open source project and Python package that provides easy and fast Sentinel-1 Satellite Interferometry for everyone! While it's pure Python package under the hood it uses GMTSAR binary tools which should be installed.
+PyGMTSAR (Python GMTSAR) is an open source project and Python package that provides Sentinel-1 Satellite Interferometry for everyone! While it's pure Python package under the hood it uses GMTSAR binary tools which should be installed.
 
-Initially, PyGMTSAR is forked from GMTSAR GitHub repository and lot's of changes are made to seamlessly call all the binary tools from Python API. For now, all the changes developed for PyGMTSAR project merged into GMTSAR and the both projects are binary compatible. To prevent confusing, below PyGMTSAR means the Python package only and GMTSAR means the binary core tools (while these are available in PyGMTSAR GitHub repository too). 
+Initially, PyGMTSAR is forked from GMTSAR GitHub repository and lot's of changes are made to seamlessly call all the binary tools from Python API. For now, all the changes developed for PyGMTSAR project merged into GMTSAR and the both projects use the same binary tools  although PyGMTSAR maintains rich Python API for interactive and batch computations and GMTSAR provides a set of shell scripts for the batch processing only. To prevent confusing, below PyGMTSAR means the Python package only and GMTSAR means the binary core tools (while these are available in PyGMTSAR GitHub repository too). 
 
-The goal of the project is easy and fast satellite interferometry (InSAR) interactive and batch processing in Python scripts and Jupyter Notebooks for Sentinel-1 SLC scenes everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and even on free of charge cloud environment Google Colab. 
+The goal of the project is easy and fast satellite interferometry (InSAR) interactive and batch processing in Python scripts and Jupyter Notebooks for Sentinel-1 SLC scenes everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and even on free of charge cloud environment Google Colab. By this way, PyGMTSAR-based interferometry processing is available even in Google Colab notebooks and in Docker image (see below).
 
 ## Why PyGMTSAR?
 
 PyGMTSAR itself combines powerful Python instrumentary for sophisticated multidementional processing (xarray library) and lazy calculations (dask library) plus parallel computing (dask and joblib libraries) to perform fast and interactive processing on huge datasets. And the best algorithms and numerical computation approaches applied for all the processing steps. There are progressbars and preview plots for the every step and that's easy to save intermediate results and continue work later on the same or other host. And (thanks to joblib library) that's safe to interrupt the execution at any time without memory leaks (common for dask-based solutions).
 
-Thanks to all the powerful Python libraries and the best used algorithms PyGMTSAR is really fast and that's possible to complete SBAS analysis for 5 years on 800 interferograms in just one day even on Apple Air or Apple iMac (8 cores and 16 GB RAM) using 2 TB Sentinel-1 SLC scenes. See the live Google Colab notebooks to find how dramatically PyGMTSAR enhaces the results in comparision to GMTSAR output for the same case.
-
-And PyGMTSAR is user-friendly providing functions to download the required satellite orbit files and DEM and so on. 
-
-Although PyGMTSAR and GMTSAR are binary compatible PyGMTSAR build rich Python API for interactive and batch computations and GMTSAR provides a set of shell scripts for the batch processing only. By the way, for development purposes PyGMTSAR includes shell scripts pipeline for SBAS processing with advantages like to cloud hosts init script and Telegram messenger processing notifications and you are able to try it in case you are fun of shell scripting (that's a joke of course but who knows...).
+Thanks to all the powerful Python libraries and the best used algorithms PyGMTSAR is fast and its possible to complete SBAS analysis for 5 years on 800 interferograms in just one day on Apple Air or Apple iMac (8 cores and 16 GB RAM) using 2 TB Sentinel-1 SLC scenes. And PyGMTSAR is user-friendly providing functions to download the required satellite orbit files and DEM and so on. This combination of the human-readable and short code and powerful computing is the key to use PyGMTSAR everywhere from education and to research and more. 
 
 ## Documentation
 

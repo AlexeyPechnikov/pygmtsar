@@ -5,11 +5,13 @@
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
 [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar)
 
-## PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone
+## PyGMTSAR (Python GMTSAR) - Sentinel-1 Satellite Interferometry For Everyone
+
+<img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" style="zoom:24%;" />
 
 This repository based on forked original GMTSAR and extended by my patches to binary tools and Python library PyGMTSAR. I commit my changes to binary tools to GMTSAR upstream and so it's possible to use the original GMTSAR master branch installation plus PyGMTSAR Python package via PIP. The project documentation including installation instructions available by the link: https://mobigroup.github.io/gmtsar/
 
-The goal of the project is easy and fast satellite interferometry (InSAR) processing everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and on free of charge cloud environment Google Colab. We have 3-10 times faster processing and more accurate results due to massive parallelization and better algorithms.
+The goal of the project is easy and fast satellite interferometry (InSAR) processing for Sentinel-1 radar scenes everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and on free of charge cloud environment Google Colab and in Docker images. GMTSAR binary command line tools are used under the hood but all GMTSAR scripts and GMT command replaced by Python code using modern and robust algorithms.
 
 ### Live Examples in Docker image
 
