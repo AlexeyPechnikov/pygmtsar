@@ -9,7 +9,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # install GMTSAR dependencies plus rsync
 RUN set -e \
 &&  apt-get -y update \
-&&  apt-get -y install git subversion curl rsync \
+&&  apt-get -y install git subversion curl rsync ghostscript \
 &&  apt-get -y install csh autoconf make gfortran \
 &&  apt-get -y install libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -40,8 +40,11 @@ RUN chmod a+x ${GMTSAR}/bin/download_orbits.sh
 RUN set -e \
 &&  apt-get -y update \
 &&  apt-get -y upgrade \
-&&  apt-get install -y vim nano perl wget tar zip man sudo adduser mc htop \
+&&  apt-get install -y vim nano perl wget tar zip man sudo adduser w3m chafa mc htop \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# allow ImageMagick to process PDF (required for chafa)
+RUN sed -i 's/rights="none" pattern="PDF"/rights="read | write" pattern="PDF"/' /etc/ImageMagick-*/policy.xml
 
 # create unprivileged user
 RUN set -e \
