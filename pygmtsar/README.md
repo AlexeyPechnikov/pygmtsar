@@ -4,7 +4,7 @@
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
 [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar)
 
-<img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" style="zoom:24%;" />
+<img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" width="40%" />
 
 **PyGMTSAR** (Python GMTSAR) is an open source project and Python package that provides Sentinel-1 Satellite Interferometry for everyone.
 
@@ -72,3 +72,4 @@ Click on the examples below to run the processing in your own browser without an
 
 - Source code: https://github.com/mobigroup/gmtsar
 
+- Docker Images: https://hub.docker.com/repository/docker/mobigroup/pygmtsar

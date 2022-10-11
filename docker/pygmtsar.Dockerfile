@@ -37,4 +37,9 @@ WORKDIR "${HOME}"
 
 # download example notebooks
 RUN svn export https://github.com/mobigroup/gmtsar/trunk/notebooks
+
+# download example console scripts
+RUN svn export https://github.com/mobigroup/gmtsar/trunk/tests
+
+# cleanup
 RUN rm -rf notebooks/README.md work
