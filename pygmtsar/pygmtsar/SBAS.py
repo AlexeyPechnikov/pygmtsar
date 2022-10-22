@@ -1298,7 +1298,7 @@ class SBAS:
         # process all the chunks
         trans_blocks_ys, trans_blocks_xs = trans_dat.ll.data.numblocks
         #print ('trans_blocks_ys, trans_blocks_xs', trans_blocks_ys, trans_blocks_xs)
-        with self.tqdm_joblib(tqdm(desc='Analyze transform blocks', total=trans_blocks_ys*trans_blocks_xs)) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Analyze Transform Blocks', total=trans_blocks_ys*trans_blocks_xs)) as progress_bar:
             extents = joblib.Parallel(n_jobs=-1)(joblib.delayed(calculate_block_extent)(iy, ix) \
                                                      for iy in range(trans_blocks_ys) for ix in range(trans_blocks_xs))
         # merge the results
@@ -1384,7 +1384,7 @@ class SBAS:
             delayeds.append(delayed)
 
         if not interactive:
-            tqdm_dask(dask.persist(delayeds), desc='Radar Topography Computing')
+            tqdm_dask(dask.persist(delayeds), desc='Radar Transform Computing')
         else:
             return delayeds[0] if len(delayeds)==1 else delayeds
 
