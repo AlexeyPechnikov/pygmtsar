@@ -5,12 +5,6 @@
 #import pytest
 
 class SBAS:
-
-    # NetCDF options
-    netcdf_chunksize = 512
-    netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(netcdf_chunksize,netcdf_chunksize))
-    netcdf_engine = 'h5netcdf'
-    
     import contextlib
     @staticmethod
     @contextlib.contextmanager
@@ -88,8 +82,8 @@ class SBAS:
 
     @staticmethod
     def nearest_grid(in_grid, search_radius_pixels=300):
-        from pygmtsar import PRM
-        return PRM.nearest_grid(in_grid, search_radius_pixels)
+        from pygmtsar import datagrid
+        return datagrid.nearest_grid(in_grid, search_radius_pixels)
 
     def snaphu_config(self, defomax=0, **kwargs):
         return self.PRM().snaphu_config(defomax, **kwargs)
@@ -108,56 +102,43 @@ class SBAS:
         #print ('indexer', indexer)
         return das.loc[indexer]
     
-    def gaussian(self, da, wavelength, truncate=3.0, approximate=False, debug=False):
+    def degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
         """
-        Gaussian filter for arrays with NaN values.
-            da - input dataarray with NaNs allowed,
+        Lazy Gaussian filter for arrays with NaN values.
+            dataarray - input dataarray with NaNs allowed,
             wavelength - cut-off wavelength [m],
             truncate - filter window size [sigma],
-            approximate - boolean flag to use approximate calculation based on filtering on decimated array,
-            debug - pront debug information.
+            resolution_meters - Gaussian filter processing resolution [m],
+            debug - print debug information.
         Returns filtered dataarray with the same coordinates as input one.
         Fast approximate calculation silently skipped when sigma is less than 64 so the result is always exact for small filters.
         """
         import xarray as xr
         import numpy as np
-        from pygmtsar import PRM
+        from pygmtsar import datagrid
 
+        # input grid can be too large
+        decimator = self.pixel_decimator(resolution_meters=resolution_meters, grid=dataarray, debug=debug)
+        # decimate
+        dataarray_dec = decimator(dataarray)
         # ground pixel size
-        dy, dx = self.pixel_size(da)
+        dy, dx = self.pixel_size(dataarray_dec)
         # gaussian kernel
         sigma_y = np.round(wavelength / dy)
         sigma_x = np.round(wavelength / dx)
-    
         if debug:
-            print ('DEBUG: Gaussian filtering sigma_y, sigma_x', sigma_y, sigma_x)
-    
-        # there is a compromise between accuracy and speed
-        dec = 32
-        # ignore decimation when it is less than or equal to 1
-        dec_y = int(np.floor(sigma_y/dec))
-        dec_x = int(np.floor(sigma_x/dec))
-        
-        if approximate and dec_y > 1 and dec_x > 1:
-            # filter decimated array for faster and less accurate processing
-            if debug:
-                print ('DEBUG: Gaussian filtering decimation dec_y, dec_x', dec_y, dec_x)
-        
-            # decimate and filter
-            da_dec = da.coarsen({'y': dec_y, 'x': dec_x}, boundary='pad').mean()
-            values  = PRM.nanconvolve2d_gaussian(da_dec.values,
-                                                      (sigma_y/dec_y, sigma_x/dec_x),
-                                                      truncate=truncate)
-            da_dec = xr.DataArray(values, coords=da_dec.coords)
-
-            # scale to original grid and filter with small kerkel equal to the decimation
-            da_dec = da_dec.interp_like(da, method='nearest')
-            values   = PRM.nanconvolve2d_gaussian(da_dec.values,
-                                                  (dec_y, dec_x),
-                                                  truncate=truncate)
-        else:
-            values   = PRM.nanconvolve2d_gaussian(da.values, (sigma_y,sigma_x), truncate=truncate)
-        return xr.DataArray(values, coords=da.coords)
+            print ('DEBUG: Gaussian filtering using resolution, sigma_y, sigma_x',
+                   resolution_meters, sigma_y, sigma_x)
+        sigmas = (sigma_y,sigma_x)
+        gaussian_dec = datagrid.nanconvolve2d_gaussian(dataarray_dec, sigmas, truncate=truncate)
+        if debug:
+            print ('DEBUG: interpolate decimated filtered grid')
+        gaussian = gaussian_dec.interp_like(dataarray, method='nearest')
+        # revert the original chunks
+        gaussian = xr.unify_chunks(dataarray, gaussian)[1]
+        if debug:
+            print ('DEBUG: return lazy Dask array')
+        return (dataarray - gaussian).astype(np.float32).rename('degaussian')
 
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
@@ -308,7 +289,8 @@ class SBAS:
         if filter_orbit is not None:
             df = df[df.orbit == filter_orbit]
 
-        df = df.set_index('date').sort_values('datetime')\
+        # see https://github.com/mobigroup/gmtsar/issues/8
+        df = df.sort_values(by=['date', 'subswath']).set_index('date')\
             [['datetime','orbit','mission','polarization','subswath','datapath','metapath','orbitpath','geometry']]
 
         err, warn = self.validate(df)
@@ -751,13 +733,14 @@ class SBAS:
     def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.02):
         import xarray as xr
         import os
+        from pygmtsar import datagrid
 
         if self.dem_filename is None:
             raise Exception('Set DEM first')
 
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
-        dem = xr.open_dataset(self.dem_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        dem = xr.open_dataset(self.dem_filename, engine=datagrid.engine, chunks=datagrid.chunksize)
         assert 'lat' in dem.coords and 'lon' in dem.coords, 'DEM should be defined as lat,lon grid'
         # define latlon array
         z_array_name = [data_var for data_var in dem.data_vars if len(dem.data_vars[data_var].coords)==2]
@@ -778,13 +761,14 @@ class SBAS:
     def get_landmask(self, subswath=None, geoloc=False, buffer_degrees=0.02, inverse_geocode=False):
         import xarray as xr
         import os
+        from pygmtsar import datagrid
 
         if self.landmask_filename is None:
             raise Exception('Set landmask first')
 
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
-        landmask = xr.open_dataset(self.landmask_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        landmask = xr.open_dataset(self.landmask_filename, engine=datagrid.engine, chunks=datagrid.chunksize)
         assert 'lat' in landmask.coords and 'lon' in landmask.coords
         # define latlon array
         z_array_name = [data_var for data_var in landmask.data_vars if len(landmask.data_vars[data_var].coords)==2]
@@ -1018,6 +1002,7 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
+        from pygmtsar import datagrid
 
         # that's possible to miss the first argument subswath
         assert subswath is not None or grids is not None, 'ERROR: define input grids'
@@ -1036,8 +1021,8 @@ class SBAS:
         intf_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_intf_ra2ll.grd')
         intf_ll2ra_file = os.path.join(self.basedir, f'F{subswath}_intf_ll2ra.grd')
 
-        matrix_ra2ll = xr.open_dataarray(intf_ra2ll_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
-        matrix_ll2ra = xr.open_dataarray(intf_ll2ra_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        matrix_ra2ll = xr.open_dataarray(intf_ra2ll_file, engine=datagrid.engine, chunks=datagrid.chunksize)
+        matrix_ll2ra = xr.open_dataarray(intf_ll2ra_file, engine=datagrid.engine, chunks=datagrid.chunksize)
 
         # conversion works for a different 1st grid dimension size
         def ra2ll(grid):
@@ -1079,7 +1064,8 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
-    
+        from pygmtsar import datagrid
+
         # use 2D grid grom the pairs stack
         # sometimes interferogram grids are different for one azimuth line so use the largest grid
         intf_grid = intf_grids.min('pair')
@@ -1093,7 +1079,7 @@ class SBAS:
         lat_min, lat_max = trans[:,4].min(),trans[:,4].max()
 
         # read translation table for the full DEM area
-        trans_ra2ll = xr.open_dataarray(trans_ra2ll_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        trans_ra2ll = xr.open_dataarray(trans_ra2ll_file, engine=datagrid.engine, chunks=datagrid.chunksize)
 
         # build ra2ll translation matrix for interferogram coordinates and area only
         # each lan/lon cell has zero or one neighbour radar cell
@@ -1122,7 +1108,7 @@ class SBAS:
         # save to NetCDF file
         if os.path.exists(intf_ra2ll_file):
             os.remove(intf_ra2ll_file)
-        intf_ra2ll.to_netcdf(intf_ra2ll_file, encoding={'intf_ra2ll': self.netcdf_compression}, engine=self.netcdf_engine)
+        intf_ra2ll.to_netcdf(intf_ra2ll_file, encoding={'intf_ra2ll': datagrid.compression}, engine=datagrid.engine)
 
     def ra2ll(self, subswath, debug=False):
         """
@@ -1132,6 +1118,7 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
+        from pygmtsar import datagrid
 
         trans_ra2ll_file = os.path.join(self.basedir, f'F{subswath}_trans_ra2ll.grd')
 
@@ -1164,7 +1151,7 @@ class SBAS:
         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
         #trans_ra2ll.attrs['node_offset'] = 1
         # save to NetCDF file
-        trans_ra2ll.to_netcdf(trans_ra2ll_file, encoding={'trans_ra2ll': self.netcdf_compression}, engine=self.netcdf_engine)
+        trans_ra2ll.to_netcdf(trans_ra2ll_file, encoding={'trans_ra2ll': datagrid.compression}, engine=datagrid.engine)
 
     # a single-step translation
     # see also two-step translation ra2ll & intf_ra2ll_matrix
@@ -1176,6 +1163,7 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
+        from pygmtsar import datagrid
 
         # use 2D grid grom the pairs stack
         # sometimes interferogram grids are different for one azimuth line so use the largest grid
@@ -1189,7 +1177,7 @@ class SBAS:
             os.remove(intf_ll2ra_file)
 
         # read translation table for the full DEM area
-        trans_ra2ll = xr.open_dataarray(trans_ra2ll_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        trans_ra2ll = xr.open_dataarray(trans_ra2ll_file, engine=datagrid.engine, chunks=datagrid.chunksize)
 
         # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
         trans = self.get_trans_dat(subswath)
@@ -1220,7 +1208,7 @@ class SBAS:
         # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
         trans_ll2ra.attrs['node_offset'] = 1
         # save to NetCDF file
-        trans_ll2ra.to_netcdf(intf_ll2ra_file, encoding={'intf_ll2ra': self.netcdf_compression}, engine=self.netcdf_engine)
+        trans_ll2ra.to_netcdf(intf_ll2ra_file, encoding={'intf_ll2ra': datagrid.compression}, engine=datagrid.engine)
 
         return
 
@@ -1233,6 +1221,7 @@ class SBAS:
         import xarray as xr
         import numpy as np
         import os
+        from pygmtsar import datagrid
         
         # that's possible to miss the first argument subswath
         assert subswath is not None or grids is not None, 'ERROR: define input grids'
@@ -1252,9 +1241,9 @@ class SBAS:
         intf_ll2ra_file = os.path.join(self.basedir, f'F{subswath}_intf_ll2ra.grd')
 
         # read translation table for the full DEM area
-        trans_ra2ll = xr.open_dataarray(trans_ra2ll_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        trans_ra2ll = xr.open_dataarray(trans_ra2ll_file, engine=datagrid.engine, chunks=datagrid.chunksize)
         # transform matrix
-        matrix_ll2ra = xr.open_dataarray(intf_ll2ra_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        matrix_ll2ra = xr.open_dataarray(intf_ll2ra_file, engine=datagrid.engine, chunks=datagrid.chunksize)
 
         def ll2ra(grid):
             # transform input grid to the trans_ra2ll where the geocoding matrix defined
@@ -1281,149 +1270,249 @@ class SBAS:
 
         return grids_ll
 
-    def get_trans_dat(self, subswath=None):
+    def get_trans_dat_blocks_extents(self, subswath=None, n_jobs=-1):
+        """
+        Compute trans_dat dask blocks extents in radar coordinates
+        """
+        from tqdm.auto import tqdm
+        import joblib
+        import xarray as xr
+        import dask
         import numpy as np
-        import os
+
+        # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
+        def calculate_block_extent(iy, ix):
+            dask_block_azi = trans_dat.azi.data.blocks[iy, ix]
+            dask_block_rng = trans_dat.rng.data.blocks[iy, ix]
+            azi_allnans = dask.array.isnan(dask_block_azi).all()
+            rng_allnans = dask.array.isnan(dask_block_rng).all()
+            if azi_allnans or rng_allnans:
+                return
+            return dask.compute(iy, ix,
+                                dask.array.nanmin(dask_block_azi), dask.array.nanmax(dask_block_azi),
+                                dask.array.nanmin(dask_block_rng), dask.array.nanmax(dask_block_rng),
+                                )
+
+        # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
+        trans_dat = self.get_trans_dat(subswath)
+        # process all the chunks
+        trans_blocks_ys, trans_blocks_xs = trans_dat.ll.data.numblocks
+        #print ('trans_blocks_ys, trans_blocks_xs', trans_blocks_ys, trans_blocks_xs)
+        with self.tqdm_joblib(tqdm(desc='Analyze transform blocks', total=trans_blocks_ys*trans_blocks_xs)) as progress_bar:
+            extents = joblib.Parallel(n_jobs=-1)(joblib.delayed(calculate_block_extent)(iy, ix) \
+                                                     for iy in range(trans_blocks_ys) for ix in range(trans_blocks_xs))
+        # merge the results
+        extents = np.asarray([extent for extent in extents if extent is not None])
+        return extents
+    
+    def get_trans_dat(self, subswath=None):
+        import xarray as xr
+        from pygmtsar import datagrid
 
         subswath = self.get_subswath(subswath)
-        trans_dat_file  = os.path.join(self.basedir, f'F{subswath}_trans.dat')
-        # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
-        trans_dat = np.fromfile(trans_dat_file, dtype=np.float64).reshape([-1,5])
-        return trans_dat
+        filename = self.get_filenames(subswath, None, 'trans')
+        trans = xr.open_dataset(filename, engine=datagrid.engine, chunks=datagrid.chunksize)
+        return trans
 
-    def trans_dat_parallel(self, n_jobs=-1, interactive=False, debug=False):
-        import numpy as np
+    def trans_dat(self, subswath=None, interactive=False):
+        import dask
         import xarray as xr
-        from tqdm.auto import tqdm
-        import joblib
+        import numpy as np
         import os
+        from pygmtsar import datagrid
+    
+        # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
+        llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
 
         # build trans.dat
-        def SAT_llt2rat(subswath, ilat, ilon):
-            # lazy dask array
-            data = dem.data.blocks[ilat,ilon].compute()
-            lats, lons = xr.broadcast(coordlat[ilat], coordlon[ilon])
-            dem_data = np.column_stack([lons.values.ravel(), lats.values.ravel(), data.ravel()])
-            return self.PRM(subswath).SAT_llt2rat(dem_data, precise=1, binary=True).reshape(-1,5)
+        def SAT_llt2rat(z, lat, lon, subswath):
+            coords_ll = np.column_stack([lon.ravel(), lat.ravel(), z.ravel()])
+            # for binary=True values outside of the scene missed and the array is not complete
+            coords_ra = self.PRM(subswath).SAT_llt2rat(coords_ll, precise=1, binary=False)\
+                .astype(np.float32).reshape(z.shape[0], z.shape[1], 5)
+            return coords_ra
 
-        # process all the subswaths
-        subswaths = self.get_subswaths()
-        trans_dats = []
-        for subswath in subswaths:
-            trans_dat_file = os.path.join(self.basedir, f'F{subswath}_trans.dat')
+        dem = self.get_dem(geoloc=True)
+        # prepare lazy coordinate grids
+        lats = xr.DataArray(dem.lat.astype(np.float32).chunk(-1))
+        lons = xr.DataArray(dem.lon.astype(np.float32).chunk(-1))
+        lats, lons = xr.broadcast(lats, lons)
+        _, lats, lons = xr.unify_chunks(dem, lats, lons)
+        assert dem.chunks == lats.chunks and dem.chunks == lons.chunks, 'Chunks are not equal'
 
-            # cleanup before creating the new file
-            if not interactive and os.path.exists(trans_dat_file):
-                if debug:
-                    print ('DEBUG: remove', trans_dat_file)
-                os.remove(trans_dat_file)
+        # xarray wrapper
+        raell = xr.apply_ufunc(
+            SAT_llt2rat,
+            dem,
+            lats,
+            lons,
+            dask='parallelized',
+            vectorize=False,
+            output_dtypes=[np.float32],
+            output_core_dims=[['raell']],
+            dask_gufunc_kwargs={'output_sizes': {'raell': 5}},
+            kwargs={'subswath': subswath}
+        )
+        # transform to separate variables
+        trans = xr.Dataset({val: raell[...,key] for (key, val) in llt2rat_map.items()})
 
-            dem = self.get_dem(subswath, geoloc=True)
-            lats, lons = dem.data.numblocks
-            latchunks, lonchunks = dem.chunks
-            coordlat = np.array_split(dem.lat, np.cumsum(latchunks))
-            coordlon = np.array_split(dem.lon, np.cumsum(lonchunks))
-            with self.tqdm_joblib(tqdm(desc=f'Radar Topography Computing', total=lats*lons)) as progress_bar:
-                trans_dat_chunks = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(SAT_llt2rat)(subswath, ilat, ilon) \
-                                               for ilat in range(lats) for ilon in range(lons))
-            trans_dat = np.concatenate(trans_dat_chunks)
-            if interactive:
-                trans_dats.append(trans_dat)
-            else:
-                # save to binary file
-                with open(trans_dat_file, 'wb') as f:
-                    if debug:
-                        print ('DEBUG: write', trans_dat_file)
-                    f.write(trans_dat)
-        if not interactive:
-            return
-        return trans_dats[0] if len(trans_dats)==1 else trans_dats
+        if interactive:
+            return trans
 
-    # TODO: topo_ra.grd processing is not parallel but trans.dat computing only
-    def topo_ra_parallel(self, idec=2, jdec=2, n_jobs=-1, debug=False):
+        # save to NetCDF file
+        filename = self.get_filenames(subswath, None, 'trans')
+        if os.path.exists(filename):
+            os.remove(filename)
+        encoding = {val: datagrid.compression for (key, val) in llt2rat_map.items()}
+        handler = trans.to_netcdf(filename,
+                                        encoding=encoding,
+                                        engine=datagrid.engine,
+                                        compute=False)
+        return handler
+    
+    def trans_dat_parallel(self, interactive=False):
         import numpy as np
         import xarray as xr
-        from scipy.spatial import cKDTree
-        from tqdm.auto import tqdm
-        import joblib
-        import os
-
-        # build required trans.dat file
-        self.trans_dat_parallel(n_jobs=n_jobs, debug=debug)
-
-        # start a set of jobs together but not more than available cpu cores at once
-        if n_jobs == -1:
-            n_jobs = joblib.cpu_count()
-
-        # as defined in dem2topo_ra.csh for Sentinel-1
-        if debug:
-            print (f'DEBUG: Topography range and azimuth decimation: {idec}/{jdec}')
+        import dask
+        from pygmtsar import tqdm_dask
 
         # process all the subswaths
         subswaths = self.get_subswaths()
+        delayeds = []
         for subswath in subswaths:
-            with self.tqdm_joblib(tqdm(desc=f'Radar Topography Gridding', total=1)) as progress_bar:
-                topo_ra_file = os.path.join(self.basedir, f'F{subswath}_topo_ra.grd')
-                # cleanup before creating the new file
-                if os.path.exists(topo_ra_file):
-                    if debug:
-                        print ('DEBUG: remove', topo_ra_file)
-                    os.remove(topo_ra_file)
+            delayed = self.trans_dat(subswath=subswath, interactive=interactive)
+            delayeds.append(delayed)
 
-                # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
-                trans_dat = self.get_trans_dat(subswath)
+        if not interactive:
+            tqdm_dask(dask.persist(delayeds), desc='Radar Topography Computing')
+        else:
+            return delayeds[0] if len(delayeds)==1 else delayeds
 
-                # build topo_ra
-                XMAX, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
-                YMAX = yvalid * num_patch
-                if debug:
-                    print ('DEBUG: XMAX', XMAX, 'YMAX', YMAX)
-                # use center pixel GMT registration mode
-                rngs = np.arange(1, XMAX+1, idec)
-                azis = np.arange(1, YMAX+1, jdec)
-                grid_r, grid_a = np.meshgrid(rngs, azis)
+    def topo_ra(self, subswath=None, idec=2, jdec=2, n_jobs=-1, interactive=False):
+        from scipy.spatial import cKDTree
+        import dask
+        import xarray as xr
+        import numpy as np
+        import os
+        from pygmtsar import datagrid
 
-                # find nearest DEM values for every radar grid point
-                ras = np.stack([grid_r.reshape(-1), grid_a.reshape(-1)], axis=1)
-                trans_ras = np.stack([trans_dat[:,0],trans_dat[:,1]], axis=1)
-                tree = cKDTree(trans_ras, compact_nodes=False, balanced_tree=False)
-                d, inds = tree.query(ras, k = 1, workers=n_jobs)
-                if debug:
-                    print (f'DEBUG: maximum distance is {np.max(d).round(1)} cells for subswath {subswath}')
-                topo = trans_dat[:,2][inds].reshape(grid_r.shape)
-                # flip vertically for GMTSAR compatibility reasons
-                topo_ra = xr.DataArray(np.flipud(topo),
-                                       dims=['y', 'x'],
-                                       coords={'y': azis, 'x': rngs},
-                                       name='z')
-                # save to NetCDF file
-                topo_ra.to_netcdf(topo_ra_file, encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
+        # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
+        trans_dat = self.get_trans_dat(subswath)
+    
+        trans_blocks_extents = self.get_trans_dat_blocks_extents(subswath, n_jobs=n_jobs)
 
-                # update progress bar
-                progress_bar.update(1)
+        # define topo_ra grid
+        XMAX, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
+        YMAX = yvalid * num_patch
+        #print ('DEBUG: XMAX', XMAX, 'YMAX', YMAX)
+        # use center pixel GMT registration mode
+        rngs = np.arange(1, XMAX+1, idec, dtype=np.int32)
+        azis = np.arange(1, YMAX+1, jdec, dtype=np.int32)
+        # do not use coordinate names y,x, because the output grid saved as (y,y) in this case...
+        azis = xr.DataArray(azis, dims=['a'], coords={'a': azis}).chunk(datagrid.chunksize)
+        rngs = xr.DataArray(rngs, dims=['r'], coords={'r': rngs}).chunk(datagrid.chunksize)
+        azi, rng = [da.chunk(datagrid.chunksize) for da in xr.broadcast(azis, rngs)]
 
-    def get_topo_ra(self, subswath=None):
+        def calc_topo_ra(azi, rng):
+            # check thr arguments
+            assert azi.shape == rng.shape, f'ERROR: {azi.shape} != {rng.shape}'
+        
+            # check the selected area bounds
+            ymin, ymax, xmin, xmax = azi.min(), azi.max(), rng.min(), rng.max()
+            #print ('ymin, ymax', ymin, ymax, 'xmin, xmax', xmin, xmax)
+            # define corresponding trans_dat blocks
+            ymask = (trans_blocks_extents[:,3]>=ymin-jdec)&(trans_blocks_extents[:,2]<=ymax+jdec)
+            xmask = (trans_blocks_extents[:,5]>=xmin-idec)&(trans_blocks_extents[:,4]<=xmax+idec)
+            blocks = trans_blocks_extents[ymask&xmask]
+            #print ('trans_dat blocks', blocks.astype(int))
+
+            blocks_azis = []
+            blocks_rngs = []
+            blocks_eles = []
+            for iy, ix in blocks[:,:2].astype(int):
+                #print ('iy, ix', iy, ix)
+                block_azi = trans_dat.azi.data.blocks[iy, ix]
+                block_rng = trans_dat.rng.data.blocks[iy, ix]
+                block_ele = trans_dat.ele.data.blocks[iy, ix]
+                #print ('block_ele', block_ele.shape)
+
+                blocks_azis.append(block_azi.reshape(-1))
+                blocks_rngs.append(block_rng.reshape(-1))
+                blocks_eles.append(block_ele.reshape(-1))
+            blocks_azis = np.concatenate(blocks_azis)
+            blocks_rngs = np.concatenate(blocks_rngs)
+            blocks_eles = np.concatenate(blocks_eles)
+        
+            # build index tree - dask arrays computes automatically
+            source_yxs = np.stack([blocks_azis, blocks_rngs], axis=1)
+            tree = cKDTree(source_yxs, compact_nodes=False, balanced_tree=False)
+        
+            # query the index tree
+            target_yxs = np.stack([azi.reshape(-1), rng.reshape(-1)], axis=1)
+            d, inds = tree.query(target_yxs, k = 1, workers=1)
+            # compute dask array to prevent ineffective index loockup on it
+            matrix = blocks_eles.compute()[inds].reshape(azi.shape)
+            return matrix
+
+        # xarray wrapper
+        topo = xr.apply_ufunc(
+            calc_topo_ra,
+            azi,
+            rng,
+            dask='parallelized',
+            vectorize=False,
+            output_dtypes=[np.float32],
+        ).rename('topo_ra')
+
+        if interactive:
+            # do not flip vertically because it's returned as is without SBAS.get_topo_ra() function
+            return topo
+
+        # save to NetCDF file
+        filename = self.get_filenames(subswath, None, 'topo_ra')
+        if os.path.exists(filename):
+            os.remove(filename)
+        # flip vertically for GMTSAR compatibility reasons
+        topo_ra = xr.DataArray(dask.array.flipud(topo), coords=topo.coords, name=topo.name)
+        handler = topo_ra.to_netcdf(filename,
+                                    encoding={'topo_ra': datagrid.compression},
+                                    engine=datagrid.engine,
+                                    compute=False)
+        return handler
+
+    def topo_ra_parallel(self, interactive=False):
+        import numpy as np
+        import xarray as xr
+        import dask
+        from pygmtsar import tqdm_dask
+
+        # auto generate the trans.dat file
+        self.trans_dat_parallel()
+
+        # process all the subswaths
+        subswaths = self.get_subswaths()
+        delayeds = []
+        for subswath in subswaths:
+            delayed = self.topo_ra(subswath=subswath, interactive=interactive)
+            delayeds.append(delayed)
+
+        if not interactive:
+            tqdm_dask(dask.persist(delayeds), desc='Radar Topography Computing')
+        else:
+            return delayeds[0] if len(delayeds)==1 else delayeds
+
+    def get_topo_ra(self):
+        import numpy as np
         import xarray as xr
         import dask.array
-        import os
 
-        if subswath is None:
-            # process all the subswaths
-            subswaths = self.get_subswaths()
-        else:
-            # process only one subswath
-            subswaths = [subswath]
-
-        topos = []
-        for subswath in subswaths:
-            topo_ra_file = os.path.join(self.basedir, f'F{subswath}_topo_ra.grd')
-
-            # topography stored flipped vertically
-            topo = xr.open_dataarray(topo_ra_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        def func(topo):
             # flip vertically for GMTSAR compatibility reasons
-            topo_fixed = xr.DataArray(dask.array.flipud(topo), coords=topo.coords, attrs=topo.attrs, name=topo.name)
-            topos.append(topo_fixed)
-            
+            return xr.DataArray(dask.array.flipud(topo), coords=topo.coords, attrs=topo.attrs, name=topo.name)\
+                   .rename({'a': 'y', 'r': 'x'})
+
+        topos = self.open_grids(None, 'topo_ra', func=func)
+
         return topos[0] if len(topos)==1 else topos
 
     def sat_look_parallel(self, n_jobs=-1, interactive=False, debug=False):
@@ -1432,6 +1521,7 @@ class SBAS:
         from tqdm.auto import tqdm
         import joblib
         import os
+        from pygmtsar import datagrid
 
         def SAT_look(subswath, ilat, ilon):
             # lazy dask arrays
@@ -1465,7 +1555,7 @@ class SBAS:
                 os.remove(sat_look_file)
 
             dem = self.get_dem(subswath, geoloc=True)
-            grid_ll = xr.open_dataarray(intf_ra2ll_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+            grid_ll = xr.open_dataarray(intf_ra2ll_file, engine=datagrid.engine, chunks=datagrid.chunksize)
             lats, lons = grid_ll.data.numblocks
             latchunks, lonchunks = grid_ll.chunks
             coordlat = np.array_split(grid_ll.lat, np.cumsum(latchunks))
@@ -1490,8 +1580,8 @@ class SBAS:
                 ds.attrs['node_offset'] = 1
                 # save to NetCDF file
                 ds.to_netcdf(sat_look_file,
-                             encoding={var:self.netcdf_compression for var in ds.data_vars},
-                             engine=self.netcdf_engine)
+                             encoding={var:datagrid.compression for var in ds.data_vars},
+                             engine=datagrid.engine)
         if not interactive:
             return
         return dss[0] if len(dss)==1 else dss
@@ -1499,6 +1589,7 @@ class SBAS:
     def get_sat_look(self, subswath=None):
         import xarray as xr
         import os
+        from pygmtsar import datagrid
 
         if subswath is None:
             # process all the subswaths
@@ -1511,12 +1602,12 @@ class SBAS:
         for subswath in subswaths:
             sat_look_file = os.path.join(self.basedir, f'F{subswath}_sat_look.grd')
             assert os.path.exists(sat_look_file), 'ERROR: satellite looks grid missed. Build it first using SBAS.sat_look_parallel()'
-            sat_look = xr.open_dataset(sat_look_file, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+            sat_look = xr.open_dataset(sat_look_file, engine=datagrid.engine, chunks=datagrid.chunksize)
             sat_looks.append(sat_look)
 
         return sat_looks[0] if len(sat_looks)==1 else sat_looks
 
-    def transforms(self, subswath=None, pairs=None, debug=False):
+    def geocode_parallel(self, subswath=None, pairs=None, debug=False):
     
         assert pairs is not None or subswath is not None, 'ERROR: define pairs argument'
         if pairs is None and subswath is not None:
@@ -1526,6 +1617,10 @@ class SBAS:
         subswath = self.get_subswath(subswath)
         if debug:
             print (f'DEBUG: build translation matrices for direct and inverse geocoding for subswath {subswath}')
+
+        # build a new trans_dat for merged subswaths only
+        if len(str(subswath)) > 1:
+            self.topo_ra_parallel()
 
         # build DEM grid coordinates transform matrix
         self.ra2ll(subswath, debug=debug)
@@ -1945,9 +2040,9 @@ class SBAS:
         # backward compatibility wrapper
         # for a single subswath don't need to call SBAS.merge_parallel()
         # for subswaths merging and total coordinate transformation matrices creation 
-        if len(subswaths) == 1:
-            # build geo transform matrices for interferograms
-            self.transforms(subswaths[0], pairs)
+        #if len(subswaths) == 1:
+        #    # build geo transform matrices for interferograms
+        #    self.transforms(subswaths[0], pairs)
         
     # stem_tofile + '.PRM' generating
     def merge_swath(self, conf, grid_tofile, stem_tofile, debug=False):
@@ -2068,8 +2163,8 @@ class SBAS:
         self.df = gpd.GeoDataFrame(df)
     
         # build topo_ra and geo transform matrices for the merged interferograms
-        self.topo_ra_parallel()
-        self.transforms(pairs)
+        #self.topo_ra_parallel()
+        #self.transforms(pairs)
 
     def baseline_table(self):
         import pandas as pd
@@ -2221,6 +2316,7 @@ class SBAS:
         import numpy as np
         import os
         import subprocess
+        from pygmtsar import datagrid
 
         if threshold is None:
             # set to very low value but still exclude 0 (masked areas)
@@ -2257,8 +2353,8 @@ class SBAS:
         unwrap_out = basename + 'unwrap.out'
         conncomp_out = basename + 'conncomp.out'
 
-        phase = xr.open_dataarray(phase_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
-        corr = xr.open_dataarray(corr_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+        phase = xr.open_dataarray(phase_filename, engine=datagrid.engine, chunks=datagrid.chunksize)
+        corr = xr.open_dataarray(corr_filename, engine=datagrid.engine, chunks=datagrid.chunksize)
         if mask is not None:
             phase = phase.reindex_like(binmask)
             corr = corr.reindex_like(binmask)
@@ -2325,9 +2421,9 @@ class SBAS:
 
         # not interactive mode, save all the results to disk
         if conncomp:
-            conn.to_netcdf(conncomp_filename, encoding={'conncomp': self.netcdf_compression}, engine=self.netcdf_engine)
+            conn.to_netcdf(conncomp_filename, encoding={'conncomp': datagrid.compression}, engine=datagrid.engine)
         # save to NetCDF file
-        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
+        unwrap.to_netcdf(unwrap_filename, encoding={'phase': datagrid.compression}, engine=datagrid.engine)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, unwraps):
@@ -2365,13 +2461,19 @@ class SBAS:
         incidence_ll = self.incidence_angle()
         return sign * los_disp/np.sin(incidence_ll)
 
-    # TODO: use the function for open_grids() and do the same for open_grid() too
+    # use the function for open_grids() and save_grids()
     def get_filenames(self, subswath, pairs, name, add_subswath=True):
         import pandas as pd
         import numpy as np
         import os
 
-        if isinstance(pairs, pd.DataFrame):
+        # define subswath when subswath=None and check otherwise
+        subswath = self.get_subswath(subswath)
+    
+        if pairs is None:
+            # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
+            pass
+        elif isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
         else:
             pairs = np.asarray(pairs)
@@ -2382,16 +2484,79 @@ class SBAS:
             prefix = ''
 
         filenames = []
-        if len(pairs.shape) == 1:
+        if pairs is None:
+            # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
+            filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
+            return filename
+        elif len(pairs.shape) == 1:
+            # read all the grids from files
             for date in sorted(pairs):
                 filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
                 filenames.append(filename)
         elif len(pairs.shape) == 2:
+            # read all the grids from files
             for pair in pairs:
                 filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
                 filenames.append(filename)
         return filenames
+
+    def save_grids(self, grids, name, func=None, add_subswath=True, n_jobs=1, **kwargs):
+        import numpy as np
+        from tqdm.auto import tqdm
+        import joblib
+        import os
+        from pygmtsar import datagrid
+
+        subswaths = self.get_subswaths()
+        # pipeline before merging subswaths is well defined and we do not need to use this function
+        assert len(subswaths) == 1, 'ERROR: use SBAS.merge() to merge multiple subswaths before'
     
+        assert len(grids.dims) in [2, 3], 'ERROR: supported 2D and 3D arrays only'
+        if len(grids.dims) ==3 :
+            grids = [da for da in grids]
+    
+        # special case for a single grid
+        if not isinstance(grids, list):
+            filename = self.get_filenames(None, None, name, add_subswath=add_subswath)
+            grids.astype(np.float32).rename(name)\
+                .to_netcdf(filename, encoding={name: datagrid.compression}, engine=datagrid.engine)
+            return
+    
+        def preprocess(subswath, da):
+            if func is not None:
+                if isinstance(func, list):
+                    for f in func:
+                        da = f(da)
+                else:
+                    da = func(da)
+            # check 3rd dimension
+            if 'date' in da[0].coords:
+                # "date" for SBAS results for an example
+                pair = da.date.item()
+            elif 'pair' in grids[0].coords:
+                # "pair" for interferograms for an example
+                pair = da.pair.item().split(' ')
+            # the function returns a set of filenames
+            filename = self.get_filenames(subswath, [pair], name, add_subswath=add_subswath)[0]
+            #print ('filename', filename)
+            if os.path.exists(filename):
+                os.remove(filename)
+            da.astype(np.float32).rename(name)\
+                .to_netcdf(filename, encoding={name: datagrid.compression}, engine=datagrid.engine)
+            return
+
+        # test
+        #for subswath in subswaths:
+        #    for grid in grids:
+        #        preprocess(subswath, grid)
+        #return
+
+        # process all the grids
+        description = 'Saving' if func is None else 'Processing and Saving'
+        with self.tqdm_joblib(tqdm(desc=description, total=len(grids)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(preprocess)(subswath, grid) \
+                                                     for subswath in subswaths for grid in grids)
+
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
     def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None,
@@ -2401,12 +2566,12 @@ class SBAS:
         import numpy as np
         from tqdm.auto import tqdm
         import joblib
-        import os
+        from pygmtsar import datagrid
 
         assert not(geocode and inverse_geocode), 'ERROR: Only single geocoding option can be applied'
 
         if chunks is None:
-            chunks = self.netcdf_chunksize
+            chunks = datagrid.chunksize
 
         # iterate all the subswaths
         subswaths = self.get_subswaths()
@@ -2442,27 +2607,22 @@ class SBAS:
                 assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
                 da = nanmask * da
             return da
-    
+
         dass = []
         for subswath in subswaths:
-            if add_subswath == True:
-                prefix = f'F{subswath}_'
-            else:
-                prefix = ''
-
+            filenames = self.get_filenames(subswath, pairs=pairs, name=name, add_subswath=add_subswath)
+        
             das = []
             if pairs is None:
                 # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
-                filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
                 #print ('filename', filename)
-                da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
+                da = xr.open_dataarray(filenames, engine=datagrid.engine, chunks=chunks)
                 das  = postprocess(da, subswath)
             elif len(pairs.shape) == 1:
                 # read all the grids from files
-                for date in sorted(pairs):
-                    filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
+                for filename in filenames:
                     #print (date, filename)
-                    da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
+                    da = xr.open_dataarray(filename, engine=datagrid.engine, chunks=chunks)
                     das.append(da)
 
                 # post-processing on a set of 2D rasters
@@ -2472,13 +2632,6 @@ class SBAS:
                 # prepare to stacking
                 das = [da.expand_dims('date') for da in das]
 
-                # 2nd dimension sizes must be the same
-                #sizes = len(np.unique([da[0].shape[1] for da in das]))
-                #assert sizes==1, f'Dates grids have different {da.dims[0]} dimensions'
-                # 1st dimension can be different a bit, use minimal size
-                #sizes = np.unique([da[0].shape[0] for da in das])
-                #das = xr.concat(das, dim='date')[:,:sizes[0],:]
-
                 # allow stack to be extended to largest 1st dimension size
                 # to be sure all code work well for this case
                 # so user is able to load grids by his own way
@@ -2486,10 +2639,9 @@ class SBAS:
                 das['date'] = sorted(pairs)
             elif len(pairs.shape) == 2:
                 # read all the grids from files
-                for pair in pairs:
-                    filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
+                for filename in filenames:
                     #print (filename)
-                    da = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=chunks)
+                    da = xr.open_dataarray(filename, engine=datagrid.engine, chunks=chunks)
                     das.append(da)
 
                 # post-processing on a set of 2D rasters
@@ -2498,15 +2650,6 @@ class SBAS:
 
                 # prepare to stacking
                 das = [da.expand_dims('pair') for da in das]
-
-                # 2nd dimension sizes must be the same
-                #sizes = len(np.unique([da[0].shape[1] for da in das]))
-                #assert sizes==1, f'Pairs grids have different {da.dims[0]} dimensions'
-
-                # 1st dimension can be different a bit, use minimal size
-                # this works but it is not robust if user loads grids by other way
-                #sizes = np.unique([da[0].shape[0] for da in das])
-                #das = xr.concat(das, dim='pair')[:,:sizes[0],:]
 
                 # allow stack to be extended to largest 1st dimension size
                 # to be sure all code work well for this case
@@ -2547,16 +2690,21 @@ class SBAS:
             return outs[0] if len(outs) == 1 else outs
 
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
-    def pixel_decimator(self, resolution_meters=60, debug=False):
+    def pixel_decimator(self, resolution_meters=60, grid=(1, 4), debug=False):
         import numpy as np
-    
-        dy, dx = self.pixel_size()
+
+        dy, dx = self.pixel_size(grid)
         yy, xx = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
         if debug:
             print (f'DEBUG: average per subswaths ground pixel size in meters: y={dy}, x={dx}')
+        if yy <= 1 and xx <= 1:
+            if debug:
+                print (f"DEBUG: decimator = lambda da: da")
+            return lambda da: da
         if debug:
             print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yy}, 'x': {xx}}}, boundary='trim').mean()")
         return lambda da: da.coarsen({'y': yy, 'x': xx}, boundary='trim').mean()
+
 
     def detrend_parallel(self, pairs, n_jobs=-1, **kwargs):
         from tqdm.auto import tqdm
@@ -2573,117 +2721,98 @@ class SBAS:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, interactive=False, **kwargs) \
                                                      for subswath in subswaths for pair in pairs)
 
-    def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, approximate=True,
-                fit_intercept=True, fit_dem=True, fit_coords=True, interactive=True, debug=False):
+    def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
+                resolution_meters=90, debug=False):
         """
-        Detrend and gaussian filtering on unwrapped interferogram in radar coordinates, see for details
+        Detrend unwrapped interferogram in radar coordinates, see for details
             https://github.com/gmtsar/gmtsar/issues/98
             https://github.com/gmtsar/gmtsar/issues/411
-        TODO: decimate grid for long-wavelength filtering for faster calculation.
         """
         import xarray as xr
         import numpy as np
+        import dask
         from sklearn.linear_model import LinearRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
-        import os
-
-        if pair is None:
-            pair = subswath
-            subswath = self.get_subswath()
     
-        # extract dates from pair
-        date1, date2 = pair
-        basename = os.path.join(self.basedir, f'F{subswath}_{date1}_{date2}_').replace('-','')
-
-        # input data grid
-        phase_filename = basename + 'unwrap.grd'
-        # output data grid
-        detrend_filename = basename + 'detrend.grd'
-    
-        #print ('basename', basename)
-        phase = xr.open_dataarray(phase_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
-
-        # topography grid defined in radar coordinates for larger area and different spacing
-        if topo_ra is None:
-            topo_ra = self.get_topo_ra()
-
         def postprocessing(out):
-            #print ('interactive', interactive)
-            if interactive:
-                return out.astype(np.float32).rename('phase')
-            # save to NetCDF file
-            if os.path.exists(detrend_filename):
-                os.remove(detrend_filename)
-            out.astype(np.float32).rename('phase').to_netcdf(detrend_filename, encoding={'phase': self.netcdf_compression}, engine=self.netcdf_engine)
+            return out.astype(np.float32).rename('detrend')
 
-        # raster pixel spacing
-        dy, dx = self.pixel_size(phase)
-        ty, tx = self.pixel_size(topo_ra)
+        # check the simplest case
+        assert fit_intercept or fit_dem or fit_coords, 'All the detrending options disable, function does nothing'
 
-        # unify topo grid
-        dec_topo_y = int(np.round(dy/ty))
-        dec_topo_x = int(np.round(dx/tx))
-        if debug:
-            print ('DEBUG: Decimate topography to data grid dec_y, dec_x', dec_topo_y, dec_topo_x)
-        # use xr.zeros_like to prevent the target grid coordinates modifying
-        topo = topo_ra\
-            .coarsen({'y': dec_topo_y, 'x': dec_topo_x}, boundary='pad').mean()\
-            .reindex_like(xr.zeros_like(phase), method='nearest')
-
-        if wavelength is not None:
-            if debug:
-                print ('DEBUG: Gaussian filtering for the both data and topography')
-            phase.values -= self.gaussian(phase, wavelength, truncate=truncate, approximate=approximate, debug=debug)
-            topo.values  -= self.gaussian(topo,  wavelength, truncate=truncate, approximate=approximate, debug=debug)
-
-        # prepare raster
-        y = phase.values.reshape(-1)
-        nanmask = np.isnan(y)
-        # prepare regression variable
-        Y = y[~nanmask]
-        if fit_coords or fit_dem:
-            # prepare coordinates for X regression variable
-            yy, xx = xr.broadcast(phase.y, phase.x)
-            ys = yy.values.reshape(-1)
-            xs = xx.values.reshape(-1)
-
-        if fit_dem:
-            # prepare topography for X regression variable
-            zs = topo.values.reshape(-1)
-            zys = zs*ys
-            zxs = zs*xs
-
-        if fit_dem and fit_coords:
-            if debug:
-                print ('DEBUG: Detrend topography and coordinates')
-            X = np.column_stack([zys[~nanmask], zxs[~nanmask], ys[~nanmask], xs[~nanmask], zs[~nanmask]])
-        elif fit_dem:
-            if debug:
-                print ('DEBUG: Detrend topography only')
-            X = np.column_stack([zys[~nanmask], zxs[~nanmask], zs[~nanmask]])
-        elif fit_coords:
-            if debug:
-                print ('DEBUG: Detrend coordinates only')
-            X = np.column_stack([ys[~nanmask], xs[~nanmask]])
-        elif fit_intercept:
+        # check simple case
+        if fit_intercept and not fit_dem and not fit_coords:
             if debug:
                 print ('DEBUG: Remove mean value only')
-            return postprocessing(phase - phase.mean())
-        else:
+            return postprocessing(dataarray - dataarray.mean())
+
+        # input grid can be too large
+        decimator = self.pixel_decimator(resolution_meters=resolution_meters, grid=dataarray, debug=debug)
+        # decimate
+        dataarray_dec = decimator(dataarray)
+
+        # topography grid required to fit_dem option only
+        if fit_dem:
             if debug:
-                print ('DEBUG: No detrending')
-            return postprocessing(phase)
+                print ('DEBUG: Interpolate topography on the data grid')
+            topo_ra = self.get_topo_ra()
+            #topo = topo.reindex_like(unwraps[0], method='nearest')
+            # use xr.zeros_like to prevent the target grid coordinates modifying
+            topo = topo_ra.reindex_like(dataarray, method='nearest')
+            # check chunks
+            if debug:
+                print ('DEBUG: regrid to resolution in meters', resolution_meters)
+            # decimate
+            topo_dec  = decimator(topo)
+        else:
+            topo = topo_dec = None
+
+        # lazy calculations are useless below
+        def data2fit(data, grid):
+            y = data.values.reshape(-1)
+            nanmask = np.isnan(y)
+            # prepare regression variable
+            Y = y[~nanmask]
+
+            if fit_coords or fit_dem:
+                # prepare coordinates for X regression variable
+                yy, xx = xr.broadcast(data.y, data.x)
+                ys = yy.values.reshape(-1)[~nanmask]
+                xs = xx.values.reshape(-1)[~nanmask]
+
+            if fit_dem:
+                # prepare topography for X regression variable
+                zs = grid.values.reshape(-1)[~nanmask]
+                zys = zs*ys
+                zxs = zs*xs
+
+            if fit_dem and fit_coords:
+                if debug:
+                    print ('DEBUG: Detrend topography and coordinates')
+                X = np.column_stack([zys, zxs, ys, xs, zs])
+            elif fit_dem:
+                if debug:
+                    print ('DEBUG: Detrend topography only')
+                X = np.column_stack([zys, zxs, zs])
+            elif fit_coords:
+                if debug:
+                    print ('DEBUG: Detrend coordinates only')
+                X = np.column_stack([ys, xs])
+            return Y, X, nanmask
 
         # build prediction model with or without plane removal (fit_intercept)
         regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
+        Y, X, _ = data2fit(dataarray_dec, topo_dec)
         regr.fit(X, Y)
-        #model = np.nan * xr.zeros_like(da)
-        # even for input dask array return numpy array
-        model = xr.DataArray(np.nan * np.zeros(phase.shape), coords=phase.coords)
-        model.values.reshape(-1)[~nanmask] = regr.predict(X)
-
-        return postprocessing(phase - model)
+    
+        # TODO: calculate for chunks
+        Y, X, nanmask = data2fit(dataarray, topo)
+        model = xr.full_like(dataarray, np.nan).compute()
+        if debug:
+            print ('DEBUG: model', model)
+        model.data.reshape(-1)[~nanmask] = regr.predict(X)
+        return postprocessing(dataarray - model)
 
     def make_gaussian_filter(self, range_dec, azi_dec, wavelength, debug=False):
         """
@@ -2706,10 +2835,11 @@ class SBAS:
         from tqdm.auto import tqdm
         import joblib
         import os
+        from pygmtsar import datagrid
 
         # compress 3d output following the processing blocks
-        netcdf_compression = self.netcdf_compression.copy()
-        netcdf_compression['chunksizes'] = (1, self.netcdf_chunksize, self.netcdf_chunksize)
+        netcdf_compression = datagrid.compression.copy()
+        netcdf_compression['chunksizes'] = (1, datagrid.chunksize, datagrid.chunksize)
 
         model_filename = os.path.join(self.basedir, 'disp.grd')
     
@@ -2809,7 +2939,7 @@ class SBAS:
             da.to_netcdf(chunk_filename,
                          unlimited_dims=['y','x'],
                          encoding={'displacement': netcdf_compression},
-                         engine=self.netcdf_engine,
+                         engine=datagrid.engine,
                          compute=True)
             return chunk_filename
     
@@ -2819,7 +2949,7 @@ class SBAS:
                                                      for iy in range(ys) for ix in range(xs))
     
         # rebuild the datasets to user-friendly format
-        das = [xr.open_dataarray(f, engine=self.netcdf_engine, chunks=self.netcdf_chunksize) for f in filenames]
+        das = [xr.open_dataarray(f, engine=datagrid.engine, chunks=datagrid.chunksize) for f in filenames]
         if xr.__version__ == '0.19.0':
             # for Google Colab
             das = xr.merge(das)
@@ -2835,8 +2965,8 @@ class SBAS:
             if os.path.exists(filename):
                 os.remove(filename)
             das.sel(date=dt).to_netcdf(filename,
-                        encoding={'displacement': self.netcdf_compression},
-                        engine=self.netcdf_engine)
+                        encoding={'displacement': datagrid.compression},
+                        engine=datagrid.engine)
 
         # saving all the grids
         with self.tqdm_joblib(tqdm(desc='Saving', total=len(das.date))) as progress_bar:
