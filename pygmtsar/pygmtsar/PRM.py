@@ -5,12 +5,6 @@
 #import pytest
 
 class PRM:
-
-    # NetCDF options
-    netcdf_chunksize = 512
-    netcdf_compression = dict(zlib=True, complevel=3, chunksizes=(netcdf_chunksize,netcdf_chunksize))
-    netcdf_engine = 'h5netcdf'
-
     @staticmethod
     def gmtsar_sharedir():
         """
@@ -32,162 +26,6 @@ class PRM:
         if data == '':
             return stderr_data
         return data
-    
-    # replacement for GMTSAR gaussians
-    # gauss5x5 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/gauss5x5',skip_header=True)
-    # gaussian_kernel(5,1) ~= gauss5x5
-    @staticmethod
-    def gaussian_kernel(size=(5,5), std=(1,1)):
-        """Make 2D Gaussian kernel matrix"""
-        import numpy as np
-        from scipy import signal
-        matrix1 = signal.gaussian(size[0], std=std[0]).reshape(size[0], 1)
-        matrix2 = signal.gaussian(size[1], std=std[1]).reshape(size[1], 1)
-        matrix2d = np.outer(matrix1, matrix2)
-        return matrix2d
-
-    @staticmethod
-    def nanconvolve2d(data, kernel, threshold=1/3.):
-        """
-        Convolution using generic kernel on a 2D array with NaNs
-        """
-        import numpy as np
-        import scipy.signal
-        # np.complex128 includes np.float64 real and imagine part
-        vals = data.astype(np.complex128)
-        #vals[np.isnan(data)] = 0
-        #vals[~np.isnan(data)] += 1j
-        nanmask = np.isnan(data)
-        vals[nanmask] = 0
-        vals[~nanmask] += 1j
-
-        conv = scipy.signal.convolve2d(vals, 
-                                      kernel.astype(np.complex128), 
-                                      mode='same', boundary='symm'
-                                     )
-        # suppress incorrect division warning
-        np.seterr(invalid='ignore')
-        return np.where(conv.imag >= threshold*np.sum(kernel), np.divide(conv.real, conv.imag), np.nan)
-
-    @staticmethod
-    def nanconvolve2d_gaussian(data, sigmas, truncate):
-        """
-        Convolution using Gaussian kernel on a 2D array with NaNs
-        """
-        import numpy as np
-        from scipy.ndimage import gaussian_filter
-
-        # np.complex128 includes np.float64 real and imagine part
-        vals = data.astype(np.complex128)
-        nanmask = np.isnan(data)
-        vals[nanmask] = 0
-        vals[~nanmask] += 1j
-
-        conv = gaussian_filter(vals, sigma=sigmas, truncate=truncate)
-    
-        # suppress incorrect division warning
-        np.seterr(invalid='ignore')
-        return np.divide(conv.real, conv.imag)
-
-    @staticmethod
-    def nearest_grid(in_grid, search_radius_pixels=300):
-        """
-        Pixel-based Nearest Neighbour interpolation
-        """
-        from scipy.spatial import cKDTree
-        import xarray as xr
-        import numpy as np
-        ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
-        ys = ys.reshape(-1)
-        xs = xs.reshape(-1)
-        if isinstance(in_grid, xr.DataArray):
-            zs = in_grid.values.reshape(-1)
-        else:
-            zs = in_grid.reshape(-1)
-        mask = np.where(~np.isnan(zs))
-        # on regular source grid some options should be redefined for better performance
-        tree = cKDTree(np.column_stack((ys[mask],xs[mask])), compact_nodes=False, balanced_tree=False)
-        # use distance_limit
-        d, inds = tree.query(np.column_stack((ys,xs)), k = 1, distance_upper_bound=search_radius_pixels, workers=8)
-        # replace not available indexes by zero (see distance_upper_bound)
-        fakeinds = np.where(~np.isinf(d), inds, 0)
-        # produce the same output array as dataset to be able to add global attributes
-        values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
-        if isinstance(in_grid, xr.DataArray):
-            return xr.DataArray(values, coords=in_grid.coords, name=in_grid.name)
-        return values
-
-    # replacement function for GMT based robust 2D trend coefficient calculations:
-    # gmt trend2d r.xyz -Fxyzmw -N1r -V
-    # gmt trend2d r.xyz -Fxyzmw -N2r -V
-    # gmt trend2d r.xyz -Fxyzmw -N3r -V
-    # https://github.com/GenericMappingTools/gmt/blob/master/src/trend2d.c#L719-L744
-    # 3 model parameters
-    # rank = 3 => nu = size-3
-    @staticmethod
-    def GMT_trend2d(data, rank):
-        import numpy as np
-        from sklearn.linear_model import LinearRegression
-        # scale factor for normally distributed data is 1.4826
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.median_abs_deviation.html
-        MAD_NORMALIZE = 1.4826
-        # significance value
-        sig_threshold = 0.51
-
-        if rank not in [1,2,3]:
-            raise Exception('Number of model parameters "rank" should be 1, 2, or 3')
-
-        #see gmt_stat.c
-        def gmtstat_f_q (chisq1, nu1, chisq2, nu2):
-            import scipy.special as sc
-
-            if chisq1 == 0.0:
-                return 1
-            if chisq2 == 0.0:
-                return 0
-            return sc.betainc(0.5*nu2, 0.5*nu1, chisq2/(chisq2+chisq1))
-
-        if rank in [2,3]:
-            x = data[:,0]
-            x = np.interp(x, (x.min(), x.max()), (-1, +1))
-        if rank == 3:
-            y = data[:,1]
-            y = np.interp(y, (y.min(), y.max()), (-1, +1))
-        z = data[:,2]
-        w = np.ones(z.shape)
-
-        if rank == 1:
-            xy = np.expand_dims(np.zeros(z.shape),1)
-        elif rank == 2:
-            xy = np.expand_dims(x,1)
-        elif rank == 3:
-            xy = np.stack([x,y]).transpose()
-
-        # create linear regression object
-        mlr = LinearRegression()
-
-        chisqs = []
-        coeffs = []
-        while True:
-            # fit linear regression
-            mlr.fit(xy, z, sample_weight=w)
-
-            r = np.abs(z - mlr.predict(xy))
-            chisq = np.sum((r**2*w))/(z.size-3)    
-            chisqs.append(chisq)
-            k = 1.5 * MAD_NORMALIZE * np.median(r)
-            w = np.where(r <= k, 1, (2*k/r) - (k * k/(r**2)))
-            sig = 1 if len(chisqs)==1 else gmtstat_f_q(chisqs[-1], z.size-3, chisqs[-2], z.size-3)
-            # Go back to previous model only if previous chisq < current chisq
-            if len(chisqs)==1 or chisqs[-2] > chisqs[-1]:
-                coeffs = [mlr.intercept_, *mlr.coef_]
-
-            #print ('chisq', chisq, 'significant', sig)
-            if sig < sig_threshold:
-                break
-
-        # get the slope and intercept of the line best fit
-        return (coeffs[:rank])
 
     @staticmethod
     def from_list(prm_list):
@@ -601,6 +439,7 @@ class PRM:
     def fitoffset(rank_rng, rank_azi, matrix=None, matrix_fromfile=None, SNR=20):
         import numpy as np
         import math
+        from pygmtsar import datagrid
 
         """
         Usage: fitoffset.csh npar_rng npar_azi xcorr.dat [SNR]
@@ -625,8 +464,8 @@ class PRM:
         if rng.shape[0] < 8:
             raise Exception(f'FAILED - not enough points to estimate parameters, try lower SNR ({rng.shape[0]} < 8)')
 
-        rng_coef = PRM.GMT_trend2d(rng, rank_rng)
-        azi_coef = PRM.GMT_trend2d(azi, rank_azi)
+        rng_coef = datagrid.GMT_trend2d(rng, rank_rng)
+        azi_coef = datagrid.GMT_trend2d(azi, rank_azi)
 
         # range and azimuth data ranges
         scale_coef = [np.min(rng[:,0]), np.max(rng[:,0]), np.min(rng[:,1]), np.max(rng[:,1])]
@@ -865,13 +704,14 @@ class PRM:
     # https://github.com/gmtsar/gmtsar/issues/86
     # use_boxcar_filter=True for ISCE-type boxcar and multilook filter
     def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32,
-             use_boxcar_filter=False, func=None, chunks='auto'):
+             use_boxcar_filter=False, func=None, chunks='auto', debug=False):
         import os
         import numpy as np
         import xarray as xr
         #from scipy import signal
         import dask_image.ndfilters
         import dask.array
+        from pygmtsar import datagrid
 
         # constant from GMTSAR code
         thresh = 5.e-21
@@ -910,52 +750,65 @@ class PRM:
         # os.path.join(basedir, f'{subswath}_topo_ra.grd')
         self.phasediff(other, topo_ra_fromfile=topo_ra_fromfile,
                        imag_tofile=fullname('imag.grd=bf'),
-                       real_tofile=fullname('real.grd=bf'))
+                       real_tofile=fullname('real.grd=bf'),
+                       debug=debug)
 
         # filtering interferogram
         if not use_boxcar_filter:
             # use default GMTSAR filter
             # making amplitudes
             self.conv(1, 2, filter_file = filename_gauss5x5,
-                      output_file=fullname('amp1_tmp.grd=bf'))
+                      output_file=fullname('amp1_tmp.grd=bf'),
+                      debug=debug)
             self.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
                       input_file=fullname('amp1_tmp.grd=bf'),
-                      output_file=fullname('amp1.grd'))
+                      output_file=fullname('amp1.grd'),
+                      debug=debug)
 
             other.conv(1, 2, filter_file = filename_gauss5x5,
-                       output_file=fullname('amp2_tmp.grd=bf'))
+                       output_file=fullname('amp2_tmp.grd=bf'),
+                       debug=debug)
             other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
                        input_file=fullname('amp2_tmp.grd=bf'),
-                       output_file=fullname('amp2.grd'))
+                       output_file=fullname('amp2.grd'),
+                       debug=debug)
 
             # filtering interferogram
             self.conv(1, 2, filter_file=filename_gauss5x5,
                       input_file=fullname('real.grd=bf'),
-                      output_file=fullname('real_tmp.grd=bf'))
+                      output_file=fullname('real_tmp.grd=bf'),
+                      debug=debug)
             other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
                        input_file=fullname('real_tmp.grd=bf'),
-                       output_file=fullname('realfilt.grd'))
+                       output_file=fullname('realfilt.grd'),
+                       debug=debug)
             self.conv(1, 2, filter_file=filename_gauss5x5,
                       input_file=fullname('imag.grd=bf'),
-                      output_file=fullname('imag_tmp.grd=bf'))
+                      output_file=fullname('imag_tmp.grd=bf'),
+                      debug=debug)
             other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
                        input_file=fullname('imag_tmp.grd=bf'),
-                       output_file=fullname('imagfilt.grd'))
+                       output_file=fullname('imagfilt.grd'),
+                       debug=debug)
         else:
             # use ISCE-type boxcar and multilook filter
             # 3 range and 5 azimuth looks
             # making amplitudes
             self.conv(5, 3, filter_file = filename_boxcar3x5,
-                      output_file=fullname('amp1.grd'))
+                      output_file=fullname('amp1.grd'),
+                      debug=debug)
             other.conv(5, 3, filter_file = filename_boxcar3x5,
-                       output_file=fullname('amp2.grd'))
+                       output_file=fullname('amp2.grd'),
+                       debug=debug)
 
             self.conv(5, 3, filter_file=filename_boxcar3x5,
                       input_file=fullname('real.grd=bf'),
-                      output_file=fullname('realfilt.grd'))
+                      output_file=fullname('realfilt.grd'),
+                      debug=debug)
             self.conv(5, 3, filter_file=filename_boxcar3x5,
                       input_file=fullname('imag.grd=bf'),
-                      output_file=fullname('imagfilt.grd'))
+                      output_file=fullname('imagfilt.grd'),
+                      debug=debug)
 
         # filtering phase
         self.phasefilt(imag_fromfile=fullname('imagfilt.grd'),
@@ -964,16 +817,17 @@ class PRM:
                        amp2_fromfile=fullname('amp2.grd'),
                        phasefilt_tofile=fullname('phasefilt_phase.grd'),
                        corrfilt_tofile=fullname('phasefilt_corr.grd'),
-                       psize=psize)
+                       psize=psize,
+                       debug=debug)
 
         # Python post-processing
         # we need to flip vertically results from the command line tools
-        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=self.netcdf_engine, chunks=chunks)
-        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=self.netcdf_engine, chunks=chunks)
+        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=datagrid.engine, chunks=chunks)
+        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=datagrid.engine, chunks=chunks)
         amp = np.sqrt(realfilt**2 + imagfilt**2)
 
-        amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=self.netcdf_engine, chunks=chunks)
-        amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=self.netcdf_engine, chunks=chunks)
+        amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=datagrid.engine, chunks=chunks)
+        amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=datagrid.engine, chunks=chunks)
 
         # use the same coordinates for all output grids
         # use .values to remove existing attributes from the axes
@@ -998,17 +852,17 @@ class PRM:
             corr = func(corr)
         if os.path.exists(fullname('corr.grd')):
             os.remove(fullname('corr.grd'))
-        corr.to_netcdf(fullname('corr.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
+        corr.to_netcdf(fullname('corr.grd'), encoding={'z': datagrid.compression}, engine=datagrid.engine)
 
         # make the Werner/Goldstein filtered phase
-        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.netcdf_engine, chunks=chunks)
+        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=datagrid.engine, chunks=chunks)
         phasefilt = phasefilt_phase * mask
         phasefilt = xr.DataArray(dask.array.flipud(phasefilt.astype(np.float32)), coords, name='z')
         if func is not None:
             phasefilt = func(phasefilt)
         if os.path.exists(fullname('phasefilt.grd')):
             os.remove(fullname('phasefilt.grd'))
-        phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': self.netcdf_compression}, engine=self.netcdf_engine)
+        phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': datagrid.compression}, engine=datagrid.engine)
 
         # cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
