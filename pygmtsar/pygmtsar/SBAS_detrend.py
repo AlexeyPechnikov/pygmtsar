@@ -7,17 +7,26 @@ class SBAS_detrend(SBAS_unwrap):
     def detrend_parallel(self, pairs, n_jobs=-1, **kwargs):
         from tqdm.auto import tqdm
         import joblib
-        import pandas as pd
 
-        if isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
+        def func(pair, **kwargs):
+            grid = self.open_grids([pair], 'unwrap', interactive=False)
+            out = self.detrend(grid[0], **kwargs)
+            self.save_grids([out], 'detrend', interactive=False)
 
-        subswaths = self.get_subswaths()
+        with self.tqdm_joblib(tqdm(desc='Detrending and Saving', total=len(pairs))) as progress_bar:
+            joblib.Parallel(n_jobs=1)(joblib.delayed(func)(pair, **kwargs) for pair in pairs.values)
 
-        # process all the scenes
-        with self.tqdm_joblib(tqdm(desc='Detrending', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, **kwargs) \
-                                                     for subswath in subswaths for pair in pairs)
+    def degaussian_parallel(self, pairs, n_jobs=-1, **kwargs):
+        from tqdm.auto import tqdm
+        import joblib
+
+        def func(pair, **kwargs):
+            grid = self.open_grids([pair], 'unwrap', interactive=False)
+            out = self.degaussian(grid[0], **kwargs)
+            self.save_grids([out], 'degaussian', interactive=False)
+
+        with self.tqdm_joblib(tqdm(desc='Detrending and Saving', total=len(pairs))) as progress_bar:
+            joblib.Parallel(n_jobs=1)(joblib.delayed(func)(pair, **kwargs) for pair in pairs.values)
 
     def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
                 resolution_meters=90, debug=False):

@@ -195,7 +195,7 @@ class SBAS_base(tqdm_joblib, datagrid):
                 filenames.append(filename)
         return filenames
 
-    def save_grids(self, grids, name, func=None, add_subswath=True, n_jobs=1, **kwargs):
+    def save_grids(self, grids, name, func=None, add_subswath=True, n_jobs=1, interactive=True, **kwargs):
         import numpy as np
         from tqdm.auto import tqdm
         import joblib
@@ -204,18 +204,19 @@ class SBAS_base(tqdm_joblib, datagrid):
         subswaths = self.get_subswaths()
         # pipeline before merging subswaths is well defined and we do not need to use this function
         assert len(subswaths) == 1, 'ERROR: use SBAS.merge() to merge multiple subswaths before'
-    
-        assert len(grids.dims) in [2, 3], 'ERROR: supported 2D and 3D arrays only'
-        if len(grids.dims) ==3 :
-            grids = [da for da in grids]
-    
-        # special case for a single grid
-        if not isinstance(grids, list):
-            filename = self.get_filenames(None, None, name, add_subswath=add_subswath)
-            grids.astype(np.float32).rename(name)\
-                .to_netcdf(filename, encoding={name: self.compression}, engine=self.engine)
-            return
-    
+
+        if isinstance(grids, xr.DataArray):
+            if len(grids.dims) == 3:
+                grids = [da for da in grids]
+            elif len(grids.dims) == 2:
+                # special case for a single 2D grid
+                filename = self.get_filenames(None, None, name, add_subswath=add_subswath)
+                grids.astype(np.float32).rename(name)\
+                    .to_netcdf(filename, encoding={name: self.compression}, engine=self.engine)
+                return
+            else:
+                assert 0, 'ERROR: supported 2D and 3D arrays only'
+
         def preprocess(subswath, da):
             if func is not None:
                 if isinstance(func, list):
@@ -239,22 +240,17 @@ class SBAS_base(tqdm_joblib, datagrid):
                 .to_netcdf(filename, encoding={name: self.compression}, engine=self.engine)
             return
 
-        # test
-        #for subswath in subswaths:
-        #    for grid in grids:
-        #        preprocess(subswath, grid)
-        #return
-
         # process all the grids
-        description = 'Saving' if func is None else 'Processing and Saving'
-        with self.tqdm_joblib(tqdm(desc=description, total=len(grids)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(preprocess)(subswath, grid) \
-                                                     for subswath in subswaths for grid in grids)
+        if interactive:
+            with self.tqdm_joblib(tqdm(desc='Saving', total=len(grids)*len(subswaths))) as progress_bar:
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(preprocess)(None, grid) for grid in grids)
+        else:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(preprocess)(None, grid) for grid in grids)
 
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
     def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None,
-                   crop_valid=False, add_subswath=True, chunks=None, n_jobs=-1):
+                   crop_valid=False, add_subswath=True, chunks=None, n_jobs=-1, interactive=True):
         import pandas as pd
         import xarray as xr
         import numpy as np
@@ -319,7 +315,10 @@ class SBAS_base(tqdm_joblib, datagrid):
                     das.append(da)
 
                 # post-processing on a set of 2D rasters
-                with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
+                if interactive:
+                    with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
+                        das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
+                else:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
 
                 # prepare to stacking
@@ -338,7 +337,10 @@ class SBAS_base(tqdm_joblib, datagrid):
                     das.append(da)
 
                 # post-processing on a set of 2D rasters
-                with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
+                if interactive:
+                    with self.tqdm_joblib(tqdm(desc='Loading', total=len(das))) as progress_bar:
+                        das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
+                else:
                     das = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(postprocess)(da, subswath) for da in das)
 
                 # prepare to stacking

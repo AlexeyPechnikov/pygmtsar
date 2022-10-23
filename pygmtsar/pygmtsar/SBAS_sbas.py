@@ -57,7 +57,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
-    def sbas_parallel(self, pairs, mask=None, detrended=True, data_stack=None, corr_stack=None, n_jobs=-1):
+    def sbas_parallel(self, pairs, mask=None, gridname='detrend', data_stack=None, corr_stack=None, n_jobs=-1):
         import xarray as xr
         import numpy as np
         import pandas as pd
@@ -82,7 +82,6 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         if corr_stack is None:
             corr_stack = self.open_grids(pairs, 'corr')
         if data_stack is None:
-            gridname = 'detrend' if detrended else 'unwrap'
             data_stack = self.open_grids(pairs, gridname)
 
         # crop correlation grid like to unwrap grid which may be defined smaller
