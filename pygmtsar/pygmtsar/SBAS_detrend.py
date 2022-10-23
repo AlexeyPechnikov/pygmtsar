@@ -16,7 +16,7 @@ class SBAS_detrend(SBAS_unwrap):
 
         # process all the scenes
         with self.tqdm_joblib(tqdm(desc='Detrending', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, interactive=False, **kwargs) \
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.detrend)(subswath, pair, **kwargs) \
                                                      for subswath in subswaths for pair in pairs)
 
     def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
