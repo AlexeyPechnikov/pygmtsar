@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 from .datagrid import datagrid
-from .gmtsar_prm import gmtsar_prm
+from .PRM_gmtsar import PRM_gmtsar
 
-class PRM(datagrid, gmtsar_prm):
+class PRM(datagrid, PRM_gmtsar):
 
     # replacement function for GMT based robust 2D trend coefficient calculations:
     # gmt trend2d r.xyz -Fxyzmw -N1r -V

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
+from .SBAS_base import SBAS_base
 
-class orbits:
+class SBAS_orbits(SBAS_base):
     # for precision orbit there is only single orbit per day
     # for approximate orbit 2 and maybe more orbits per day are possible
     # so check orbit file for for each subswath

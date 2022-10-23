@@ -145,6 +145,27 @@ class datagrid:
             return xr.DataArray(values, coords=in_grid.coords, name=in_grid.name)
         return values
 
+    def pixel_size(self, grid=(1, 4), average=True):
+        import xarray as xr
+        import numpy as np
+
+        outs = []
+        for subswath in self.get_subswaths():
+            # pixel size in meters
+            azi_px_size, rng_px_size = self.PRM(subswath).pixel_size()
+            # raster pixels decimation
+            if isinstance(grid, xr.DataArray):
+                dy = grid.y.diff('y')[0].item()
+                dx = grid.x.diff('x')[0].item()
+            else:
+                dy, dx = grid
+            outs.append((np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1)))
+        if average:
+            pxs = np.asarray(outs)
+            return (pxs[:,0].mean(), pxs[:,1].mean())
+        else:
+            return outs[0] if len(outs) == 1 else outs
+
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
     def pixel_decimator(self, resolution_meters=60, grid=(1, 4), debug=False):
         import numpy as np
@@ -160,40 +181,3 @@ class datagrid:
         if debug:
             print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yy}, 'x': {xx}}}, boundary='trim').mean()")
         return lambda da: da.coarsen({'y': yy, 'x': xx}, boundary='trim').mean()
-
-    def degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
-        """
-        Lazy Gaussian filter for arrays with NaN values.
-            dataarray - input dataarray with NaNs allowed,
-            wavelength - cut-off wavelength [m],
-            truncate - filter window size [sigma],
-            resolution_meters - Gaussian filter processing resolution [m],
-            debug - print debug information.
-        Returns filtered dataarray with the same coordinates as input one.
-        Fast approximate calculation silently skipped when sigma is less than 64 so the result is always exact for small filters.
-        """
-        import xarray as xr
-        import numpy as np
-
-        # input grid can be too large
-        decimator = self.pixel_decimator(resolution_meters=resolution_meters, grid=dataarray, debug=debug)
-        # decimate
-        dataarray_dec = decimator(dataarray)
-        # ground pixel size
-        dy, dx = self.pixel_size(dataarray_dec)
-        # gaussian kernel
-        sigma_y = np.round(wavelength / dy)
-        sigma_x = np.round(wavelength / dx)
-        if debug:
-            print ('DEBUG: Gaussian filtering using resolution, sigma_y, sigma_x',
-                   resolution_meters, sigma_y, sigma_x)
-        sigmas = (sigma_y,sigma_x)
-        gaussian_dec = self.nanconvolve2d_gaussian(dataarray_dec, sigmas, truncate=truncate)
-        if debug:
-            print ('DEBUG: interpolate decimated filtered grid')
-        gaussian = gaussian_dec.interp_like(dataarray, method='nearest')
-        # revert the original chunks
-        gaussian = xr.unify_chunks(dataarray, gaussian)[1]
-        if debug:
-            print ('DEBUG: return lazy Dask array')
-        return (dataarray - gaussian).astype(np.float32).rename('degaussian')

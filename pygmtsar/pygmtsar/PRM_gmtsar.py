@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Oct, 2022, https://github.com/mobigroup/gmtsar
 
-class gmtsar_prm:
+class PRM_gmtsar:
 
     @staticmethod
     def gmtsar_sharedir():

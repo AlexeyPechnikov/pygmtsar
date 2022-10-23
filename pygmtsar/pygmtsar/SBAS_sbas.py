@@ -1,0 +1,396 @@
+#!/usr/bin/env python3
+# Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
+from .SBAS_detrend import SBAS_detrend
+
+class SBAS_sbas(SBAS_detrend):
+
+    def baseline_table(self):
+        import pandas as pd
+        import numpy as np
+
+        # use any subswath (actually, the 1st one) to produce the table
+        subswath = self.get_subswaths()[0]
+        # select unique dates to process multiple subswaths
+        dates = np.unique(self.df.index)
+
+        # after merging use unmerged subswath PRM files
+        prm_ref = self.PRM(subswath, singleswath=True)
+        data = []
+        for date in dates:
+            # after merging use unmerged subswath PRM files
+            prm_rep = self.PRM(subswath, date, singleswath=True)
+            ST0 = prm_rep.get('SC_clock_start')
+            DAY = int(ST0 % 1000)
+            YR = int(ST0/1000) - 2014
+            YDAY = YR * 365 + DAY
+            #print (f'YR={YR}, DAY={DAY}')
+            BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
+            data.append({'date':date, 'ST0':ST0, 'YDAY':YDAY, 'BPL':BPL, 'BPR':BPR})
+            #print (date, ST0, YDAY, BPL, BPR)
+        return pd.DataFrame(data).set_index('date')
+
+    # returns sorted baseline pairs
+    def baseline_pairs(self, days=100, meters=150, invert=False):
+        import numpy as np
+        import pandas as pd
+     
+        tbl = self.baseline_table()
+        data = []
+        for line1 in tbl.itertuples():
+        #for line1 in tbl.loc[['2015-01-21']].itertuples():
+            for line2 in tbl.itertuples():
+            #for line2 in tbl.loc[['2015-03-10']].itertuples():
+                #print (line1, line2)
+                if not (line1.YDAY < line2.YDAY and line2.YDAY - line1.YDAY < days):
+                    continue
+                if not (abs(line1.BPR - line2.BPR)< meters):
+                    continue
+
+                if not invert:
+                    data.append({'ref_date':line1.Index, 'rep_date': line2.Index,
+                                 'ref_timeline': np.round(line1.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line1.BPR, 2),
+                                 'rep_timeline': np.round(line2.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line2.BPR, 2)})
+                else:
+                    data.append({'ref_date':line2.Index, 'rep_date': line1.Index,
+                                 'ref_timeline': np.round(line2.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line2.BPR, 2),
+                                 'rep_timeline': np.round(line1.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line1.BPR, 2)})
+
+        return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
+
+    def sbas_parallel(self, pairs, mask=None, detrended=True, data_stack=None, corr_stack=None, n_jobs=-1):
+        import xarray as xr
+        import numpy as np
+        import pandas as pd
+        from tqdm.auto import tqdm
+        import joblib
+        import os
+
+        # compress 3d output following the processing blocks
+        netcdf_compression = self.compression.copy()
+        netcdf_compression['chunksizes'] = (1, self.chunksize, self.chunksize)
+
+        model_filename = os.path.join(self.basedir, 'disp.grd')
+    
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+        else:
+            pairs = np.asarray(pairs)
+        # define all the dates as unique reference and repeat dates
+        dates = np.unique(pairs.flatten())
+    
+        # source grids lazy loading
+        if corr_stack is None:
+            corr_stack = self.open_grids(pairs, 'corr')
+        if data_stack is None:
+            gridname = 'detrend' if detrended else 'unwrap'
+            data_stack = self.open_grids(pairs, gridname)
+
+        # crop correlation grid like to unwrap grid which may be defined smaller
+        corr_stack = corr_stack.reindex_like(data_stack)
+        
+        # mask can be sparse and limit work area
+        if mask is not None:
+            data_stack = xr.where(mask>0, data_stack.reindex_like(mask), np.nan)
+            corr_stack   = xr.where(mask>0, corr_stack.reindex_like(mask),   np.nan)
+    
+        # here are one row for every interferogram and one column for every date
+        matrix = []
+        for pair in pairs:
+            mrow = [date>pair[0] and date<=pair[1] for date in dates]
+            matrix.append(mrow)
+        matrix = np.stack(matrix).astype(int)
+
+        # single-pixel processing function
+        def fit(x, w, matrix):
+            #return np.zeros(5)
+            # ignore pixels where correlation is not defined
+            if np.any(np.isnan(w)):
+                return np.nan * np.zeros(matrix.shape[1])
+            # fill nans as zeroes and set corresponding weight to 0
+            nanmask = np.where(np.isnan(x))
+            if nanmask[0].size > 0:
+                # function arguments are read-only
+                x = x.copy()
+                w = w.copy()
+                x[nanmask] = 0
+                w[nanmask] = 0
+                # check if x has enough valid values
+                if x.size - nanmask[0].size < matrix.shape[1]:
+                    return np.nan * np.zeros(matrix.shape[1])
+            # least squares solution
+            W = (w/np.sqrt(1-w**2))
+            model = np.linalg.lstsq(matrix * W[:,np.newaxis], x * W, rcond=None)
+            #print ('model', model)
+            return model[0]
+
+        # xarray wrapper
+        models = xr.apply_ufunc(
+            fit,
+            data_stack.chunk(dict(pair=-1)),
+            corr_stack.chunk(dict(pair=-1)),
+            input_core_dims=[['pair'],['pair']],
+            exclude_dims=set(('pair',)),
+            dask='parallelized',
+            vectorize=True,
+            output_dtypes=[np.float32],
+            output_core_dims=[['date']],
+            dask_gufunc_kwargs={'output_sizes': {'date': len(dates)}},
+            kwargs={'matrix': matrix}
+        )
+        # define dates axis
+        models['date'] = dates
+        # set the stack index to be first
+        models = models.transpose('date',...)
+        # cleanup
+        if os.path.exists(model_filename):
+            os.remove(model_filename)
+    
+        ts, ys, xs = models.data.blocks.shape
+        assert ts == 1, 'Date chunks count should be equal to 1'
+        tchunks, ychunks, xchunks = models.chunks
+        coordt = models.date
+        coordy = np.array_split(models.y, np.cumsum(ychunks))
+        coordx = np.array_split(models.x, np.cumsum(xchunks))
+    
+        def func(iy, ix):
+            chunk_filename = os.path.join(self.basedir, f'disp_chunk_{iy}_{ix}.grd')
+            if os.path.exists(chunk_filename):
+                os.remove(chunk_filename)
+            # lazy dask array
+            data = models.data.blocks[0,iy,ix]
+            # wrap the array
+            da = xr.DataArray(data,
+                              dims=['date','y','x'],
+                              coords={'date': coordt, 'y':coordy[iy], 'x':coordx[ix]})\
+                 .rename('displacement')
+            # compute and save to NetCDF using chunks of original coordinates
+            da.to_netcdf(chunk_filename,
+                         unlimited_dims=['y','x'],
+                         encoding={'displacement': netcdf_compression},
+                         engine=self.engine,
+                         compute=True)
+            return chunk_filename
+    
+        # process all the chunks
+        with self.tqdm_joblib(tqdm(desc='Computing', total=ys*xs)) as progress_bar:
+            filenames = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(iy, ix) \
+                                                     for iy in range(ys) for ix in range(xs))
+    
+        # rebuild the datasets to user-friendly format
+        das = [xr.open_dataarray(f, engine=self.engine, chunks=self.chunksize) for f in filenames]
+        if xr.__version__ == '0.19.0':
+            # for Google Colab
+            das = xr.merge(das)
+        else:
+            # for modern xarray versions
+            das = xr.combine_by_coords(das)
+
+        # add subswath prefix
+        subswath = self.get_subswath()
+
+        def output(dt):
+            filename = os.path.join(self.basedir, f'F{subswath}_disp_{dt}.grd'.replace('-',''))
+            if os.path.exists(filename):
+                os.remove(filename)
+            das.sel(date=dt).to_netcdf(filename,
+                        encoding={'displacement': self.compression},
+                        engine=self.engine)
+
+        # saving all the grids
+        with self.tqdm_joblib(tqdm(desc='Saving', total=len(das.date))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date.values)
+
+        # cleanup
+        for filename in filenames:
+            if os.path.exists(filename):
+                os.remove(filename)
+
+    #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
+    def intftab(self, baseline_pairs):
+        import numpy as np
+        import datetime
+
+        # return a single subswath for None
+        subswath = self.get_subswath()
+
+        outs = []
+        for line in baseline_pairs.itertuples():
+            #print (line)
+            ref = line.ref_date.replace('-','')
+            jref = datetime.datetime.strptime(line.ref_date, '%Y-%m-%d').strftime('%Y%j')
+            rep = line.rep_date.replace('-','')
+            jrep = datetime.datetime.strptime(line.rep_date, '%Y-%m-%d').strftime('%Y%j')
+            bperp = np.round(line.rep_baseline - line.ref_baseline, 2)
+            outs.append(f'F{subswath}_{ref}_{rep}_unwrap.grd F{subswath}_{ref}_{rep}_corr.grd {jref} {jrep} {bperp}')
+        return '\n'.join(outs) + '\n'
+
+    def scenetab(self, baseline_pairs):
+        import numpy as np
+        import datetime
+
+        mst = datetime.datetime.strptime(self.master, '%Y-%m-%d').strftime('%Y%j')
+        #print (self.master, mst)
+        outs = []
+        for line in baseline_pairs.itertuples():
+            #print (line)
+            ref = datetime.datetime.strptime(line.ref_date, '%Y-%m-%d').strftime('%Y%j')
+            yday_ref = np.round((line.ref_timeline - 2014)*365.25)
+            outs.append(f'{ref} {yday_ref}')
+            rep = datetime.datetime.strptime(line.rep_date, '%Y-%m-%d').strftime('%Y%j')
+            yday_rep = np.round((line.rep_timeline - 2014)*365.25)
+            outs.append(f'{rep} {yday_rep}')
+        outs = np.unique(outs)
+        return '\n'.join([out for out in outs if out.split(' ')[0]==mst]) + '\n' + \
+               '\n'.join([out for out in outs if out.split(' ')[0]!=mst]) + '\n'
+
+
+    @staticmethod
+    def triplets2pairs(triplets, pairs):
+        import pandas as pd
+    
+        data = []
+        for triplet in triplets.itertuples():
+            data.append({'ref_date': triplet.A, 'rep_date': triplet.B})
+            data.append({'ref_date': triplet.B, 'rep_date': triplet.C})
+            data.append({'ref_date': triplet.A, 'rep_date': triplet.C})
+        tripairs = pd.DataFrame(data).sort_values(['ref_date', 'rep_date']).drop_duplicates()
+        idx = tripairs.set_index(['ref_date', 'rep_date']).index
+        return pairs.set_index(['ref_date', 'rep_date']).loc[idx].reset_index()
+
+    # returns sorted baseline triplets
+    @staticmethod
+    def pairs2triplets(pairs, invert=False):
+        import pandas as pd
+
+        data = []
+        pairs_a = pairs
+        for line_a in pairs_a.itertuples():
+            #print (line_a)
+            date_a_ref = line_a.ref_date
+            date_a_rep = line_a.rep_date
+            pairs_b = pairs[pairs.ref_date==date_a_rep]
+            for line_b in pairs_b.itertuples():
+                #print (line_b)
+                date_b_ref = line_b.ref_date
+                date_b_rep = line_b.rep_date
+                pairs_c = pairs[(pairs.rep_date==date_b_rep)&(pairs.ref_date==date_a_ref)]
+                for line_c in pairs_c.itertuples():
+                    #print (line_c)
+                    date_c_ref = line_c.ref_date
+                    date_c_rep = line_c.rep_date
+                    #print (date_a_ref, date_a_rep, date_b_rep)
+                    data.append({'A': date_a_ref, 'B': date_a_rep, 'C': date_b_rep})
+        return pd.DataFrame(data).sort_values(['A', 'B', 'C'])
+
+    def sbas(self, baseline_pairs, smooth=0, atm=0, debug=False):
+        """
+         USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] [-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]
+
+         input:
+          intf.tab             --  list of unwrapped (filtered) interferograms:
+           format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp
+          scene.tab            --  list of the SAR scenes in chronological order
+           format:   scene_id   number_of_days
+           note:     the number_of_days is relative to a reference date
+          N                    --  number of the interferograms
+          S                    --  number of the SAR scenes
+          xdim and ydim        --  dimension of the interferograms
+          -smooth sf           --  smoothing factors, default=0
+          -atm ni              --  number of iterations for atmospheric correction, default=0(skip atm correction)
+          -wavelength wl       --  wavelength of the radar wave (m) default=0.236
+          -incidence theta     --  incidence angle of the radar wave (degree) default=37
+          -range rng           --  range distance from the radar to the center of the interferogram (m) default=866000
+          -rms                 --  output RMS of the data misfit grids (mm): rms.grd
+          -dem                 --  output DEM error (m): dem.grd
+
+         output:
+          disp_##.grd          --  cumulative displacement time series (mm) grids
+          vel.grd              --  mean velocity (mm/yr) grids
+
+         example:
+          sbas intf.tab scene.tab 88 28 700 1000
+        """
+        import os
+        import subprocess
+        import numpy as np
+        import math
+        import glob
+        import datetime
+
+        # cleanup
+        for filename in glob.glob(os.path.join(self.basedir, 'disp*.grd')):
+            os.remove(filename)
+        filename = os.path.join(self.basedir, 'vel.grd')
+        if os.path.exists(filename):
+            os.remove(filename)
+
+        unwrap = self.open_grids(baseline_pairs[['ref_date', 'rep_date']][:1], 'unwrap')[0]
+        dem = self.get_dem(geoloc=True)
+        prm = self.PRM()
+
+        #N=$(wc -l intf.in   | cut -d ' ' -f1)
+        #S=$(wc -l scene.tab | cut -d ' ' -f1)
+
+        N = len(baseline_pairs)
+        S = len(np.unique(list(baseline_pairs['ref_date']) + list(baseline_pairs['rep_date'])))
+
+        #bounds = self.geoloc().dissolve().envelope.bounds.values[0]
+        llmin, ltmin, llmax, ltmax = self.get_master().dissolve().envelope.bounds.values[0].round(3)
+        lon0 = (llmin + llmax)/2
+        lat0 = (ltmin + ltmax)/2
+        elevation0 = float(dem.sel(lat=lat0, lon=lon0, method='nearest'))
+        #print ('coords',lon0, lat0, elevation0)
+        _,_,_,look_E,look_N,look_U = prm.SAT_look([lon0, lat0, elevation0])
+        #print ('satlook', _,_,_,look_E,look_N,look_U)
+        incidence = math.atan2(math.sqrt(float(look_E)**2 + float(look_N)**2), float(look_U))*180/np.pi
+
+        ydim, xdim = unwrap.shape
+
+        xmin = int(unwrap.x.min())
+        xmax = int(unwrap.x.max())
+        near_range, rng_samp_rate, wavelength = prm.get('near_range', 'rng_samp_rate', 'radar_wavelength')
+        # calculation below requires bc utility
+        rng_pixel_size = 300000000 / rng_samp_rate / 2
+        rng = np.round(rng_pixel_size * (xmin+xmax) /2 + near_range)
+
+        intf_tab = self.intftab(baseline_pairs)
+        pipe1 = os.pipe()
+        os.write(pipe1[1], bytearray(intf_tab, 'ascii'))
+        os.close(pipe1[1])
+        #print ('descriptor 1', str(pipe1[0]))
+
+        scene_tab = self.scenetab(baseline_pairs)
+        pipe2 = os.pipe()
+        os.write(pipe2[1], bytearray(scene_tab, 'ascii'))
+        os.close(pipe2[1])
+        #print ('descriptor 2', str(pipe2[0]))
+
+        argv = ['sbas', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}',
+                str(N), str(S), str(xdim), str(ydim), '-atm', str(atm), '-smooth', str(smooth),
+                '-wavelength', str(wavelength), '-incidence', str(incidence), '-range', str(rng),
+                '-rms', '-dem']
+        if debug:
+            print ('DEBUG: argv', argv)
+        p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
+                             cwd=self.basedir, encoding='ascii')
+        stdout_data, stderr_data = p.communicate()
+        #print ('stdout_data', stdout_data)
+        if len(stderr_data) > 0 and debug:
+            print ('DEBUG: sbas', stderr_data)
+        if len(stdout_data) > 0 and debug:
+            print ('DEBUG: sbas', stdout_data)
+
+        # fix output grid filenames
+        for date in np.unique(np.concatenate([baseline_pairs.ref_date,baseline_pairs.rep_date])):
+            jdate = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%Y%j')
+            date = date.replace('-','')
+            filename1 = os.path.join(self.basedir, f'disp_{jdate}.grd')
+            filename2 = os.path.join(self.basedir, f'disp_{date}.grd')
+            if os.path.exists(filename1):
+                if debug:
+                    print ('DEBUG: rename', filename1, filename2)
+                os.rename(filename1, filename2)
+            #print (jdate, date)
+
+        return

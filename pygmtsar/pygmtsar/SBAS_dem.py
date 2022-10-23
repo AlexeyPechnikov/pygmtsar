@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
-from .datagrid import datagrid
+from .SBAS_reframe import SBAS_reframe
+from .PRM import PRM
 
-class dem(datagrid):
-    from .PRM import PRM
+class SBAS_dem(SBAS_reframe):
 
     def set_dem(self, dem_filename):
         import os

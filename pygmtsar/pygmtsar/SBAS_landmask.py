@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
-from .datagrid import datagrid
+from .SBAS_merge import SBAS_merge
 
-class landmask(datagrid):
+class SBAS_landmask(SBAS_merge):
 
     def set_landmask(self, landmask_filename):
         import os
