@@ -48,7 +48,6 @@ class SBAS_sbas_gmtsar(SBAS_detrend):
 
         unwrap = self.open_grids(baseline_pairs[['ref_date', 'rep_date']][:1], 'unwrap')[0]
         dem = self.get_dem(geoloc=True)
-        prm = self.PRM()
 
         #N=$(wc -l intf.in   | cut -d ' ' -f1)
         #S=$(wc -l scene.tab | cut -d ' ' -f1)
@@ -62,7 +61,7 @@ class SBAS_sbas_gmtsar(SBAS_detrend):
         lat0 = (ltmin + ltmax)/2
         elevation0 = float(dem.sel(lat=lat0, lon=lon0, method='nearest'))
         #print ('coords',lon0, lat0, elevation0)
-        _,_,_,look_E,look_N,look_U = prm.SAT_look([lon0, lat0, elevation0])
+        _,_,_,look_E,look_N,look_U = self.PRM().SAT_look([lon0, lat0, elevation0])
         #print ('satlook', _,_,_,look_E,look_N,look_U)
         incidence = math.atan2(math.sqrt(float(look_E)**2 + float(look_N)**2), float(look_U))*180/np.pi
 
@@ -70,7 +69,7 @@ class SBAS_sbas_gmtsar(SBAS_detrend):
 
         xmin = int(unwrap.x.min())
         xmax = int(unwrap.x.max())
-        near_range, rng_samp_rate, wavelength = prm.get('near_range', 'rng_samp_rate', 'radar_wavelength')
+        near_range, rng_samp_rate, wavelength = self.PRM().get('near_range', 'rng_samp_rate', 'radar_wavelength')
         # calculation below requires bc utility
         rng_pixel_size = 300000000 / rng_samp_rate / 2
         rng = np.round(rng_pixel_size * (xmin+xmax) /2 + near_range)
