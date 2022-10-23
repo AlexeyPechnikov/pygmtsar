@@ -9,21 +9,22 @@ class SBAS_detrend(SBAS_unwrap):
         import joblib
 
         def func(pair, **kwargs):
+            #print (f'**kwargs {kwargs}')
             grid = self.open_grids([pair], 'unwrap', interactive=False)
-            out = self.detrend(grid[0], **kwargs)
-            self.save_grids([out], 'detrend', interactive=False)
-
-        with self.tqdm_joblib(tqdm(desc='Detrending and Saving', total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=1)(joblib.delayed(func)(pair, **kwargs) for pair in pairs.values)
-
-    def degaussian_parallel(self, pairs, n_jobs=-1, **kwargs):
-        from tqdm.auto import tqdm
-        import joblib
-
-        def func(pair, **kwargs):
-            grid = self.open_grids([pair], 'unwrap', interactive=False)
-            out = self.degaussian(grid[0], **kwargs)
-            self.save_grids([out], 'degaussian', interactive=False)
+            
+            kwargs1 = {k:v for k,v in kwargs.items() if k in ['wavelength', 'truncate', 'resolution_meters', 'debug']}
+            #print (f'kwargs1 {kwargs1}')
+            if 'wavelength' in kwargs1:
+                out1 = self.degaussian(grid[0], **kwargs1)
+            else:
+                out1 = grid[0]
+        
+            kwargs2 = {k:v for k,v in kwargs.items() if k in ['fit_intercept', 'fit_dem', 'fit_coords',
+                                                              'resolution_meters', 'debug']}
+            #print (f'kwargs2 {kwargs2}')
+            out2 = self.detrend(out1, **kwargs2)
+        
+            self.save_grids([out2], 'detrend', interactive=False)
 
         with self.tqdm_joblib(tqdm(desc='Detrending and Saving', total=len(pairs))) as progress_bar:
             joblib.Parallel(n_jobs=1)(joblib.delayed(func)(pair, **kwargs) for pair in pairs.values)
