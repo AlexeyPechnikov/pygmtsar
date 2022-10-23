@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Oct, 2022, https://github.com/mobigroup/gmtsar
-#from pygmtsar import datagrid
 
 class datagrid:
 
@@ -9,6 +8,64 @@ class datagrid:
     compression = dict(zlib=True, complevel=3, chunksizes=(chunksize, chunksize))
     engine = 'h5netcdf'
 
+    @staticmethod
+    def is_ra(grid):
+        dims = grid.dims
+        if 'y' in dims and 'x' in dims:
+            return True
+        return False
+
+    @staticmethod
+    def is_geo(grid):
+        dims = grid.dims
+        if 'lat' in dims and 'lon' in dims:
+            return True
+        return False
+
+    def as_geo(self, da):
+        """
+        Add spatial attributes to allow use rioxarray functions like to .rio.clip([geometry])
+        """
+        import sys
+        assert 'rioxarray' in sys.modules, 'rioxarray module is not found'
+        if self.is_geo(da):
+            epsg = 4326
+            y_dim = 'lat'
+            x_dim = 'lon'
+        else:
+            # fake metrical coordinate system just to perform spatial operations
+            epsg = 3857
+            y_dim = 'y'
+            x_dim = 'x'
+        return da.rio.write_crs(epsg).rio.set_spatial_dims(y_dim=y_dim, x_dim=x_dim)
+
+    @staticmethod
+    def is_same(grid1, grid2):
+        dims1 = grid1.dims
+        dims2 = grid2.dims
+        if 'lat' in dims1 and 'lon' in dims1 and 'lat' in dims2 and 'lon' in dims2:
+            return True
+        if 'y' in dims1 and 'x' in dims1 and 'y' in dims2 and 'x' in dims2:
+            return True
+        return False
+
+    def snaphu_config(self, defomax=0, **kwargs):
+        return self.PRM().snaphu_config(defomax, **kwargs)
+ 
+    @staticmethod
+    def cropna(das):
+        # crop NaNs
+        dims = [dim for dim in das.dims if dim != 'pair' and dim != 'date']
+        dim0 = [dim for dim in das.dims if dim in ['pair', 'date']]
+        assert len(dims) == 2, 'ERROR: the input should be 3D array with "pair" or "date" coordinate'
+        da = das.min(dim0)
+        indexer = {}
+        for dim in dims:
+            da = da.dropna(dim=dim, how='all')
+            dim_min, dim_max = da[dim].min().item(), da[dim].max().item()
+            indexer[dim] = slice(dim_min, dim_max)
+        #print ('indexer', indexer)
+        return das.loc[indexer]
     
     # replacement for GMTSAR gaussians
     # gauss5x5 = np.genfromtxt('/usr/local/GMTSAR/share/gmtsar/filters/gauss5x5',skip_header=True)
@@ -88,74 +145,55 @@ class datagrid:
             return xr.DataArray(values, coords=in_grid.coords, name=in_grid.name)
         return values
 
-    # replacement function for GMT based robust 2D trend coefficient calculations:
-    # gmt trend2d r.xyz -Fxyzmw -N1r -V
-    # gmt trend2d r.xyz -Fxyzmw -N2r -V
-    # gmt trend2d r.xyz -Fxyzmw -N3r -V
-    # https://github.com/GenericMappingTools/gmt/blob/master/src/trend2d.c#L719-L744
-    # 3 model parameters
-    # rank = 3 => nu = size-3
-    @staticmethod
-    def GMT_trend2d(data, rank):
+    #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
+    def pixel_decimator(self, resolution_meters=60, grid=(1, 4), debug=False):
         import numpy as np
-        from sklearn.linear_model import LinearRegression
-        # scale factor for normally distributed data is 1.4826
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.median_abs_deviation.html
-        MAD_NORMALIZE = 1.4826
-        # significance value
-        sig_threshold = 0.51
 
-        if rank not in [1,2,3]:
-            raise Exception('Number of model parameters "rank" should be 1, 2, or 3')
+        dy, dx = self.pixel_size(grid)
+        yy, xx = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
+        if debug:
+            print (f'DEBUG: average per subswaths ground pixel size in meters: y={dy}, x={dx}')
+        if yy <= 1 and xx <= 1:
+            if debug:
+                print (f"DEBUG: decimator = lambda da: da")
+            return lambda da: da
+        if debug:
+            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yy}, 'x': {xx}}}, boundary='trim').mean()")
+        return lambda da: da.coarsen({'y': yy, 'x': xx}, boundary='trim').mean()
 
-        #see gmt_stat.c
-        def gmtstat_f_q (chisq1, nu1, chisq2, nu2):
-            import scipy.special as sc
+    def degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
+        """
+        Lazy Gaussian filter for arrays with NaN values.
+            dataarray - input dataarray with NaNs allowed,
+            wavelength - cut-off wavelength [m],
+            truncate - filter window size [sigma],
+            resolution_meters - Gaussian filter processing resolution [m],
+            debug - print debug information.
+        Returns filtered dataarray with the same coordinates as input one.
+        Fast approximate calculation silently skipped when sigma is less than 64 so the result is always exact for small filters.
+        """
+        import xarray as xr
+        import numpy as np
 
-            if chisq1 == 0.0:
-                return 1
-            if chisq2 == 0.0:
-                return 0
-            return sc.betainc(0.5*nu2, 0.5*nu1, chisq2/(chisq2+chisq1))
-
-        if rank in [2,3]:
-            x = data[:,0]
-            x = np.interp(x, (x.min(), x.max()), (-1, +1))
-        if rank == 3:
-            y = data[:,1]
-            y = np.interp(y, (y.min(), y.max()), (-1, +1))
-        z = data[:,2]
-        w = np.ones(z.shape)
-
-        if rank == 1:
-            xy = np.expand_dims(np.zeros(z.shape),1)
-        elif rank == 2:
-            xy = np.expand_dims(x,1)
-        elif rank == 3:
-            xy = np.stack([x,y]).transpose()
-
-        # create linear regression object
-        mlr = LinearRegression()
-
-        chisqs = []
-        coeffs = []
-        while True:
-            # fit linear regression
-            mlr.fit(xy, z, sample_weight=w)
-
-            r = np.abs(z - mlr.predict(xy))
-            chisq = np.sum((r**2*w))/(z.size-3)    
-            chisqs.append(chisq)
-            k = 1.5 * MAD_NORMALIZE * np.median(r)
-            w = np.where(r <= k, 1, (2*k/r) - (k * k/(r**2)))
-            sig = 1 if len(chisqs)==1 else gmtstat_f_q(chisqs[-1], z.size-3, chisqs[-2], z.size-3)
-            # Go back to previous model only if previous chisq < current chisq
-            if len(chisqs)==1 or chisqs[-2] > chisqs[-1]:
-                coeffs = [mlr.intercept_, *mlr.coef_]
-
-            #print ('chisq', chisq, 'significant', sig)
-            if sig < sig_threshold:
-                break
-
-        # get the slope and intercept of the line best fit
-        return (coeffs[:rank])
+        # input grid can be too large
+        decimator = self.pixel_decimator(resolution_meters=resolution_meters, grid=dataarray, debug=debug)
+        # decimate
+        dataarray_dec = decimator(dataarray)
+        # ground pixel size
+        dy, dx = self.pixel_size(dataarray_dec)
+        # gaussian kernel
+        sigma_y = np.round(wavelength / dy)
+        sigma_x = np.round(wavelength / dx)
+        if debug:
+            print ('DEBUG: Gaussian filtering using resolution, sigma_y, sigma_x',
+                   resolution_meters, sigma_y, sigma_x)
+        sigmas = (sigma_y,sigma_x)
+        gaussian_dec = self.nanconvolve2d_gaussian(dataarray_dec, sigmas, truncate=truncate)
+        if debug:
+            print ('DEBUG: interpolate decimated filtered grid')
+        gaussian = gaussian_dec.interp_like(dataarray, method='nearest')
+        # revert the original chunks
+        gaussian = xr.unify_chunks(dataarray, gaussian)[1]
+        if debug:
+            print ('DEBUG: return lazy Dask array')
+        return (dataarray - gaussian).astype(np.float32).rename('degaussian')
