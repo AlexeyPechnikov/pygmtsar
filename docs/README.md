@@ -582,28 +582,30 @@ def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3
 ```
 
 ```
-def detrend_parallel(self, pairs, n_jobs=-1, wavelength=None, topo_ra=None, truncate=3.0, approximate=True, fit_intercept=True, fit_dem=True, fit_coords=True):
+def detrend_parallel(self, pairs, wavelength=None, truncate=3.0, fit_intercept=True, fit_dem=True, fit_coords=True, resolution_meters=90, n_jobs=-1, debug=True):
 
-		Detrend unwrapped interferograms combining topography and linear components removal plus Gaussian filtering. 
+		Detrend unwrapped interferograms combining Gaussian filtering plus topography and linear components removal. 
 		
     Args:
     		pairs: list of dates pairs (baseline pairs).
-    		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
     		wavelength: optional cut-off wavelength for Gaussian filter in meters.
-    		topo_ra: optional user-defined Xarray Dataarray topography grid instead of main one.
     		truncate: optional Gaussian filter window in sigmas.
-    		approximate: optional boolean flag to use approximate Gaussian filter calculation for large gammas.
     		fit_intercept: optional boolean flag to drop mean value (plane).
     		fit_dem: optional boolean flag to detrend topography.
     		fit_coords: optional boolean flag to detrend linear coordinate components.
+    		resolution_meters: reduced resolution for processing to prevent overfitting (for 15m and 30m processing resolutions mostly) and speedup the processing.
+    		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
+        debug: boolean flag to print debug information.
 
 		Returns:
         None
 
     Examples:
-    		Simplest detrending:
+    		Detrend plain and topography:
     		sbas.detrend_parallel(pairs)
-    		Detrend ionospreric effects and solid Earth's tides on large area:
+    		
+    		Detrend ionospreric effects and solid Earth's tides on large areas using Gaussian filtering
+    		and detrend plain and topography after that:
     		sbas.detrend_parallel(pairs, wavelength=12000)
 ```
 
@@ -649,15 +651,15 @@ def sbas(self, pairs, smooth=0, atm=0, debug=False):
 #### SBAS (PyGMTSAR original)
 
 ```
-def sbas_parallel(self, pairs, mask=None, detrended=True, data_stack=None, corr_stack=None, n_jobs=-1):
+def sbas_parallel(self, pairs, mask=None, name='detrend', data_stack=None, corr_stack=None, n_jobs=-1):
 
 		SBAS unwrapped and detrended interferograms timeseries analysis using pixel-wise correlation-weighted least squares approach. 
 		
     Args:
     		pairs: list of dates pairs (baseline pairs).
     		mask: Xarray Dataarray mask for valid pixels.
-    		detrended: optional boolean flag to use detrended unwrapped phase or unwrapped phase itself.
-    		data_stack: stack of unwrapped phase grids as 3D Xarray dataarray. When it's not defined SBAS.open_grids(pairs, 'unwrap') for detrended=False or SBAS.open_grids(pairs, 'detrend') for detrended=True  used.
+    		name: optional input grid name to use detrended unwrapped phase ('detrend') or unwrapped phase ('unwrap').
+    		data_stack: stack of unwrapped phase grids as 3D Xarray dataarray. When it's not defined SBAS.open_grids(pairs, name) used.
     		corr_stack: stack of correlation grids as 3D Xarray dataarray. When it's not defined SBAS.open_grids(pairs, 'corr') used.
     		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
 
@@ -665,7 +667,12 @@ def sbas_parallel(self, pairs, mask=None, detrended=True, data_stack=None, corr_
         None
 
     Examples:
+        # process detrended unwrapped phase
+        sbas.detrend_parallel(pairs, wavelength=12000)
     		sbas.sbas_parallel(pairs)
+    		
+    		# process unwrapped phase as is
+    		sbas.sbas_parallel(pairs, name='unwrap')
 ```
 
 #### Look vectors and Incidence angle (PyGMTSAR original)
