@@ -196,6 +196,7 @@ class SBAS_base(tqdm_joblib, datagrid):
         return filenames
 
     def save_grids(self, grids, name, func=None, add_subswath=True, n_jobs=1, interactive=True, **kwargs):
+        import xarray as xr
         import numpy as np
         from tqdm.auto import tqdm
         import joblib
