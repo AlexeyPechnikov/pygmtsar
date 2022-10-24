@@ -73,6 +73,18 @@ See a separate GitHub repository for Yamchi Dam area dynamic model [YamchiDam](h
 
 <img src="https://user-images.githubusercontent.com/7342379/144747743-a24d72ec-8875-4272-91f9-ec1f937bb798.gif" width="50%">
 
+## Learn more
+
+- Documentation: https://github.com/mobigroup/gmtsar
+
+- Issue tracker: https://github.com/mobigroup/gmtsar/issues
+
+- Source code: https://github.com/mobigroup/gmtsar
+
+- Docker Images: https://hub.docker.com/repository/docker/mobigroup/pygmtsar
+
+- PyPI Python library: https://pypi.org/project/pygmtsar/
+
 ### About me
 
 I have STEM master's degree in radio physics and in 2004 I was awarded first prize of the All-Russian Physics competition for significant results in Inverse modeling for non-linear optics and holography, also applicable for Inverse Modeling of Gravity, Magnetic, and Thermal fields. To create laser-induced holograms in non-linear optical composites I worked on interferograms numerical modeling and development of satellite interferometry processing software is very close task and so I build PyGMTSAR. Also, that's the related to inverse modeling of potensial fields like to gravity and I build Geomed3D geophisical modeling software too. In addition to my fundamental science knowledge, I’m world class data scientist and software developer with 20 years experience in science and industrial development. I have worked on government contracts and universities projects and on projects for LG Corp, Google Inc, etc. You are able to find some of my software and results on LinkedIn and GitHub and Upwork, see the links below. By the way, I left Russia many years ago and I work remotely for about 20 years.
