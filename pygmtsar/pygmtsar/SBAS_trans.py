@@ -34,7 +34,7 @@ class SBAS_trans(SBAS_stack):
         trans_blocks_ys, trans_blocks_xs = trans_dat.ll.data.numblocks
         #print ('trans_blocks_ys, trans_blocks_xs', trans_blocks_ys, trans_blocks_xs)
         with self.tqdm_joblib(tqdm(desc='Analyze Transform Blocks', total=trans_blocks_ys*trans_blocks_xs)) as progress_bar:
-            extents = joblib.Parallel(n_jobs=-1)(joblib.delayed(calculate_block_extent)(iy, ix) \
+            extents = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(calculate_block_extent)(iy, ix) \
                                                      for iy in range(trans_blocks_ys) for ix in range(trans_blocks_xs))
         # merge the results
         extents = np.asarray([extent for extent in extents if extent is not None])
