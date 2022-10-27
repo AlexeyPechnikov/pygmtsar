@@ -284,9 +284,9 @@ class SBAS_base(tqdm_joblib, datagrid):
 
         def postprocess(da, subswath):
             if self.is_ra(da) and geocode:
-                da = self.intf_ra2ll(subswath, da)
+                da = self.intf_ra2ll(da)
             elif self.is_geo(da) and inverse_geocode:
-                da = self.intf_ll2ra(subswath, da)
+                da = self.intf_ll2ra(da)
             if func is not None:
                 if isinstance(func, list):
                     for f in func:

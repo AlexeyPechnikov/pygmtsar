@@ -7,7 +7,7 @@ class SBAS_trans(SBAS_stack):
 
     def get_trans_dat_blocks_extents(self, subswath=None, n_jobs=-1):
         """
-        Compute trans_dat dask blocks extents in radar coordinates
+        Compute trans_dat dask blocks extents in radar coordinates for geocoding matrices
         """
         from tqdm.auto import tqdm
         import joblib
@@ -104,8 +104,6 @@ class SBAS_trans(SBAS_stack):
         return handler
     
     def trans_dat_parallel(self, interactive=False):
-        import numpy as np
-        import xarray as xr
         import dask
 
         # process all the subswaths

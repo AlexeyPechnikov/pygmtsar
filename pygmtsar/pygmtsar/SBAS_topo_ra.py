@@ -98,8 +98,6 @@ class SBAS_topo_ra(SBAS_trans):
         return handler
 
     def topo_ra_parallel(self, interactive=False):
-        import numpy as np
-        import xarray as xr
         import dask
 
         # auto generate the trans.dat file
@@ -118,7 +116,7 @@ class SBAS_topo_ra(SBAS_trans):
             return delayeds[0] if len(delayeds)==1 else delayeds
 
     def get_topo_ra(self):
-        import numpy as np
+        #import numpy as np
         import xarray as xr
         import dask.array
 

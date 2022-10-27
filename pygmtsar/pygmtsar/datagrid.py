@@ -2,11 +2,15 @@
 # Alexey Pechnikov, Oct, 2022, https://github.com/mobigroup/gmtsar
 
 class datagrid:
+    import numpy as np
 
     # NetCDF options
     chunksize = 512
     compression = dict(zlib=True, complevel=3, chunksizes=(chunksize, chunksize))
     engine = 'h5netcdf'
+    # NODATA index value for transform matrices
+    # TODO: use the same datatype for the matrices to allow 64 bit datatype
+    noindex = np.uint32(-1)
 
     @staticmethod
     def is_ra(grid):
