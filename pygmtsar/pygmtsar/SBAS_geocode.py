@@ -84,7 +84,7 @@ class SBAS_geocode(SBAS_sbas):
         # unify the input grids for transform matrix defined on the intf grid (y, x)
         source_grid = self.get_intf_ll2ra()
         grids = grids.interp_like(source_grid, method='nearest')
-    
+
         # target grid is tranform matrix
         matrix_ra2ll = self.get_intf_ra2ll()
 
@@ -110,12 +110,9 @@ class SBAS_geocode(SBAS_sbas):
             output_core_dims=[['lat','lon']],
             dask_gufunc_kwargs={'output_sizes': {'lat': matrix_ra2ll.shape[0], 'lon': matrix_ra2ll.shape[1]}},
         ).chunk(self.chunksize)
-    
-        if len(grids.dims) > 2:
-            dim = grids.dims[0]
-            return grids_ll.chunk({dim: 1})
-        else:
-            return grids_ll[0]
+
+        # set the output grid and drop the fake dimension if needed
+        return xr.DataArray((grids_ll[0] if len(grids.dims)==2 else grids_ll), coords=matrix_ra2ll.coords)
 
 ##########################################################################################
 # TODO ll2ra
@@ -255,5 +252,6 @@ class SBAS_geocode(SBAS_sbas):
             output_core_dims=[['y','x']],
             dask_gufunc_kwargs={'output_sizes': {'y': matrix_ll2ra.shape[0], 'x': matrix_ll2ra.shape[1]}},
         ).chunk(self.chunksize)
-
-        return (grids_ra[0] if len(grids.dims)==2 else grids_ra)
+        
+        # set the output grid and drop the fake dimension if needed
+        return xr.DataArray((grids_ra[0] if len(grids.dims)==2 else grids_ra), coords=matrix_ll2ra.coords)
