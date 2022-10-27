@@ -312,7 +312,7 @@ class SBAS_geocode(SBAS_sbas):
         delayed = self.intf_ll2ra_matrix(None, intf_grid, interactive=interactive)
 
         if not interactive:
-            tqdm_dask(dask.persist(delayed), desc='Interferogram ll2ra Transform Computing')
+            tqdm_dask(dask.persist(delayed), desc='Build ll2ra Transform')
         else:
             return delayed
 
