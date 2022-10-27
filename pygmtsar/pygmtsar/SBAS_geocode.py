@@ -327,36 +327,37 @@ class SBAS_geocode(SBAS_sbas):
         """
         import xarray as xr
         import numpy as np
-    
+
         # helper check
         if not 'lat' in grids.dims and 'lon' in grid.dims:
             print ('NOTE: the grid is not in geograpphic coordinates, miss geocoding')
             return grids
-    
+
+        # unify the input grids for transform matrix defined on the trans_dat grid (lat, lon)
         trans_dat = self.get_trans_dat()
+        grids = grids.interp_like(trans_dat.ll, method='nearest')
+
         matrix_ll2ra = self.get_intf_ll2ra()
 
         def ll2ra(grid):
             # transform input grid to the trans_ra2ll where the geocoding matrix defined
             # only nearest interpolation allowed to save values of binary masks
             return xr.DataArray(np.where(matrix_ll2ra != np.uint32(-1),
-                                         grid.interp_like(trans_dat.ll, method='nearest').values.reshape(-1)[matrix_ll2ra],
+                                         grid.reshape(-1)[matrix_ll2ra],
                                          np.nan),
-                coords=matrix_ll2ra.coords)
+                                coords=matrix_ll2ra.coords).expand_dims('new').values
 
-        # process single 2D raster
-        if len(grids.dims) == 2:
-            return ll2ra(grids)
+        # xarray wrapper
+        grids_ra = xr.apply_ufunc(
+            ll2ra,
+            (grids.expand_dims('new') if len(grids.dims)==2 else grids).chunk({'lat':-1, 'lon':-1}),
+            input_core_dims=[['lat','lon']],
+            exclude_dims=set(('lat','lon')),
+            dask='parallelized',
+            vectorize=False,
+            output_dtypes=[np.float32],
+            output_core_dims=[['y','x']],
+            dask_gufunc_kwargs={'output_sizes': {'y': matrix_ll2ra.shape[0], 'x': matrix_ll2ra.shape[1]}},
+        ).chunk(self.chunksize)
 
-        # process a set of 2D rasters
-        with self.tqdm_joblib(tqdm(desc='Inverse Geocoding', total=len(grids))) as progress_bar:
-            grids_ll = joblib.Parallel(n_jobs=-1)(joblib.delayed(ll2ra)(grids[item]) for item in range(len(grids)))
-        grids_ll = xr.concat(grids_ll, dim=grids.dims[0])
-
-        # add coordinates from original grids
-        for coord in grids.coords:
-            if coord in ['lat', 'lon']:
-                continue
-            grids_ll[coord] = grids[coord]
-
-        return grids_ll
+        return (grids_ra[0] if len(grids.dims)==2 else grids_ra)
