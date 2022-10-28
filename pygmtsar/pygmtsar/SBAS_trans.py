@@ -53,7 +53,7 @@ class SBAS_trans(SBAS_stack):
         import xarray as xr
         import numpy as np
         import os
-    
+
         # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
         llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
 
@@ -67,11 +67,19 @@ class SBAS_trans(SBAS_stack):
 
         dem = self.get_dem(geoloc=True)
         # prepare lazy coordinate grids
-        lats = xr.DataArray(dem.lat.astype(np.float32).chunk(-1))
-        lons = xr.DataArray(dem.lon.astype(np.float32).chunk(-1))
-        lats, lons = xr.broadcast(lats, lons)
-        _, lats, lons = xr.unify_chunks(dem, lats, lons)
-        assert dem.chunks == lats.chunks and dem.chunks == lons.chunks, 'Chunks are not equal'
+        lat = xr.DataArray(dem.lat.astype(np.float32).chunk(-1))
+        lon = xr.DataArray(dem.lon.astype(np.float32).chunk(-1))
+        lats, lons = xr.broadcast(lat, lon)
+        # calculate linear index
+        lat_idx = xr.DataArray(np.arange(lat.size, dtype=np.uint32), dims=['lat']).chunk(-1)
+        lon_idx = xr.DataArray(np.arange(lon.size, dtype=np.uint32), dims=['lon']).chunk(-1)
+        lat_idxs, lon_idxs = xr.broadcast(lat_idx, lon_idx)
+        idxs = lat_idxs*lon_idx.size + lon_idxs
+        assert dem.size - idxs.max() == 1, 'Linear index incorrect'
+        # unify chunks to have the same dask blocks
+        _, lats, lons, idxs = xr.unify_chunks(dem, lats, lons, idxs)
+        assert dem.chunks == lats.chunks and dem.chunks == lons.chunks and dem.chunks == idxs.chunks, \
+            'Chunks are not equal'
 
         # xarray wrapper
         raell = xr.apply_ufunc(
@@ -86,8 +94,11 @@ class SBAS_trans(SBAS_stack):
             dask_gufunc_kwargs={'output_sizes': {'raell': 5}},
             kwargs={'subswath': subswath}
         )
+
         # transform to separate variables
-        trans = xr.Dataset({val: raell[...,key] for (key, val) in llt2rat_map.items()})
+        keys_vars = {val: raell[...,key] for (key, val) in llt2rat_map.items()}
+        keys_devs = {'idx': idxs}
+        trans = xr.Dataset({**keys_vars, **keys_devs})
 
         if interactive:
             return trans
