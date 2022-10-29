@@ -12,7 +12,7 @@ class SBAS_landmask(SBAS_landmask_gmt):
             self.landmask_filename = None
         return self
 
-    def get_landmask(self, subswath=None, geoloc=False, buffer_degrees=0.02, inverse_geocode=False):
+    def get_landmask(self, inverse_geocode=False):
         import xarray as xr
         import os
 
@@ -29,9 +29,10 @@ class SBAS_landmask(SBAS_landmask_gmt):
         # extract the array and fill missed values by zero (mostly ocean area)
         landmask = landmask[z_array_name[0]].fillna(0)
 
+        # select valid area only
+        trans_dat = self.get_trans_dat()
+        landmask = landmask.reindex_like(trans_dat, method='nearest')
+
         if inverse_geocode:
-            return self.intf_ll2ra(subswath, landmask)
-
-        dem = self.get_dem(subswath, geoloc, buffer_degrees)
-        return landmask.reindex_like(dem, method='nearest')
-
+            return self.intf_ll2ra(landmask)
+        return landmask
