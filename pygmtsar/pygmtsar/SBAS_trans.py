@@ -45,7 +45,7 @@ class SBAS_trans(SBAS_stack):
 
         subswath = self.get_subswath(subswath)
         filename = self.get_filenames(subswath, None, 'trans')
-        trans = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
+        trans = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize).rename({'yy': 'lat', 'xx': 'lon'})
         return trans
 
     def trans_dat(self, subswath=None, interactive=False):
@@ -58,30 +58,65 @@ class SBAS_trans(SBAS_stack):
         llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
 
         # build trans.dat
-        def SAT_llt2rat(z, lat, lon, subswath):
+        def SAT_llt2rat(z, lat, lon, subswath, binary=False):
             coords_ll = np.column_stack([lon.ravel(), lat.ravel(), z.ravel()])
             # for binary=True values outside of the scene missed and the array is not complete
             coords_ra = self.PRM(subswath).SAT_llt2rat(coords_ll, precise=1, binary=False)\
                 .astype(np.float32).reshape(z.shape[0], z.shape[1], 5)
             return coords_ra
 
-        dem = self.get_dem(geoloc=True)
+        # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
+        dem = self.get_dem(geoloc=True).rename({'lat': 'yy', 'lon': 'xx'})
         # prepare lazy coordinate grids
-        lat = xr.DataArray(dem.lat.astype(np.float32).chunk(-1))
-        lon = xr.DataArray(dem.lon.astype(np.float32).chunk(-1))
+        lat = xr.DataArray(dem.yy.astype(np.float32).chunk(-1))
+        lon = xr.DataArray(dem.xx.astype(np.float32).chunk(-1))
         lats, lons = xr.broadcast(lat, lon)
+        # unify chunks
+        lats = lats.chunk(dem.chunks)
+        lons = lons.chunk(dem.chunks)
         # calculate linear index
-        lat_idx = xr.DataArray(np.arange(lat.size, dtype=np.uint32), dims=['lat']).chunk(-1)
-        lon_idx = xr.DataArray(np.arange(lon.size, dtype=np.uint32), dims=['lon']).chunk(-1)
+        lat_idx = xr.DataArray(np.arange(lat.size, dtype=np.uint32), dims=['yy'], coords=lat.coords).chunk(-1)
+        lon_idx = xr.DataArray(np.arange(lon.size, dtype=np.uint32), dims=['xx'], coords=lon.coords).chunk(-1)
         lat_idxs, lon_idxs = xr.broadcast(lat_idx, lon_idx)
-        idxs = lat_idxs*lon_idx.size + lon_idxs
+        # unify chunks
+        idxs = (lat_idxs*lon_idx.size + lon_idxs).chunk(dem.chunks)
+        #print ('idxs', idxs)
         assert dem.size - idxs.max() == 1, 'Linear index incorrect'
-        # unify chunks to have the same dask blocks
-        _, lats, lons, idxs = xr.unify_chunks(dem, lats, lons, idxs)
-        assert dem.chunks == lats.chunks and dem.chunks == lons.chunks and dem.chunks == idxs.chunks, \
-            'Chunks are not equal'
 
-        # xarray wrapper
+        # xarray wrapper for fast valid area lookup
+        raell = xr.apply_ufunc(
+            SAT_llt2rat,
+            dem[::10,::10],
+            lats[::10,::10],
+            lons[::10,::10],
+            dask='parallelized',
+            vectorize=False,
+            output_dtypes=[np.float32],
+            output_core_dims=[['raell']],
+            dask_gufunc_kwargs={'output_sizes': {'raell': 5}},
+            kwargs={'subswath': subswath, 'binary': True}
+        ).data.reshape(-1,5)
+    
+        # select valid azimuths only
+        yvalid, num_patch = self.PRM(subswath).get('num_valid_az', 'num_patches')
+        azi_max = yvalid * num_patch
+        #print ('azi_max', azi_max)
+        raell = raell[(raell[...,1]>=0)&(raell[...,1]<=azi_max)]
+    
+        lat_min, lat_max = dask.compute(raell[...,-1].min(), raell[...,-1].max())
+        #print ('lat_min, lat_max', lat_min, lat_max)
+        lon_min, lon_max = dask.compute(raell[...,-2].min(), raell[...,-2].max())
+        #print ('lon_min, lon_max', lon_min, lon_max)
+        azi_min, azi_max = dask.compute(raell[...,1].min(), raell[...,1].max())
+        #print ('azi_min, azi_max', azi_min, azi_max)
+    
+        # crop the valid area only
+        dem  = dem.sel( yy=slice(lat_min, lat_max), xx=slice(lon_min, lon_max))
+        lats = lats.sel(yy=slice(lat_min, lat_max), xx=slice(lon_min, lon_max))
+        lons = lons.sel(yy=slice(lat_min, lat_max), xx=slice(lon_min, lon_max))
+        idxs = idxs.sel(yy=slice(lat_min, lat_max), xx=slice(lon_min, lon_max))
+    
+        # xarray wrapper for the valid area only
         raell = xr.apply_ufunc(
             SAT_llt2rat,
             dem,
@@ -92,9 +127,16 @@ class SBAS_trans(SBAS_stack):
             output_dtypes=[np.float32],
             output_core_dims=[['raell']],
             dask_gufunc_kwargs={'output_sizes': {'raell': 5}},
-            kwargs={'subswath': subswath}
+            kwargs={'subswath': subswath, 'binary': False}
         )
 
+        #lat_min, lat_max = dask.compute(raell[...,-1].min(), raell[...,-1].max())
+        #print ('lat_min, lat_max', lat_min, lat_max)
+        #lon_min, lon_max = dask.compute(raell[...,-2].min(), raell[...,-2].max())
+        #print ('lon_min, lon_max', lon_min, lon_max)
+        #azi_min, azi_max = dask.compute(raell[...,1].min(), raell[...,1].max())
+        #print ('azi_min, azi_max', azi_min, azi_max)
+    
         # transform to separate variables
         keys_vars = {val: raell[...,key] for (key, val) in llt2rat_map.items()}
         keys_devs = {'idx': idxs}
