@@ -57,7 +57,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
-    def sbas_parallel(self, pairs, mask=None, gridname='detrend', data_stack=None, corr_stack=None, n_jobs=-1):
+    def sbas_parallel(self, pairs, mask=None, data_stack='detrend', corr_stack='corr', n_jobs=-1):
         import xarray as xr
         import numpy as np
         import pandas as pd
@@ -69,8 +69,6 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         netcdf_compression = self.compression.copy()
         netcdf_compression['chunksizes'] = (1, self.chunksize, self.chunksize)
 
-        model_filename = os.path.join(self.basedir, 'disp.grd')
-    
         if isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
         else:
@@ -79,10 +77,10 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         dates = np.unique(pairs.flatten())
     
         # source grids lazy loading
-        if corr_stack is None:
-            corr_stack = self.open_grids(pairs, 'corr')
-        if data_stack is None:
-            data_stack = self.open_grids(pairs, gridname)
+        if isinstance(corr_stack, str):
+            corr_stack = self.open_grids(pairs, corr_stack)
+        if isinstance(data_stack, str):
+            data_stack = self.open_grids(pairs, data_stack)
 
         # crop correlation grid like to unwrap grid which may be defined smaller
         corr_stack = corr_stack.reindex_like(data_stack)
@@ -140,6 +138,8 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         models['date'] = dates
         # set the stack index to be first
         models = models.transpose('date',...)
+        # define the output grid filename
+        model_filename = self.get_filenames(None, None, 'disp')
         # cleanup
         if os.path.exists(model_filename):
             os.remove(model_filename)
@@ -152,7 +152,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         coordx = np.array_split(models.x, np.cumsum(xchunks))
     
         def func(iy, ix):
-            chunk_filename = os.path.join(self.basedir, f'disp_chunk_{iy}_{ix}.grd')
+            chunk_filename = self.get_filenames(None, None, f'disp_chunk_{iy}_{ix}')
             if os.path.exists(chunk_filename):
                 os.remove(chunk_filename)
             # lazy dask array
