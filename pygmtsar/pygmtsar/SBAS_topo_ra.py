@@ -25,7 +25,7 @@ class SBAS_topo_ra(SBAS_trans):
         # use center pixel GMT registration mode
         rngs = np.arange(1, XMAX+1, idec, dtype=np.int32)
         azis = np.arange(1, YMAX+1, jdec, dtype=np.int32)
-        # do not use coordinate names y,x, because the output grid saved as (y,y) in this case...
+        # do not use coordinate names y,x because the output grid saved as (y,y) in this case...
         azis = xr.DataArray(azis, dims=['a'], coords={'a': azis}).chunk(self.chunksize)
         rngs = xr.DataArray(rngs, dims=['r'], coords={'r': rngs}).chunk(self.chunksize)
         azi, rng = [da.chunk(self.chunksize) for da in xr.broadcast(azis, rngs)]
