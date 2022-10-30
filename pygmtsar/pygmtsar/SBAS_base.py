@@ -363,3 +363,11 @@ class SBAS_base(tqdm_joblib, datagrid):
             dass.append(das)
 
         return dass[0] if len(dass) == 1 else dass
+
+    def find_grids(self, name):
+        import numpy as np
+        from glob import glob
+
+        pattern = self.get_filenames(None, None, f'????????_????????_{name}')
+        filenames = glob(pattern, recursive=False)
+        return [filename.split('_')[-3:-1] for filename in sorted(filenames)]
