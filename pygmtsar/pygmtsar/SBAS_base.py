@@ -364,10 +364,23 @@ class SBAS_base(tqdm_joblib, datagrid):
 
         return dass[0] if len(dass) == 1 else dass
 
-    def find_grids(self, name):
+    def find_pairs(self, name='phasefilt'):
         import numpy as np
         from glob import glob
 
+        # find all the intf grids
         pattern = self.get_filenames(None, None, f'????????_????????_{name}')
         filenames = glob(pattern, recursive=False)
-        return [filename.split('_')[-3:-1] for filename in sorted(filenames)]
+        pairs = [filename.split('_')[-3:-1] for filename in sorted(filenames)]
+        # return as numpy array for compatibility reasons
+        pairs = np.asarray(pairs)
+        # check that all the pairs produced from the SBAS scenes
+        dates = list(map(lambda x: x.replace('-',''), self.df.index))
+        invalid = [pair for pair in pairs.flatten() if pair not in dates]
+        assert len(invalid) == 0, 'ERROR: found grids for pairs not in the SBAS scenes. Define valid pairs manually.'
+        return pairs
+
+    def find_dates(self):
+        import numpy as np
+        pairs = self.find_pairs()
+        return np.unique(np.asarray(pairs).flatten())
