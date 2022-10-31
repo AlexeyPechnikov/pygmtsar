@@ -4,25 +4,24 @@ from .SBAS_unwrap_snaphu import SBAS_unwrap_snaphu
 
 class SBAS_unwrap(SBAS_unwrap_snaphu):
 
-    def unwrap_parallel(self, pairs, n_jobs=-1, **kwargs):
+    def unwrap_parallel(self, pairs=None, n_jobs=-1, **kwargs):
         import pandas as pd
         from tqdm.auto import tqdm
         import joblib
         import os
 
-        def unwrap(subswath, pair, **kwargs):
+        def unwrap(pair, **kwargs):
             # define unique tiledir name for parallel processing
             if 'conf' in kwargs:
-                dirname = f'F{subswath}_{"_".join(pair).replace("-","")}_snaphu_tiledir'
-                dirpath = os.path.join(self.basedir, dirname)
+                dirpath = self.get_filenames(None, [pair], 'snaphu_tiledir')[0][:-4]
                 kwargs['conf'] += f'    TILEDIR {dirpath}'
-            return self.unwrap(subswath, pair, **kwargs)
+            return self.unwrap(pair, **kwargs)
 
-        if isinstance(pairs, pd.DataFrame):
+        if pairs is None:
+            pairs = self.find_pairs()
+        elif isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
 
-        subswaths = self.get_subswaths()
-
-        with self.tqdm_joblib(tqdm(desc='Unwrapping', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap)(subswath, pair, interactive=False, **kwargs) \
-                                           for subswath in subswaths for pair in pairs)
+        with self.tqdm_joblib(tqdm(desc='Unwrapping', total=len(pairs))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap)(pair, interactive=False, **kwargs) \
+                                           for pair in pairs)

@@ -7,7 +7,7 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
-    def unwrap(self, subswath, pair, threshold=None, conf=None, func=None, mask=None, conncomp=False,
+    def unwrap(self, pair, threshold=None, conf=None, func=None, mask=None, conncomp=False,
                interactive=True, debug=False):
         import xarray as xr
         import numpy as np
@@ -27,12 +27,12 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
             binmask = 1
 
         if conf is None:
-            conf = self.PRM(subswath).snaphu_config()
+            conf = self.PRM().snaphu_config()
 
         # extract dates from pair
         date1, date2 = pair
 
-        basename = os.path.join(self.basedir, f'F{subswath}_{date1}_{date2}_').replace('-','')
+        basename = self.get_filenames(None, [pair], '')[0][:-4]
         #print ('basename', basename)
 
         # input data grids
@@ -66,7 +66,8 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
 
         # prepare SNAPHU input files
         # NaN values are not allowed for SNAPHU phase input file
-        phase.where(~np.isnan(phase),0).astype(np.float32).values.tofile(phase_in)
+        phasemasked = phase.where(binmask)
+        phasemasked.fillna(0).astype(np.float32).values.tofile(phase_in)
         # apply threshold and binary mask
         corrmasked = corr.where(binmask & (corr>=threshold))
         # NaN values are not allowed for SNAPHU correlation input file
