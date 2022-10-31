@@ -5,7 +5,10 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_geocode(SBAS_sbas):
 
-    def geocode_parallel(self, pairs):
+    def geocode_parallel(self, pairs=None):
+        # find any one interferogram to build the geocoding matrices
+        if pairs is None:
+            pairs = self.find_pairs()[:1]
         # build trans_dat and topo_ra grids
         self.topo_ra_parallel()
         # transforms for interferogram grid
@@ -14,7 +17,7 @@ class SBAS_geocode(SBAS_sbas):
         self.intf_ll2ra_matrix_parallel(intf_grid)
         # build radar coordinates transformation matrix for the interferograms grid stack        
         self.intf_ra2ll_matrix_parallel(intf_grid)
-    
+
 ##########################################################################################
 # ra2ll
 ##########################################################################################

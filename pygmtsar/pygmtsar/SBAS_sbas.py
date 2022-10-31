@@ -57,7 +57,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
-    def sbas_parallel(self, pairs, mask=None, data_stack='detrend', corr_stack='corr', n_jobs=-1):
+    def sbas_parallel(self, pairs=None, mask=None, data_stack='detrend', corr_stack='corr', n_jobs=-1):
         import xarray as xr
         import numpy as np
         import pandas as pd
@@ -69,7 +69,9 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         netcdf_compression = self.compression.copy()
         netcdf_compression['chunksizes'] = (1, self.chunksize, self.chunksize)
 
-        if isinstance(pairs, pd.DataFrame):
+        if pairs is None:
+            pairs = self.find_pairs()
+        elif isinstance(pairs, pd.DataFrame):
             pairs = pairs.values
         else:
             pairs = np.asarray(pairs)

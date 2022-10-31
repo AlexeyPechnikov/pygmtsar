@@ -4,9 +4,14 @@ from .SBAS_unwrap import SBAS_unwrap
 
 class SBAS_detrend(SBAS_unwrap):
 
-    def detrend_parallel(self, pairs, n_jobs=-1, **kwargs):
+    def detrend_parallel(self, pairs=None, n_jobs=-1, **kwargs):
         from tqdm.auto import tqdm
         import joblib
+
+        if pairs is None:
+            pairs = self.find_pairs()
+        elif isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
 
         def func(pair, **kwargs):
             #print (f'**kwargs {kwargs}')
@@ -27,7 +32,7 @@ class SBAS_detrend(SBAS_unwrap):
             self.save_grids([out2], 'detrend', interactive=False)
 
         with self.tqdm_joblib(tqdm(desc='Detrending and Saving', total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=1)(joblib.delayed(func)(pair, **kwargs) for pair in pairs.values)
+            joblib.Parallel(n_jobs=1)(joblib.delayed(func)(pair, **kwargs) for pair in pairs)
 
     def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
                 resolution_meters=90, debug=False):
