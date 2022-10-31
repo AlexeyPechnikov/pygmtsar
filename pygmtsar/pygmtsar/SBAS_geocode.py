@@ -11,7 +11,7 @@ class SBAS_geocode(SBAS_sbas):
             pairs = self.find_pairs()[:1]
         # build trans_dat and topo_ra grids
         self.topo_ra_parallel()
-        # transforms for interferogram grid
+        # define the target interferogram grid
         intf_grid = self.open_grids(pairs, 'phasefilt').min('pair')
         # build geographic coordinates transformation matrix for landmask and other grids
         self.intf_ll2ra_matrix_parallel(intf_grid)
