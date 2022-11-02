@@ -57,7 +57,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
-    def sbas_parallel(self, pairs=None, mask=None, data_stack='detrend', corr_stack='corr', n_jobs=-1):
+    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr', chunks=None, n_jobs=-1):
         import xarray as xr
         import numpy as np
         import pandas as pd
@@ -79,18 +79,18 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         dates = np.unique(pairs.flatten())
     
         # source grids lazy loading
-        if isinstance(corr_stack, str):
-            corr_stack = self.open_grids(pairs, corr_stack)
-        if isinstance(data_stack, str):
-            data_stack = self.open_grids(pairs, data_stack)
+        if isinstance(corr, str):
+            corr = self.open_grids(pairs, corr, chunks=chunks)
+        if isinstance(data, str):
+            data = self.open_grids(pairs, data, chunks=chunks)
 
         # crop correlation grid like to unwrap grid which may be defined smaller
-        corr_stack = corr_stack.reindex_like(data_stack)
+        corr = corr.reindex_like(data)
         
         # mask can be sparse and limit work area
         if mask is not None:
-            data_stack = xr.where(mask>0, data_stack.reindex_like(mask), np.nan)
-            corr_stack   = xr.where(mask>0, corr_stack.reindex_like(mask),   np.nan)
+            data = xr.where(mask>0, data.reindex_like(mask), np.nan)
+            corr   = xr.where(mask>0, corr.reindex_like(mask),   np.nan)
     
         # here are one row for every interferogram and one column for every date
         matrix = []
@@ -125,8 +125,8 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         # xarray wrapper
         models = xr.apply_ufunc(
             fit,
-            data_stack.chunk(dict(pair=-1)),
-            corr_stack.chunk(dict(pair=-1)),
+            data.chunk(dict(pair=-1)),
+            corr.chunk(dict(pair=-1)),
             input_core_dims=[['pair'],['pair']],
             exclude_dims=set(('pair',)),
             dask='parallelized',
