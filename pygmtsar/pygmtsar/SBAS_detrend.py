@@ -4,7 +4,8 @@ from .SBAS_unwrap import SBAS_unwrap
 
 class SBAS_detrend(SBAS_unwrap):
 
-    def detrend_parallel(self, pairs=None, n_jobs=-1, **kwargs):
+    def detrend_parallel(self, pairs=None, n_jobs=-1, interactive=False, **kwargs):
+        import pandas as pd
         from tqdm.auto import tqdm
         import joblib
 
@@ -16,23 +17,31 @@ class SBAS_detrend(SBAS_unwrap):
         def func(pair, **kwargs):
             #print (f'**kwargs {kwargs}')
             grid = self.open_grids([pair], 'unwrap', interactive=False)
-            
-            kwargs1 = {k:v for k,v in kwargs.items() if k in ['wavelength', 'truncate', 'resolution_meters', 'debug']}
-            #print (f'kwargs1 {kwargs1}')
-            if 'wavelength' in kwargs1:
-                out1 = self.degaussian(grid[0], **kwargs1)
-            else:
-                out1 = grid[0]
-        
+
+            # without any processing options return the input as is
+            out = grid[0]
+
+            if 'wavelength' in kwargs:
+                kwargs1 = {k:v for k,v in kwargs.items() if k in ['wavelength', 'truncate', 'resolution_meters', 'debug']}
+                #print (f'kwargs1 {kwargs1}')
+                out = self.degaussian(out, **kwargs1)
+
             kwargs2 = {k:v for k,v in kwargs.items() if k in ['fit_intercept', 'fit_dem', 'fit_coords',
                                                               'resolution_meters', 'debug']}
             #print (f'kwargs2 {kwargs2}')
-            out2 = self.detrend(out1, **kwargs2)
-        
-            self.save_grids([out2], 'detrend', interactive=False)
+            # ignore detrending when all the fits are disabled
+            out = self.detrend(out, **kwargs2)
 
-        with self.tqdm_joblib(tqdm(desc='Detrending and Saving', total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=1)(joblib.delayed(func)(pair, **kwargs) for pair in pairs)
+            if interactive:
+                return out
+            self.save_grids([out], 'detrend', interactive=False)
+
+        label = 'Detrending and Saving' if not interactive else 'Detrending'
+        with self.tqdm_joblib(tqdm(desc=label, total=len(pairs))) as progress_bar:
+            results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(pair, **kwargs) for pair in pairs)
+        
+        if interactive:
+            return results
 
     def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
                 resolution_meters=90, debug=False):
@@ -47,12 +56,14 @@ class SBAS_detrend(SBAS_unwrap):
         from sklearn.linear_model import LinearRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
-    
+
         def postprocessing(out):
             return out.astype(np.float32).rename('detrend')
 
         # check the simplest case
-        assert fit_intercept or fit_dem or fit_coords, 'All the detrending options disable, function does nothing'
+        if not fit_intercept and not fit_dem and not fit_coords:
+            print ('NOTE: All the detrending options disable, function does nothing')
+            return dataarray
 
         # check simple case
         if fit_intercept and not fit_dem and not fit_coords:
@@ -64,6 +75,8 @@ class SBAS_detrend(SBAS_unwrap):
         decimator = self.pixel_decimator(resolution_meters=resolution_meters, grid=dataarray, debug=debug)
         # decimate
         dataarray_dec = decimator(dataarray)
+        if debug:
+            print ('DEBUG: Decimated data array', dataarray_dec.shape)
 
         # topography grid required to fit_dem option only
         if fit_dem:
@@ -78,54 +91,80 @@ class SBAS_detrend(SBAS_unwrap):
                 print ('DEBUG: regrid to resolution in meters', resolution_meters)
             # decimate
             topo_dec  = decimator(topo)
+            if debug:
+                print ('DEBUG: Decimated topography array', topo_dec.shape)
         else:
             topo = topo_dec = None
 
         # lazy calculations are useless below
-        def data2fit(data, grid):
-            y = data.values.reshape(-1)
+        def data2fit(data, elev, yy, xx):
+            y = data.reshape(-1)
             nanmask = np.isnan(y)
             # prepare regression variable
             Y = y[~nanmask]
 
             if fit_coords or fit_dem:
                 # prepare coordinates for X regression variable
-                yy, xx = xr.broadcast(data.y, data.x)
-                ys = yy.values.reshape(-1)[~nanmask]
-                xs = xx.values.reshape(-1)[~nanmask]
+                ys = yy.reshape(-1)[~nanmask]
+                xs = xx.reshape(-1)[~nanmask]
 
             if fit_dem:
                 # prepare topography for X regression variable
-                zs = grid.values.reshape(-1)[~nanmask]
+                zs = elev.reshape(-1)[~nanmask]
                 zys = zs*ys
                 zxs = zs*xs
 
             if fit_dem and fit_coords:
-                if debug:
-                    print ('DEBUG: Detrend topography and coordinates')
                 X = np.column_stack([zys, zxs, ys, xs, zs])
             elif fit_dem:
-                if debug:
-                    print ('DEBUG: Detrend topography only')
                 X = np.column_stack([zys, zxs, zs])
             elif fit_coords:
-                if debug:
-                    print ('DEBUG: Detrend coordinates only')
                 X = np.column_stack([ys, xs])
             return Y, X, nanmask
 
-        # build prediction model with or without plane removal (fit_intercept)
-        regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
-        Y, X, _ = data2fit(dataarray_dec, topo_dec)
-        regr.fit(X, Y)
-    
-        # TODO: calculate for chunks
-        Y, X, nanmask = data2fit(dataarray, topo)
-        model = xr.full_like(dataarray, np.nan).compute()
         if debug:
-            print ('DEBUG: model', model)
-        model.data.reshape(-1)[~nanmask] = regr.predict(X)
-        return postprocessing(dataarray - model)
+            print ('DEBUG: linear regression calculation')
+    
+        def regr_fit():
+            # build prediction model with or without plane removal (fit_intercept)
+            regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
+            yy, xx = xr.broadcast(dataarray_dec.y, dataarray_dec.x)
+            Y, X, _ = data2fit(dataarray_dec.values, topo_dec.values, yy.values, xx.values)
+        
+            return regr.fit(X, Y)
+    
+        # calculate for chunks
+        def predict(data, elev, yy, xx, regr):
+            Y, X, nanmask = data2fit(data, elev, yy, xx)
+            # the chunk is NaN-filled, prediction impossible
+            if nanmask.all():
+                return data
+            # predict when some values are not NaNs
+            model = np.nan * np.zeros(data.shape)
+            model.reshape(-1)[~nanmask] = regr.predict(X)
+            # return data without the trend
+            return data - model
+    
+        def regr_predict(regr):
+            yy = xr.DataArray(dataarray.y).chunk(-1)
+            xx = xr.DataArray(dataarray.x).chunk(-1)
+            yy, xx = xr.broadcast(yy, xx)
+
+            # xarray wrapper
+            return xr.apply_ufunc(
+                predict,
+                dataarray,
+                topo.chunk(dataarray.chunks),
+                yy.chunk(dataarray.chunks),
+                xx.chunk(dataarray.chunks),
+                dask='parallelized',
+                vectorize=False,
+                output_dtypes=[np.float32],
+                dask_gufunc_kwargs={'regr': regr},
+            )
+    
+        # build the model and return the input data without the detected trend
+        return postprocessing(regr_predict(regr_fit()))
 
     def degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
         """
@@ -140,6 +179,10 @@ class SBAS_detrend(SBAS_unwrap):
         """
         import xarray as xr
         import numpy as np
+
+        if wavelength is None:
+            print ('NOTE: Gaussian filter cut-off wavelength is not defined, function does nothing')
+            return dataarray
 
         # input grid can be too large
         decimator = self.pixel_decimator(resolution_meters=resolution_meters, grid=dataarray, debug=debug)
