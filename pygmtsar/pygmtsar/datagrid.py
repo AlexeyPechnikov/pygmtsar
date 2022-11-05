@@ -121,33 +121,76 @@ class datagrid:
         da_conv = xr.DataArray(conv.real/conv.imag, coords=dataarray.coords, name=dataarray.name)
         return da_conv
 
-    @staticmethod
-    def nearest_grid(in_grid, search_radius_pixels=300):
+    def nearest_grid(self, in_grid, search_radius_meters=300):
         """
-        Pixel-based Nearest Neighbour interpolation
+        Nearest Neighbour interpolation
         """
         from scipy.spatial import cKDTree
         import xarray as xr
         import numpy as np
-        ys, xs = np.meshgrid(range(in_grid.shape[1]), range(in_grid.shape[0]))
-        ys = ys.reshape(-1)
-        xs = xs.reshape(-1)
-        if isinstance(in_grid, xr.DataArray):
-            zs = in_grid.values.reshape(-1)
-        else:
-            zs = in_grid.reshape(-1)
-        mask = np.where(~np.isnan(zs))
-        # on regular source grid some options should be redefined for better performance
-        tree = cKDTree(np.column_stack((ys[mask],xs[mask])), compact_nodes=False, balanced_tree=False)
-        # use distance_limit
-        d, inds = tree.query(np.column_stack((ys,xs)), k = 1, distance_upper_bound=search_radius_pixels, workers=8)
-        # replace not available indexes by zero (see distance_upper_bound)
-        fakeinds = np.where(~np.isinf(d), inds, 0)
-        # produce the same output array as dataset to be able to add global attributes
-        values = np.where(~np.isinf(d), zs[mask][fakeinds], np.nan).reshape(in_grid.shape)
-        if isinstance(in_grid, xr.DataArray):
-            return xr.DataArray(values, coords=in_grid.coords, name=in_grid.name)
-        return values
+
+        if search_radius_meters <= 0:
+            print (f'NOTE: interpolation is missed for search_radius_meters={search_radius_meters}')
+            return in_grid
+
+        # metrical pixel sizes
+        scales = self.pixel_size()
+    
+        chunk_meters = int(np.round(np.max(scales)*self.chunksize))
+        assert search_radius_meters <= chunk_meters, \
+            f'ERROR: apply nearest_grid() multiple times to fill gaps more than SBAS.chunksize = {chunk_meters} meters'
+    
+        def func(grid, y, x, distance, scales=()):
+        
+            grid1d = grid.reshape(-1).copy()
+            nanmask0 = np.isnan(grid1d)
+            # all the pixels already defined
+            if np.all(~nanmask0):
+                return grid
+
+            # crop full grid subset to search for missed values neighbors
+            data = in_grid.sel(y=slice(y.min()-distance/scales[0]-1, y.max()+distance/scales[0]+1),
+                               x=slice(x.min()-distance/scales[1]-1, x.max()+distance/scales[1]+1))
+            # coordinates in meters
+            datay = scales[0]*data.y
+            datax = scales[1]*data.x
+            # compute dask arrays to prevent ineffective index loockup
+            ys, xs = [vals.values.reshape(-1) for vals in xr.broadcast(datay, datax)]
+            data1d = data.values.reshape(-1)
+            nanmask = np.isnan(data1d)
+            # all the subset pixels are empty, the search is useless
+            if np.all(nanmask):
+                return grid
+
+            # build index tree for all the valid subset values
+            source_yxs = np.stack([ys[~nanmask], xs[~nanmask]], axis=1)
+            tree = cKDTree(source_yxs, compact_nodes=False, balanced_tree=False)
+        
+            # query the index tree for all missed values neighbors
+            target_yxs = np.stack([(scales[0]*y).reshape(-1)[nanmask0], (scales[1]*x).reshape(-1)[nanmask0]], axis=1)
+            #assert 0, target_yxs
+            d, inds = tree.query(target_yxs, k = 1, distance_upper_bound=distance, workers=1)
+            # fill missed values using neighbors when these ones are found
+            inds = np.where(np.isinf(d), 0, inds)
+            grid1d[nanmask0] = np.where(np.isinf(d), np.nan, data1d[~nanmask][inds])
+            return grid1d.reshape(grid.shape)
+
+        yy = xr.DataArray(in_grid.y).chunk(-1)
+        xx = xr.DataArray(in_grid.x).chunk(-1)
+        ys, xs = xr.broadcast(yy,xx)
+
+        # xarray wrapper
+        grid = xr.apply_ufunc(
+            func,
+            in_grid,
+            ys.chunk(in_grid.chunks),
+            xs.chunk(in_grid.chunks),
+            dask='parallelized',
+            vectorize=False,
+            output_dtypes=[np.float32],
+            dask_gufunc_kwargs={'distance': search_radius_meters, 'scales': scales},
+        )
+        return grid
 
     def pixel_size(self, grid=(1, 4), average=True):
         import xarray as xr
