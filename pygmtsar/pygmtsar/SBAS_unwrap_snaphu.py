@@ -8,6 +8,7 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
     def unwrap(self, pair, threshold=None, conf=None, func=None, mask=None, conncomp=False,
+               phase='phasefilt', corr='corr',
                interactive=True, debug=False):
         import xarray as xr
         import numpy as np
@@ -35,13 +36,17 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         basename = self.get_filenames(None, [pair], '')[0][:-4]
         #print ('basename', basename)
 
-        # input data grids
-        phase_filename = basename + 'phasefilt.grd'
-        corr_filename = basename + 'corr.grd'
+        # open input data grids if needed
+        if isinstance(phase, str):
+            phase_filename = basename + phase + '.grd'
+            phase = xr.open_dataarray(phase_filename, engine=self.engine, chunks=self.chunksize)
+        if isinstance(corr, str):
+            corr_filename = basename + corr + '.grd'
+            corr = xr.open_dataarray(corr_filename, engine=self.engine, chunks=self.chunksize)
+        
         # output data grids
         unwrap_filename = basename + 'unwrap.grd'
         conncomp_filename = basename + 'conncomp.grd'
-
         # SNAPHU input files
         phase_in = basename + 'unwrap.phase'
         corr_in = basename + 'unwrap.corr'
@@ -49,8 +54,6 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         unwrap_out = basename + 'unwrap.out'
         conncomp_out = basename + 'conncomp.out'
 
-        phase = xr.open_dataarray(phase_filename, engine=self.engine, chunks=self.chunksize)
-        corr = xr.open_dataarray(corr_filename, engine=self.engine, chunks=self.chunksize)
         if mask is not None:
             phase = phase.reindex_like(binmask)
             corr = corr.reindex_like(binmask)
@@ -107,7 +110,8 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         # NaN values allowed in the output grid, assign userfriendly name for the output grid
         unwrap = unwrap.where(binmask>0).rename('phase')
 
-        for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
+        # the output files required for interactive output
+        for tmp_file in [phase_in, corr_in] + [unwrap_out, conncomp_out] if not interactive else []:
             if os.path.exists(tmp_file):
                 if debug:
                     print ('DEBUG: remove', tmp_file)
