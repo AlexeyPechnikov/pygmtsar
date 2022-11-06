@@ -59,8 +59,8 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
             corr = corr.reindex_like(binmask)
 
         # cleanup from previous runs
-        for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out,
-                         conncomp_filename, unwrap_filename]:
+        for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out] \
+                      + [conncomp_filename, unwrap_filename] if not interactive else []:
             #print ('tmp_file', tmp_file)
             if os.path.exists(tmp_file):
                 if debug:
