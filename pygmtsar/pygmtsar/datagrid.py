@@ -129,6 +129,8 @@ class datagrid:
         import xarray as xr
         import numpy as np
 
+        assert self.is_ra(in_grid), 'ERROR: mask should be defined in radar coordinates'
+
         if search_radius_meters <= 0:
             print (f'NOTE: interpolation is missed for search_radius_meters={search_radius_meters}')
             return in_grid
