@@ -115,7 +115,12 @@ class SBAS_geocode(SBAS_sbas):
         ).chunk(self.chunksize)
 
         # set the output grid and drop the fake dimension if needed
-        return xr.DataArray((grids_ll[0] if len(grids.dims)==2 else grids_ll), coords=matrix_ra2ll.coords)
+        out = xr.DataArray((grids_ll[0] if len(grids.dims)==2 else grids_ll), coords=matrix_ra2ll.coords)
+        # append source grid coordinates excluding removed y, x ones
+        for (k,v) in grids.coords.items():
+            if k not in ['y','x']:
+                out[k] = v
+        return out
 
 ##########################################################################################
 # ll2ra
