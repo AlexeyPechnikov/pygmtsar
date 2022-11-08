@@ -121,7 +121,7 @@ class datagrid:
         da_conv = xr.DataArray(conv.real/conv.imag, coords=dataarray.coords, name=dataarray.name)
         return da_conv
 
-    def nearest_grid(self, in_grid, search_radius_pixels=300):
+    def nearest_grid(self, in_grid, search_radius_pixels=None):
         """
         Nearest Neighbour interpolation
         """
@@ -129,19 +129,18 @@ class datagrid:
         import xarray as xr
         import numpy as np
 
-        assert self.is_ra(in_grid), 'ERROR: grid for the interpolation should be defined in radar coordinates'
-
-        if search_radius_pixels <= 0:
-            print (f'NOTE: interpolation is missed for search_radius_pixels={search_radius_pixels}')
+        if search_radius_pixels is None:
+            search_radius_pixels = self.chunksize
+        elif search_radius_pixels <= 0:
+            print (f'NOTE: interpolation ignored for search_radius_pixels={search_radius_pixels}')
             return in_grid
+        else:
+            assert search_radius_pixels <= self.chunksize, \
+                f'ERROR: apply nearest_grid_pixels() multiple times to fill gaps more than {self.chunksize} pixels chunk size'
 
-        assert search_radius_pixels <= self.chunksize, \
-            f'ERROR: apply nearest_grid() multiple times to fill gaps more than SBAS.chunksize = {self.chunksize} pixels'
+        coords = ['y', 'x'] if self.is_ra(in_grid) else ['lat', 'lon']
+        scale = [in_grid[coord].diff(coord).item(0) for coord in coords]
 
-        scaley = in_grid.y.diff('y').item(0)
-        scalex = in_grid.x.diff('x').item(0)
-        #print ('scales', scaley, scalex)
-    
         def func(grid, y, x, distance, scaley, scalex):
 
             grid1d = grid.reshape(-1).copy()
@@ -187,7 +186,7 @@ class datagrid:
             dask='parallelized',
             vectorize=False,
             output_dtypes=[np.float32],
-            dask_gufunc_kwargs={'distance': search_radius_pixels, 'scaley': scaley, 'scalex': scalex},
+            dask_gufunc_kwargs={'distance': search_radius_pixels, 'scaley': scale[0], 'scalex': scale[1]},
         )
         return grid
 
