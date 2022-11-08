@@ -69,3 +69,8 @@ jobs:
       run: |
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
         sh ./S1A_Stack_CPGF_T173.sh
+    - name: Archive test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: plots
+        path: tests/*.jpg
