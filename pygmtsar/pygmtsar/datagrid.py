@@ -121,7 +121,7 @@ class datagrid:
         da_conv = xr.DataArray(conv.real/conv.imag, coords=dataarray.coords, name=dataarray.name)
         return da_conv
 
-    def nearest_grid(self, in_grid, search_radius_meters=300):
+    def nearest_grid(self, in_grid, search_radius_meters=3000):
         """
         Nearest Neighbour interpolation
         """
