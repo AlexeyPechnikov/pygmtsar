@@ -64,14 +64,8 @@ jobs:
         path: tests/S1A_Stack_CPGF_T173.tar.gz
         key: S1A_Stack_CPGF_T173.tar.gz
         restore-keys: S1A_Stack_CPGF_T173
-    - name: Download dataset
-      working-directory: tests
-      run: |
-        wget -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
-        tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
-        rm -f S1A_Stack_CPGF_T173.tar.gz
     - name: Run test
       working-directory: tests
       run: |
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
-        python3 ./S1A_Stack_CPGF_T173.py
+        sh ./S1A_Stack_CPGF_T173.sh
