@@ -121,7 +121,7 @@ class datagrid:
         da_conv = xr.DataArray(conv.real/conv.imag, coords=dataarray.coords, name=dataarray.name)
         return da_conv
 
-    def nearest_grid(self, in_grid, search_radius_meters=3000):
+    def nearest_grid(self, in_grid, search_radius_pixels=300):
         """
         Nearest Neighbour interpolation
         """
@@ -131,19 +131,19 @@ class datagrid:
 
         assert self.is_ra(in_grid), 'ERROR: grid for the interpolation should be defined in radar coordinates'
 
-        if search_radius_meters <= 0:
-            print (f'NOTE: interpolation is missed for search_radius_meters={search_radius_meters}')
+        if search_radius_pixels <= 0:
+            print (f'NOTE: interpolation is missed for search_radius_pixels={search_radius_pixels}')
             return in_grid
 
-        # metrical pixel sizes
-        scales = self.pixel_size()
+        assert search_radius_pixels <= self.chunksize, \
+            f'ERROR: apply nearest_grid() multiple times to fill gaps more than SBAS.chunksize = {self.chunksize} pixels'
+
+        scaley = in_grid.y.diff('y').item(0)
+        scalex = in_grid.x.diff('x').item(0)
+        #print ('scales', scaley, scalex)
     
-        chunk_meters = int(np.round(np.max(scales)*self.chunksize))
-        assert search_radius_meters <= chunk_meters, \
-            f'ERROR: apply nearest_grid() multiple times to fill gaps more than SBAS.chunksize = {chunk_meters} meters'
-    
-        def func(grid, y, x, distance, scales=()):
-        
+        def func(grid, y, x, distance, scaley, scalex):
+
             grid1d = grid.reshape(-1).copy()
             nanmask0 = np.isnan(grid1d)
             # all the pixels already defined
@@ -151,13 +151,10 @@ class datagrid:
                 return grid
 
             # crop full grid subset to search for missed values neighbors
-            data = in_grid.sel(y=slice(y.min()-distance/scales[0]-1, y.max()+distance/scales[0]+1),
-                               x=slice(x.min()-distance/scales[1]-1, x.max()+distance/scales[1]+1))
-            # coordinates in meters
-            datay = scales[0]*data.y
-            datax = scales[1]*data.x
+            data = in_grid.sel(y=slice(y.min()-scaley*distance-1, y.max()+scaley*distance+1),
+                               x=slice(x.min()-scalex*distance-1, x.max()+scalex*distance+1))
             # compute dask arrays to prevent ineffective index loockup
-            ys, xs = [vals.values.reshape(-1) for vals in xr.broadcast(datay, datax)]
+            ys, xs = [vals.values.reshape(-1) for vals in xr.broadcast(data.y, data.x)]
             data1d = data.values.reshape(-1)
             nanmask = np.isnan(data1d)
             # all the subset pixels are empty, the search is useless
@@ -165,11 +162,11 @@ class datagrid:
                 return grid
 
             # build index tree for all the valid subset values
-            source_yxs = np.stack([ys[~nanmask], xs[~nanmask]], axis=1)
+            source_yxs = np.stack([ys[~nanmask]/scaley, xs[~nanmask]/scalex], axis=1)
             tree = cKDTree(source_yxs, compact_nodes=False, balanced_tree=False)
-        
+
             # query the index tree for all missed values neighbors
-            target_yxs = np.stack([(scales[0]*y).reshape(-1)[nanmask0], (scales[1]*x).reshape(-1)[nanmask0]], axis=1)
+            target_yxs = np.stack([(y/scaley).reshape(-1)[nanmask0], (x/scalex).reshape(-1)[nanmask0]], axis=1)
             #assert 0, target_yxs
             d, inds = tree.query(target_yxs, k = 1, distance_upper_bound=distance, workers=1)
             # fill missed values using neighbors when these ones are found
@@ -190,7 +187,7 @@ class datagrid:
             dask='parallelized',
             vectorize=False,
             output_dtypes=[np.float32],
-            dask_gufunc_kwargs={'distance': search_radius_meters, 'scales': scales},
+            dask_gufunc_kwargs={'distance': search_radius_pixels, 'scaley': scaley, 'scalex': scalex},
         )
         return grid
 
