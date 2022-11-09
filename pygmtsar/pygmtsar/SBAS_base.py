@@ -283,9 +283,14 @@ class SBAS_base(tqdm_joblib, datagrid):
             pairs = np.asarray(pairs)
 
         def postprocess(da, subswath):
-            if mask is not None:
-                assert self.is_same(mask, da), 'ERROR: mask defined in different coordinates'
-                da = nanmask * da
+            masked = False
+            if mask is not None and self.is_same(mask, da):
+                # apply mask when the mask defined in the same coordinates only
+                if geocode or inverse_geocode: 
+                    # apply the mask later when the coordinates are not transformed
+                    da = nanmask * da
+                    # apply the mask just once
+                    masked = True
             if geocode:
                 assert self.is_ra(da), 'ERROR: geocode option requires radar coordinates grid'
                 da = self.intf_ra2ll(da)
@@ -299,6 +304,12 @@ class SBAS_base(tqdm_joblib, datagrid):
                         da = f(da)
                 else:
                     da = func(da)
+            if not masked and mask is not None and self.is_same(mask, da):
+                # apply mask when the mask defined in the same coordinates only
+                da = nanmask * da
+                masked = True
+            if not masked and mask is not None:
+                print ('NOTE: the mask is not applied because it does not correspond to the grid coordinates (radar or geographic)')
             return da
 
         dass = []
