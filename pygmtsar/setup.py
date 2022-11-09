@@ -23,6 +23,7 @@ setup(
                       'numpy',
                       'pandas',
                       'geopandas',
+                      'distributed',
                       'dask',
                       'dask_image',
                       'joblib',
