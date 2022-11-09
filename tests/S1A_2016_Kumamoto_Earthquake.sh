@@ -53,4 +53,5 @@ df -h
 ls -lh
 ls -lh data
 echo "Running Python test script..."
+rm -fr *.jpg
 python3 ./S1A_2016_Kumamoto_Earthquake.py && echo SUCCESS
