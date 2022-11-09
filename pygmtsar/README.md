@@ -73,3 +73,5 @@ Click on the examples below to run the processing in your own browser without an
 - Source code: https://github.com/mobigroup/gmtsar
 
 - Docker Images: https://hub.docker.com/repository/docker/mobigroup/pygmtsar
+
+- PyPI Python library: https://pypi.org/project/pygmtsar/
