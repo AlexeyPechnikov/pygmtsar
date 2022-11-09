@@ -242,15 +242,12 @@ def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.02):
 #### Manage topography in radar coordinates (combined GMTSAR wrapper and PyGMTSAR original)
 
 ```
-def topo_ra_parallel(self, n_jobs=-1, method='cubic'):
+def topo_ra_parallel(self, interactive=False):
 
 		Build WGS84 DEM in radar coordinates for interferogram processing.
 		
     Args:
-    		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
-        method: interpolation method applied when the original DEM is lower than defined
-        "resolution_meters". 'cubic' interpolation prefered because it saves well the DEM
-        spatial spectrum.
+    		interactive: boolean flag to return a lazy delayed Xarray dataarray (True) or use chunked computing to build and save the array to file with progress indicator.
 
 		Returns:
         None
@@ -260,9 +257,9 @@ def topo_ra_parallel(self, n_jobs=-1, method='cubic'):
 ```
 
 ```
-def get_topo_ra(self, subswath=None):
+def get_topo_ra(self):
 
-		Return WGS84 DEM in radar coordinates as just one or list of Xarray Dataarray.
+		Return WGS84 DEM in radar coordinates as one or list of Xarray Dataarray depending of the subswaths count.
 		
     Args:
     		subswath - optional subswath number.
@@ -273,9 +270,6 @@ def get_topo_ra(self, subswath=None):
     Examples:
     		Get DEM for all the processed subswaths:
         topo_ra = sbas.get_topo_ra()
-        
-        Get DEM for a single subswath IW1:
-        topo_ra = sbas.get_topo_ra(1)
 ```
 
 #### Framing (combined GMTSAR wrapper and PyGMTSAR original)
@@ -554,37 +548,9 @@ def unwrap_parallel(self, pairs, n_jobs=-1, threshold=None, conf=None, func=None
 #### Detrending (PyGMTSAR original)
 
 ```
-def detrend(self, subswath, pair=None, wavelength=None, topo_ra=None, truncate=3.0, approximate=True, fit_intercept=True, fit_dem=True, fit_coords=True, debug=False):
-
-		Detrend and get output for a single unwrapped interferogram combining topography and linear components removal plus Gaussian filtering.
-		
-    Args:
-    		subswath: optional argument to define a subswath.
-    		pairs: mandatory list of dates pairs (baseline pairs).
-    		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
-    		wavelength: optional cut-off wavelength for Gaussian filter in meters.
-    		topo_ra: optional user-defined Xarray Dataarray topography grid instead of main one.
-    		truncate: optional Gaussian filter window in sigmas.
-    		approximate: optional boolean flag to use approximate Gaussian filter calculation for large gammas.
-    		fit_intercept: optional boolean flag to drop mean value (plane).
-    		fit_dem: optional boolean flag to detrend topography.
-    		fit_coords: optional boolean flag to detrend linear coordinate components.
-    		debug: boolean flag to print debug information.
-
-		Returns:
-        2D Xarray Dataarray
-
-    Examples:
-    		Simplest detrending:
-    		unwrap_detrended = sbas.detrend(pair.values[0] if isinstance(pairs, pd.DataFrame) else pair[0])
-    		Detrend ionospreric effects and solid Earth's tides on large area:
-    		unwrap_detrended = sbas.detrend(pairs.values[0] wavelength=12000)
-```
-
-```
 def detrend_parallel(self, pairs, wavelength=None, truncate=3.0, fit_intercept=True, fit_dem=True, fit_coords=True, resolution_meters=90, n_jobs=-1, debug=True):
 
-		Detrend unwrapped interferograms combining Gaussian filtering plus topography and linear components removal. 
+		Detrend and save to files a set of unwrapped interferograms combining optional topography and linear components removal plus optional Gaussian filtering after that.
 		
     Args:
     		pairs: list of dates pairs (baseline pairs).
@@ -601,12 +567,54 @@ def detrend_parallel(self, pairs, wavelength=None, truncate=3.0, fit_intercept=T
         None
 
     Examples:
-    		Detrend plain and topography:
+    		Detrend plain and topography and read the results:
     		sbas.detrend_parallel(pairs)
+    		detrended = sbas.open_grids(pairs, 'detrend')
     		
     		Detrend ionospreric effects and solid Earth's tides on large areas using Gaussian filtering
     		and detrend plain and topography after that:
     		sbas.detrend_parallel(pairs, wavelength=12000)
+```
+
+```
+def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True, resolution_meters=90, debug=False):
+
+		Detrend and return output for a single unwrapped interferogram combining optional topography and linear components removal.
+		
+    Args:
+    		dataarray: mandatory Xarray DataArray.
+    		fit_intercept: optional boolean flag to drop mean value (plane).
+    		fit_dem: optional boolean flag to detrend topography.
+    		fit_coords: optional boolean flag to detrend linear coordinate components.
+				resolution_meters: optional processing resolution to prevent overfitting and reduce grid size.
+        debug: boolean flag to print debug information.
+
+		Returns:
+        2D Xarray Dataarray
+
+    Examples:
+    		Simplest detrending:
+    		unwrap_detrended = sbas.detrend(pair.values[0] if isinstance(pairs, pd.DataFrame) else pair[0])
+```
+
+```
+def degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
+
+		Detrend and return output for a single unwrapped interferogram combining optional topography and linear components removal.
+		
+    Args:
+    		dataarray: mandatory Xarray DataArray.
+    		wavelength: optional cut-off wavelength for Gaussian filter in meters.
+    		truncate: optional Gaussian filter window in sigmas.
+				resolution_meters: optional processing resolution to prevent overfitting and reduce grid size.
+        debug: boolean flag to print debug information.
+
+		Returns:
+        2D Xarray Dataarray
+
+    Examples:
+    		Detrend ionospreric effects and solid Earth's tides on large area:
+    		unwrap_degaussian = sbas.degaussian(pairs.values[0], wavelength=12000)
 ```
 
 #### SBAS (GMTSAR wrapper)
@@ -646,22 +654,19 @@ def sbas(self, pairs, smooth=0, atm=0, debug=False):
     		sbas.sbas()
 ```
 
-
-
 #### SBAS (PyGMTSAR original)
 
 ```
-def sbas_parallel(self, pairs, mask=None, name='detrend', data_stack=None, corr_stack=None, n_jobs=-1):
+def sbas_parallel(self, pairs, data='detrend', corr='corr', mask=None, n_jobs=-1):
 
 		SBAS unwrapped and detrended interferograms timeseries analysis using pixel-wise correlation-weighted least squares approach. 
 		
     Args:
     		pairs: list of dates pairs (baseline pairs).
+    		data: optional data grids name to use detrended unwrapped phase ('detrend') or unwrapped phase ('unwrap') or 3D Xarray Dataarray grids stack.
+    		corr: optional correlation grids name or 3D Xarray Dataarray grids stack.
     		mask: Xarray Dataarray mask for valid pixels.
-    		name: optional input grid name to use detrended unwrapped phase ('detrend') or unwrapped phase ('unwrap').
-    		data_stack: stack of unwrapped phase grids as 3D Xarray dataarray. When it's not defined SBAS.open_grids(pairs, name) used.
-    		corr_stack: stack of correlation grids as 3D Xarray dataarray. When it's not defined SBAS.open_grids(pairs, 'corr') used.
-    		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
+        n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
 
 		Returns:
         None
@@ -671,8 +676,13 @@ def sbas_parallel(self, pairs, mask=None, name='detrend', data_stack=None, corr_
         sbas.detrend_parallel(pairs, wavelength=12000)
     		sbas.sbas_parallel(pairs)
     		
-    		# process unwrapped phase as is
-    		sbas.sbas_parallel(pairs, name='unwrap')
+    		# process unwrapped phase without detrending
+    		sbas.sbas_parallel(pairs, 'unwrap')
+    		
+    		# process defined data and correlation grids stacks
+    		unwraps = sbas.open_grids(pairs, 'unwrap')
+    		corrs = sbas.open_grids(pairs, 'corr')
+    		sbas.sbas_parallel(pairs, unwraps, corrs)
 ```
 
 #### Look vectors and Incidence angle (PyGMTSAR original)
@@ -680,7 +690,7 @@ def sbas_parallel(self, pairs, mask=None, name='detrend', data_stack=None, corr_
 ```
 def sat_look_parallel(self, n_jobs=-1):
 
-		Build satellite look vectors in geographic coordinates.
+		Build and save to file satellite look vectors in geographic coordinates.
 
     Args:
     		n_jobs: number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
@@ -693,12 +703,12 @@ def sat_look_parallel(self, n_jobs=-1):
 ```
 
 ```
-def get_sat_look(self, subswath=None):
+def get_sat_look(self):
 
 		Return satellite look vectors in geographic coordinates as just one or list of Xarray Datasets.
 
     Args:
-    		subswath - optional subswath number.
+    		None
 
     Returns:
     		2D Xarray Dataset object or list of 2D Xarray Dataset object.
@@ -706,18 +716,15 @@ def get_sat_look(self, subswath=None):
     Examples:
     		Get satellite look vectors for all the processed subswaths:
     		sat_look_ll = sbas.get_sat_look()
-
-    		Get satellite look vectors for a single subswath IW1:
-    		sat_look_ll = sbas.get_sat_look(1)
 ```
 
 ```
-def incidence_angle(self, subswath=None):
+def incidence_angle(self):
 
 		Compute incidence angle grid in geographic coordinates. 
 
     Args:
-    		subswath: optional subswath number.
+    		None
 
 		Returns:
     		2D Xarray Dataaarray.
@@ -852,12 +859,26 @@ def open_grids(self, pairs, name, geocode=False, mask=None, func=None,
 #### Geocoding (PyGMTSAR original)
 
 ```
-def intf_ra2ll(self, subswath=None, grids=None):
+def geocode_parallel(self, pairs):
+    
+		Build and save to files direct and inverse geocoding matrices.
+		
+	Args:
+			pairs: list of dates pairs (baseline pairs) or dates.
+	
+	Returns:
+	    None
+	
+	Examples:
+	    unwraps_ll = sbas.geocode_parallel(pairs)
+```
+
+```
+def intf_ra2ll(self, grids):
     
 		Geocoding function based on interferogram geocode matrix.
 		
 	Args:
-			subswath: optional argument to define a subswath.
 			grids: mandatory 2D or 3D Xarray Dataaarray in radar coordinates.      
 	
 		Returns:
@@ -871,12 +892,11 @@ def intf_ra2ll(self, subswath=None, grids=None):
 ```
 
 ```
-def intf_ll2ra(self, subswath=None, grids=None):
+def intf_ll2ra(self, grids):
     
 		Inverse geocoding function based on interferogram inverse geocode matrix.
 		
 	Args:
-			subswath: optional argument to define a subswath.
 			grids: mandatory 2D or 3D Xarray Dataaarray in geographic coordinates.      
 	
 		Returns:
