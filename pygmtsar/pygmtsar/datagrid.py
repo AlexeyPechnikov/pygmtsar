@@ -138,9 +138,6 @@ class datagrid:
             assert search_radius_pixels <= self.chunksize, \
                 f'ERROR: apply nearest_grid_pixels() multiple times to fill gaps more than {self.chunksize} pixels chunk size'
 
-        coords = ['y', 'x'] if self.is_ra(in_grid) else ['lat', 'lon']
-        scale = [in_grid[coord].diff(coord).item(0) for coord in coords]
-
         def func(grid, y, x, distance, scaley, scalex):
 
             grid1d = grid.reshape(-1).copy()
@@ -150,10 +147,18 @@ class datagrid:
                 return grid
 
             # crop full grid subset to search for missed values neighbors
-            data = in_grid.sel(y=slice(y.min()-scaley*distance-1, y.max()+scaley*distance+1),
-                               x=slice(x.min()-scalex*distance-1, x.max()+scalex*distance+1))
-            # compute dask arrays to prevent ineffective index loockup
-            ys, xs = [vals.values.reshape(-1) for vals in xr.broadcast(data.y, data.x)]
+            ymin = y.min()-scaley*distance-1
+            ymax = y.max()+scaley*distance+1
+            xmin = x.min()-scalex*distance-1
+            xmax = x.max()+scalex*distance+1
+            if self.is_ra(in_grid):
+                data = in_grid.sel(y=slice(ymin, ymax), x=slice(xmin, xmax))
+                ys, xs = data.y, data.x
+            else:
+                data = in_grid.sel(lat=slice(ymin, ymax), lon=slice(xmin, xmax))
+                ys, xs = data.lat, data.lon
+            # compute dask arrays to prevent ineffective index lookup
+            ys, xs = [vals.values.reshape(-1) for vals in xr.broadcast(ys, xs)]
             data1d = data.values.reshape(-1)
             nanmask = np.isnan(data1d)
             # all the subset pixels are empty, the search is useless
@@ -173,8 +178,10 @@ class datagrid:
             grid1d[nanmask0] = np.where(np.isinf(d), np.nan, data1d[~nanmask][inds])
             return grid1d.reshape(grid.shape)
 
-        yy = xr.DataArray(in_grid.y).chunk(-1)
-        xx = xr.DataArray(in_grid.x).chunk(-1)
+        coords = ['y', 'x'] if self.is_ra(in_grid) else ['lat', 'lon']
+        scale = [in_grid[coord].diff(coord).item(0) for coord in coords]
+        yy = xr.DataArray(in_grid[coords[0]]).chunk(-1)
+        xx = xr.DataArray(in_grid[coords[1]]).chunk(-1)
         ys, xs = xr.broadcast(yy,xx)
 
         # xarray wrapper
