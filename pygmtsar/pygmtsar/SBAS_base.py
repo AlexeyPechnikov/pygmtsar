@@ -304,7 +304,8 @@ class SBAS_base(tqdm_joblib, datagrid):
                         da = f(da)
                 else:
                     da = func(da)
-            if not masked and mask is not None and self.is_same(mask, da):
+            # second masking can be used for some cases like to fill low-coherence areas and crop valid area only
+            if mask is not None and self.is_same(mask, da):
                 # apply mask when the mask defined in the same coordinates only
                 da = nanmask * da
                 masked = True
