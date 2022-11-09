@@ -53,4 +53,5 @@ df -h
 ls -lh
 ls -lh data
 echo "Running Python test script..."
+rm -fr *.jpg
 python3 ./S1AB_2021_Crete_Earthquake.py && echo SUCCESS

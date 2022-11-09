@@ -68,3 +68,69 @@ if __name__ == '__main__':
     print (sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm, geocode=True)[0])
     print (sbas.open_grids(pairs, 'unwrap', func=[sbas.vertical_displacement_mm, sbas.nearest_grid], mask=sbas.intf_ra2ll(landmask_ra), geocode=True)[0])
     print (sbas.open_grids(pairs, 'unwrap', func=[sbas.eastwest_displacement_mm, sbas.nearest_grid], mask=sbas.intf_ra2ll(landmask_ra), geocode=True)[0])
+
+    # plots
+    topo_ra = sbas.get_topo_ra()
+    plt.figure(figsize=(12,4), dpi=300)
+    topo_ra.plot.imshow(cmap='gray', vmin=0)
+    plt.xlabel('Range', fontsize=16)
+    plt.ylabel('Azimuth', fontsize=16)
+    plt.title('Topography in Radar Coordinates, [m]', fontsize=18)
+    plt.savefig('Topography in Radar Coordinates, [m].jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    phasefilt = sbas.open_grids(pairs, 'phasefilt', geocode=True)[0]
+    plt.figure(figsize=(12,4), dpi=300)
+    phasefilt.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r')
+    plt.title('Phase, [rad]', fontsize=18)
+    plt.savefig('Phase, [rad].jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    landmask = sbas.get_landmask()
+    plt.figure(figsize=(12,4), dpi=300)
+    landmask.plot.imshow(vmin=0, vmax=1, cmap='gray')
+    plt.title('Landmask', fontsize=18)
+    plt.savefig('Landmask.jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    landmask_ra = sbas.get_landmask(inverse_geocode=True)
+    plt.figure(figsize=(12,4), dpi=300)
+    landmask_ra.plot.imshow(vmin=0, vmax=1, cmap='gray')
+    plt.title('Landmask in Radar Coordinates', fontsize=18)
+    plt.savefig('Landmask in Radar Coordinates.jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    phasefilt = sbas.open_grids(pairs, 'phasefilt', mask=landmask, geocode=True)[0]
+    plt.figure(figsize=(12,4), dpi=300)
+    phasefilt.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r')
+    plt.title('Landmasked Phase, [rad]', fontsize=18)
+    plt.savefig('Landmasked Phase, [rad].jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    unwrap = sbas.open_grids(pairs, 'unwrap', geocode=True)[0]
+    plt.figure(figsize=(12,4), dpi=300)
+    unwrap.plot.imshow(cmap='jet')
+    plt.title('Landmasked Unwrapped Phase, [rad]', fontsize=18)
+    plt.savefig('Landmasked Unwrapped Phase, [rad].jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    los_disp_mm = sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm, geocode=True)[0]
+    plt.figure(figsize=(12,4), dpi=300)
+    zmin, zmax = np.nanquantile(los_disp_mm, [0.01, 0.99])
+    los_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
+    plt.title('Landmasked LOS Displacement, [mm]', fontsize=18)
+    plt.savefig('Landmasked LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    incidence_angle = sbas.incidence_angle()
+    plt.figure(figsize=(12,4), dpi=300)
+    incidence_angle.plot.imshow(cmap='gray')
+    plt.title('Incidence Angle, [rad]', fontsize=18)
+    plt.savefig('Incidence Angle, [rad].jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    vert_disp_mm = sbas.open_grids(pairs, 'unwrap', func=sbas.vertical_displacement_mm, geocode=True)[0]
+    plt.figure(figsize=(12,4), dpi=300)
+    zmin, zmax = np.nanquantile(vert_disp_mm, [0.01, 0.99])
+    vert_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
+    plt.title('Landmasked Vertical Displacement, [mm]', fontsize=18)
+    plt.savefig('Landmasked Vertical Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
+
+    east_disp_mm = sbas.open_grids(pairs, 'unwrap', func=sbas.eastwest_displacement_mm, geocode=True)[0]
+    plt.figure(figsize=(12,4), dpi=300)
+    zmin, zmax = np.nanquantile(east_disp_mm, [0.01, 0.99])
+    east_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
+    plt.title('Landmasked East-West Displacement, [mm]', fontsize=18)
+    plt.savefig('Landmasked East-West Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
