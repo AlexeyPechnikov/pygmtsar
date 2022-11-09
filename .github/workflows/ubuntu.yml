@@ -57,6 +57,7 @@ jobs:
       run: |
         # upgrade package to resolve dependencies
         pip3 install click --upgrade
+        pip3 install matplotlib seaborn
         pip3 install -e ./pygmtsar/
     - name: Cache dataset
       uses: actions/cache@v3
@@ -74,3 +75,4 @@ jobs:
       with:
         name: plots
         path: tests/*.jpg
+        if-no-files-found: error

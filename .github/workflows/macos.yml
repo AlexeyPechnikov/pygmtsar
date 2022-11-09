@@ -46,6 +46,7 @@ jobs:
       run: |
         # upgrade package to resolve dependencies
         pip3 install click --upgrade
+        pip3 install matplotlib seaborn
         pip3 install -e ./pygmtsar/
     - name: Cache dataset
       uses: actions/cache@v3
@@ -57,4 +58,10 @@ jobs:
       working-directory: tests
       run: |
         export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/bin
-        python3 ./S1A_Stack_CPGF_T173.py
+        sh ./S1A_Stack_CPGF_T173.sh
+    - name: Archive test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: plots
+        path: tests/*.jpg
+        if-no-files-found: error
