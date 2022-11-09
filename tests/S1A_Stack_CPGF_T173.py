@@ -311,6 +311,13 @@ if __name__ == '__main__':
     fg.fig.suptitle('Detrended Unwrapped Phase AOI, [rad]', y=1.05, fontsize=24)
     fg.fig.savefig('Detrended Unwrapped Phase AOI, [rad].jpg', dpi=300, pil_kwargs={"quality": 95})
 
+    # Load SBAS Results and Calculate LOS Displacement
+    # interpolate for valid coherence area only
+    valid_area = corrs.min('pair')
+    def interp(da):
+        return sbas.nearest_grid(da).where(~np.isnan(valid_area))
+    # use wrapper "interp"  instead of "sbas.nearest_grid" for post-processing functions list below
+    disps = sbas.open_grids(dates, 'disp', func=[sbas.los_displacement_mm, interp])
     # prepare the results for better visualization
     # filter outliers
     #disps = disps.where(abs(disps)<1e3)
@@ -320,9 +327,17 @@ if __name__ == '__main__':
     disps_cum = disps.cumsum('date')
     # clean 1st zero-filled displacement map for better visualization
     disps_cum[0] = np.nan
-    disps_cum_subset = disps_cum.sel(x=slice(9000,12000), y=slice(1800,2700))
-    # geocode the subsets on the full interferogram grid and crop a valid area only
-    disps_cum_subset_ll = sbas.cropna(sbas.intf_ra2ll(disps_cum_subset))
+    
+    zmin, zmax = np.nanquantile(disps, [0.01, 0.99])
+    fg = disps.plot.imshow(
+        col="date",
+        col_wrap=3, size=4, aspect=1.2,
+        vmin=zmin, vmax=zmax, cmap='jet'
+    )
+    fg.set_axis_labels('Range', 'Azimuth')
+    fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
+    fg.fig.suptitle('Model LOS Displacement, [mm]', y=1.05, fontsize=24)
+    fg.fig.savefig('Model LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
     zmin, zmax = np.nanquantile(disps_cum, [0.01, 0.99])
     fg = disps_cum.plot.imshow(
@@ -335,6 +350,7 @@ if __name__ == '__main__':
     fg.fig.suptitle('Cumulative Model LOS Displacement, [mm]', y=1.05, fontsize=24)
     fg.fig.savefig('Cumulative Model LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
+    disps_cum_subset = disps_cum.sel(x=slice(9000,12000), y=slice(1800,2700))
     zmin, zmax = np.nanquantile(disps_cum_subset, [0.01, 0.99])
     fg = disps_cum_subset.plot.imshow(
         col='date',
@@ -346,6 +362,8 @@ if __name__ == '__main__':
     fg.fig.suptitle('Cumulative Model LOS Displacement AOI, [mm]', y=1.05, fontsize=24)
     fg.fig.savefig('Cumulative Model LOS Displacement AOI, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
+    # geocode the subsets on the full interferogram grid and crop a valid area only
+    disps_cum_subset_ll = sbas.cropna(sbas.intf_ra2ll(disps_cum_subset))
     zmin, zmax = np.nanquantile(disps_cum_subset_ll, [0.01, 0.99])
     fg = disps_cum_subset_ll.plot.imshow(
         col='date',
