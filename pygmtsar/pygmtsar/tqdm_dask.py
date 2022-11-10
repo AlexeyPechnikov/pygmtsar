@@ -4,7 +4,7 @@ from tqdm.auto import tqdm
 from tornado.ioloop import IOLoop
 
 class TqdmDaskProgress(ProgressBar):
-    __loop: IOLoop | None = None
+    __loop = None
 
     def __init__(
         self,
@@ -24,7 +24,7 @@ class TqdmDaskProgress(ProgressBar):
             loop_runner.run_sync(self.listen)
         
     @property
-    def loop(self) -> IOLoop | None:
+    def loop(self):
         loop = self.__loop
         if loop is None:
             # If the loop is not running when this is called, the LoopRunner.loop
@@ -35,7 +35,7 @@ class TqdmDaskProgress(ProgressBar):
         return loop
         
     @loop.setter
-    def loop(self, value: IOLoop) -> None:
+    def loop(self, value):
         warnings.warn(
             "setting the loop property is deprecated", DeprecationWarning, stacklevel=2
         )
