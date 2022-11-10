@@ -73,6 +73,6 @@ jobs:
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:
-        name: plots
+        name: Plots (${{ matrix.os }}, ${{ matrix.python-version }})
         path: tests/*.jpg
         if-no-files-found: error
