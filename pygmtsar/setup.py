@@ -31,7 +31,7 @@ setup(
                       'sentineleof',
                       'scipy',
                       'shapely',
-                      'sklearn',
+                      'scikit-learn',
                       'elevation',
                       'xmltodict',
                       'rioxarray',
