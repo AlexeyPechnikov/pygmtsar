@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
     los_disp_mm = sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm, geocode=True)[0]
     plt.figure(figsize=(12,4), dpi=300)
-    zmin, zmax = np.nanquantile(los_disp_mm, [0.01, 0.99])
+    zmin, zmax = np.nanquantile(los_disp_mm.compute(), [0.01, 0.99])
     los_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
     plt.title('Landmasked LOS Displacement, [mm]', fontsize=18)
     plt.savefig('Landmasked LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
@@ -116,14 +116,14 @@ if __name__ == '__main__':
 
     vert_disp_mm = sbas.open_grids(pairs, 'unwrap', func=[sbas.vertical_displacement_mm, sbas.nearest_grid], mask=sbas.intf_ra2ll(landmask_ra), geocode=True)[0]
     plt.figure(figsize=(12,4), dpi=300)
-    zmin, zmax = np.nanquantile(vert_disp_mm, [0.01, 0.99])
+    zmin, zmax = np.nanquantile(vert_disp_mm.compute(), [0.01, 0.99])
     vert_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
     plt.title('Landmasked Vertical Displacement, [mm]', fontsize=18)
     plt.savefig('Landmasked Vertical Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
     east_disp_mm = sbas.open_grids(pairs, 'unwrap', func=[sbas.eastwest_displacement_mm, sbas.nearest_grid], mask=sbas.intf_ra2ll(landmask_ra), geocode=True)[0]
     plt.figure(figsize=(12,4), dpi=300)
-    zmin, zmax = np.nanquantile(east_disp_mm, [0.01, 0.99])
+    zmin, zmax = np.nanquantile(east_disp_mm.compute(), [0.01, 0.99])
     east_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
     plt.title('Landmasked East-West Displacement, [mm]', fontsize=18)
     plt.savefig('Landmasked East-West Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
