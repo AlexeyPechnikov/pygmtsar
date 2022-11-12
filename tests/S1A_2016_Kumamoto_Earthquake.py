@@ -59,9 +59,15 @@ if __name__ == '__main__':
     # Incidence angle
     sbas.sat_look_parallel()
     print (sbas.incidence_angle())
-    # Displacements
-    print (sbas.open_grids(pairs, 'unwrap', func=[sbas.vertical_displacement_mm, sbas.nearest_grid], mask=landmask_ra, geocode=True)[0])
-    print (sbas.open_grids(pairs, 'unwrap', func=[sbas.eastwest_displacement_mm, sbas.nearest_grid], mask=landmask_ra, geocode=True)[0])
+    # commented code below is not safe
+    #print (sbas.open_grids(pairs, 'unwrap', func=[sbas.vertical_displacement_mm, sbas.nearest_grid], mask=landmask_ra, geocode=True)[0])
+    #print (sbas.open_grids(pairs, 'unwrap', func=[sbas.eastwest_displacement_mm, sbas.nearest_grid], mask=landmask_ra, geocode=True)[0])
+    # fill small gaps, georeference grid, calculate displacements, mask using landmask in geographic coordinates
+    interp = lambda grid: sbas.nearest_grid(grid, search_radius_pixels=10)
+    # landmask in geographic coordinates applied after all the user functions (when the grid is geocoded)
+    landmask = sbas.get_landmask()
+    print (sbas.open_grids(pairs, 'unwrap', func=[interp, sbas.intf_ra2ll, sbas.vertical_displacement_mm], mask=landmask)[0])
+    print (sbas.open_grids(pairs, 'unwrap', func=[interp, sbas.intf_ra2ll, sbas.eastwest_displacement_mm], mask=landmask)[0])
 
     topo_ra = sbas.get_topo_ra()
     plt.figure(figsize=(12,4), dpi=300)
@@ -77,18 +83,22 @@ if __name__ == '__main__':
     plt.title('Phase, [rad]', fontsize=18)
     plt.savefig('Phase, [rad].jpg', dpi=300, pil_kwargs={"quality": 95})
 
+    # landmask in geographic coordinates
     landmask = sbas.get_landmask()
     plt.figure(figsize=(12,4), dpi=300)
     landmask.plot.imshow(vmin=0, vmax=1, cmap='gray')
     plt.title('Landmask', fontsize=18)
     plt.savefig('Landmask.jpg', dpi=300, pil_kwargs={"quality": 95})
 
+    # convert landmask to radar coordinates on the fly
     landmask_ra = sbas.get_landmask(inverse_geocode=True)
     plt.figure(figsize=(12,4), dpi=300)
     landmask_ra.plot.imshow(vmin=0, vmax=1, cmap='gray')
     plt.title('Landmask in Radar Coordinates', fontsize=18)
     plt.savefig('Landmask in Radar Coordinates.jpg', dpi=300, pil_kwargs={"quality": 95})
 
+    # landmask in geographic coordinates applied after all the user functions (when the grid is geocoded)
+    landmask = sbas.get_landmask()
     phasefilt = sbas.open_grids(pairs, 'phasefilt', mask=landmask, geocode=True)[0]
     plt.figure(figsize=(12,4), dpi=300)
     phasefilt.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r')
@@ -114,14 +124,22 @@ if __name__ == '__main__':
     plt.title('Incidence Angle, [rad]', fontsize=18)
     plt.savefig('Incidence Angle, [rad].jpg', dpi=300, pil_kwargs={"quality": 95})
 
-    vert_disp_mm = sbas.open_grids(pairs, 'unwrap', func=[sbas.vertical_displacement_mm, sbas.nearest_grid], mask=sbas.intf_ra2ll(landmask_ra), geocode=True)[0]
+    # fill small gaps, georeference grid, calculate displacements, mask using landmask in geographic coordinates
+    interp = lambda grid: sbas.nearest_grid(grid, search_radius_pixels=10)
+    # landmask in geographic coordinates applied after all the user functions (when the grid is geocoded)
+    landmask = sbas.get_landmask()
+    vert_disp_mm = sbas.open_grids(pairs, 'unwrap', func=[interp, sbas.intf_ra2ll, sbas.vertical_displacement_mm], mask=landmask)[0]
     plt.figure(figsize=(12,4), dpi=300)
     zmin, zmax = np.nanquantile(vert_disp_mm, [0.01, 0.99])
     vert_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
     plt.title('Landmasked Vertical Displacement, [mm]', fontsize=18)
     plt.savefig('Landmasked Vertical Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
-    east_disp_mm = sbas.open_grids(pairs, 'unwrap', func=[sbas.eastwest_displacement_mm, sbas.nearest_grid], mask=sbas.intf_ra2ll(landmask_ra), geocode=True)[0]
+    # fill small gaps, georeference grid, calculate displacements, mask using landmask in geographic coordinates
+    interp = lambda grid: sbas.nearest_grid(grid, search_radius_pixels=10)
+    # landmask in geographic coordinates applied after all the user functions (when the grid is geocoded)
+    landmask = sbas.get_landmask()
+    east_disp_mm = sbas.open_grids(pairs, 'unwrap', func=[interp, sbas.intf_ra2ll, sbas.eastwest_displacement_mm], mask=landmask)[0]
     plt.figure(figsize=(12,4), dpi=300)
     zmin, zmax = np.nanquantile(east_disp_mm, [0.01, 0.99])
     east_disp_mm.plot.imshow(vmin=zmin, vmax=zmax, cmap='jet')
