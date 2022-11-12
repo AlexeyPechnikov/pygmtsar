@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='pygmtsar',
-    version='2022.11.12',
+    version='2022.11.12.1',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -24,7 +24,7 @@ setup(
                       'pandas',
                       'geopandas',
                       'distributed',
-                      'dask',
+                      'dask[complete]',
                       'dask_image',
                       'joblib',
                       'tqdm',
