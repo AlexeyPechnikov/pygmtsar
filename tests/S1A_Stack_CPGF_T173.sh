@@ -13,7 +13,7 @@ else
     exit 1
 fi
 
-wget -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
+wget -q --show-progress --progress=bar:force:noscroll -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
 tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
 # cleanup
 if [ "$force" -eq 1 ]

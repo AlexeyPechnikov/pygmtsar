@@ -30,7 +30,7 @@ do
     url=$(curl -s 'https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve' \
     --data-raw "${request}" --compressed | jq -r '.results[0].rootRecord.fields.fileContent.value.downloadURL')
     # continue downloading or miss downloading when the complete file already exists
-    wget -c -O "${fname}" "${url}"
+    wget -q --show-progress --progress=bar:force:noscroll -c -O "${fname}" "${url}"
 done
 echo "Unpacking selected files only to data directory..."
 mkdir -p data
