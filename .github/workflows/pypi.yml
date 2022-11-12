@@ -73,7 +73,7 @@ jobs:
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:
-        name: Plots (${{ matrix.os }}, ${{ matrix.python-version }})
+        name: Plots S1A_Stack_CPGF_T173 (${{ matrix.os }}, ${{ matrix.python-version }})
         path: tests/*.jpg
         if-no-files-found: error
 
@@ -133,7 +133,7 @@ jobs:
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:
-        name: Plots (${{ matrix.os }}, ${{ matrix.python-version }})
+        name: Plots S1A_2016_Kumamoto_Earthquake (${{ matrix.os }}, ${{ matrix.python-version }})
         path: tests/*.jpg
         if-no-files-found: error
 
@@ -193,6 +193,6 @@ jobs:
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:
-        name: Plots (${{ matrix.os }}, ${{ matrix.python-version }})
+        name: Plots S1AB_2021_Crete_Earthquake (${{ matrix.os }}, ${{ matrix.python-version }})
         path: tests/*.jpg
         if-no-files-found: error
