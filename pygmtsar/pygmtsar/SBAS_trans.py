@@ -53,6 +53,7 @@ class SBAS_trans(SBAS_stack):
         import xarray as xr
         import numpy as np
         import os
+        import sys
 
         # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
         llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
@@ -98,9 +99,16 @@ class SBAS_trans(SBAS_stack):
         #print ('azi_max', azi_max)
         raell = raell[(raell[...,1]>=0)&(raell[...,1]<=azi_max)&(raell[...,0]>=0)&(raell[...,0]<=rng_max)]
 
-        lat_min, lat_max = dask.compute(raell[...,-1].min(), raell[...,-1].max())
-        #print ('lat_min, lat_max', lat_min, lat_max)
-        lon_min, lon_max = dask.compute(raell[...,-2].min(), raell[...,-2].max())
+        if sys.version_info.major == 3 and sys.version_info.minor == 7:
+            # Python 3.7 workaround (required for Google Colab notebooks)
+            lat_values = raell[...,-1].compute()
+            lat_min, lat_max = np.min(lat_values), np.max(lat_values)
+            lon_values = raell[...,-2].compute()
+            lon_min, lon_max = np.min(lon_values), np.max(lon_values)
+        else:
+            lat_min, lat_max = dask.compute(raell[...,-1].min(), raell[...,-1].max())
+            #print ('lat_min, lat_max', lat_min, lat_max)
+            lon_min, lon_max = dask.compute(raell[...,-2].min(), raell[...,-2].max())
         #print ('lon_min, lon_max', lon_min, lon_max)
         #azi_min, azi_max = dask.compute(raell[...,1].min(), raell[...,1].max())
         #print ('azi_min, azi_max', azi_min, azi_max)
