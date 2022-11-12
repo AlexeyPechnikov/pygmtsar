@@ -109,6 +109,8 @@ jobs:
         sudo apt install -y make
         # for old DEM downloading backend
         sudo apt install -y gdal-bin
+        # tool required for iCloud downloading
+        sudo apt install jq
     - name: Compile GMTSAR
       run: |
         autoconf
@@ -129,7 +131,7 @@ jobs:
       working-directory: tests
       run: |
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
-        sh ./S1A_2016_Kumamoto_Earthquake.sh
+        sh ./S1A_2016_Kumamoto_Earthquake.sh force
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:
@@ -169,6 +171,8 @@ jobs:
         sudo apt install -y make
         # for old DEM downloading backend
         sudo apt install -y gdal-bin
+        # tool required for iCloud downloading
+        sudo apt install jq
     - name: Compile GMTSAR
       run: |
         autoconf
@@ -189,7 +193,7 @@ jobs:
       working-directory: tests
       run: |
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
-        sh ./S1AB_2021_Crete_Earthquake.sh
+        sh ./S1AB_2021_Crete_Earthquake.sh force
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:
