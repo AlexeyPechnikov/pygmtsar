@@ -11,35 +11,32 @@ RUN apt-get -y update \
 &&  apt-get -y install libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# define installation paths
+# define installation and binaries search paths
 ARG GMTSAR=/usr/local/GMTSAR
 ARG ORBITS=/usr/local/orbits
+ENV PATH=${GMTSAR}/bin:$PATH
 
 # install GMTSAR from git
-RUN cd /usr/local && git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
-RUN cd ${GMTSAR} \
+RUN cd $(dirname ${GMTSAR}) \
+&&  git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR \
+&&  cd ${GMTSAR} \
 &&  autoconf \
 &&  ./configure --with-orbits-dir=${ORBITS} CFLAGS='-z muldefs' LDFLAGS='-z muldefs' \
 &&  make \
 &&  make install
-# define binaries search path
-ENV PATH=${GMTSAR}/bin:$PATH
 
-# install PyGMTSAR
-RUN pip3 install pygmtsar
+# install PyGMTSAR and additional plot libraries
+RUN pip3 install pygmtsar \
+&&  pip3 install matplotlib seaborn hvplot datashader geoviews
 
-# install interactive plot libraries missed in the base image
-RUN pip3 install matplotlib seaborn hvplot datashader geoviews
+# workaround for libgeos-dev issue
+RUN ln -s /usr/lib/aarch64-linux-gnu/libgeos_c.so /opt/conda/lib/libgeos_c.so || true
 
 # switch user
 USER    ${NB_UID}
 WORKDIR "${HOME}"
 
-# download example notebooks
-RUN svn export https://github.com/mobigroup/gmtsar/trunk/notebooks
-
-# download example console scripts
-RUN svn export https://github.com/mobigroup/gmtsar/trunk/tests
-
-# cleanup
-RUN rm -rf notebooks/README.md work
+# download example notebooks and CI test scripts and cleanup work dir
+RUN svn export https://github.com/mobigroup/gmtsar/trunk/notebooks \
+&&  svn export https://github.com/mobigroup/gmtsar/trunk/tests \
+&&  rm -rf notebooks/README.md work
