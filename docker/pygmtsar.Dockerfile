@@ -29,7 +29,7 @@ ENV PATH=${GMTSAR}/bin:$PATH
 RUN pip3 install pygmtsar
 
 # install interactive plot libraries missed in the base image
-RUN pip3 install hvplot datashader geoviews
+RUN pip3 install matplotlib seaborn hvplot datashader geoviews
 
 # switch user
 USER    ${NB_UID}
