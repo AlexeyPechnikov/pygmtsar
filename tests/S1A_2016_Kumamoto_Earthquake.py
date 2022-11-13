@@ -9,8 +9,8 @@ from dask.distributed import Client
 import matplotlib.pyplot as plt
 
 #Define Parameters
-WORKDIR      = 'raw'
-DATADIR      = 'data'
+WORKDIR      = 'raw_kumamoto'
+DATADIR      = 'data_kumamoto'
 CORRLIMIT    = 0.10
 DEFOMAX      = 0
 

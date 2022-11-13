@@ -15,7 +15,7 @@ import matplotlib
 #Define Parameters
 BACKUPDIR    = 'backup'
 MASTER       = '2015-04-03'
-WORKDIR      = 'raw'
+WORKDIR      = 'raw_stack'
 DATADIR      = 'raw_orig'
 DEMFILE      = 'topo/dem.grd'
 BASEDAYS     = 100
