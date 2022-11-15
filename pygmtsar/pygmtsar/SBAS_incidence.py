@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 from .SBAS_geocode import SBAS_geocode
+from .tqdm_dask import tqdm_dask
 
 class SBAS_incidence(SBAS_geocode):
 
@@ -10,7 +11,7 @@ class SBAS_incidence(SBAS_geocode):
 
         sat_look_file = self.get_filenames(None, None, 'sat_look')
         assert os.path.exists(sat_look_file), 'ERROR: satellite looks grid missed. Build it first using SBAS.sat_look_parallel()'
-        sat_look = xr.open_dataset(sat_look_file, engine=self.engine, chunks=self.chunksize)
+        sat_look = xr.open_dataset(sat_look_file, engine=self.engine, chunks=self.chunksize).rename({'yy': 'lat', 'xx': 'lon'})
 
         return sat_look
 
@@ -49,64 +50,77 @@ class SBAS_incidence(SBAS_geocode):
         incidence_ll = self.incidence_angle()
         return sign * los_disp/np.sin(incidence_ll)
 
-    def sat_look_parallel(self, n_jobs=-1, interactive=False):
-        import numpy as np
+    def sat_look(self, interactive=False):
+        import dask
         import xarray as xr
-        from tqdm.auto import tqdm
-        import joblib
+        import numpy as np
         import os
+        import sys
 
-        def SAT_look(ilat, ilon):
-            # lazy dask arrays
-            lats, lons = xr.broadcast(coordlat[ilat], coordlon[ilon])
-            data = grid_ll.sel(lat=xr.DataArray(lats.values.ravel()),
-                                 lon=xr.DataArray(lons.values.ravel()),
-                                 method='nearest').compute()
-            coords = np.column_stack([lons.values.ravel(), lats.values.ravel(), data.values.ravel()])
+        # ..., look_E, look_N, look_U
+        satlook_map = {0: 'look_E', 1: 'look_N', 2: 'look_U'}
+
+        def SAT_look(z, lat, lon):
+            coords = np.column_stack([lon.ravel(), lat.ravel(), z.ravel()])
             # look_E look_N look_U
             look = self.PRM().SAT_look(coords, binary=True)\
-                                     .reshape(-1,6)[:,3:].astype(np.float32)
-            # prepare output as xarray dataset
-            dims = ['lat', 'lon']
-            coords = coords={'lat': coordlat[ilat], 'lon':coordlon[ilon]}
-            look_E = xr.DataArray(look[:,0].reshape(lats.shape), dims=dims, coords=coords, name='look_E')
-            look_N = xr.DataArray(look[:,1].reshape(lats.shape), dims=dims, coords=coords, name='look_N')
-            look_U = xr.DataArray(look[:,2].reshape(lats.shape), dims=dims, coords=coords, name='look_U')
-            return xr.merge([look_E, look_N, look_U])
+                                     .astype(np.float32)\
+                                     .reshape(z.shape[0], z.shape[1], 6)[...,3:]
+            return look
 
-        # take elevation values on the interferogram area in geographic coordinates
+        ################################################################################
+        # define valid area checking every 10th pixel per the both dimensions
+        ################################################################################
+        # reference grid
         grid_ll = self.get_intf_ra2ll()
-        dem = self.get_dem()
-        grid_ll = dem.interp_like(grid_ll)
-    
-        lats, lons = grid_ll.data.numblocks
-        latchunks, lonchunks = grid_ll.chunks
-        coordlat = np.array_split(grid_ll.lat, np.cumsum(latchunks))
-        coordlon = np.array_split(grid_ll.lon, np.cumsum(lonchunks))
-        with self.tqdm_joblib(tqdm(desc=f'SAT_look Computing', total=lats*lons)) as progress_bar:
-            sat_look = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(SAT_look)(ilat, ilon) \
-                                           for ilat in range(lats) for ilon in range(lons))
-        # concatenate the chunks
-        if xr.__version__ == '0.19.0':
-            # for Google Colab
-            sat_look = xr.merge(sat_look)
-        else:
-            # for modern xarray versions
-            sat_look = xr.combine_by_coords(sat_look)
+        # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
+        dem = self.get_dem().interp_like(grid_ll).rename({'lat': 'yy', 'lon': 'xx'})
+        # prepare lazy coordinate grids
+        lat = xr.DataArray(dem.yy.astype(np.float32).chunk(-1))
+        lon = xr.DataArray(dem.xx.astype(np.float32).chunk(-1))
+        lats, lons = xr.broadcast(lat, lon)
+        # unify chunks
+        lats = lats.chunk(dem.chunks)
+        lons = lons.chunk(dem.chunks)
 
-        # fill NODATA
-        sat_look = xr.where(grid_ll != self.noindex, sat_look, np.nan)
-    
+        # xarray wrapper for the valid area only
+        enu = xr.apply_ufunc(
+            SAT_look,
+            dem,
+            lats,
+            lons,
+            dask='parallelized',
+            vectorize=False,
+            output_dtypes=[np.float32],
+            output_core_dims=[['enu']],
+            dask_gufunc_kwargs={'output_sizes': {'enu': 3}}
+        )
+
+        # transform to separate variables
+        keys_vars = {val: enu[...,key] for (key, val) in satlook_map.items()}
+        sat_look = xr.Dataset(keys_vars)
+
         if interactive:
             return sat_look
 
-        # magic: add GMT attribute to prevent coordinates shift for 1/2 pixel
-        #ds.attrs['node_offset'] = 1
         # save to NetCDF file
-        sat_look_file = self.get_filenames(None,None,'sat_look')
-        # cleanup before creating the new file
-        if os.path.exists(sat_look_file):
-            os.remove(sat_look_file)
-        sat_look.to_netcdf(sat_look_file,
-                     encoding={var:self.compression for var in sat_look.data_vars},
-                     engine=self.engine)
+        filename = self.get_filenames(None, None, 'sat_look')
+        if os.path.exists(filename):
+            os.remove(filename)
+        encoding = {val: self.compression for (key, val) in satlook_map.items()}
+        handler = sat_look.to_netcdf(filename,
+                                        encoding=encoding,
+                                        engine=self.engine,
+                                        compute=False)
+        return handler
+
+
+    def sat_look_parallel(self, interactive=False):
+        import dask
+
+        delayed = self.sat_look(interactive=interactive)
+
+        if not interactive:
+            tqdm_dask(dask.persist(delayed), desc='Satellite Look Vector Computing')
+        else:
+            return delayed
