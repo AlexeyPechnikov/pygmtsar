@@ -10,6 +10,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         import numpy as np
         from tqdm.auto import tqdm
         import joblib
+        import os
 
         # use any subswath (the 1st one here) to produce the table
         subswath = self.get_subswaths()[0]
