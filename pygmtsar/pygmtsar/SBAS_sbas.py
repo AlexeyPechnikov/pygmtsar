@@ -1,24 +1,44 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 from .SBAS_sbas_gmtsar import SBAS_sbas_gmtsar
+from .PRM import PRM
 
 class SBAS_sbas(SBAS_sbas_gmtsar):
 
-    def baseline_table(self):
+    def baseline_table(self, n_jobs=-1, debug=False):
         import pandas as pd
         import numpy as np
+        from tqdm.auto import tqdm
+        import joblib
 
-        # use any subswath (actually, the 1st one) to produce the table
+        # use any subswath (the 1st one here) to produce the table
         subswath = self.get_subswaths()[0]
-        # select unique dates to process multiple subswaths
-        dates = np.unique(self.df.index)
+        datetimes = sbas.df[sbas.df.subswath==1].datetime
 
+        def get_filename(dt):
+            _, stem = self.multistem_stem(subswath, dt)
+            filename = os.path.join(self.basedir, f'{stem}.PRM')
+            return filename
+    
+        def ondemand(date, dt):
+            if not os.path.exists(get_filename(dt)):
+                self.make_s1a_tops(subswath, date, debug=debug)
+
+        # generate PRM, LED if needed
+        #for (date, dt) in datetimes.iteritems():
+        #    #print (dt, date)
+        #    ondemand(dt)
+        with self.tqdm_joblib(tqdm(desc='PRM generation', total=len(datetimes))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in datetimes.iteritems())
+    
         # after merging use unmerged subswath PRM files
-        prm_ref = self.PRM(subswath, singleswath=True)
+        # calc_dop_orb() required for SAT_baseline
+        master_dt = datetimes[self.master]
+        prm_ref = PRM().from_file(get_filename(master_dt)).calc_dop_orb(inplace=True)
         data = []
-        for date in dates:
+        for (date, dt) in datetimes.iteritems():
             # after merging use unmerged subswath PRM files
-            prm_rep = self.PRM(subswath, date, singleswath=True)
+            prm_rep = PRM().from_file(get_filename(dt))
             ST0 = prm_rep.get('SC_clock_start')
             DAY = int(ST0 % 1000)
             YR = int(ST0/1000) - 2014
@@ -30,16 +50,14 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         return pd.DataFrame(data).set_index('date')
 
     # returns sorted baseline pairs
-    def baseline_pairs(self, days=100, meters=150, invert=False):
+    def baseline_pairs(self, days=100, meters=150, invert=False, n_jobs=-1, debug=False):
         import numpy as np
         import pandas as pd
      
-        tbl = self.baseline_table()
+        tbl = self.baseline_table(n_jobs=n_jobs, debug=debug)
         data = []
         for line1 in tbl.itertuples():
-        #for line1 in tbl.loc[['2015-01-21']].itertuples():
             for line2 in tbl.itertuples():
-            #for line2 in tbl.loc[['2015-03-10']].itertuples():
                 #print (line1, line2)
                 if not (line1.YDAY < line2.YDAY and line2.YDAY - line1.YDAY < days):
                     continue
