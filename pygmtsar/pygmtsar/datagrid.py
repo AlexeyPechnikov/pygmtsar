@@ -214,7 +214,7 @@ class datagrid:
             outs.append((np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1)))
         if average:
             pxs = np.asarray(outs)
-            return (pxs[:,0].mean(), pxs[:,1].mean())
+            return (np.round(pxs[:,0].mean(), 1), np.round(pxs[:,1].mean(), 1))
         else:
             return outs[0] if len(outs) == 1 else outs
 
