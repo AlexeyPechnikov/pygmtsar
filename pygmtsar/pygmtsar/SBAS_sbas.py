@@ -13,7 +13,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
 
         # use any subswath (the 1st one here) to produce the table
         subswath = self.get_subswaths()[0]
-        datetimes = sbas.df[sbas.df.subswath==1].datetime
+        datetimes = self.df[self.df.subswath==1].datetime
 
         def get_filename(dt):
             _, stem = self.multistem_stem(subswath, dt)
