@@ -8,11 +8,11 @@ class SBAS_geocode(SBAS_sbas):
     def geocode_parallel(self, pairs=None):
         # find any one interferogram to build the geocoding matrices
         if pairs is None:
-            pairs = self.find_pairs()[:1]
+            pairs = self.find_pairs()
         # build trans_dat and topo_ra grids
         self.topo_ra_parallel()
         # define the target interferogram grid
-        intf_grid = self.open_grids(pairs, 'phasefilt').min('pair')
+        intf_grid = self.open_grids(pairs, 'phasefilt').min('pair').astype(bool)
         # build geographic coordinates transformation matrix for landmask and other grids
         self.intf_ll2ra_matrix_parallel(intf_grid)
         # build radar coordinates transformation matrix for the interferograms grid stack        
@@ -162,13 +162,13 @@ class SBAS_geocode(SBAS_sbas):
             blocks_idxs = []
             for iy, ix in blocks[:,:2].astype(int):
                 #print ('iy, ix', iy, ix)
-                block_azi = trans_dat.azi.data.blocks[iy, ix].reshape(-1)
-                block_rng = trans_dat.rng.data.blocks[iy, ix].reshape(-1)
-                block_idx = trans_dat.idx.data.blocks[iy, ix].reshape(-1)
+                block_azi = trans_dat.azi.data.blocks[iy, ix].persist()
+                block_rng = trans_dat.rng.data.blocks[iy, ix].persist()
+                block_idx = trans_dat.idx.data.blocks[iy, ix].persist()
 
-                blocks_azis.append(block_azi)
-                blocks_rngs.append(block_rng)
-                blocks_idxs.append(block_idx)
+                blocks_azis.append(block_azi.reshape(-1))
+                blocks_rngs.append(block_rng.reshape(-1))
+                blocks_idxs.append(block_idx.reshape(-1))
             blocks_azis = np.concatenate(blocks_azis)
             blocks_rngs = np.concatenate(blocks_rngs)
             blocks_idxs = np.concatenate(blocks_idxs)
@@ -210,6 +210,7 @@ class SBAS_geocode(SBAS_sbas):
                                     engine=self.engine,
                                     compute=False)
         return handler
+
     def intf_ll2ra_matrix_parallel(self, intf_grid, interactive=False):
         import dask
         
