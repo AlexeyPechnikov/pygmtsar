@@ -4,11 +4,12 @@ FROM jupyter/scipy-notebook:ubuntu-22.04
 
 USER root
 
-# install GMTSAR dependencies
+# install GMTSAR dependencies and some helpful command-line tools
 RUN apt-get -y update \
 &&  apt-get -y install git gdal-bin libgdal-dev subversion curl jq \
 &&  apt-get -y install csh autoconf make gfortran \
 &&  apt-get -y install libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt \
+&&  apt-get -y install zip htop mc \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # define installation and binaries search paths
