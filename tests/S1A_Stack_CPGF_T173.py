@@ -46,6 +46,9 @@ if __name__ == '__main__':
     #decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
     # SRTM3 DEM resolution 3 sec, 90 m but use 60 m instead to follow NetCDF chunks size 512x512
     decimator = sbas.pixel_decimator(resolution_meters=60, debug=True)
+    # run for a single interferogram processing with debug output
+    sbas.intf(sbas.get_subswath(), pairs.values[0], wavelength=400, func=decimator, debug=True)
+    # run for all interferograms
     sbas.intf_parallel(pairs, wavelength=400, func=decimator)
     # geocode matrices
     sbas.geocode_parallel(pairs)
@@ -56,6 +59,9 @@ if __name__ == '__main__':
     print (sbas.open_grids(pairs, 'corr'))
     # Unwrapping
     interpolator = lambda corr, unwrap: sbas.nearest_grid(unwrap).where(corr>=0)
+    # run for a single interferogram unwrapping processing with debug output
+    sbas.unwrap(pairs.values[0], threshold=CORRLIMIT, func=interpolator, debug=True)
+    # run for all interferograms unwrapping
     sbas.unwrap_parallel(pairs, threshold=CORRLIMIT, func=interpolator)
     # output
     print (sbas.open_grids(pairs, 'unwrap'))

@@ -25,7 +25,6 @@ fi
 echo "Checking disk space and downloaded files"
 df -h
 ls -lh
-ls -lh data
 echo "Running Python test script..."
 rm -fr *.jpg
 python3 ./S1A_Stack_CPGF_T173.py && echo SUCCESS
