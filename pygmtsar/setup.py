@@ -36,8 +36,7 @@ setup(
                       'xmltodict',
                       'rioxarray',
                       'ipywidgets',
-                      'netCDF4',
-                      'h5netcdf',
+                      'h5netcdf==1.0.2',
                       'nc-time-axis'
                       ],
 
