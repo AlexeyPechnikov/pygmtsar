@@ -3,8 +3,9 @@
 
 class datagrid:
     import numpy as np
+    import zarr
 
-    # NetCDF options
+    # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
     chunksize = 512
     compression = dict(zlib=True, complevel=3, chunksizes=(chunksize, chunksize))
     engine = 'h5netcdf'
