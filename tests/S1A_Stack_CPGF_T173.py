@@ -41,6 +41,7 @@ if __name__ == '__main__':
     sbas.topo_ra_parallel()
     # output
     print (sbas.get_topo_ra())
+    assert sbas.get_topo_ra().shape == (2742, 10786), 'Incorrect topography grid size detected, the error produced by h5netcdf 1.1.0'
     #Interferograms
     pairs = baseline_pairs[['ref_date', 'rep_date']]
     #decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
