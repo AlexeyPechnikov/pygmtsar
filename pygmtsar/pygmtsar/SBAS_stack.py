@@ -165,13 +165,13 @@ class SBAS_stack(SBAS_dem):
 
         r_grd = self.offset2shift(r_xyz, rmax, amax)
         r_grd_filename = stem_prm[:-4]+'_r.grd'
-        r_grd.to_netcdf(r_grd_filename)
+        r_grd.to_netcdf(r_grd_filename, engine=self.engine)
         # drop the temporary file at the end of the function
         cleanup.append(r_grd_filename)
 
         a_grd = self.offset2shift(a_xyz, rmax, amax)
         a_grd_filename = stem_prm[:-4]+'_a.grd'
-        a_grd.to_netcdf(a_grd_filename)
+        a_grd.to_netcdf(a_grd_filename, engine=self.engine)
         # drop the temporary file at the end of the function
         cleanup.append(a_grd_filename)
 
