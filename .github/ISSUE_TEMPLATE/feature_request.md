@@ -20,4 +20,4 @@ A clear and concise description of any alternative solutions or features you've 
 Add any other context or screenshots about the feature request here.
 
 **Note**
-Feature requests usually mean writing codes/scripts, so expect this to be solved in the long-run.
+Feature requests usually mean writing codes/scripts, so expect this to be solved in the long-run. Meanwhile the issue will remain open until it is addressed one way or another.

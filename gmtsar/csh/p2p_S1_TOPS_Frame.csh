@@ -175,9 +175,9 @@ if ($skip_master != 2) then
 
 
   set iono = `grep correct_iono ../$5 | awk '{print $3}'`
-  set iono_filt_rng = `grep iono_filt_rng $3 | awk '{print $3}'`
-  set iono_filt_azi = `grep iono_filt_azi $3 | awk '{print $3}'`
-  set det_stitch = `grep det_stitch $3 | awk '{print $3}'`
+  set iono_filt_rng = `grep iono_filt_rng ../$5 | awk '{print $3}'`
+  set iono_filt_azi = `grep iono_filt_azi ../$5 | awk '{print $3}'`
+  set det_stitch = `grep det_stitch ../$5 | awk '{print $3}'`
   if ($iono != 0) then
     sed "s/.*threshold_geocode.*/threshold_geocode = 0/g" ../$5 | sed "s/.*threshold_snaphu.*/threshold_snaphu = 0/g" | sed "s/.*iono_skip_est.*/iono_skip_est = 1/g" > $5
     merge_unwrap_geocode_tops.csh tmp.filelist $5 $det_stitch
