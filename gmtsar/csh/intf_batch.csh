@@ -44,6 +44,10 @@ unset noclobber
     echo "    ASA_IMS_1PNESA20040719_175832_000000182028_00399_12477_0000:ASA_IMS_1PNESA20030908_175832_000000182019_00399_07968_0000"
     echo "    ASA_IMS_1PNESA20051121_175837_000000172042_00399_19491_0000:ASA_IMS_1PNESA20040719_175832_000000182028_00399_12477_0000"
     echo ""
+    echo " Example of intf.in for TSX is:"
+    echo "    20171231:20180111"
+    echo "    20171231:20180122"
+    echo ""
     echo " batch.config is a config file for making interferograms"
     echo " See example.batch.config for an example"
     echo ""
@@ -51,9 +55,9 @@ unset noclobber
   endif
 #
   set SAT = $1
-  if ($SAT != ALOS && $SAT != ENVI && $SAT != ERS && $SAT != ENVI_SLC) then
+  if ($SAT != ALOS && $SAT != ENVI && $SAT != ERS && $SAT != ENVI_SLC && $SAT != TSX) then
     echo ""
-    echo " SAT can be ALOS ENVI(ENVISAT) ENVI_SLC and  ERS"
+    echo " SAT can be ALOS ENVI(ENVISAT) ENVI_SLC TSX and  ERS"
     echo ""
     exit 1
   endif
@@ -136,7 +140,7 @@ if ($stage <= 1) then
       echo " "
       echo "OFFSET_TOPO - START"
       cd SLC
-      if ($SAT == ALOS) then
+      if ($SAT == ALOS || $SAT == TSX) then
         set rng_samp_rate = `grep rng_samp_rate $master.PRM | awk 'NR == 1 {printf("%d", $3)}'`
         if ( $?rng_samp_rate) then
           if ($rng_samp_rate > 25000000) then

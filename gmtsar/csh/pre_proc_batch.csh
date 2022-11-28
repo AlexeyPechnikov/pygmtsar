@@ -4,6 +4,7 @@
 #  Xiaopeng Tong, Mar 2 2010 
 #  modified by D. Sandwell MAR 11 2010
 #  modified by A Hogrelius May 22 2017 (added support for ENVI_SLC)
+#  modified by D. Sandwell NOV 11 2011 (added support for TSX)
 #
 #  preprocess all the data based on data.in table file and generate: 
 #  1. raw files
@@ -25,7 +26,7 @@ unset noclobber
     echo "Usage: pre_proc_batch.csh SAT data.in batch.config"
     echo "       preprocess a set of images using a common rear_range and radius"
     echo ""
-    echo " SAT can be ALOS ERS ENVI(ENVISAT) ENVI_SLC"
+    echo " SAT can be ALOS ERS ENVI(ENVISAT) ENVI_SLC TSX"
     echo ""
     echo "       format of data.in is:"
     echo "         line 1: master_name "
@@ -51,28 +52,31 @@ unset noclobber
     echo "         ASA_IMS_1PNESA20040719_175832_000000182028_00399_12477_0000"	
     echo "         ASA_IMS_1PNESA20051121_175837_000000172042_00399_19491_0000"
     echo ""
+    echo "       example of data.in for TSX is:"
+    echo "         20171231"
+    echo "         20180111"
+    echo "         20180122"
+    echo ""
     echo "Example: pre_proc_batch.csh ENVI data.in batch.config"
     echo ""
     exit 1
   endif
 
   set SAT = $1
-  if ($SAT != ALOS && $SAT != ENVI && $SAT != ENVI_SLC && $SAT != ERS) then
+  if ($SAT != ALOS && $SAT != ENVI && $SAT != ENVI_SLC && $SAT != ERS && $SAT != TSX) then
     echo ""
-    echo " SAT can be ALOS ERS ENVI(ENVISAT) or ENVI_SLC"
+    echo " SAT can be ALOS ERS ENVI(ENVISAT) ENVI_SLC or TSX "
     echo ""
     exit 1
   endif
-
 #
 # read parameters from configuration file
 #
-
   set num_patches = `grep num_patches $3 | awk '{print $3}'`
   set near_range = `grep near_range $3 | awk '{print $3}'`
   set earth_radius = `grep earth_radius $3 | awk '{print $3}'`
   set fd = `grep fd1 $3 | awk '{print $3}'`
-  
+#
   set commandline = ""
   if ($SAT == ERS || $SAT == ENVI) then
     if (!($near_range == "")) then
@@ -115,7 +119,6 @@ unset noclobber
   endif 
 
   echo $commandline
-
 #
 # open and read data.in table 
 #
@@ -124,7 +127,7 @@ unset noclobber
   echo ""
   echo "preprocess master image"
   set line1 = `awk 'NR==1 {print $0}' $2`
-  if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC) then
+  if ($SAT == ERS || $SAT == ENVI || $SAT == ENVI_SLC || $SAT == TSX) then
     set master = $line1[1]
   else if ($SAT == ALOS) then
     set master = `echo $line1[1] | awk '{ print substr($1,8,length($1)-7)}'`
@@ -182,8 +185,27 @@ unset noclobber
     baseline_table.csh IMG-HH-$master.PRM IMG-HH-$master.PRM >! baseline_table.dat
     baseline_table.csh IMG-HH-$master.PRM IMG-HH-$master.PRM GMT >! table.gmt
 
-  endif
+  else if ($SAT == TSX) then
 
+    if(! -f $master.raw || ! -f $master.PRM ) then
+      make_slc_tsx $master.xml $master.cos $master
+      cp $master.PRM $master.PRM0
+      calc_dop_orb $master.PRM0 $master.log 0 0
+      cat $master.PRM0 $master.log > $master.PRM
+      echo "fdd1                    = 0" >> $master.PRM
+      echo "fddd1                   = 0" >> $master.PRM
+    endif
+
+    set NEAR = `grep near_range $master.PRM | awk '{print $3}'`
+    set RAD = `grep earth_radius $master.PRM | awk '{print $3}'`
+    set rng_samp_rate_m = `grep rng_samp_rate $master.PRM | awk 'NR == 1 {printf("%d", $3)}'`
+    set FD1 = `grep fd1 $master.PRM | awk '{print $3}'`
+    set npatch = `grep num_patch $master.PRM | awk '{print $3}'`
+
+    baseline_table.csh $master.PRM $master.PRM >! baseline_table.dat
+    baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
+
+  endif
 #
 # loop and unpack the aligned image using the same earth radius and near range as the master image
 #
@@ -199,6 +221,21 @@ unset noclobber
       baseline_table.csh $master.PRM $aligned.PRM >> baseline_table.dat
       baseline_table.csh $master.PRM $aligned.PRM GMT >> table.gmt
 
+    else if ($SAT == TSX) then
+
+      set aligned = $line2
+      if(! -f $aligned.SLC || ! -f $aligned.LED) then
+        make_slc_tsx $aligned.xml $aligned.cos $aligned
+      endif
+      set RAD = `grep earth_radius $master.PRM | awk '{print $3}'`
+      cp $aligned.PRM $aligned.PRM0
+      calc_dop_orb $aligned.PRM0 $aligned.log $RAD 0
+      cat $aligned.PRM0 $aligned.log > $aligned.PRM
+      echo "fdd1                    = 0" >> $aligned.PRM
+      echo "fddd1                   = 0" >> $aligned.PRM
+      baseline_table.csh $master.PRM $aligned.PRM >> baseline_table.dat
+      baseline_table.csh $master.PRM $aligned.PRM GMT >> table.gmt
+
     else if ($SAT == ENVI_SLC) then
 
       set aligned = $line2
@@ -207,7 +244,6 @@ unset noclobber
       endif
       baseline_table.csh $master.PRM $aligned.PRM >> baseline_table.dat
       baseline_table.csh $master.PRM $aligned.PRM GMT >> table.gmt
-
 
     else if ($SAT == ALOS) then 
 
@@ -256,6 +292,8 @@ unset noclobber
     awk '{print 1992+$1/365.25,$2,$7}' < table.gmt > text
 #    awk '{print 1992+$1/365.25,$2,7,$4,$5,$6,$7}' < table.gmt > text
 #    awk '{print 1992+$1/365.25,$2,7,-45,$5,$6,$7}' < table.gmt > text
+  else if ($SAT == TSX) then
+    awk '{print 2007+$1/365.25,$2,$7}' < table.gmt > text
   else if ($SAT == ALOS) then
     awk '{print 2006.5+($1-181)/365.25,$2,$7}' < table.gmt > text
 #    awk '{print 2006.5+($1-181)/365.25,$2,9,$4,$5,$6,$7}' < table.gmt > text
@@ -266,7 +304,6 @@ unset noclobber
   awk '{print $1,$2}' < text > text2
   gmt psxy text2 -Sp0.2c -G0 -R -JX -Ba1:"year":/a200g00f100:"baseline (m)":WSen -O >> stacktable_all.ps
 
-
   echo ""
   echo "END PREPROCESS A STACK OF IMAGES"
   echo ""
@@ -274,4 +311,4 @@ unset noclobber
 #
 # clean up the mess
 #
-  rm text text2 
+  rm text text2 *.PRM0
