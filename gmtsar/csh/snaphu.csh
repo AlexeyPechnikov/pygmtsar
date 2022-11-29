@@ -130,6 +130,9 @@ rm -f phase.in corr.in
 #
 #   cleanup more
 #
+if ($#argv == 3 ) then
+  mv corr_patch.grd corr_cut.grd
+endif
 rm -f mask_patch.grd mask3.grd mask3.out
 #rm -f wrap.grd
 rm -f corr_cut.grd corr_patch.grd
