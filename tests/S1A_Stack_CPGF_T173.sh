@@ -13,7 +13,8 @@ else
     exit 1
 fi
 
-wget -q --show-progress --progress=bar:force:noscroll -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
+#wget -q --show-progress --progress=bar:force:noscroll -c http://topex.ucsd.edu/gmtsar/tar/S1A_Stack_CPGF_T173.tar.gz
+./icloud_download.sh "https://www.icloud.com/iclouddrive/0b2SKaQ9FokMxD75yu6FF5lyg#S1A_Stack_CPGF_T173.tar.gz"
 rm -rf raw_orig topo
 tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
 # cleanup
