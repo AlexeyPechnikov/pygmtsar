@@ -5,6 +5,7 @@ from .SBAS_unwrap import SBAS_unwrap
 class SBAS_detrend(SBAS_unwrap):
 
     def detrend_parallel(self, pairs=None, n_jobs=-1, interactive=False, **kwargs):
+        import dask
         import pandas as pd
         from tqdm.auto import tqdm
         import joblib
@@ -34,7 +35,12 @@ class SBAS_detrend(SBAS_unwrap):
 
             if interactive:
                 return out
-            self.save_grids([out], 'detrend', interactive=False)
+
+            # prepare pipeline for processing and saving
+            delayed = self.save_grids([out], 'detrend', interactive=False)
+
+            # perform the pipeline
+            dask.persist(delayed)
 
         label = 'Detrending and Saving' if not interactive else 'Detrending'
         with self.tqdm_joblib(tqdm(desc=label, total=len(pairs))) as progress_bar:
