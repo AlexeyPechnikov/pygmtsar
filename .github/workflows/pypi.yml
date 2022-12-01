@@ -46,8 +46,8 @@ jobs:
     - name: Compile GMTSAR
       run: |
         autoconf
-        ./configure --with-orbits-dir=/tmp
-        make
+        ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+        make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
         # check installation
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
@@ -114,8 +114,8 @@ jobs:
     - name: Compile GMTSAR
       run: |
         autoconf
-        ./configure --with-orbits-dir=/tmp
-        make
+        ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+        make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
         # check installation
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
@@ -176,8 +176,8 @@ jobs:
     - name: Compile GMTSAR
       run: |
         autoconf
-        ./configure --with-orbits-dir=/tmp
-        make
+        ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
+        make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
         # check installation
         export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
