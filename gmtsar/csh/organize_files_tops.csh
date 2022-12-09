@@ -40,7 +40,7 @@
 
   set ii = 0
   set mode = $3
-  set org_mod = "$org_mod"
+  set org_mod = "vv"
   if ($#argv == 4) then
     set org_mod = $4
   endif
