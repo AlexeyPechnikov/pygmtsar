@@ -245,7 +245,7 @@ HDF5 support is being disabled (equivalent to --with-hdf5=no).
           AC_MSG_WARN([Unable to compile HDF5 test program])
         fi
         dnl Look for HDF5's high level library
-        AC_HAVE_LIBRARY([hdf5_hl], [HDF5_LIBS="$HDF5_LIBS -lhdf5_hl"], [], [])
+        AC_CHECK_LIB([hdf5_hl], [H5TBread_table], [HDF5_LIBS="$HDF5_LIBS -lhdf5_hl"], [], [])
 
         CC=$ax_lib_hdf5_save_CC
         CPPFLAGS=$ax_lib_hdf5_save_CPPFLAGS

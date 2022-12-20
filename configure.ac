@@ -25,7 +25,7 @@ dnl 1. Location of GMT include and library files
 dnl 2. Location of ORBITS directory
 dnl ------------------------------------------------------------------
 dnl
-AC_INIT(GMTSAR, 5.5.0, gmtsar-l@ucsd.edu)
+AC_INIT([GMTSAR],[5.5.0],[gmtsar-l@ucsd.edu])
 dnl
 dnl ------------------------------------------------------------------
 dnl The remainder should need no editing
@@ -36,10 +36,9 @@ m4_include([ax_blas.m4])
 m4_include([ax_lib_hdf5.m4])
 AC_CONFIG_SRCDIR(gmtsar/xcorr.c)
 AC_CONFIG_AUX_DIR(`pwd`)
-AC_CYGWIN
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
-AC_LANG_C
+AC_LANG([C])
 AC_PROG_CC
 AC_PROG_CPP
 AC_PREFIX_DEFAULT(`pwd`)
@@ -280,12 +279,7 @@ LIBEXT='$(SL)'
 SL_VERSION='$(SL)'
 if test "X$enable_shared" = "Xyes" ; then
 	AC_MSG_CHECKING(how to make a shared object)
-	if test "X$CYGWIN" = "Xyes" ; then
-		SL=dll.a
-		SL_VERSION=$LIB_MAJOR_VERSION.$SL
-		LD='$(CC)'
-		LD_OPT="-shared"
-	elif test "$os" = "SunOS" ; then
+	if test "$os" = "SunOS" ; then
 		if test "$Sun_rev" = "" ; then	# SunOS
 			LD_OPT="-Bdynamic"
 		else				# Solaris
@@ -411,5 +405,6 @@ dnl ------------------------------------------------------------------
 dnl Update Make macros and preprocess scripts that need the orbits dir
 dnl ------------------------------------------------------------------
 dnl
-AC_OUTPUT(config.mk preproc/ENVI_preproc/scripts/ENVI_pre_process preproc/ENVI_preproc/scripts/ENVI_SLC_pre_process preproc/ERS_preproc/scripts/ERS_pre_process gmtsar/csh/gmtsar_sharedir.csh)
+AC_CONFIG_FILES([config.mk preproc/ENVI_preproc/scripts/ENVI_pre_process preproc/ENVI_preproc/scripts/ENVI_SLC_pre_process preproc/ERS_preproc/scripts/ERS_pre_process gmtsar/csh/gmtsar_sharedir.csh])
+AC_OUTPUT
 dnl
