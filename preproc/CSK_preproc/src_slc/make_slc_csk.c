@@ -118,6 +118,9 @@ int write_slc_hdf5(hid_t input, FILE *slc) {
 
 	printf("Data size %lld x %lld x %lld...\n", dims[0], dims[1], dims[2]);
 
+    width = width - width%4;
+    height = height - height%4;
+
 	buf = (short *)malloc(height * width * 2 * sizeof(short));
 	tmp = (short *)malloc(width * 2 * sizeof(short));
 
@@ -308,10 +311,11 @@ int pop_prm_hdf5(struct PRM *prm, hid_t input, char *file_name) {
 	hdf5_read(dims, input, "/S01", "SBI", "", 'n');
 	// fprintf(stderr,"%d  %d\n",(int)dims[0],(int)dims[1]);
 
-	prm->bytes_per_line = (int)dims[1] * 4;
+	prm->bytes_per_line = ((int)dims[1] - (int)dims[1]%4) * 4;
 	prm->good_bytes = prm->bytes_per_line;
 
 	prm->num_lines = (int)dims[0] - (int)dims[0] % 4;
+    
 	prm->SC_clock_stop = prm->SC_clock_start + prm->num_lines / prm->prf / 86400;
 	prm->clock_stop = prm->clock_start + prm->num_lines / prm->prf / 86400;
 	prm->nrows = prm->num_lines;
