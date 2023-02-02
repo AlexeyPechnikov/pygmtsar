@@ -7,7 +7,7 @@ sinclude config.mk
 # Currently, S1A must happen before the CSK, TSZ, and RS2 builds due to dependencies via links
 # We will fix this so one can make anyting in any order
 #
-PREPROCESSORS	= ALOS ERS S1A CSK TSX RS2 ENVI
+PREPROCESSORS	= ALOS ERS S1A CSK TSX RS2 ENVI GF3 NSR
 #
 DIRS		= gmtsar snaphu/src
 ORBITS_URL	= http://topex.ucsd.edu/gmtsar/tar/ORBITS.tar
