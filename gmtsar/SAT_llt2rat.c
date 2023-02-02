@@ -101,10 +101,11 @@ int main(int argc, char **argv) {
 	double fll, rdd, daa, drr, dopc;
 	double dt, dtt, xs, ys, zs;
 	double time[20], rng[20], d[3]; /* arrays used for polynomial refinement of min range */
+    double vec1[3], vec2[3], vec0[3], det;
 	int ir, k, ntt = 10, nc = 3;    /* size of arrays used for polynomial refinement */
 	int j, nrec, precise = 0;
 	int goldop();
-	int stai, endi, midi;
+	int stai, endi, midi, lookdir;
 	double **orb_pos = NULL;
 	struct PRM prm;
 	struct SAT_ORB *orb = NULL;
@@ -152,6 +153,12 @@ int main(int argc, char **argv) {
 	get_sio_struct(fprm1, &prm);
 
 	fclose(fprm1);
+
+    lookdir = 1;
+    if (strcmp(prm.lookdir,"L") == 0) {
+        //fprintf(stderr,"SAT is left looking\n");
+        lookdir = -1;
+    }
 
 	/*  get the orbit data */
 
@@ -233,7 +240,15 @@ int main(int argc, char **argv) {
 				t11 = tm + time[k];
 				interpolate_SAT_orbit_slow(orb, t11, &xs, &ys, &zs, &ir);
 				rng[k] = sqrt((xp[0] - xs) * (xp[0] - xs) + (xp[1] - ys) * (xp[1] - ys) + (xp[2] - zs) * (xp[2] - zs)) - rng0;
+                if(k == 0) {
+                    vec0[0] = xs; vec0[1] = ys; vec0[2] = zs;
+                }
+                if(k == ntt-1) {
+                    vec1[0] = xs; vec1[1] = ys; vec1[2] = zs;
+                }
 			}
+            vec1[0] = vec1[0] - vec0[0]; vec1[1] = vec1[1] - vec0[1]; vec1[2] = vec1[2] - vec0[2];
+            
 
 			/* fit a second order polynomial to the range versus time function and
 			 * update the tm and rng0 */
@@ -242,9 +257,20 @@ int main(int argc, char **argv) {
 			tm = tm + dtt;
 			interpolate_SAT_orbit_slow(orb, tm, &xs, &ys, &zs, &ir);
 			rng0 = sqrt((xp[0] - xs) * (xp[0] - xs) + (xp[1] - ys) * (xp[1] - ys) + (xp[2] - zs) * (xp[2] - zs));
+            vec2[0] = xp[0] - xs; vec2[1] = xp[1] - ys; vec2[2] = xp[2] - zs;
 		}
+
 		/* compute the range and azimuth in pixel space */
-		xt[0] = rng0;
+        /* first compute curl of vec-s and determine whether the range is really positive
+           with (a2b3-a3b2)i, (a3b1-a1b3)j, (a1b2 - a2b1)k projected to xs, ys, zs*/
+        det = (vec2[1]*vec1[2]-vec2[2]*vec1[1])*xs + (vec2[2]*vec1[0]-vec2[0]*vec1[2])*ys + (vec2[0]*vec1[1]-vec2[1]*vec1[0])*zs;
+        if (det * (double)lookdir > 0) {
+            det = 1.0;
+        } 
+        else {
+            det = -1.0;
+        }
+		xt[0] = rng0 * det;
 		xt[1] = tm;
 		xt[0] = (xt[0] - prm.near_range) / dr - (prm.rshift + prm.sub_int_r) + prm.chirp_ext;
 		xt[1] = prm.prf * (xt[1] - t1) - (prm.ashift + prm.sub_int_a);
@@ -256,7 +282,7 @@ int main(int argc, char **argv) {
 		}
 
 		/* compute the azimuth and range correction if the Doppler is not zero */
-
+   
 		if (prm.fd1 != 0.) {
 			dopc = prm.fd1 + prm.fdd1 * (prm.near_range + dr * prm.num_rng_bins / 2.);
 			rdd = (prm.vel * prm.vel) / rng0;
