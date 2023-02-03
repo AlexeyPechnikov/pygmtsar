@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 	double fll, rdd, daa, drr, dopc;
 	double dt, dtt, xs, ys, zs;
 	double time[20], rng[20], d[3]; /* arrays used for polynomial refinement of min range */
-    double vec1[3], vec2[3], vec0[3], det;
+    double vec1[3], vec2[3], vec0[3], det = 1.0;
 	int ir, k, ntt = 10, nc = 3;    /* size of arrays used for polynomial refinement */
 	int j, nrec, precise = 0;
 	int goldop();
@@ -258,18 +258,19 @@ int main(int argc, char **argv) {
 			interpolate_SAT_orbit_slow(orb, tm, &xs, &ys, &zs, &ir);
 			rng0 = sqrt((xp[0] - xs) * (xp[0] - xs) + (xp[1] - ys) * (xp[1] - ys) + (xp[2] - zs) * (xp[2] - zs));
             vec2[0] = xp[0] - xs; vec2[1] = xp[1] - ys; vec2[2] = xp[2] - zs;
+        
+            /* first compute curl of vec-s and determine whether the range is really positive
+            with (a2b3-a3b2)i, (a3b1-a1b3)j, (a1b2 - a2b1)k projected to xs, ys, zs*/
+            det = (vec2[1]*vec1[2]-vec2[2]*vec1[1])*xs + (vec2[2]*vec1[0]-vec2[0]*vec1[2])*ys + (vec2[0]*vec1[1]-vec2[1]*vec1[0])*zs;
+            if (det * (double)lookdir > 0) {
+                det = 1.0;
+            } 
+            else {
+                det = -1.0;
+            }
 		}
 
 		/* compute the range and azimuth in pixel space */
-        /* first compute curl of vec-s and determine whether the range is really positive
-           with (a2b3-a3b2)i, (a3b1-a1b3)j, (a1b2 - a2b1)k projected to xs, ys, zs*/
-        det = (vec2[1]*vec1[2]-vec2[2]*vec1[1])*xs + (vec2[2]*vec1[0]-vec2[0]*vec1[2])*ys + (vec2[0]*vec1[1]-vec2[1]*vec1[0])*zs;
-        if (det * (double)lookdir > 0) {
-            det = 1.0;
-        } 
-        else {
-            det = -1.0;
-        }
 		xt[0] = rng0 * det;
 		xt[1] = tm;
 		xt[0] = (xt[0] - prm.near_range) / dr - (prm.rshift + prm.sub_int_r) + prm.chirp_ext;
