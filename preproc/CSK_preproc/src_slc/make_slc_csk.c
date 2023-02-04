@@ -41,9 +41,6 @@ int main(int argc, char **argv) {
 
 	FILE *OUTPUT_PRM, *OUTPUT_SLC, *OUTPUT_LED;
 	char tmp_str[200];
-	char *buff_c, *buff_o;
-	double *buff_d;
-	int *buff_i;
 	struct PRM prm;
 	// tree *xml_tree;
 	state_vector sv[200];
@@ -52,11 +49,6 @@ int main(int argc, char **argv) {
 	hid_t file;
 
 	// fprintf(stderr,"Hahahaha...\n");
-
-	buff_c = (char *)malloc(60000 * sizeof(char));
-	buff_o = (char *)malloc(60000 * sizeof(char));
-	buff_d = (double *)malloc(1000 * sizeof(double));
-	buff_i = (int *)malloc(1000 * sizeof(double));
 
 	if (argc < 3)
 		die(USAGE, "");
@@ -116,13 +108,13 @@ int write_slc_hdf5(hid_t input, FILE *slc) {
 	height = (int)dims[0];
 	width = (int)dims[1];
 
+	buf = (short *)malloc(height * width * 2 * sizeof(short));
+	tmp = (short *)malloc(width * 2 * sizeof(short));
+
 	printf("Data size %lld x %lld x %lld...\n", dims[0], dims[1], dims[2]);
 
     width = width - width%4;
     height = height - height%4;
-
-	buf = (short *)malloc(height * width * 2 * sizeof(short));
-	tmp = (short *)malloc(width * 2 * sizeof(short));
 
 	group = H5Gopen(input, "/S01", H5P_DEFAULT);
 	dset = H5Dopen(group, "SBI", H5P_DEFAULT);
