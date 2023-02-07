@@ -174,8 +174,9 @@ int get_tree(FILE *fp, tree *list, int num_parse) {
 		j2 = strlocate(buffer, '>', 2);
 
 		if (i1 < 0 || j1 < 0) {
-			fprintf(stderr, "Not an well formatted XML file...%d, %d\n", i1, j1);
-			return (-1);
+            continue;
+			//fprintf(stderr, "Not an well formatted XML file...%d, %d\n", i1, j1);
+			//return (-1);
 		}
 		else if (buffer[i1 + 1] == '/') {
 			have_slash = 1;
