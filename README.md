@@ -85,9 +85,7 @@ See a separate GitHub repository for Yamchi Dam area dynamic model [YamchiDam](h
 
 ## About me
 
-I have STEM master's degree in radio physics and in 2004 I was awarded first prize of the All-Russian Physics competition for significant results in Inverse modeling for non-linear optics and holography, also applicable for Inverse Modeling of Gravity, Magnetic, and Thermal fields. To create laser-induced holograms in non-linear optical composites I worked on interferograms numerical modeling and development of satellite interferometry processing software is very close task and so I build PyGMTSAR. Also, that's the related to inverse modeling of potensial fields like to gravity and I build Geomed3D geophisical modeling software too. In addition to my fundamental science knowledge, I’m world class data scientist and software developer with 20 years experience in science and industrial development. I have worked on government contracts and universities projects and on projects for LG Corp, Google Inc, etc. You are able to find some of my software and results on LinkedIn and GitHub and Upwork, see the links below. By the way, I left Russia many years ago and I work remotely for about 20 years.
-
-To order some research, development and support see my profile on freelance platform [Upwork](https://www.upwork.com/freelancers/~01e65e8e7221758623) And of cource you are able to use my Open Source software for you scientific research and geological exploration projects and beyond.
+I have STEM master’s degree in radio physics and in 2004 I have got the first prize of the All-Russian Physics competition for significant results in forward and inverse modeling for non-linear optics and holography, also applicable for modeling of Gravity, Magnetic, and Thermal fields and satellite interferometry processing. And I’m data scientist and software developer with 20 year’s experience in science and industrial development. I had been working on government contracts and universities projects and on projects for LG Corp, Google Inc, etc. By the way, I left Russia many years ago and I work remotely for about 20 years.
 
 [Geological models on YouTube channel](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg)
 
@@ -97,8 +95,10 @@ To order some research, development and support see my profile on freelance plat
 
 [DockerHub repositories](https://hub.docker.com/u/mobigroup)
 
-[English posts and articles on LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/)
+[English posts and publications on LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/)
 
-[Russian articles on Habr](https://habr.com/ru/users/N-Cube/posts/)
+[English publications on Medium](https://medium.com/@pechnikov)
 
-@ Alexey Pechnikov, 2022
+[Russian publications on Habr](https://habr.com/ru/users/N-Cube/posts/)
+
+@ Alexey Pechnikov, 2023
