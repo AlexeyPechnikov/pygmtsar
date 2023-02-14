@@ -21,7 +21,7 @@ class SBAS_incidence(SBAS_geocode):
         # constant is (1000 mm) / (4 * pi)
         scale = -79.58 * self.PRM().get('radar_wavelength')
         los_disp = scale*unwraps
-        return los_disp
+        return los_disp.rename('los')
 
     def incidence_angle(self):
         import xarray as xr
