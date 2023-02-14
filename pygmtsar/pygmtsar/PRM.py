@@ -569,30 +569,31 @@ class PRM(datagrid, PRM_gmtsar):
         n_jobs = joblib.cpu_count()
 
         conf_basic = f"""
-    # basic config
-    INFILEFORMAT   FLOAT_DATA
-    OUTFILEFORMAT  FLOAT_DATA
-    AMPFILEFORMAT  FLOAT_DATA
-    CORRFILEFORMAT FLOAT_DATA
-    ALTITUDE       693000.0
-    EARTHRADIUS    6378000.0
-    NEARRANGE      831000
-    DR             18.4
-    DA             28.2
-    RANGERES       28
-    AZRES          44
-    LAMBDA         0.0554658
-    NLOOKSRANGE    1
-    NLOOKSAZ       1
-    DEFOMAX_CYCLE  {defomax}
-    TILEDIR        {tiledir}_snaphu_tiledir
-    NPROC          {n_jobs}
-    """
+        # basic config
+        INFILEFORMAT   FLOAT_DATA
+        OUTFILEFORMAT  FLOAT_DATA
+        AMPFILEFORMAT  FLOAT_DATA
+        CORRFILEFORMAT FLOAT_DATA
+        ALTITUDE       693000.0
+        EARTHRADIUS    6378000.0
+        NEARRANGE      831000
+        DR             18.4
+        DA             28.2
+        RANGERES       28
+        AZRES          44
+        LAMBDA         0.0554658
+        NLOOKSRANGE    1
+        NLOOKSAZ       1
+        TILEDIR        {tiledir}_snaphu_tiledir
+        NPROC          {n_jobs}
+        """
         conf_custom = '# custom config\n'
-        for key, value in kwargs.items():
+        # defomax can be None
+        keyvalues = [('DEFOMAX_CYCLE', defomax)] if defomax is not None else [] + list(kwargs.items())
+        for key, value in keyvalues:
             if isinstance(value, bool):
                 value = 'TRUE' if value else 'FALSE'
-            conf_custom += f'    {key} {value}\n'
+            conf_custom += f'        {key} {value}\n'
         return conf_basic + conf_custom
 
 def main():
