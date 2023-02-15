@@ -63,7 +63,15 @@ if ($2 == 1) then
       echo "Checking query for existing orbit file..."
       
       set orbit = ` grep "title" orbitquery.txt | tail -1 | awk '{printf "%s.EOF",substr($1,8,73)}' `
-      set esaID = ` grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' `           
+      set esaID = ` grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' `
+      
+      grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' > esaID.tmp
+      set IDlinecount = ` wc -l esaID.tmp | awk '{print $1}' `
+      if ( ${IDlinecount} == "2" ) then
+        set esaID = ` grep "uuid" orbitquery.txt | awk 'NR == 2 {print substr($2,13,36)}' `
+      endif
+      rm esaID.tmp
+      
       if (! -f $orbit) then
         if (${esaID} == "") then
           echo "Query Failed -- possible issues:"
@@ -119,7 +127,15 @@ if ($2 == 2) then
       echo "Checking query for existing restituted orbit file..."
       
       set orbit = ` grep "title" orbitquery.txt | tail -1 | awk '{printf "%s.EOF",substr($1,8,73)}' `
-      set esaID = ` grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' `           
+      set esaID = ` grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' `  
+      
+      grep "uuid" orbitquery.txt | awk '{print substr($2,13,36)}' > esaID.tmp
+      set IDlinecount = ` wc -l esaID.tmp | awk '{print $1}' `
+      if ( ${IDlinecount} == "2" ) then
+        set esaID = ` grep "uuid" orbitquery.txt | awk 'NR == 2 {print substr($2,13,36)}' `
+      endif
+      rm esaID.tmp
+
       if (! -f $orbit) then
         if (${esaID} == "") then
           echo "Query Failed -- possible issues:"
