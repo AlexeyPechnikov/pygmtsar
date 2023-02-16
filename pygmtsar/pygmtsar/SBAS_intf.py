@@ -25,7 +25,6 @@ class SBAS_intf(SBAS_topo_ra):
         import numpy as np
         from tqdm.auto import tqdm
         import joblib
-        from joblib.externals import loky
         import os
 
         if isinstance(pairs, pd.DataFrame):
@@ -45,10 +44,8 @@ class SBAS_intf(SBAS_topo_ra):
         #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
         with tqdm(desc='Interferograms', total=len(pairs)*len(subswaths)) as pbar:
             for chunk in chunks:
-                loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
-                with joblib.parallel_backend('loky', n_jobs=n_jobs, inner_max_num_threads=1):
-                    joblib.Parallel()(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
-                        for subswath in subswaths for pair in chunk)
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
+                    for subswath in subswaths for pair in chunk)
                 pbar.update(len(chunk)*len(subswaths))
 
         # backward compatibility wrapper
