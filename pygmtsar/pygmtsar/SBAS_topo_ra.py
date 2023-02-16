@@ -56,6 +56,11 @@ class SBAS_topo_ra(SBAS_trans):
                 blocks_azis.append(block_azi.reshape(-1))
                 blocks_rngs.append(block_rng.reshape(-1))
                 blocks_eles.append(block_ele.reshape(-1))
+
+            # found the issue for 5 stitched scenes
+            if len(blocks_azis) == 0:
+                return np.nan*np.zeros(azi.shape)
+
             blocks_azis = np.concatenate(blocks_azis)
             blocks_rngs = np.concatenate(blocks_rngs)
             blocks_eles = np.concatenate(blocks_eles)
