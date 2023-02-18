@@ -5,9 +5,9 @@ name: PyPI tests
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "pygmtsar" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "pygmtsar" ]
 
 permissions:
   contents: read
@@ -45,12 +45,14 @@ jobs:
         sudo apt install -y make
     - name: Compile GMTSAR
       run: |
+        git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
+        cd GMTSAR
         autoconf
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
         # check installation
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         echo "Start gmtsar_sharedir.csh"
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
@@ -68,7 +70,7 @@ jobs:
     - name: Run test
       working-directory: tests
       run: |
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         sh S1A_Stack_CPGF_T173.sh
     - name: Archive test results
       uses: actions/upload-artifact@v3
@@ -113,12 +115,14 @@ jobs:
         sudo apt install jq
     - name: Compile GMTSAR
       run: |
+        git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
+        cd GMTSAR
         autoconf
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
         # check installation
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         echo "Start gmtsar_sharedir.csh"
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
@@ -130,7 +134,7 @@ jobs:
     - name: Run test
       working-directory: tests
       run: |
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         sh ./S1A_2016_Kumamoto_Earthquake.sh force
     - name: Archive test results
       uses: actions/upload-artifact@v3
@@ -175,12 +179,14 @@ jobs:
         sudo apt install jq
     - name: Compile GMTSAR
       run: |
+        git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
+        cd GMTSAR
         autoconf
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
         # check installation
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         echo "Start gmtsar_sharedir.csh"
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
@@ -192,7 +198,7 @@ jobs:
     - name: Run test
       working-directory: tests
       run: |
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         sh ./S1AB_2021_Crete_Earthquake.sh force
     - name: Archive test results
       uses: actions/upload-artifact@v3
