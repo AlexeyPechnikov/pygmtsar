@@ -41,7 +41,7 @@ jobs:
         make
         make install
         # check installation
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
+        export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/GMTSAR/bin
         echo "Start gmtsar_sharedir.csh"
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
@@ -59,7 +59,7 @@ jobs:
     - name: Run test
       working-directory: tests
       run: |
-        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
+        export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/GMTSAR/bin
         sh ./S1A_Stack_CPGF_T173.sh
     - name: Archive test results
       uses: actions/upload-artifact@v3
