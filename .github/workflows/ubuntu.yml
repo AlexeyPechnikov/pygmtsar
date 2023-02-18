@@ -45,6 +45,7 @@ jobs:
         sudo apt install -y make
     - name: Compile GMTSAR
       run: |
+        git clone --branch master https://github.com/gmtsar/gmtsar .
         autoconf
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
