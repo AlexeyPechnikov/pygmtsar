@@ -45,7 +45,7 @@ jobs:
         sudo apt install -y make
     - name: Compile GMTSAR
       run: |
-        # show current directory
+        # show current directory (/home/runner/work/gmtsar/gmtsar)
         pwd
         git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
         cd GMTSAR
@@ -53,8 +53,10 @@ jobs:
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make install
+        # list current files
+        ls
         # check installation
-        export PATH=$PATH:/home/runner/work/gmtsar/GMTSAR/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         echo "Start gmtsar_sharedir.csh"
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
@@ -72,7 +74,7 @@ jobs:
     - name: Run test
       working-directory: tests
       run: |
-        export PATH=$PATH:/home/runner/work/gmtsar/GMTSAR/gmtsar/bin
+        export PATH=$PATH:/home/runner/work/gmtsar/gmtsar/GMTSAR/bin
         sh ./S1A_Stack_CPGF_T173.sh
     - name: Archive test results
       uses: actions/upload-artifact@v3
