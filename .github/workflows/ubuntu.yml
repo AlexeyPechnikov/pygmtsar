@@ -5,9 +5,9 @@ name: Ubuntu tests
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "pygmtsar" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "pygmtsar" ]
 
 permissions:
   contents: read
