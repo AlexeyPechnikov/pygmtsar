@@ -172,7 +172,7 @@ class SBAS_geocode(SBAS_sbas):
 
             # found the issue for 5 stitched scenes
             if len(blocks_azis) == 0:
-                return np.nan*np.zeros(azi.shape)
+                return np.full(azi.shape, self.noindex)
 
             blocks_azis = np.concatenate(blocks_azis)
             blocks_rngs = np.concatenate(blocks_rngs)
