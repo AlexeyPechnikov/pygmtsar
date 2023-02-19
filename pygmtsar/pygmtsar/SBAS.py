@@ -100,9 +100,9 @@ class SBAS(SBAS_incidence):
 
         # filter mission and always ignore approximate RESORB orbits to download precise POEORB when possible
         if filter_mission is not None:
-            orbit_path_pattern = f'{filter_mission.upper()}_OPER_AUX_POEORB_OPOD_*.EOF'
+            orbit_path_pattern = f'{filter_mission.upper()}_OPER_AUX_???ORB_OPOD_*.EOF'
         else:
-            orbit_path_pattern = 'S1?_OPER_AUX_POEORB_OPOD_*.EOF'
+            orbit_path_pattern = 'S1?_OPER_AUX_???ORB_OPOD_*.EOF'
         orbitpaths = pattern2paths(orbit_path_pattern)
         #print ('orbitpaths', orbitpaths)
         orbitnames = [os.path.splitext(os.path.split(path)[-1])[0] for path in orbitpaths]
