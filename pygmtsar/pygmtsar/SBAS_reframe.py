@@ -52,6 +52,10 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         assert len(args) == len(subswaths), f'Define pair of pins for the each subswath \
             {",".join(map(str,subswaths))} ({2*len(subswaths)} pins and {4*len(subswaths)} coordinates in total)'
 
+        # reverse pins order for descending orbit
+        orbit = self.df['orbit'][0]
+        args = args[::-1] if orbit == 'D' else args
+        
         # iterate 1 to 3 subswaths
         allpins = []
         for (subswath, pins) in zip(subswaths, args):
