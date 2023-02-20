@@ -178,9 +178,10 @@ class SBAS_trans(SBAS_stack):
         delayeds = []
         for subswath in subswaths:
             delayed = self.trans_dat(subswath=subswath, interactive=interactive)
-            delayeds.append(delayed)
+            if not interactive:
+                tqdm_dask(dask.persist(delayed), desc=f'Radar Transform Computing sw{subswath}')
+            else:
+                delayeds.append(delayed)
 
-        if not interactive:
-            tqdm_dask(dask.persist(delayeds), desc='Radar Transform Computing')
-        else:
+        if interactive:
             return delayeds[0] if len(delayeds)==1 else delayeds

@@ -113,11 +113,12 @@ class SBAS_topo_ra(SBAS_trans):
         delayeds = []
         for subswath in subswaths:
             delayed = self.topo_ra(subswath=subswath, interactive=interactive)
-            delayeds.append(delayed)
+            if not interactive:
+                tqdm_dask(dask.persist(delayed), desc=f'Radar Topography Computing sw{subswath}')
+            else:
+                delayeds.append(delayed)
 
-        if not interactive:
-            tqdm_dask(dask.persist(delayeds), desc='Radar Topography Computing')
-        else:
+        if interactive:
             return delayeds[0] if len(delayeds)==1 else delayeds
 
     def get_topo_ra(self):
