@@ -1,3 +1,5 @@
+[![GMTSAR tests](https://github.com/gmtsar/gmtsar/actions/workflows/gmtsar.yml/badge.svg)](https://github.com/gmtsar/gmtsar/actions/workflows/gmtsar.yml)
+
 __INSTRUCTIONS FOR INSTALLING AND RUNNING GMTSAR__
 ----------------------------------------------
 
