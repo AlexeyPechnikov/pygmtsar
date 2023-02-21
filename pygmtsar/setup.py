@@ -37,6 +37,7 @@ setup(
                       'rioxarray',
                       'ipywidgets',
                       'h5netcdf==1.0.2',
+                      'h5py',
                       'nc-time-axis'
                       ],
 
