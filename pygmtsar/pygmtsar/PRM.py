@@ -360,9 +360,8 @@ class PRM(datagrid, PRM_gmtsar):
 
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
-    # use_boxcar_filter=True for ISCE-type boxcar and multilook filter
-    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32,
-             use_boxcar_filter=False, func=None, chunks='auto', debug=False):
+    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, \
+            func=None, chunksize=None, debug=False):
         import os
         import numpy as np
         import xarray as xr
@@ -375,6 +374,10 @@ class PRM(datagrid, PRM_gmtsar):
 
         if not isinstance(other, PRM):
             raise Exception('Argument "other" should be PRM class instance')
+
+        # define lost class variables due to joblib
+        if chunksize is None:
+            chunksize = self.chunksize
 
         # define basename from two PRM names
         if basename is None:
@@ -410,62 +413,40 @@ class PRM(datagrid, PRM_gmtsar):
                        real_tofile=fullname('real.grd=bf'),
                        debug=debug)
 
+        # making amplitudes
+        self.conv(1, 2, filter_file = filename_gauss5x5,
+                  output_file=fullname('amp1_tmp.grd=bf'),
+                  debug=debug)
+        self.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                  input_file=fullname('amp1_tmp.grd=bf'),
+                  output_file=fullname('amp1.grd'),
+                  debug=debug)
+
+        other.conv(1, 2, filter_file = filename_gauss5x5,
+                   output_file=fullname('amp2_tmp.grd=bf'),
+                   debug=debug)
+        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                   input_file=fullname('amp2_tmp.grd=bf'),
+                   output_file=fullname('amp2.grd'),
+                   debug=debug)
+
         # filtering interferogram
-        if not use_boxcar_filter:
-            # use default GMTSAR filter
-            # making amplitudes
-            self.conv(1, 2, filter_file = filename_gauss5x5,
-                      output_file=fullname('amp1_tmp.grd=bf'),
-                      debug=debug)
-            self.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                      input_file=fullname('amp1_tmp.grd=bf'),
-                      output_file=fullname('amp1.grd'),
-                      debug=debug)
-
-            other.conv(1, 2, filter_file = filename_gauss5x5,
-                       output_file=fullname('amp2_tmp.grd=bf'),
-                       debug=debug)
-            other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                       input_file=fullname('amp2_tmp.grd=bf'),
-                       output_file=fullname('amp2.grd'),
-                       debug=debug)
-
-            # filtering interferogram
-            self.conv(1, 2, filter_file=filename_gauss5x5,
-                      input_file=fullname('real.grd=bf'),
-                      output_file=fullname('real_tmp.grd=bf'),
-                      debug=debug)
-            other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                       input_file=fullname('real_tmp.grd=bf'),
-                       output_file=fullname('realfilt.grd'),
-                       debug=debug)
-            self.conv(1, 2, filter_file=filename_gauss5x5,
-                      input_file=fullname('imag.grd=bf'),
-                      output_file=fullname('imag_tmp.grd=bf'),
-                      debug=debug)
-            other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
-                       input_file=fullname('imag_tmp.grd=bf'),
-                       output_file=fullname('imagfilt.grd'),
-                       debug=debug)
-        else:
-            # use ISCE-type boxcar and multilook filter
-            # 3 range and 5 azimuth looks
-            # making amplitudes
-            self.conv(5, 3, filter_file = filename_boxcar3x5,
-                      output_file=fullname('amp1.grd'),
-                      debug=debug)
-            other.conv(5, 3, filter_file = filename_boxcar3x5,
-                       output_file=fullname('amp2.grd'),
-                       debug=debug)
-
-            self.conv(5, 3, filter_file=filename_boxcar3x5,
-                      input_file=fullname('real.grd=bf'),
-                      output_file=fullname('realfilt.grd'),
-                      debug=debug)
-            self.conv(5, 3, filter_file=filename_boxcar3x5,
-                      input_file=fullname('imag.grd=bf'),
-                      output_file=fullname('imagfilt.grd'),
-                      debug=debug)
+        self.conv(1, 2, filter_file=filename_gauss5x5,
+                  input_file=fullname('real.grd=bf'),
+                  output_file=fullname('real_tmp.grd=bf'),
+                  debug=debug)
+        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                   input_file=fullname('real_tmp.grd=bf'),
+                   output_file=fullname('realfilt.grd'),
+                   debug=debug)
+        self.conv(1, 2, filter_file=filename_gauss5x5,
+                  input_file=fullname('imag.grd=bf'),
+                  output_file=fullname('imag_tmp.grd=bf'),
+                  debug=debug)
+        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+                   input_file=fullname('imag_tmp.grd=bf'),
+                   output_file=fullname('imagfilt.grd'),
+                   debug=debug)
 
         # filtering phase
         self.phasefilt(imag_fromfile=fullname('imagfilt.grd'),
@@ -479,19 +460,22 @@ class PRM(datagrid, PRM_gmtsar):
 
         # Python post-processing
         # we need to flip vertically results from the command line tools
-        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=self.engine, chunks=chunks)
-        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=self.engine, chunks=chunks)
+        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=self.engine, chunks=chunksize)
+        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=self.engine, chunks=chunksize)
         amp = np.sqrt(realfilt**2 + imagfilt**2)
 
-        amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=self.engine, chunks=chunks)
-        amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=self.engine, chunks=chunks)
+        amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=self.engine, chunks=chunksize)
+        amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=self.engine, chunks=chunksize)
 
         # use the same coordinates for all output grids
         # use .values to remove existing attributes from the axes
-        coords = {'y': amp.y.values, 'x': amp.x.values}
+        # workaround for Google Colab when we cannot save grids with x,y coordinate names
+        coords = {'a': amp.y.values, 'r': amp.x.values}
 
         # making correlation
         tmp = amp1 * amp2
+        # fix for "RuntimeWarning: divide by zero encountered in true_divide"
+        tmp = xr.where(tmp==0, np.nan, tmp)
         mask = xr.where(tmp >= thresh, 1, np.nan)
         tmp2 = mask * (amp/np.sqrt(tmp))
 
@@ -504,22 +488,22 @@ class PRM(datagrid, PRM_gmtsar):
         conv = dask_image.ndfilters.convolve(tmp2.data, kernel.data, mode='reflect')
         
         # wrap dask or numpy array to dataarray
-        corr = xr.DataArray(dask.array.flipud(conv.astype(np.float32)), coords, name='z')
+        corr_da = xr.DataArray(dask.array.flipud(conv.astype(np.float32)), coords, name='z')
         if func is not None:
-            corr = func(corr)
+            corr_da = func(corr_da)
         if os.path.exists(fullname('corr.grd')):
             os.remove(fullname('corr.grd'))
-        corr.to_netcdf(fullname('corr.grd'), encoding={'z': self.compression}, engine=self.engine)
+        corr_da.to_netcdf(fullname('corr.grd'), encoding={'z': self.compression(chunksize=chunksize)}, engine=self.engine)
 
         # make the Werner/Goldstein filtered phase
-        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.engine, chunks=chunks)
-        phasefilt = phasefilt_phase * mask
-        phasefilt = xr.DataArray(dask.array.flipud(phasefilt.astype(np.float32)), coords, name='z')
+        phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.engine, chunks=chunksize)
+        phasefilt_phase_masked = phasefilt_phase * mask
+        phasefilt_da = xr.DataArray(dask.array.flipud(phasefilt_phase_masked.astype(np.float32)), coords, name='z')
         if func is not None:
-            phasefilt = func(phasefilt)
+            phasefilt_da = func(phasefilt_da)
         if os.path.exists(fullname('phasefilt.grd')):
             os.remove(fullname('phasefilt.grd'))
-        phasefilt.to_netcdf(fullname('phasefilt.grd'), encoding={'z': self.compression}, engine=self.engine)
+        phasefilt_da.to_netcdf(fullname('phasefilt.grd'), encoding={'z': self.compression(chunksize=chunksize)}, engine=self.engine)
 
         # cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',
