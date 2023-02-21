@@ -32,21 +32,25 @@ class SBAS_intf(SBAS_topo_ra):
 
         subswaths = self.get_subswaths()
 
+        # for now (Python 3.10.10 on MacOS) joblib loads the code from disk instead of copying it
+        kwargs['chunksize'] = self.chunksize
+        
         # this way does not work properly for long interferogram series
-        #with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs))) as progress_bar:
-        #    joblib.Parallel(n_jobs=-1)(joblib.delayed(self.intf)(pair, **kwargs) for pair in pairs)
+        with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
+                for subswath in subswaths for pair in pairs)
 
         # start a set of jobs together but not more than available cpu cores at once
-        if n_jobs == -1:
-            n_jobs = joblib.cpu_count()
-        n_chunks = int(np.ceil(len(pairs)/n_jobs))
-        chunks = np.array_split(pairs, n_chunks)
+        #if n_jobs == -1:
+        #    n_jobs = joblib.cpu_count()
+        #n_chunks = int(np.ceil(len(pairs)/n_jobs))
+        #chunks = np.array_split(pairs, n_chunks)
         #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
-        with tqdm(desc='Interferograms', total=len(pairs)*len(subswaths)) as pbar:
-            for chunk in chunks:
-                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
-                    for subswath in subswaths for pair in chunk)
-                pbar.update(len(chunk)*len(subswaths))
+        #with tqdm(desc='Interferograms', total=len(pairs)*len(subswaths)) as pbar:
+        #    for chunk in chunks:
+        #        joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
+        #            for subswath in subswaths for pair in chunk)
+        #        pbar.update(len(chunk)*len(subswaths))
 
         # backward compatibility wrapper
         # for a single subswath don't need to call SBAS.merge_parallel()
