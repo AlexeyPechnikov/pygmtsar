@@ -52,7 +52,7 @@ class SBAS_geocode(SBAS_sbas):
             os.remove(filename)
         # flip vertically for GMTSAR compatibility reasons
         handler = matrix_ll.to_netcdf(filename,
-                                    encoding={'intf_ra2ll': self.compression},
+                                    encoding={'intf_ra2ll': self.compression()},
                                     engine=self.engine,
                                     compute=False)
         return handler
@@ -211,7 +211,7 @@ class SBAS_geocode(SBAS_sbas):
         if os.path.exists(filename):
             os.remove(filename)
         handler = matrix_ra.to_netcdf(filename,
-                                    encoding={'intf_ll2ra': self.compression},
+                                    encoding={'intf_ll2ra': self.compression()},
                                     engine=self.engine,
                                     compute=False)
         return handler
@@ -228,7 +228,7 @@ class SBAS_geocode(SBAS_sbas):
 
     # y,x grid
     def get_intf_ll2ra(self):
-        return self.open_grids(None, 'intf_ll2ra').rename({'a': 'y', 'r': 'x'})
+        return self.open_grids(None, 'intf_ll2ra')
 
     # TODO: split to blocks and apply transform for the each block parallel
     def intf_ll2ra(self, grids):
