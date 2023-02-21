@@ -213,7 +213,7 @@ class SBAS_base(tqdm_joblib, datagrid):
                 # special case for a single 2D grid
                 filename = self.get_filenames(None, None, name, add_subswath=add_subswath)
                 grids.astype(np.float32).rename(name)\
-                    .to_netcdf(filename, encoding={name: self.compression}, engine=self.engine)
+                    .to_netcdf(filename, encoding={name: self.compression()}, engine=self.engine)
                 return
             else:
                 assert 0, 'ERROR: supported 2D and 3D arrays only'
@@ -238,7 +238,7 @@ class SBAS_base(tqdm_joblib, datagrid):
             if os.path.exists(filename):
                 os.remove(filename)
             da.astype(np.float32).rename(name)\
-                .to_netcdf(filename, encoding={name: self.compression}, engine=self.engine)
+                .to_netcdf(filename, encoding={name: self.compression()}, engine=self.engine)
             return
 
         # process all the grids
@@ -251,7 +251,7 @@ class SBAS_base(tqdm_joblib, datagrid):
     # returns all grids in basedir by mask or grids by dates and name
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
     def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None,
-                   crop_valid=False, add_subswath=True, chunks=None, n_jobs=-1, interactive=True):
+                   crop_valid=False, add_subswath=True, chunksize=None, n_jobs=-1, interactive=True):
         import pandas as pd
         import xarray as xr
         import numpy as np
@@ -260,8 +260,8 @@ class SBAS_base(tqdm_joblib, datagrid):
 
         assert not(geocode and inverse_geocode), 'ERROR: Only single geocoding option can be applied'
 
-        if chunks is None:
-            chunks = self.chunksize
+        if chunksize is None:
+            chunksize = self.chunksize
 
         # iterate all the subswaths
         subswaths = self.get_subswaths()
@@ -313,21 +313,32 @@ class SBAS_base(tqdm_joblib, datagrid):
                 print ('NOTE: the mask is not applied because it does not correspond to the grid coordinates (radar or geographic)')
             return da
 
+        # use chunksize variable
+        def open_grid(filename):
+            assert chunksize is not None, 'open_grids() chunksize is not defined'
+            da = xr.open_dataarray(filename, engine=self.engine, chunks=chunksize)
+            # workaround for Google Colab when we cannot save grids with x,y coordinate names
+            if 'a' in da.dims:
+                da = da.rename({'a': 'y'})
+            if 'r' in da.dims:
+                da = da.rename({'r': 'x'})
+            return da
+
         dass = []
         for subswath in subswaths:
             filenames = self.get_filenames(subswath, pairs=pairs, name=name, add_subswath=add_subswath)
-        
+
             das = []
             if pairs is None:
                 # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
                 #print ('filename', filename)
-                da = xr.open_dataarray(filenames, engine=self.engine, chunks=chunks)
+                da = open_grid(filenames)
                 das  = postprocess(da, subswath)
             elif len(pairs.shape) == 1:
                 # read all the grids from files
                 for filename in filenames:
                     #print (date, filename)
-                    da = xr.open_dataarray(filename, engine=self.engine, chunks=chunks)
+                    da = open_grid(filename)
                     das.append(da)
 
                 # post-processing on a set of 2D rasters
@@ -349,7 +360,7 @@ class SBAS_base(tqdm_joblib, datagrid):
                 # read all the grids from files
                 for filename in filenames:
                     #print (filename)
-                    da = xr.open_dataarray(filename, engine=self.engine, chunks=chunks)
+                    da = open_grid(filename)
                     das.append(da)
 
                 # post-processing on a set of 2D rasters
