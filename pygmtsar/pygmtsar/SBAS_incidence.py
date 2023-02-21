@@ -107,7 +107,7 @@ class SBAS_incidence(SBAS_geocode):
         filename = self.get_filenames(None, None, 'sat_look')
         if os.path.exists(filename):
             os.remove(filename)
-        encoding = {val: self.compression for (key, val) in satlook_map.items()}
+        encoding = {val: self.compression() for (key, val) in satlook_map.items()}
         handler = sat_look.to_netcdf(filename,
                                         encoding=encoding,
                                         engine=self.engine,

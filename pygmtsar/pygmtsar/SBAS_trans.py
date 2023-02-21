@@ -163,7 +163,7 @@ class SBAS_trans(SBAS_stack):
         filename = self.get_filenames(subswath, None, 'trans')
         if os.path.exists(filename):
             os.remove(filename)
-        encoding = {val: self.compression for (key, val) in llt2rat_map.items()}
+        encoding = {val: self.compression() for (key, val) in llt2rat_map.items()}
         handler = trans.to_netcdf(filename,
                                         encoding=encoding,
                                         engine=self.engine,

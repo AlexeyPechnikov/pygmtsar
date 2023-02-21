@@ -6,11 +6,20 @@ class datagrid:
 
     # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
     chunksize = 512
-    compression = dict(zlib=True, complevel=3, chunksizes=(chunksize, chunksize))
     engine = 'h5netcdf'
+    complevel = 3
     # NODATA index value for transform matrices
     # TODO: use the same datatype for the matrices to allow 64 bit datatype
     noindex = np.uint32(-1)
+
+    # define lost class variables due to joblib via arguments
+    def compression(self, complevel=None, chunksize=None):
+        if complevel is None:
+            complevel = self.complevel
+        if chunksize is None:
+            chunksize = self.chunksize
+        assert chunksize is not None, 'compression() chunksize is None'
+        return dict(zlib=True, complevel=complevel, chunksizes=(chunksize, chunksize))
 
     @staticmethod
     def is_ra(grid):
@@ -129,6 +138,8 @@ class datagrid:
         import xarray as xr
         import numpy as np
 
+        assert in_grid.chunks is not None, 'nearest_grid() input grid chunks are not defined'
+
         if search_radius_pixels is None:
             search_radius_pixels = self.chunksize
         elif search_radius_pixels <= 0:
@@ -195,6 +206,7 @@ class datagrid:
             output_dtypes=[np.float32],
             dask_gufunc_kwargs={'distance': search_radius_pixels, 'scaley': scale[0], 'scalex': scale[1]},
         )
+        assert grid.chunks is not None, 'nearest_grid() output grid chunks are not defined'
         return grid
 
     def pixel_size(self, grid=(1, 4), average=True):
@@ -221,15 +233,29 @@ class datagrid:
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
     def pixel_decimator(self, resolution_meters=60, grid=(1, 4), debug=False):
         import numpy as np
+        import dask
 
         dy, dx = self.pixel_size(grid)
-        yy, xx = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
+        yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
         if debug:
             print (f'DEBUG: average per subswaths ground pixel size in meters: y={dy}, x={dx}')
-        if yy <= 1 and xx <= 1:
+        if yscale <= 1 and xscale <= 1:
             if debug:
                 print (f"DEBUG: decimator = lambda da: da")
             return lambda da: da
         if debug:
-            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yy}, 'x': {xx}}}, boundary='trim').mean()")
-        return lambda da: da.coarsen({'y': yy, 'x': xx}, boundary='trim').mean()
+            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yscale}, 'x': {xscale}}}, boundary='trim').mean()")
+        # decimate function
+        def decimator(da):
+            # workaround for Google Colab when we cannot save grids with x,y coordinate names
+            # also supports geographic coordinates
+            yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
+            xname = [varname for varname in ['x', 'lon', 'r'] if varname in da.dims][0]
+            if debug:
+                print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
+            # avoid creating the large chunks
+            with dask.config.set(**{'array.slicing.split_large_chunks': True}):
+                return da.coarsen({yname: yscale, xname: xscale}, boundary='trim').mean()
+
+        # return callback function
+        return lambda da: decimator(da)

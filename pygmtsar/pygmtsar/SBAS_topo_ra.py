@@ -97,7 +97,7 @@ class SBAS_topo_ra(SBAS_trans):
         # flip vertically for GMTSAR compatibility reasons
         topo_ra = xr.DataArray(dask.array.flipud(topo), coords=topo.coords, name=topo.name)
         handler = topo_ra.to_netcdf(filename,
-                                    encoding={'topo_ra': self.compression},
+                                    encoding={'topo_ra': self.compression()},
                                     engine=self.engine,
                                     compute=False)
         return handler
@@ -128,8 +128,7 @@ class SBAS_topo_ra(SBAS_trans):
 
         def func(topo):
             # flip vertically for GMTSAR compatibility reasons
-            return xr.DataArray(dask.array.flipud(topo), coords=topo.coords, attrs=topo.attrs, name=topo.name)\
-                   .rename({'a': 'y', 'r': 'x'})
+            return xr.DataArray(dask.array.flipud(topo), coords=topo.coords, attrs=topo.attrs, name=topo.name)
 
         topos = self.open_grids(None, 'topo_ra', func=func)
 

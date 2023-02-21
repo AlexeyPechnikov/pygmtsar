@@ -8,12 +8,15 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
     def unwrap(self, pair, threshold=None, conf=None, func=None, mask=None, conncomp=False,
-               phase='phasefilt', corr='corr',
-               interactive=True, debug=False):
+               phase='phasefilt', corr='corr', interactive=True, chunksize=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
         import subprocess
+
+        # define lost class variables due to joblib
+        if chunksize is None:
+            chunksize = self.chunksize
 
         if threshold is None:
             # set to very low value but still exclude 0 (masked areas)
@@ -30,20 +33,18 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         if conf is None:
             conf = self.PRM().snaphu_config()
 
+        # open input data grids if needed
+        if isinstance(phase, str):
+            phase = self.open_grids([pair], phase, chunksize=chunksize, interactive=False)[0]
+        if isinstance(corr, str):
+            corr = self.open_grids([pair], corr, chunksize=chunksize, interactive=False)[0]
+
         # extract dates from pair
         date1, date2 = pair
 
         basename = self.get_filenames(None, [pair], '')[0][:-4]
         #print ('basename', basename)
 
-        # open input data grids if needed
-        if isinstance(phase, str):
-            phase_filename = basename + phase + '.grd'
-            phase = xr.open_dataarray(phase_filename, engine=self.engine, chunks=self.chunksize)
-        if isinstance(corr, str):
-            corr_filename = basename + corr + '.grd'
-            corr = xr.open_dataarray(corr_filename, engine=self.engine, chunks=self.chunksize)
-        
         # output data grids
         unwrap_filename = basename + 'unwrap.grd'
         conncomp_filename = basename + 'conncomp.grd'
@@ -97,14 +98,15 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         if conncomp:
             # convert to grid the connected components from SNAPHU output as is (UCHAR)
             values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
-            conn = xr.DataArray(values, phase.coords, name='conncomp')
+            conn = xr.DataArray(values, phase.coords, name='conncomp').chunk(chunksize)
 
         # convert to grid unwrapped phase from SNAPHU output applying postprocessing
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
         #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
-        unwrap = xr.DataArray(values, phase.coords)
+        unwrap = xr.DataArray(values, phase.coords).chunk(chunksize)
         # apply user-defined function for post-processing
         if func is not None:
+            # the both grids should have the right chunksize
             unwrap = func(corrmasked, unwrap)
         # apply binary mask after the post-processing to completely exclude masked regions
         # NaN values allowed in the output grid, assign userfriendly name for the output grid
@@ -122,6 +124,6 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
 
         # not interactive mode, save all the results to disk
         if conncomp:
-            conn.to_netcdf(conncomp_filename, encoding={'conncomp': self.compression}, engine=self.engine)
+            conn.to_netcdf(conncomp_filename, encoding={'conncomp': self.compression(chunksize=chunksize)}, engine=self.engine)
         # save to NetCDF file
-        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.compression}, engine=self.engine)
+        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.compression(chunksize=chunksize)}, engine=self.engine)

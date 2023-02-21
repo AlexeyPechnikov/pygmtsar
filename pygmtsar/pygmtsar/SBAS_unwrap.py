@@ -10,6 +10,9 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
         import joblib
         import os
 
+        # for now (Python 3.10.10 on MacOS) joblib loads the code from disk instead of copying it
+        kwargs['chunksize'] = self.chunksize
+
         def unwrap(pair, **kwargs):
             # define unique tiledir name for parallel processing
             if 'conf' in kwargs:

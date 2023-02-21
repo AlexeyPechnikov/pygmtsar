@@ -76,17 +76,23 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
-    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr', chunks=None, n_jobs=-1):
+    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr', chunks=None, chunksize=None, n_jobs=-1):
         import xarray as xr
         import numpy as np
         import pandas as pd
         from tqdm.auto import tqdm
         import joblib
         import os
+        
+        if chunks is not None:
+            print ('NOTE: use "chunksize" argument instead of "chunks"')
+            chunksize = chunks
+        if chunksize is None:
+            chunksize = self.chunksize
 
         # compress 3d output following the processing blocks
-        netcdf_compression = self.compression.copy()
-        netcdf_compression['chunksizes'] = (1, self.chunksize, self.chunksize)
+        netcdf_compression = self.compression()
+        netcdf_compression['chunksizes'] = (1, chunksize, chunksize)
 
         if pairs is None:
             pairs = self.find_pairs()
@@ -99,9 +105,9 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
     
         # source grids lazy loading
         if isinstance(corr, str):
-            corr = self.open_grids(pairs, corr, chunks=chunks)
+            corr = self.open_grids(pairs, corr, chunksize=chunksize, interactive=False)
         if isinstance(data, str):
-            data = self.open_grids(pairs, data, chunks=chunks)
+            data = self.open_grids(pairs, data, chunksize=chunksize, interactive=False)
 
         # crop correlation grid like to unwrap grid which may be defined smaller
         corr = corr.reindex_like(data)
@@ -197,7 +203,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
                                                      for iy in range(ys) for ix in range(xs))
     
         # rebuild the datasets to user-friendly format
-        das = [xr.open_dataarray(f, engine=self.engine, chunks=self.chunksize) for f in filenames]
+        das = [xr.open_dataarray(f, engine=self.engine, chunks=chunksize) for f in filenames]
         if xr.__version__ == '0.19.0':
             # for Google Colab
             das = xr.merge(das)
@@ -213,7 +219,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             if os.path.exists(filename):
                 os.remove(filename)
             das.sel(date=dt).to_netcdf(filename,
-                        encoding={'displacement': self.compression},
+                        encoding={'displacement': self.compression()},
                         engine=self.engine)
 
         # saving all the grids
