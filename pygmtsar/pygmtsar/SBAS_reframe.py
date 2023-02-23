@@ -74,7 +74,9 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
             pin2 = pins[1]
 
             df = self.get_master(subswath)
-            geom = df['geometry'].unary_union
+            # for 7+ stitched scenes SAT_llt2rat requires pins a bit inside the boundary geometry
+            # because the boundaries are not exact and cover some area outside
+            geom = df['geometry'].unary_union.buffer(-0.05)
             orbit = df['orbit'][0]
 
             # check the pins validity
@@ -147,12 +149,12 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         self.make_s1a_tops(subswath, date, debug=debug)
 
         prm = PRM.from_file(old_filename+'.PRM')
-        tmpazi = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1)[1]
+        tmpazi = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1, debug=debug)[1]
         if debug:
             print ('DEBUG: ','tmpazi', tmpazi)
         prm.shift_atime(tmpazi, inplace=True).update()
-        azi1 = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1)[1] + tmpazi
-        azi2 = prm.SAT_llt2rat([pins[2], pins[3], 0], precise=1)[1] + tmpazi
+        azi1 = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1, debug=debug)[1] + tmpazi
+        azi2 = prm.SAT_llt2rat([pins[2], pins[3], 0], precise=1, debug=debug)[1] + tmpazi
         if debug:
                 print ('DEBUG: ','azi1', azi1, 'azi2', azi2)
 
