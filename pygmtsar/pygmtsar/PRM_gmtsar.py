@@ -94,6 +94,8 @@ class PRM_gmtsar:
         #print ('descriptor 2', str(pipe2[0]))
 
         argv = ['SAT_baseline', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}']
+        if debug:
+            print ('DEBUG: argv', argv)
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
@@ -159,7 +161,10 @@ class PRM_gmtsar:
         # set binary format mode
         if binary:
             argv.append('-bod')
-        #print (argv)
+        if debug:
+            print ('DEBUG: argv', argv)
+        if debug and not binary and coords is not None:
+            print ('DEBUG: coords', coords)    
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe[0]],
@@ -220,6 +225,8 @@ class PRM_gmtsar:
         #                     cwd=cwd, encoding='ascii', shell=True)
         argv = ['resamp', f'/dev/stdin', f'/dev/fd/{pipe1[0]}',
                 f'/dev/fd/{pipe2[1]}', '/dev/stdout', str(interp)]
+        if debug:
+            print ('DEBUG: argv', argv)
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[1]],
@@ -272,7 +279,8 @@ class PRM_gmtsar:
         if topo_ra_fromfile is not None:
             argv.append('-topo')
             argv.append(os.path.relpath(topo_ra_fromfile,cwd))
-        #print ('argv', argv)
+        if debug:
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
                              cwd=cwd, encoding='ascii')
@@ -302,7 +310,8 @@ class PRM_gmtsar:
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         argv = ['make_gaussian_filter', '/dev/stdin',
                 str(range_dec), str(azi_dec), str(wavelength), f'/dev/fd/{pipe1[1]}']
-        #print ('argv', argv)
+        if debug:
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[1]],
                              cwd=cwd, encoding='ascii')
@@ -366,7 +375,8 @@ class PRM_gmtsar:
             output_filename = os.path.relpath(output_file, cwd)
 
         argv = ['conv', str(idec), str(jdec), input_filter_filename, input_filename, output_filename]
-        #print ('argv', argv)
+        if debug:
+            print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=fds,
                              cwd=cwd)
@@ -413,7 +423,8 @@ class PRM_gmtsar:
                 '-phasefilt', os.path.relpath(phasefilt_tofile, cwd),
                 '-corrfilt', os.path.relpath(corrfilt_tofile, cwd),
                 '-psize', str(psize)]
-        #print ('argv', argv)
+        if debug:
+            print ('DEBUG: argv', argv)
 
         p = subprocess.Popen(argv, stderr=subprocess.PIPE, cwd=cwd)
         stderr_data = p.communicate()[1]
@@ -462,7 +473,8 @@ class PRM_gmtsar:
         # set binary format mode
         if binary:
             argv.append('-bod')
-        #print (argv)
+        if debug:
+            print ('DEBUG: argv', argv)
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe[0]],
