@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
 	strcpy(tmp_str, argv[argc - 1]);
 	strcat(tmp_str, ".tiff");
-	if ((tif_out = TIFFOpen(tmp_str, "wb")) == NULL)
+	if ((tif_out = TIFFOpen(tmp_str, "w8")) == NULL)
 		die("Couldn't open tiff file: \n", tmp_str);
 	search_tree(xml_tree[0], "/product/swathTiming/linesPerBurst/", tmp_str, 1, 0, 1);
 	lpb = (int)str2double(tmp_str);
