@@ -25,7 +25,7 @@ dnl 1. Location of GMT include and library files
 dnl 2. Location of ORBITS directory
 dnl ------------------------------------------------------------------
 dnl
-AC_INIT([GMTSAR],[5.5.0],[gmtsar-l@ucsd.edu])
+AC_INIT([GMTSAR],[6.2.0],[gmtsar-l@ucsd.edu])
 dnl
 dnl ------------------------------------------------------------------
 dnl The remainder should need no editing
