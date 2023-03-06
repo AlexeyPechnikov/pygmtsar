@@ -6,6 +6,8 @@
 
 ## PyGMTSAR (Python GMTSAR) - Sentinel-1 Satellite Interferometry For Everyone
 
+Hint: You can sponsor PyGMTSAR software development on [Patreon](https://www.patreon.com/pechnikov).
+
 <img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" width="40%" />
 
 This repository based on forked original GMTSAR and extended by my patches to binary tools and Python library PyGMTSAR. I commit my changes to binary tools to GMTSAR upstream and so it's possible to use the original GMTSAR master branch installation plus PyGMTSAR Python package via PIP. The project documentation including installation instructions available by the link: https://mobigroup.github.io/gmtsar/
