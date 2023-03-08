@@ -27,7 +27,11 @@ RUN set -e \
 &&  autoconf \
 &&  ./configure --with-orbits-dir=${ORBITS} CFLAGS='-z muldefs' LDFLAGS='-z muldefs' \
 &&  make \
-&&  make install
+&&  make install \
+&&  cd gmtsar \
+&&  gcc -fopenmp -O2 -Wall -m64 -fPIC -fno-strict-aliasing -std=c99 -z muldefs -I/usr/include/gmt -I./ -I/usr/local/include -c -o sbas_parallel.o sbas_parallel.c \
+&&  gcc -fopenmp -m64 -s -Wl,-rpath,/usr/lib/x86_64-linux-gnu -z muldefs sbas_parallel.o -L$PWD -lgmtsar -L/usr/lib/x86_64-linux-gnu -lgmt -llapack -lblas -lm -L/usr/local/lib -ltiff -lm -o sbas_parallel \
+&&  cp sbas_parallel ../bin
 
 # add script to download orbits by user
 RUN echo "#!/bin/sh"                                  > ${GMTSAR}/bin/download_orbits.sh
