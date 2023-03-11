@@ -33,11 +33,15 @@ RUN pip3 install pygmtsar \
 # workaround for libgeos-dev issue
 RUN ln -s /usr/lib/aarch64-linux-gnu/libgeos_c.so /opt/conda/lib/libgeos_c.so || true
 
+# grant passwordless sudo rights
+RUN echo "${NB_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
 # switch user
 USER    ${NB_UID}
 WORKDIR "${HOME}"
 
-# download example notebooks and CI test scripts and cleanup work dir
+# download example notebooks and CI test scripts and cleanup
 RUN svn export https://github.com/mobigroup/gmtsar/trunk/notebooks \
+&& svn export https://github.com/mobigroup/gmtsar/trunk/pygmtsar/README.md \
 &&  svn export https://github.com/mobigroup/gmtsar/trunk/tests \
-&&  rm -rf notebooks/README.md work
+&&  rm -rf notebooks/README.md work notebooks/PyGMTSAR*ipynb
