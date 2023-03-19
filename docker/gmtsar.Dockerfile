@@ -17,6 +17,8 @@ RUN set -e \
 # define installation paths
 ARG GMTSAR=/usr/local/GMTSAR
 ARG ORBITS=/usr/local/orbits
+# for sbas_parallel compilation
+ARG FLAGS="-fopenmp -z muldefs -O2 -Wall -fPIC -fno-strict-aliasing -std=c99"
 
 # install GMTSAR from git
 RUN set -e \
@@ -29,8 +31,8 @@ RUN set -e \
 &&  make \
 &&  make install \
 &&  cd gmtsar \
-&&  gcc -fopenmp -O2 -Wall -m64 -fPIC -fno-strict-aliasing -std=c99 -z muldefs -I/usr/include/gmt -I./ -I/usr/local/include -c -o sbas_parallel.o sbas_parallel.c \
-&&  gcc -fopenmp -m64 -s -Wl,-rpath,/usr/lib/x86_64-linux-gnu -z muldefs sbas_parallel.o -L$PWD -lgmtsar -L/usr/lib/x86_64-linux-gnu -lgmt -llapack -lblas -lm -L/usr/local/lib -ltiff -lm -o sbas_parallel \
+&&  gcc $FLAGS -I/usr/include/gmt -I./ -I/usr/local/include -c -o sbas_parallel.o sbas_parallel.c \
+&&  gcc $FLAGS -s -Wl,-rpath,/usr/lib/x86_64-linux-gnu sbas_parallel.o -L$PWD -lgmtsar -lgmt -llapack -lblas -lm -ltiff -L/usr/lib/x86_64-linux-gnu -o sbas_parallel \
 &&  cp sbas_parallel ../bin
 
 # add script to download orbits by user
