@@ -101,7 +101,7 @@ int write_orb(state_vector *sv, FILE *fp, int n) {
 	double dt;
 
 	if (n <= 0) {
-		fprintf(stderr, "NO orbit coverage in the selected file...\n");
+		fprintf(stderr, "[ERROR]: NO orbit coverage in the selected file...\n");
 		return (-1);
 	}
 	else {
