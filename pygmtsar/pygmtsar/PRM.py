@@ -398,6 +398,7 @@ class PRM(datagrid, PRM_gmtsar):
         
         #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
         fill_3x3 = np.genfromtxt(filename_fill_3x3, skip_header=1)
+        # gauss_dec inconsistent, see https://github.com/gmtsar/gmtsar/issues/706
         gauss_dec, gauss_string = self.make_gaussian_filter(2, 1, wavelength=wavelength)
         #print (gauss_matrix_astext)
 
@@ -417,7 +418,7 @@ class PRM(datagrid, PRM_gmtsar):
         self.conv(1, 2, filter_file = filename_gauss5x5,
                   output_file=fullname('amp1_tmp.grd=bf'),
                   debug=debug)
-        self.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+        self.conv(1, 2, filter_string=gauss_string,
                   input_file=fullname('amp1_tmp.grd=bf'),
                   output_file=fullname('amp1.grd'),
                   debug=debug)
@@ -425,7 +426,7 @@ class PRM(datagrid, PRM_gmtsar):
         other.conv(1, 2, filter_file = filename_gauss5x5,
                    output_file=fullname('amp2_tmp.grd=bf'),
                    debug=debug)
-        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+        other.conv(1, 2, filter_string=gauss_string,
                    input_file=fullname('amp2_tmp.grd=bf'),
                    output_file=fullname('amp2.grd'),
                    debug=debug)
@@ -435,7 +436,7 @@ class PRM(datagrid, PRM_gmtsar):
                   input_file=fullname('real.grd=bf'),
                   output_file=fullname('real_tmp.grd=bf'),
                   debug=debug)
-        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+        other.conv(1, 2, filter_string=gauss_string,
                    input_file=fullname('real_tmp.grd=bf'),
                    output_file=fullname('realfilt.grd'),
                    debug=debug)
@@ -443,7 +444,7 @@ class PRM(datagrid, PRM_gmtsar):
                   input_file=fullname('imag.grd=bf'),
                   output_file=fullname('imag_tmp.grd=bf'),
                   debug=debug)
-        other.conv(gauss_dec[0], gauss_dec[1], filter_string=gauss_string,
+        other.conv(1, 2, filter_string=gauss_string,
                    input_file=fullname('imag_tmp.grd=bf'),
                    output_file=fullname('imagfilt.grd'),
                    debug=debug)
