@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='pygmtsar',
-    version='2023.2.21',
+    version='2023.4.1',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -51,5 +51,5 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.8'
     ],
-    python_requires='>=3.7'
+    python_requires='>=3.8'
 )
