@@ -251,8 +251,8 @@ class datagrid:
             # also supports geographic coordinates
             yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
             xname = [varname for varname in ['x', 'lon', 'r'] if varname in da.dims][0]
-            if debug:
-                print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
+            #if debug:
+            #    print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
             # avoid creating the large chunks
             with dask.config.set(**{'array.slicing.split_large_chunks': True}):
                 return da.coarsen({yname: yscale, xname: xscale}, boundary='trim').mean()
