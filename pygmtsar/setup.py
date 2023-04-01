@@ -16,7 +16,7 @@ setup(
     url='https://github.com/mobigroup/gmtsar',
     author='Alexey Pechnikov',
     author_email='pechnikov@mobigroup.ru',
-    license='GPL-3.0',
+    license='BSD-3-Clause',
     packages=['pygmtsar'],
     install_requires=['xarray>=0.19.0',
                       'importlib-metadata<=4.12.0',
@@ -44,12 +44,12 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'License :: OSI Approved :: BSD License',
         'Operating System :: POSIX',
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.7'
+        'Programming Language :: Python :: 3.8'
     ],
     python_requires='>=3.7'
 )
