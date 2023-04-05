@@ -187,7 +187,8 @@ class SBAS_detrend(SBAS_unwrap):
         import numpy as np
 
         if wavelength is None:
-            print ('NOTE: Gaussian filter cut-off wavelength is not defined, function does nothing')
+            if debug:
+                print ('DEBUG: Gaussian filter cut-off wavelength is not defined, function does nothing')
             return dataarray
 
         # input grid can be too large
