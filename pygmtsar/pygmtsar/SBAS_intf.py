@@ -35,26 +35,24 @@ class SBAS_intf(SBAS_topo_ra):
         # for now (Python 3.10.10 on MacOS) joblib loads the code from disk instead of copying it
         kwargs['chunksize'] = self.chunksize
         
-        # this way does not work properly for long interferogram series
-        with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
-                for subswath in subswaths for pair in pairs)
+        # this way does not work properly for long interferogram series on MacOS
+        # see https://github.com/mobigroup/gmtsar/commit/3eea6a52ddc608639e5e06306bce2f973a184fd6
+        #with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs)*len(subswaths))) as progress_bar:
+        #    joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
+        #        for subswath in subswaths for pair in pairs)
 
-        # start a set of jobs together but not more than available cpu cores at once
-        #if n_jobs == -1:
-        #    n_jobs = joblib.cpu_count()
-        #n_chunks = int(np.ceil(len(pairs)/n_jobs))
-        #chunks = np.array_split(pairs, n_chunks)
+        # workaround: start a set of jobs together but not more than available cpu cores at once
+        from joblib.externals import loky
+        if n_jobs == -1:
+            n_jobs = joblib.cpu_count()
+        subpairs = [(subswath,pair) for subswath in subswaths for pair in pairs]
+        n_chunks = int(np.ceil(len(subpairs)/n_jobs))
+        chunks = np.array_split(subpairs, n_chunks)
         #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
-        #with tqdm(desc='Interferograms', total=len(pairs)*len(subswaths)) as pbar:
-        #    for chunk in chunks:
-        #        joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
-        #            for subswath in subswaths for pair in chunk)
-        #        pbar.update(len(chunk)*len(subswaths))
-
-        # backward compatibility wrapper
-        # for a single subswath don't need to call SBAS.merge_parallel()
-        # for subswaths merging and total coordinate transformation matrices creation 
-        #if len(subswaths) == 1:
-        #    # build geo transform matrices for interferograms
-        #    self.transforms(subswaths[0], pairs)
+        with tqdm(desc='Interferograms', total=len(subpairs)) as pbar:
+            for chunk in chunks:
+                loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
+                with joblib.parallel_backend('loky', n_jobs=n_jobs):
+                    joblib.Parallel()(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
+                        for (subswath,pair) in chunk)
+                    pbar.update(len(chunk))
