@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# TODO: xarray 2023.3.0 requires pandas<2,>=1.4
 
 from setuptools import setup
 
@@ -19,9 +20,9 @@ setup(
     license='BSD-3-Clause',
     packages=['pygmtsar'],
     install_requires=['xarray>=0.19.0',
-                      'importlib-metadata<=4.12.0',
+                      'importlib-metadata',
                       'numpy>=1.22.4',
-                      'pandas',
+                      'pandas<2,>=1.4',
                       'geopandas',
                       'distributed>=2022.11.1',
                       'dask[complete]',
