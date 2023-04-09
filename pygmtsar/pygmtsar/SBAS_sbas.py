@@ -30,14 +30,14 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         #    #print (dt, date)
         #    ondemand(dt)
         with self.tqdm_joblib(tqdm(desc='PRM generation', total=len(datetimes))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in datetimes.iteritems())
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in datetimes.items())
     
         # after merging use unmerged subswath PRM files
         # calc_dop_orb() required for SAT_baseline
         master_dt = datetimes[self.master]
         prm_ref = PRM().from_file(get_filename(master_dt)).calc_dop_orb(inplace=True)
         data = []
-        for (date, dt) in datetimes.iteritems():
+        for (date, dt) in datetimes.items():
             # after merging use unmerged subswath PRM files
             prm_rep = PRM().from_file(get_filename(dt))
             ST0 = prm_rep.get('SC_clock_start')
