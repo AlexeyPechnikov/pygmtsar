@@ -20,7 +20,7 @@ setup(
     license='BSD-3-Clause',
     packages=['pygmtsar'],
     install_requires=['xarray>=0.19.0',
-                      'importlib-metadata',
+                      'importlib-metadata<=4.12.0',
                       'numpy>=1.22.4',
                       'pandas<2,>=1.4',
                       'geopandas',
