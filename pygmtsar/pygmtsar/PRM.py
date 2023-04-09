@@ -574,7 +574,7 @@ class PRM(datagrid, PRM_gmtsar):
         """
         conf_custom = '# custom config\n'
         # defomax can be None
-        keyvalues = [('DEFOMAX_CYCLE', defomax)] if defomax is not None else [] + list(kwargs.items())
+        keyvalues = ([('DEFOMAX_CYCLE', defomax)] if defomax is not None else []) + list(kwargs.items())
         for key, value in keyvalues:
             if isinstance(value, bool):
                 value = 'TRUE' if value else 'FALSE'
