@@ -22,7 +22,7 @@ setup(
     install_requires=['xarray>=0.19.0',
                       'importlib-metadata',
                       'numpy<1.24,>=1.22.4',
-                      'pandas<2,>=1.4',
+                      'pandas>=1.4',
                       'geopandas',
                       'distributed>=2022.11.1',
                       'dask[complete]',
