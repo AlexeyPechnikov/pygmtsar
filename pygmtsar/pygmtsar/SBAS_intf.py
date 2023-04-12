@@ -45,7 +45,8 @@ class SBAS_intf(SBAS_topo_ra):
         from joblib.externals import loky
         if n_jobs == -1:
             n_jobs = joblib.cpu_count()
-        subpairs = [(subswath,pair) for subswath in subswaths for pair in pairs]
+        # create list of arrays [subswath, date1, date2] where all the items are strings
+        subpairs = [[subswath, pair[0], pair[1]] for subswath in subswaths for pair in pairs]
         n_chunks = int(np.ceil(len(subpairs)/n_jobs))
         chunks = np.array_split(subpairs, n_chunks)
         #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
@@ -53,6 +54,7 @@ class SBAS_intf(SBAS_topo_ra):
             for chunk in chunks:
                 loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
                 with joblib.parallel_backend('loky', n_jobs=n_jobs):
-                    joblib.Parallel()(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
-                        for (subswath,pair) in chunk)
+                    # convert string subswath to integer value
+                    joblib.Parallel()(joblib.delayed(self.intf)(int(subswath), [date1, date2], **kwargs) \
+                        for (subswath,date1,date2) in chunk)
                     pbar.update(len(chunk))
