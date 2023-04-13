@@ -80,8 +80,8 @@ class SBAS_geocode(SBAS_sbas):
         import numpy as np
 
         # helper check
-        if not 'y' in grids.dims and 'x' in grid.dims:
-            print ('NOTE: the grid is not in geograpphic coordinates, miss geocoding')
+        if not 'y' in grids.dims or not 'x' in grids.dims:
+            print ('NOTE: the input grid is not in radar coordinates, miss geocoding')
             return grids
 
         # unify the input grids for transform matrix defined on the intf grid (y, x)
@@ -239,8 +239,8 @@ class SBAS_geocode(SBAS_sbas):
         import numpy as np
 
         # helper check
-        if not 'lat' in grids.dims and 'lon' in grid.dims:
-            print ('NOTE: the grid is not in geograpphic coordinates, miss geocoding')
+        if not 'lat' in grids.dims or not 'lon' in grids.dims:
+            print ('NOTE: the grid is not in geographic coordinates, miss geocoding')
             return grids
 
         # unify the input grids for transform matrix defined on the trans_dat grid (lat, lon)
