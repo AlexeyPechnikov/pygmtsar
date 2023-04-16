@@ -393,11 +393,11 @@ class PRM(datagrid, PRM_gmtsar):
         gmtsar_sharedir = self.gmtsar_sharedir()
 
         filename_fill_3x3  = os.path.join(gmtsar_sharedir, 'filters', 'fill.3x3')
-        filename_boxcar3x5 = os.path.join(gmtsar_sharedir, 'filters', 'boxcar.3x5')
         filename_gauss5x5  = os.path.join(gmtsar_sharedir, 'filters', 'gauss5x5')
         
         #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
         fill_3x3 = np.genfromtxt(filename_fill_3x3, skip_header=1)
+        gauss5x5 = np.genfromtxt(filename_gauss5x5, skip_header=1)
         # gauss_dec inconsistent, see https://github.com/gmtsar/gmtsar/issues/706
         gauss_dec, gauss_string = self.make_gaussian_filter(2, 1, wavelength=wavelength)
         #print (gauss_matrix_astext)
