@@ -1,6 +1,17 @@
 ## Check GMTSAR Utility phasefilt Function make_wgt
 
+### Notes
+
 Matrix should be 2n*2m size.
+
+```
+	/* create weights for each patch 				*/
+	/* each patch overlaps each other by half and summed 		*/
+	/* ideally, total wgt for each pixl = 1				*/
+	/* except at edges...						*/
+```
+
+
 
 ### Make Test
 
