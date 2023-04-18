@@ -777,7 +777,7 @@
 # clean up
 # 
     mkdir -p intf
-    cleanup.csh intf
+#    cleanup.csh intf
 # 
 # make and filter interferograms
 # 
