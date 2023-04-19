@@ -31,7 +31,10 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         if mask is not None:
             assert self.is_ra(mask), 'ERROR: mask should be defined in radar coordinates'
             # define mask on the same grid as phase and convert to boolean
-            binmask = xr.where(mask.interp_like(phase)>0, 1, 0).astype(bool)
+            binmask = xr.where(mask>0, 1, 0).astype(bool)
+            # crop the area to the mask extent
+            phase = phase.interp_like(binmask)
+            corr = corr.interp_like(binmask)
         else:
             binmask = 1
         # add threshold mask
@@ -53,10 +56,6 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         unwrap_out = basename + 'unwrap.out'
         conncomp_out = basename + 'conncomp.out'
 
-        if mask is not None:
-            phase = phase.reindex_like(binmask)
-            corr = corr.reindex_like(binmask)
-
         # cleanup from previous runs
         for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out] \
                       + [conncomp_filename, unwrap_filename] if not interactive else []:
@@ -69,7 +68,7 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         # prepare SNAPHU input files
         # NaN values are not allowed for SNAPHU phase input file
         # interpolate when exist valid values around and fill zero pixels far away from valid ones
-        self.nearest_grid(phase.where(binmask)).fillna(0).astype(np.float32).values.tofile(phase_in)
+        self.nearest_grid(phase.where(binmask>0)).fillna(0).astype(np.float32).values.tofile(phase_in)
         # NaN values are not allowed for SNAPHU correlation input file
         # just fill NaNs by zeroes because the main trick is phase filling
         corr.fillna(0).astype(np.float32).values.tofile(corr_in)
@@ -104,7 +103,7 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         # apply user-defined function for post-processing
         if func is not None:
             # the both grids should have the right chunksize
-            unwrap = func(corrmasked, unwrap)
+            unwrap = func(corr.where(binmask>0), unwrap)
         # apply binary mask after the post-processing to completely exclude masked regions
         # NaN values allowed in the output grid, assign userfriendly name for the output grid
         unwrap = unwrap.where(binmask>0).rename('phase')
