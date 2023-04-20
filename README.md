@@ -59,8 +59,8 @@ These notebooks provide interactive examples directly in your web browser. All s
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xhVedrIvNS66jGKgS30Dgqy0S31uJ8gm?usp=sharing) **GMTSAR example dataset S1A_Stack_CPGF_T173** This example demonstrates the SBAS analysis and detrending approach to remove atmospheric noise for improved results. Additionally, an OpenStreetMap roads mask is used to unwrap and analyze only the roads with a buffer around them.
 
-<img src="https://user-images.githubusercontent.com/7342379/231817853-2e8ab801-fbe6-48a1-8074-bd27b607c127.png" width="50%">
-<img src="https://user-images.githubusercontent.com/7342379/231818488-4254a82b-62de-4b66-b92c-e0dcc6026e31.png" width="50%">
+<img src="https://user-images.githubusercontent.com/7342379/233364597-db66cf85-a748-4188-8cd1-f9fa739da228.png" width="50%">
+<img src="https://user-images.githubusercontent.com/7342379/233364568-eb42f7a6-6685-46b6-8f8b-bae9de1f6a0b.png" width="50%">
 
 ### More Complex Notebooks Still Available on Google Colab
 
