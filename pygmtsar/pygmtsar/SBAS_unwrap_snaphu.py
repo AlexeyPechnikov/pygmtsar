@@ -7,7 +7,7 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
-    def unwrap(self, pair, threshold=1e-6, conf=None, func=None, mask=None, conncomp=False,
+    def unwrap(self, pair, threshold=1e-3, conf=None, func=None, mask=None, conncomp=False,
                phase='phasefilt', corr='corr', interactive=True, chunksize=None, debug=False):
         import xarray as xr
         import numpy as np
@@ -20,21 +20,23 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
 
         if conf is None:
             conf = self.PRM().snaphu_config()
-
+    
         # open input data grids if needed
         if isinstance(phase, str):
             phase = self.open_grids([pair], phase, chunksize=chunksize, interactive=False)[0]
         if isinstance(corr, str):
             corr = self.open_grids([pair], corr, chunksize=chunksize, interactive=False)[0]
-
+        if mask is not None and isinstance(mask, str):
+            mask = self.open_grids(None, mask, chunksize=chunksize, interactive=False)
+        
         # convert user-defined mask to boolean mask (NaN values converted to 0)
         if mask is not None:
             assert self.is_ra(mask), 'ERROR: mask should be defined in radar coordinates'
             # define mask on the same grid as phase and convert to boolean
             binmask = xr.where(mask>0, 1, 0).astype(bool)
-            # crop the area to the mask extent
-            phase = phase.interp_like(binmask)
-            corr = corr.interp_like(binmask)
+            # unify grids to maybe smallest mask
+            phase = phase.reindex_like(mask)
+            corr = corr.reindex_like(mask)
         else:
             binmask = 1
         # add threshold mask
@@ -68,10 +70,10 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         # prepare SNAPHU input files
         # NaN values are not allowed for SNAPHU phase input file
         # interpolate when exist valid values around and fill zero pixels far away from valid ones
-        self.nearest_grid(phase.where(binmask>0)).fillna(0).astype(np.float32).values.tofile(phase_in)
+        self.nearest_grid(phase.where(binmask)).fillna(0).astype(np.float32).values.tofile(phase_in)
         # NaN values are not allowed for SNAPHU correlation input file
         # just fill NaNs by zeroes because the main trick is phase filling
-        corr.fillna(0).astype(np.float32).values.tofile(corr_in)
+        corr.where(binmask).fillna(0).astype(np.float32).values.tofile(corr_in)
 
         # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
         argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
@@ -103,10 +105,10 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         # apply user-defined function for post-processing
         if func is not None:
             # the both grids should have the right chunksize
-            unwrap = func(corr.where(binmask>0), unwrap)
+            unwrap = func(corr.where(binmask), unwrap)
         # apply binary mask after the post-processing to completely exclude masked regions
         # NaN values allowed in the output grid, assign userfriendly name for the output grid
-        unwrap = unwrap.where(binmask>0).rename('phase')
+        unwrap = unwrap.where(binmask).rename('phase')
 
         # the output files required for interactive output
         for tmp_file in [phase_in, corr_in] + [unwrap_out, conncomp_out] if not interactive else []:
