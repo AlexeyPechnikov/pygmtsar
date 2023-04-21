@@ -4,13 +4,15 @@
 #
 # Script to create DEM for GMTSAR, relative to WGS84 ellipsoid
 #
-  if ($#argv != 4) then
+  if ($#argv != 4 && $#argv != 5) then
     echo ""
-    echo "Usage: make_dem.csh W E S N"
-    echo "      Uses GMT server to download SRTM 1-arcsec data (@earth_relief_01s)"
+    echo "Usage: make_dem.csh W E S N [mode]"
+    echo "      Uses GMT server to download SRTM 1-arcsec data (@earth_relief_xxs)"
     echo "      and removes the EGM96 geoid to make heights relative to WGS84."
     echo ""
-    echo "Example: make_dem.csh -115 -112 32 35"
+    echo "      mode 1:SRTM-1s 2:SRTM-3s"
+    echo ""
+    echo "Example: make_dem.csh -115 -112 32 35 2"
     echo ""
     exit 1
   endif
@@ -18,6 +20,13 @@
   echo ""
   echo "START: make_dem.csh"
   echo ""
+
+  if ($#argv == 5) then
+    set mode = $5
+  else
+    set mode = 1
+  endif
+
 #
 # get region in GMT format
 #
@@ -29,12 +38,18 @@
 #
 # get srtm data
 #
-  gmt grdcut @earth_relief_01s $R -Gdem_ortho.grd -V
+  if ($mode == 1) then
+    gmt grdcut @earth_relief_01s $R -Gdem_ortho.grd
+  else if ($mode == 2) then
+    gmt grdcut @earth_relief_03s $R -Gdem_ortho.grd 
+  else 
+    echo "[ERROR]:Wrong DEM mode selected."
+  endif
 #
 # resample and remove geoid
 #
-  gmt grdsample $sharedir/geoid_egm96_icgem.grd -Rdem_ortho.grd -Ggeoid_resamp.grd -V
-  gmt grdmath -V dem_ortho.grd geoid_resamp.grd ADD = dem.grd
+  gmt grdsample $sharedir/geoid_egm96_icgem.grd -Rdem_ortho.grd -Ggeoid_resamp.grd -Vq
+  gmt grdmath -Vq dem_ortho.grd geoid_resamp.grd ADD = dem.grd
 #
 # clean up 
 #
