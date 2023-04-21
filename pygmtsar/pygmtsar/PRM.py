@@ -5,7 +5,7 @@ from .PRM_gmtsar import PRM_gmtsar
 
 class PRM(datagrid, PRM_gmtsar):
 
-    # replacement function for GMT based robust 2D trend coefficient calculations:
+    # my replacement function for GMT based robust 2D trend coefficient calculations:
     # gmt trend2d r.xyz -Fxyzmw -N1r -V
     # gmt trend2d r.xyz -Fxyzmw -N2r -V
     # gmt trend2d r.xyz -Fxyzmw -N3r -V
@@ -13,7 +13,7 @@ class PRM(datagrid, PRM_gmtsar):
     # 3 model parameters
     # rank = 3 => nu = size-3
     @staticmethod
-    def GMT_trend2d(data, rank):
+    def robust_trend2d(data, rank):
         import numpy as np
         from sklearn.linear_model import LinearRegression
         # scale factor for normally distributed data is 1.4826
@@ -76,6 +76,55 @@ class PRM(datagrid, PRM_gmtsar):
 
         # get the slope and intercept of the line best fit
         return (coeffs[:rank])
+
+#     # standalone function is compatible but it is too slow while it should not be a problem
+#     @staticmethod
+#     def robust_trend2d(data, rank):
+#         import numpy as np
+#         import statsmodels.api as sm
+# 
+#         if rank not in [1, 2, 3]:
+#             raise Exception('Number of model parameters "rank" should be 1, 2, or 3')
+# 
+#         if rank in [2, 3]:
+#             x = data[:, 0]
+#             x = np.interp(x, (x.min(), x.max()), (-1, +1))
+#         if rank == 3:
+#             y = data[:, 1]
+#             y = np.interp(y, (y.min(), y.max()), (-1, +1))
+#         z = data[:, 2]
+# 
+#         if rank == 1:
+#             X = sm.add_constant(np.ones(z.shape))
+#         elif rank == 2:
+#             X = sm.add_constant(x)
+#         elif rank == 3:
+#             X = sm.add_constant(np.column_stack((x, y)))
+# 
+#         # Hampel weighting function looks the most accurate for noisy data
+#         rlm_model = sm.RLM(z, X, M=sm.robust.norms.Hampel())
+#         rlm_results = rlm_model.fit()
+# 
+#         return rlm_results.params[:rank]
+
+#     # calculate MSE (optional)
+#     @staticmethod
+#     def robust_trend2d_mse(data, coeffs, rank):
+#         import numpy as np
+# 
+#         x = data[:, 0]
+#         y = data[:, 1]
+#         z_actual = data[:, 2]
+# 
+#         if rank == 1:
+#             z_predicted = coeffs[0]
+#         elif rank == 2:
+#             z_predicted = coeffs[0] + coeffs[1] * x
+#         elif rank == 3:
+#             z_predicted = coeffs[0] + coeffs[1] * x + coeffs[2] * y
+# 
+#         mse = np.mean((z_actual - z_predicted) ** 2)
+#         return mse
 
     @staticmethod
     def from_list(prm_list):
@@ -304,23 +353,26 @@ class PRM(datagrid, PRM_gmtsar):
         if rng.shape[0] < 8:
             raise Exception(f'FAILED - not enough points to estimate parameters, try lower SNR ({rng.shape[0]} < 8)')
 
-        rng_coef = PRM.GMT_trend2d(rng, rank_rng)
-        azi_coef = PRM.GMT_trend2d(azi, rank_azi)
+        rng_coef = PRM.robust_trend2d(rng, rank_rng)
+        azi_coef = PRM.robust_trend2d(azi, rank_azi)
+
+        # print MSE (optional)
+        #rng_mse = PRM.robust_trend2d_mse(rng, rng_coef, rank_rng)
+        #azi_mse = PRM.robust_trend2d_mse(azi, azi_coef, rank_azi)
+        #print ('rng_mse_norm', rng_mse/len(rng), 'azi_mse_norm', azi_mse/len(azi))
 
         # range and azimuth data ranges
         scale_coef = [np.min(rng[:,0]), np.max(rng[:,0]), np.min(rng[:,1]), np.max(rng[:,1])]
 
-        rng_coef += scale_coef
-        azi_coef += scale_coef
-        #print ('rng_coef, rng_coef)
-        #print ('azi_coef, azi_coef)
+        #print ('rng_coef', rng_coef)
+        #print ('azi_coef', azi_coef)
 
         # now convert to range coefficients
-        rshift = rng_coef[0] - rng_coef[1]*(rng_coef[4]+rng_coef[3])/(rng_coef[4]-rng_coef[3]) \
-            - rng_coef[2]*(rng_coef[6]+rng_coef[5])/(rng_coef[6]-rng_coef[5])
+        rshift = rng_coef[0] - rng_coef[1]*(scale_coef[1]+scale_coef[0])/(scale_coef[1]-scale_coef[0]) \
+            - rng_coef[2]*(scale_coef[3]+scale_coef[2])/(scale_coef[3]-scale_coef[2])
         # now convert to azimuth coefficients
-        ashift = azi_coef[0] - azi_coef[1]*(azi_coef[4]+azi_coef[3])/(azi_coef[4]-azi_coef[3]) \
-            - azi_coef[2]*(azi_coef[6]+azi_coef[5])/(azi_coef[6]-azi_coef[5])
+        ashift = azi_coef[0] - azi_coef[1]*(scale_coef[1]+scale_coef[0])/(scale_coef[1]-scale_coef[0]) \
+            - azi_coef[2]*(scale_coef[3]+scale_coef[2])/(scale_coef[3]-scale_coef[2])
         #print ('rshift', rshift, 'ashift', ashift)
 
         # note: Python x % y expression and nympy results are different to C, use math function
@@ -328,12 +380,12 @@ class PRM(datagrid, PRM_gmtsar):
         prm = PRM().set(gformat=True,
                         rshift     =int(rshift) if rshift>=0 else int(rshift)-1,
                         sub_int_r  =math.fmod(rshift, 1)  if rshift>=0 else math.fmod(rshift, 1) + 1,
-                        stretch_r  =rng_coef[1]*2/(rng_coef[4]-rng_coef[3]),
-                        a_stretch_r=rng_coef[2]*2/(rng_coef[6]-rng_coef[5]),
+                        stretch_r  =rng_coef[1]*2/(scale_coef[1]-scale_coef[0]),
+                        a_stretch_r=rng_coef[2]*2/(scale_coef[3]-scale_coef[2]),
                         ashift     =int(ashift) if ashift>=0 else int(ashift)-1,
                         sub_int_a  =math.fmod(ashift, 1)  if ashift>=0 else math.fmod(ashift, 1) + 1,
-                        stretch_a  =azi_coef[1]*2/(azi_coef[4]-azi_coef[3]),
-                        a_stretch_a=azi_coef[2]*2/(azi_coef[6]-azi_coef[5]),
+                        stretch_a  =azi_coef[1]*2/(scale_coef[1]-scale_coef[0]),
+                        a_stretch_a=azi_coef[2]*2/(scale_coef[3]-scale_coef[2]),
                        )
 
         return prm
