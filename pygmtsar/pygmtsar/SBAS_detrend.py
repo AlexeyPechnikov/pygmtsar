@@ -4,6 +4,16 @@ from .SBAS_unwrap import SBAS_unwrap
 
 class SBAS_detrend(SBAS_unwrap):
 
+    def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
+            resolution_meters=90, wavelength=None, truncate=3.0, debug=False):
+
+        out1 = self._degaussian(dataarray, wavelength=wavelength, truncate=truncate,
+                                         resolution_meters=resolution_meters, debug=debug)
+        out2 = self._detrend(out1, fit_intercept=fit_intercept, fit_dem=fit_dem, fit_coords=fit_coords,
+                resolution_meters=resolution_meters, debug=debug)
+
+        return out2
+
     def detrend_parallel(self, pairs=None, n_jobs=-1, interactive=False, **kwargs):
         import dask
         import pandas as pd
@@ -17,28 +27,13 @@ class SBAS_detrend(SBAS_unwrap):
 
         def func(pair, **kwargs):
             #print (f'**kwargs {kwargs}')
-            grid = self.open_grids([pair], 'unwrap', interactive=False)
-
-            # without any processing options return the input as is
-            out = grid[0]
-
-            if 'wavelength' in kwargs:
-                kwargs1 = {k:v for k,v in kwargs.items() if k in ['wavelength', 'truncate', 'resolution_meters', 'debug']}
-                #print (f'kwargs1 {kwargs1}')
-                out = self.degaussian(out, **kwargs1)
-
-            kwargs2 = {k:v for k,v in kwargs.items() if k in ['fit_intercept', 'fit_dem', 'fit_coords',
-                                                              'resolution_meters', 'debug']}
-            #print (f'kwargs2 {kwargs2}')
+            grid = self.open_grids([pair], 'unwrap', interactive=False)[0]
             # ignore detrending when all the fits are disabled
-            out = self.detrend(out, **kwargs2)
-
+            out = self.detrend(grid, **kwargs)
             if interactive:
                 return out
-
             # prepare pipeline for processing and saving
             delayed = self.save_grids([out], 'detrend', interactive=False)
-
             # perform the pipeline
             dask.persist(delayed)
 
@@ -49,7 +44,7 @@ class SBAS_detrend(SBAS_unwrap):
         if interactive:
             return results
 
-    def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
+    def _detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
                 resolution_meters=90, debug=False):
         """
         Detrend unwrapped interferogram in radar coordinates, see for details
@@ -104,19 +99,19 @@ class SBAS_detrend(SBAS_unwrap):
 
         # lazy calculations are useless below
         def data2fit(data, elev, yy, xx):
-            y = data.reshape(-1)
+            y = data.values.reshape(-1) if isinstance(data, xr.DataArray) else data.reshape(-1)
             nanmask = np.isnan(y)
             # prepare regression variable
             Y = y[~nanmask]
 
             if fit_coords or fit_dem:
                 # prepare coordinates for X regression variable
-                ys = yy.reshape(-1)[~nanmask]
-                xs = xx.reshape(-1)[~nanmask]
+                ys = (yy.values.reshape(-1) if isinstance(yy, xr.DataArray) else yy.reshape(-1))[~nanmask]
+                xs = (xx.values.reshape(-1) if isinstance(xx, xr.DataArray) else xx.reshape(-1))[~nanmask]
 
             if fit_dem:
                 # prepare topography for X regression variable
-                zs = elev.reshape(-1)[~nanmask]
+                zs = (elev.values.reshape(-1) if isinstance(elev, xr.DataArray) else elev.reshape(-1))[~nanmask]
                 zys = zs*ys
                 zxs = zs*xs
 
@@ -130,15 +125,15 @@ class SBAS_detrend(SBAS_unwrap):
 
         if debug:
             print ('DEBUG: linear regression calculation')
-    
+
         def regr_fit():
             # build prediction model with or without plane removal (fit_intercept)
             regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
             yy, xx = xr.broadcast(dataarray_dec.y, dataarray_dec.x)
-            Y, X, _ = data2fit(dataarray_dec.values, topo_dec.values, yy.values, xx.values)
-        
+            Y, X, _ = data2fit(dataarray_dec, topo_dec, yy, xx)
+
             return regr.fit(X, Y)
-    
+
         # calculate for chunks
         def predict(data, elev, yy, xx, regr):
             Y, X, nanmask = data2fit(data, elev, yy, xx)
@@ -150,7 +145,7 @@ class SBAS_detrend(SBAS_unwrap):
             model.reshape(-1)[~nanmask] = regr.predict(X)
             # return data without the trend
             return data - model
-    
+
         def regr_predict(regr):
             yy = xr.DataArray(dataarray.y).chunk(-1)
             xx = xr.DataArray(dataarray.x).chunk(-1)
@@ -160,7 +155,7 @@ class SBAS_detrend(SBAS_unwrap):
             return xr.apply_ufunc(
                 predict,
                 dataarray,
-                topo.chunk(dataarray.chunks),
+                topo.chunk(dataarray.chunks) if topo is not None else None,
                 yy.chunk(dataarray.chunks),
                 xx.chunk(dataarray.chunks),
                 dask='parallelized',
@@ -168,11 +163,11 @@ class SBAS_detrend(SBAS_unwrap):
                 output_dtypes=[np.float32],
                 dask_gufunc_kwargs={'regr': regr},
             )
-    
+
         # build the model and return the input data without the detected trend
         return postprocessing(regr_predict(regr_fit()))
 
-    def degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
+    def _degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
         """
         Lazy Gaussian filter for arrays with NaN values.
             dataarray - input dataarray with NaNs allowed,
