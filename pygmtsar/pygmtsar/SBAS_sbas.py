@@ -143,7 +143,13 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
                     return np.nan * np.zeros(matrix.shape[1])
             # least squares solution
             W = (w/np.sqrt(1-w**2))
-            model = np.linalg.lstsq(matrix * W[:,np.newaxis], x * W, rcond=None)
+            try:
+                model = np.linalg.lstsq(matrix * W[:,np.newaxis], x * W, rcond=None)
+            except Exception as e:
+                # typically, this error handled:
+                # LinAlgError: SVD did not converge in Linear Least Squares
+                print ('SBAS notice:', str(e))
+                return np.nan * np.zeros(matrix.shape[1])
             #print ('model', model)
             return model[0]
 
