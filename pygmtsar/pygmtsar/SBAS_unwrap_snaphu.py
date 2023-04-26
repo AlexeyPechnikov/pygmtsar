@@ -102,13 +102,15 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
         #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
         unwrap = xr.DataArray(values, phase.coords).chunk(chunksize)
+        # NaN values allowed in the output grid, assign userfriendly name for the output grid
+        unwrap = unwrap.where(binmask)
         # apply user-defined function for post-processing
         if func is not None:
             # the both grids should have the right chunksize
-            unwrap = func(corr.where(binmask), unwrap)
-        # apply binary mask after the post-processing to completely exclude masked regions
-        # NaN values allowed in the output grid, assign userfriendly name for the output grid
-        unwrap = unwrap.where(binmask).rename('phase')
+            # mask invalid area on correlation grid
+            unwrap = func(corr, unwrap).where(~np.isnan(corr))
+        # rename after all the processing
+        unwrap = unwrap.rename('phase')
 
         # the output files required for interactive output
         for tmp_file in [phase_in, corr_in] + [unwrap_out, conncomp_out] if not interactive else []:
