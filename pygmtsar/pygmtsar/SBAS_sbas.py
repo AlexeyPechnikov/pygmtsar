@@ -2,8 +2,187 @@
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 from .SBAS_sbas_gmtsar import SBAS_sbas_gmtsar
 from .PRM import PRM
+from .tqdm_dask import tqdm_dask
 
 class SBAS_sbas(SBAS_sbas_gmtsar):
+
+    # single-pixel processing function
+    # compute least squares when w = None and weighted least squares otherwise
+    @staticmethod
+    def sbas_fit_lstsq(x, w, matrix):
+        import numpy as np
+
+        if w is None:
+            # allow not weighted Least Squares
+            w = 0.5 * np.ones_like(x)
+        elif np.any(np.isnan(w)):
+            # ignore pixels where correlation is not defined
+            return np.nan * np.zeros(matrix.shape[1])
+
+        # fill nans as zeroes and set corresponding weight to 0
+        nanmask = np.where(np.isnan(x))
+        if nanmask[0].size > 0:
+            # function arguments are read-only
+            x = x.copy()
+            w = w.copy()
+            x[nanmask] = 0
+            w[nanmask] = 0
+            # check if x has enough valid values
+            if x.size - nanmask[0].size < matrix.shape[1]:
+                return np.nan * np.zeros(matrix.shape[1])
+        try:
+            if np.all(w == 1):
+                # least squares solution
+                model = np.linalg.lstsq(matrix, x, rcond=None)
+            else:
+                # weighted least squares solution
+                W = (w/np.sqrt(1-w**2))
+                model = np.linalg.lstsq(matrix * W[:,np.newaxis], x * W, rcond=None)
+        except Exception as e:
+            # typically, this error handled:
+            # LinAlgError: SVD did not converge in Linear Least Squares
+            print ('SBAS.fit_lstsq notice:', str(e))
+            return np.nan * np.zeros(matrix.shape[1])
+        #print ('model', model)
+        return model[0]
+
+    @staticmethod
+    def sbas_fit_lstsq_matrix(pairs):
+        import numpy as np
+
+        # define all the dates as unique reference and repeat dates
+        dates = np.unique(pairs.flatten())
+        # here are one row for every interferogram and one column for every date
+        matrix = []
+        for pair in pairs:
+            mrow = [date>pair[0] and date<=pair[1] for date in dates]
+            matrix.append(mrow)
+        matrix = np.stack(matrix).astype(int)
+        return matrix
+
+    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr',
+                      chunks=None, chunksize=None, n_jobs=-1, interactive=False):
+        import xarray as xr
+        import numpy as np
+        import pandas as pd
+        import dask
+        from tqdm.auto import tqdm
+        import joblib
+        import os
+
+        if mask is not None:
+            print ('NOTE: "mask" argument support is removed. Use "data" and corr" arguments instead')
+
+        if chunks is not None:
+            print ('NOTE: use "chunksize" argument instead of "chunks"')
+        if chunksize is None:
+            # smaller chunks are better for large 3D grids processing
+            chunksize = self.chunksize
+        #print ('chunksize', chunksize)
+
+        if pairs is None:
+            pairs = self.find_pairs()
+        elif isinstance(pairs, pd.DataFrame):
+            pairs = pairs.values
+        else:
+            pairs = np.asarray(pairs)
+        # define all the dates as unique reference and repeat dates
+        dates = np.unique(pairs.flatten())
+    
+        # split large stacks to chunks about chunksize ^ 3
+        minichunksize = chunksize**2 / len(pairs)
+        # round to 2**deg (32,  64, 128,..., 2048)
+        chunkdegrees = np.array([2**deg for deg in range(5,12) if 2**deg <= chunksize])
+        minichunksize = int(chunkdegrees[np.abs(chunkdegrees-minichunksize).argmin()])
+        #print ('minichunksize', minichunksize)
+
+        # source grids lazy loading
+        if isinstance(corr, str):
+            corr = self.open_grids(pairs, corr, chunksize=minichunksize, interactive=True)
+        if isinstance(data, str):
+            data = self.open_grids(pairs, data, chunksize=minichunksize, interactive=True)
+
+        # xarray wrapper
+        model = xr.apply_ufunc(
+            self.sbas_fit_lstsq,
+            data.chunk(dict(pair=-1)),
+            corr.chunk(dict(pair=-1)) if corr is not None else None,
+            input_core_dims=[['pair'], ['pair'] if corr is not None else []],
+            exclude_dims=set(('pair',)),
+            dask='parallelized',
+            vectorize=True,
+            output_dtypes=[np.float32],
+            output_core_dims=[['date']],
+            dask_gufunc_kwargs={'output_sizes': {'date': len(dates)}},
+            kwargs={'matrix': self.sbas_fit_lstsq_matrix(pairs)}
+        ).rename('displacement')
+        # define dates axis
+        model['date'] = dates
+        # set the stack index to be first
+        model = model.transpose('date',...)
+
+        if interactive:
+            return model
+
+        # use this trick to save large model using limited RAM and all CPU cores
+        ts, ys, xs = model.data.blocks.shape
+        assert ts == 1, 'Date chunks count should be equal to 1'
+        tchunks, ychunks, xchunks = model.chunks
+        coordt = model.date
+        coordy = np.array_split(model.y, np.cumsum(ychunks))
+        coordx = np.array_split(model.x, np.cumsum(xchunks))
+
+        def func(iy, ix):
+            chunk_filename = self.get_filenames(None, None, f'disp_chunk_{iy}_{ix}')
+            if os.path.exists(chunk_filename):
+                os.remove(chunk_filename)
+            # lazy dask array
+            data = model.data.blocks[0,iy,ix]
+            # wrap the array
+            da = xr.DataArray(data,
+                              dims=['date','y','x'],
+                              coords={'date': coordt, 'y':coordy[iy], 'x':coordx[ix]})\
+                 .rename('displacement')
+            # compress 3d output following the processing blocks
+            netcdf_compression = self.compression()
+            # use model chunks as is for better performance
+            netcdf_compression['chunksizes'] = (1, minichunksize, minichunksize)
+            # compute and save to NetCDF using chunks of original coordinates
+            da.to_netcdf(chunk_filename,
+                         unlimited_dims=['y','x'],
+                         encoding={'displacement': netcdf_compression},
+                         engine=self.engine,
+                         compute=True)
+            return chunk_filename
+
+        # process the chunks as separate tasks on all available CPU cores
+        with self.tqdm_joblib(tqdm(desc='SBAS [Correlation-Weighted] Least Squares Computing', total=ys*xs)) as progress_bar:
+            filenames = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(iy, ix) \
+                                                     for iy in range(ys) for ix in range(xs))
+
+        # rebuild the datasets to user-friendly format
+        das = [xr.open_dataarray(f, engine=self.engine, chunks=chunksize) for f in filenames]
+        das = xr.combine_by_coords(das)
+
+        def output(dt):
+            filename = self.get_filenames(None, None, f'disp_{dt}'.replace('-',''))
+            if os.path.exists(filename):
+                os.remove(filename)
+            # compress 3d output following the processing blocks
+            netcdf_compression = self.compression()
+            netcdf_compression['chunksizes'] = (chunksize, chunksize)
+            das.sel(date=dt).to_netcdf(filename,
+                        encoding={'displacement': netcdf_compression},
+                        engine=self.engine)
+
+        # saving all the grids
+        with self.tqdm_joblib(tqdm(desc='Saving', total=len(das.date))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date.values)
+
+        # cleanup
+        for filename in filenames:
+            if os.path.exists(filename):
+                os.remove(filename)
 
     def baseline_table(self, n_jobs=-1, debug=False):
         import pandas as pd
@@ -75,167 +254,6 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
                                  'rep_timeline': np.round(line1.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line1.BPR, 2)})
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
-
-    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr', chunks=None, chunksize=None, n_jobs=-1):
-        import xarray as xr
-        import numpy as np
-        import pandas as pd
-        from tqdm.auto import tqdm
-        import joblib
-        import os
-        
-        if chunks is not None:
-            print ('NOTE: use "chunksize" argument instead of "chunks"')
-            chunksize = chunks
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        # compress 3d output following the processing blocks
-        netcdf_compression = self.compression()
-        netcdf_compression['chunksizes'] = (1, chunksize, chunksize)
-
-        if pairs is None:
-            pairs = self.find_pairs()
-        elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
-        else:
-            pairs = np.asarray(pairs)
-        # define all the dates as unique reference and repeat dates
-        dates = np.unique(pairs.flatten())
-    
-        # source grids lazy loading
-        if isinstance(corr, str):
-            corr = self.open_grids(pairs, corr, chunksize=chunksize, interactive=False)
-        if isinstance(data, str):
-            data = self.open_grids(pairs, data, chunksize=chunksize, interactive=False)
-
-        # crop correlation grid like to unwrap grid which may be defined smaller
-        corr = corr.reindex_like(data)
-        
-        # mask can be sparse and limit work area
-        if mask is not None:
-            data = xr.where(mask>0, data.reindex_like(mask), np.nan)
-            corr   = xr.where(mask>0, corr.reindex_like(mask),   np.nan)
-    
-        # here are one row for every interferogram and one column for every date
-        matrix = []
-        for pair in pairs:
-            mrow = [date>pair[0] and date<=pair[1] for date in dates]
-            matrix.append(mrow)
-        matrix = np.stack(matrix).astype(int)
-
-        # single-pixel processing function
-        def fit(x, w, matrix):
-            #return np.zeros(5)
-            # ignore pixels where correlation is not defined
-            if np.any(np.isnan(w)):
-                return np.nan * np.zeros(matrix.shape[1])
-            # fill nans as zeroes and set corresponding weight to 0
-            nanmask = np.where(np.isnan(x))
-            if nanmask[0].size > 0:
-                # function arguments are read-only
-                x = x.copy()
-                w = w.copy()
-                x[nanmask] = 0
-                w[nanmask] = 0
-                # check if x has enough valid values
-                if x.size - nanmask[0].size < matrix.shape[1]:
-                    return np.nan * np.zeros(matrix.shape[1])
-            # least squares solution
-            W = (w/np.sqrt(1-w**2))
-            try:
-                model = np.linalg.lstsq(matrix * W[:,np.newaxis], x * W, rcond=None)
-            except Exception as e:
-                # typically, this error handled:
-                # LinAlgError: SVD did not converge in Linear Least Squares
-                print ('SBAS notice:', str(e))
-                return np.nan * np.zeros(matrix.shape[1])
-            #print ('model', model)
-            return model[0]
-
-        # xarray wrapper
-        models = xr.apply_ufunc(
-            fit,
-            data.chunk(dict(pair=-1)),
-            corr.chunk(dict(pair=-1)),
-            input_core_dims=[['pair'],['pair']],
-            exclude_dims=set(('pair',)),
-            dask='parallelized',
-            vectorize=True,
-            output_dtypes=[np.float32],
-            output_core_dims=[['date']],
-            dask_gufunc_kwargs={'output_sizes': {'date': len(dates)}},
-            kwargs={'matrix': matrix}
-        )
-        # define dates axis
-        models['date'] = dates
-        # set the stack index to be first
-        models = models.transpose('date',...)
-        # define the output grid filename
-        model_filename = self.get_filenames(None, None, 'disp')
-        # cleanup
-        if os.path.exists(model_filename):
-            os.remove(model_filename)
-    
-        ts, ys, xs = models.data.blocks.shape
-        assert ts == 1, 'Date chunks count should be equal to 1'
-        tchunks, ychunks, xchunks = models.chunks
-        coordt = models.date
-        coordy = np.array_split(models.y, np.cumsum(ychunks))
-        coordx = np.array_split(models.x, np.cumsum(xchunks))
-    
-        def func(iy, ix):
-            chunk_filename = self.get_filenames(None, None, f'disp_chunk_{iy}_{ix}')
-            if os.path.exists(chunk_filename):
-                os.remove(chunk_filename)
-            # lazy dask array
-            data = models.data.blocks[0,iy,ix]
-            # wrap the array
-            da = xr.DataArray(data,
-                              dims=['date','y','x'],
-                              coords={'date': coordt, 'y':coordy[iy], 'x':coordx[ix]})\
-                 .rename('displacement')
-            # compute and save to NetCDF using chunks of original coordinates
-            da.to_netcdf(chunk_filename,
-                         unlimited_dims=['y','x'],
-                         encoding={'displacement': netcdf_compression},
-                         engine=self.engine,
-                         compute=True)
-            return chunk_filename
-    
-        # process all the chunks
-        with self.tqdm_joblib(tqdm(desc='Computing', total=ys*xs)) as progress_bar:
-            filenames = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(iy, ix) \
-                                                     for iy in range(ys) for ix in range(xs))
-    
-        # rebuild the datasets to user-friendly format
-        das = [xr.open_dataarray(f, engine=self.engine, chunks=chunksize) for f in filenames]
-        if xr.__version__ == '0.19.0':
-            # for Google Colab
-            das = xr.merge(das)
-        else:
-            # for modern xarray versions
-            das = xr.combine_by_coords(das)
-
-        # add subswath prefix
-        subswath = self.get_subswath()
-
-        def output(dt):
-            filename = os.path.join(self.basedir, f'F{subswath}_disp_{dt}.grd'.replace('-',''))
-            if os.path.exists(filename):
-                os.remove(filename)
-            das.sel(date=dt).to_netcdf(filename,
-                        encoding={'displacement': self.compression()},
-                        engine=self.engine)
-
-        # saving all the grids
-        with self.tqdm_joblib(tqdm(desc='Saving', total=len(das.date))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date.values)
-
-        # cleanup
-        for filename in filenames:
-            if os.path.exists(filename):
-                os.remove(filename)
 
     #intf.tab format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp 
     def intftab(self, baseline_pairs):
