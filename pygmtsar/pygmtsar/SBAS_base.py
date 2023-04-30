@@ -406,7 +406,29 @@ class SBAS_base(tqdm_joblib, datagrid):
         assert len(invalid) == 0, 'ERROR: found grids for pairs not in the SBAS scenes. Define valid pairs manually.'
         return pairs
 
-    def find_dates(self):
+    def find_dates(self, pairs=None):
         import numpy as np
-        pairs = self.find_pairs()
+        if pairs is None:
+            pairs = self.find_pairs()
         return np.unique(np.asarray(pairs).flatten())
+
+    def pairs(self, pairs=None, dates=False):
+        import pandas as pd
+        import numpy as np
+        
+        if pairs is None:
+            pairs = self.find_pairs()
+        
+        if not isinstance(pairs, pd.DataFrame):
+            # Convert numpy array to DataFrame
+            pairs = pd.DataFrame(pairs, columns=['ref', 'rep'])
+            # Convert ref and rep columns to datetime format
+            pairs['ref'] = pd.to_datetime(pairs['ref'], format='%Y%m%d')
+            pairs['rep'] = pd.to_datetime(pairs['rep'], format='%Y%m%d')
+            # Calculate the duration in days and add it as a new column
+            pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
+        
+        if dates:
+            dates = np.unique(pairs.astype(str).values[:,:2].flatten())
+            return (pairs, dates)
+        return pairs
