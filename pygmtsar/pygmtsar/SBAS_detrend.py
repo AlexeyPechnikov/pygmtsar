@@ -23,7 +23,9 @@ class SBAS_detrend(SBAS_unwrap):
         if pairs is None:
             pairs = self.find_pairs()
         elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
+            pairs = pairs[['ref', 'rep']].astype(str).values
+        else:
+            pairs = np.asarray(pairs)
 
         def func(pair, **kwargs):
             #print (f'**kwargs {kwargs}')

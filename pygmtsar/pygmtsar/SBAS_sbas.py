@@ -9,7 +9,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
     # single-pixel processing function
     # compute least squares when w = None and weighted least squares otherwise
     @staticmethod
-    def sbas_fit_lstsq(x, w, matrix):
+    def lstsq(x, w, matrix):
         import numpy as np
 
         if w is None:
@@ -41,15 +41,21 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         except Exception as e:
             # typically, this error handled:
             # LinAlgError: SVD did not converge in Linear Least Squares
-            print ('SBAS.fit_lstsq notice:', str(e))
+            print ('SBAS.lstsq notice:', str(e))
             return np.nan * np.zeros(matrix.shape[1])
         #print ('model', model)
         return model[0]
 
     @staticmethod
-    def sbas_fit_lstsq_matrix(pairs):
+    def lstsq_matrix(pairs):
         import numpy as np
+        import pandas as pd
 
+        if isinstance(pairs, pd.DataFrame):
+            pairs = pairs[['ref', 'rep']].astype(str).values
+        else:
+            pairs = np.asarray(pairs)
+        
         # define all the dates as unique reference and repeat dates
         dates = np.unique(pairs.flatten())
         # here are one row for every interferogram and one column for every date
@@ -60,8 +66,25 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr',
+    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr', weight='corr',
                       chunks=None, chunksize=None, n_jobs=-1, interactive=False):
+
+        print ('NOTE: sbas_parallel() is alias for [Weighted] Least Squares lstsq_parallel() function')
+
+        if corr != 'corr':
+            print ('NOTE: use "weight" argument instead of "corr"')
+
+        if mask is not None:
+            print ('NOTE: "mask" argument support is removed. Use "data" and "weight" arguments to call with custom data arrays')
+
+        if chunks is not None:
+            print ('NOTE: use "chunksize" argument instead of "chunks"')
+            
+        return self.lstsq_parallel(pairs=pairs, data=data, weight=weight,
+                                   chunksize=chunksize, n_jobs=n_jobs, interactive=interactive)
+                      
+    def lstsq_parallel(self, pairs=None, data='detrend', weight='corr',
+                       chunksize=None, n_jobs=-1, interactive=False):
         import xarray as xr
         import numpy as np
         import pandas as pd
@@ -70,20 +93,15 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         import joblib
         import os
 
-        if mask is not None:
-            print ('NOTE: "mask" argument support is removed. Use "data" and corr" arguments instead')
-
-        if chunks is not None:
-            print ('NOTE: use "chunksize" argument instead of "chunks"')
         if chunksize is None:
             # smaller chunks are better for large 3D grids processing
             chunksize = self.chunksize
         #print ('chunksize', chunksize)
 
         if pairs is None:
-            pairs = self.find_pairs()
+            pairs = self.pairs()
         elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
+            pairs = pairs[['ref', 'rep']].astype(str).values
         else:
             pairs = np.asarray(pairs)
         # define all the dates as unique reference and repeat dates
@@ -97,24 +115,24 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         #print ('minichunksize', minichunksize)
 
         # source grids lazy loading
-        if isinstance(corr, str):
-            corr = self.open_grids(pairs, corr, chunksize=minichunksize, interactive=True)
+        if isinstance(weight, str):
+            weight = self.open_grids(pairs, weight, chunksize=minichunksize, interactive=True)
         if isinstance(data, str):
             data = self.open_grids(pairs, data, chunksize=minichunksize, interactive=True)
 
         # xarray wrapper
         model = xr.apply_ufunc(
-            self.sbas_fit_lstsq,
+            self.lstsq,
             data.chunk(dict(pair=-1)),
-            corr.chunk(dict(pair=-1)) if corr is not None else None,
-            input_core_dims=[['pair'], ['pair'] if corr is not None else []],
+            weight.chunk(dict(pair=-1)) if weight is not None else None,
+            input_core_dims=[['pair'], ['pair'] if weight is not None else []],
             exclude_dims=set(('pair',)),
             dask='parallelized',
             vectorize=True,
             output_dtypes=[np.float32],
             output_core_dims=[['date']],
             dask_gufunc_kwargs={'output_sizes': {'date': len(dates)}},
-            kwargs={'matrix': self.sbas_fit_lstsq_matrix(pairs)}
+            kwargs={'matrix': self.lstsq_matrix(pairs)}
         ).rename('displacement')
         # define dates axis
         model['date'] = dates
@@ -156,7 +174,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             return chunk_filename
 
         # process the chunks as separate tasks on all available CPU cores
-        with self.tqdm_joblib(tqdm(desc='SBAS [Correlation-Weighted] Least Squares Computing', total=ys*xs)) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='[Correlation-Weighted] Least Squares Computing', total=ys*xs)) as progress_bar:
             filenames = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(iy, ix) \
                                                      for iy in range(ys) for ix in range(xs))
 
