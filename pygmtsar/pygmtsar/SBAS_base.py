@@ -169,7 +169,8 @@ class SBAS_base(tqdm_joblib, datagrid):
             # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
             pass
         elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
+            # convert to standalone DataFrame first
+            pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
         else:
             pairs = np.asarray(pairs)
 
@@ -394,7 +395,7 @@ class SBAS_base(tqdm_joblib, datagrid):
     # function is obsolete
     def find_pairs(self, name='phasefilt'):
         print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')        
-        pairs = self.pairs(pairs, name=name)
+        pairs = self.pairs(name=name)
         return pairs
 
     # function is obsolete
