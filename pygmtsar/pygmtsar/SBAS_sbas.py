@@ -96,7 +96,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
 
         # also define image capture dates from interferogram date pairs 
         # convert pairs (list, array, dataframe) to 2D numpy array
-        pairs, dates = sbas.pairs(pairs, dates=True)
+        pairs, dates = self.pairs(pairs, dates=True)
         pairs = pairs[['ref', 'rep']].astype(str).values
         
         # split large stacks to chunks about chunksize ^ 3
