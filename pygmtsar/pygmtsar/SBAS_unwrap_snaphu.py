@@ -11,8 +11,17 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
                phase='phasefilt', corr='corr', interactive=True, chunksize=None, debug=False):
         import xarray as xr
         import numpy as np
+        import pandas as pd
         import os
         import subprocess
+
+        # convert to 2D single-element array
+        if isinstance(pair, pd.DataFrame):
+            # DataFrame can 
+            assert len(pair) == 1, 'Only single-record DataFrame or 1 D or 2D pair of dates allowed'
+            pair = self.pairs(pair)[['ref','rep']].astype(str).values
+        else:
+            pair = [pair] if np.asarray(pair).ndim == 1 else pair
 
         # define lost class variables due to joblib
         if chunksize is None:
@@ -20,15 +29,15 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
 
         if conf is None:
             conf = self.PRM().snaphu_config()
-    
+
         # open input data grids if needed
         if isinstance(phase, str):
-            phase = self.open_grids([pair], phase, chunksize=chunksize, interactive=False)[0]
+            phase = self.open_grids(pair, phase, chunksize=chunksize, interactive=False)[0]
         if isinstance(corr, str):
-            corr = self.open_grids([pair], corr, chunksize=chunksize, interactive=False)[0]
+            corr = self.open_grids(pair, corr, chunksize=chunksize, interactive=False)[0]
         if mask is not None and isinstance(mask, str):
             mask = self.open_grids(None, mask, chunksize=chunksize, interactive=False)
-        
+
         # convert user-defined mask to boolean mask (NaN values converted to 0)
         if mask is not None:
             assert self.is_ra(mask), 'ERROR: mask should be defined in radar coordinates'
@@ -43,9 +52,9 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
         binmask = binmask & (corr>=threshold)
 
         # extract dates from pair
-        date1, date2 = pair
+        date1, date2 = pair[0]
 
-        basename = self.get_filenames(None, [pair], '')[0][:-4]
+        basename = self.get_filenames(None, pair, '')[0][:-4]
         #print ('basename', basename)
 
         # output data grids
