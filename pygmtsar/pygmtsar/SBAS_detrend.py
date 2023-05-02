@@ -20,12 +20,8 @@ class SBAS_detrend(SBAS_unwrap):
         from tqdm.auto import tqdm
         import joblib
 
-        if pairs is None:
-            pairs = self.find_pairs()
-        elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs[['ref', 'rep']].astype(str).values
-        else:
-            pairs = np.asarray(pairs)
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
 
         def func(pair, **kwargs):
             #print (f'**kwargs {kwargs}')

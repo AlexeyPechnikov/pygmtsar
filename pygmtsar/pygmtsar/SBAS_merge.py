@@ -87,8 +87,8 @@ class SBAS_merge(SBAS_merge_gmtsar):
         if len(subswaths) == 1:
             return
         
-        if isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
 
         with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(pairs)*len(grids))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) \

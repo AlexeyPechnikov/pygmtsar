@@ -27,8 +27,8 @@ class SBAS_intf(SBAS_topo_ra):
         import joblib
         import os
 
-        if isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
 
         subswaths = self.get_subswaths()
 

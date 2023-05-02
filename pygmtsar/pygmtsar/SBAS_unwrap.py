@@ -21,11 +21,9 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
                 kwargs['conf'] += f'    TILEDIR {dirpath}'
             return self.unwrap(pair, **kwargs)
 
-        if pairs is None:
-            pairs = self.find_pairs()
-        elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs.values
-
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
+        
         # materialize lazy mask
         if mask is not None and isinstance(mask, xr.DataArray):
             mask_filename = self.get_filenames(None, None, 'unwrapmask')

@@ -46,18 +46,14 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         #print ('model', model)
         return model[0]
 
-    @staticmethod
-    def lstsq_matrix(pairs):
+    def lstsq_matrix(self, pairs):
         import numpy as np
         import pandas as pd
 
-        if isinstance(pairs, pd.DataFrame):
-            pairs = pairs[['ref', 'rep']].astype(str).values
-        else:
-            pairs = np.asarray(pairs)
+        # also define image capture dates from interferogram date pairs 
+        pairs, dates = self.pairs(pairs, dates=True)
+        pairs = pairs[['ref', 'rep']].astype(str).values
         
-        # define all the dates as unique reference and repeat dates
-        dates = np.unique(pairs.flatten())
         # here are one row for every interferogram and one column for every date
         matrix = []
         for pair in pairs:
@@ -82,7 +78,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             
         return self.lstsq_parallel(pairs=pairs, data=data, weight=weight,
                                    chunksize=chunksize, n_jobs=n_jobs, interactive=interactive)
-                      
+                    
     def lstsq_parallel(self, pairs=None, data='detrend', weight='corr',
                        chunksize=None, n_jobs=-1, interactive=False):
         import xarray as xr
@@ -98,15 +94,11 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             chunksize = self.chunksize
         #print ('chunksize', chunksize)
 
-        if pairs is None:
-            pairs = self.pairs()
-        elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs[['ref', 'rep']].astype(str).values
-        else:
-            pairs = np.asarray(pairs)
-        # define all the dates as unique reference and repeat dates
-        dates = np.unique(pairs.flatten())
-    
+        # also define image capture dates from interferogram date pairs 
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs, dates = sbas.pairs(pairs, dates=True)
+        pairs = pairs[['ref', 'rep']].astype(str).values
+        
         # split large stacks to chunks about chunksize ^ 3
         minichunksize = chunksize**2 / len(pairs)
         # round to 2**deg (32,  64, 128,..., 2048)

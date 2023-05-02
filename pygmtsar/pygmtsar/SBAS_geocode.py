@@ -7,8 +7,8 @@ class SBAS_geocode(SBAS_sbas):
 
     def geocode_parallel(self, pairs=None):
         # find any one interferogram to build the geocoding matrices
-        if pairs is None:
-            pairs = self.find_pairs()
+        pairs = self.pairs(pairs)
+        
         # build trans_dat and topo_ra grids
         self.topo_ra_parallel()
         # define the target interferogram grid

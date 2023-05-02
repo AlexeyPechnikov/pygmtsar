@@ -278,7 +278,8 @@ class SBAS_base(tqdm_joblib, datagrid):
             # special case to open a single grid {name}.grd or a set of subswath grids Fn_{name}.grd
             pass
         elif isinstance(pairs, pd.DataFrame):
-            pairs = pairs[['ref', 'rep']].astype(str).values
+            # convert to standalone DataFrame first
+            pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
         else:
             pairs = np.asarray(pairs)
 
@@ -392,38 +393,21 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     # function is obsolete
     def find_pairs(self, name='phasefilt'):
-        import numpy as np
-        from glob import glob
-
-        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')
-        
-        # find all the intf grids
-        pattern = self.get_filenames(None, None, f'????????_????????_{name}')
-        filenames = glob(pattern, recursive=False)
-        pairs = [filename.split('_')[-3:-1] for filename in sorted(filenames)]
-        # return as numpy array for compatibility reasons
-        pairs = np.asarray(pairs)
-        # check that all the pairs produced from the SBAS scenes
-        dates = list(map(lambda x: x.replace('-',''), self.df.index))
-        invalid = [pair for pair in pairs.flatten() if pair not in dates]
-        assert len(invalid) == 0, 'ERROR: found grids for pairs not in the SBAS scenes. Define valid pairs manually.'
+        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')        
+        pairs = self.pairs(pairs, name=name)
         return pairs
 
     # function is obsolete
     def find_dates(self, pairs=None):
-        import numpy as np
-        
         print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')
-        
-        if pairs is None:
-            pairs = self.find_pairs()
-        return np.unique(np.asarray(pairs).flatten())
+        dates = self.pairs(pairs, dates=True)[1]
+        return dates
 
     def pairs(self, pairs=None, dates=False, name='phasefilt'):
         import pandas as pd
         import numpy as np
         from glob import glob
-        
+
         if pairs is None:
             # find all the named grids
             pattern = self.get_filenames(None, None, f'????????_????????_{name}')
@@ -435,16 +419,19 @@ class SBAS_base(tqdm_joblib, datagrid):
             #dates = list(map(lambda x: x.replace('-',''), self.df.index))
             #invalid = [pair for pair in pairs.flatten() if pair not in dates]
             #assert len(invalid) == 0, 'ERROR: found grids for pairs not in the SBAS scenes. Define valid pairs manually.'
-        
+
         if not isinstance(pairs, pd.DataFrame):
             # Convert numpy array to DataFrame
             pairs = pd.DataFrame(pairs, columns=['ref', 'rep'])
             # Convert ref and rep columns to datetime format
-            pairs['ref'] = pd.to_datetime(pairs['ref'], format='%Y%m%d')
-            pairs['rep'] = pd.to_datetime(pairs['rep'], format='%Y%m%d')
+            pairs['ref'] = pd.to_datetime(pairs['ref'])
+            pairs['rep'] = pd.to_datetime(pairs['rep'])
             # Calculate the duration in days and add it as a new column
             pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
-        
+        else:
+            # workaround for baseline_pairs() output
+            pairs = pairs.rename(columns={'ref_date': 'ref', 'rep_date': 'rep'})
+
         if dates:
             # pairs is DataFrame
             dates = np.unique(pairs[['ref', 'rep']].astype(str).values.flatten())
