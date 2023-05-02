@@ -78,7 +78,7 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             
         return self.lstsq_parallel(pairs=pairs, data=data, weight=weight,
                                    chunksize=chunksize, n_jobs=n_jobs, interactive=interactive)
-                    
+                   
     def lstsq_parallel(self, pairs=None, data='detrend', weight='corr',
                        chunksize=None, n_jobs=-1, interactive=False):
         import xarray as xr
@@ -107,10 +107,14 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         #print ('minichunksize', minichunksize)
 
         # source grids lazy loading
-        if isinstance(weight, str):
-            weight = self.open_grids(pairs, weight, chunksize=minichunksize, interactive=True)
         if isinstance(data, str):
             data = self.open_grids(pairs, data, chunksize=minichunksize, interactive=True)
+
+        if isinstance(weight, str):
+            weight = self.open_grids(pairs, weight, chunksize=minichunksize, interactive=True)
+        elif isinstance(weight, (pd.Series, np.ndarray)):
+            # vector weight like to average correlation
+            weight = xr.DataArray(weight, dims=['pair'], coords={'pair': data.pair})
 
         # xarray wrapper
         model = xr.apply_ufunc(
