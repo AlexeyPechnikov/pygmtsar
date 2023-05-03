@@ -39,3 +39,17 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
 
         with self.tqdm_joblib(tqdm(desc='Unwrapping', total=len(pairs))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap_tiledir)(pair, **kwargs) for pair in pairs)
+
+    def get_unwrapmask(self, geocode=False):
+        import xarray as xr
+        import os
+
+        unwrapmask_filename = self.get_filenames(None, None, 'unwrapmask')
+        if not os.path.exists(unwrapmask_filename):
+            raise Exception('Unwrapping mask does not exist, call unwrap_parallel() function with the mask first')
+        # this function renames coordinates
+        unwrapmask = self.open_grids(None, 'unwrapmask')
+        if geocode:
+            # datatypes convertion required
+            return self.intf_ra2ll(unwrapmask.astype(np.int8)).astype(bool)
+        return unwrapmask
