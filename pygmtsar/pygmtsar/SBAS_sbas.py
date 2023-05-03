@@ -244,20 +244,24 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         return pd.DataFrame(data).set_index('date')
 
     # returns sorted baseline pairs
-    def baseline_pairs(self, days=100, meters=150, invert=False, n_jobs=-1, debug=False):
+    def baseline_pairs(self, days=100, meters=150, limit=None, invert=False, n_jobs=-1, debug=False):
         import numpy as np
         import pandas as pd
-     
+
         tbl = self.baseline_table(n_jobs=n_jobs, debug=debug)
         data = []
         for line1 in tbl.itertuples():
+            counter = 0
             for line2 in tbl.itertuples():
                 #print (line1, line2)
+                if limit is not None and counter >= limit:
+                    continue
                 if not (line1.YDAY < line2.YDAY and line2.YDAY - line1.YDAY < days):
                     continue
                 if not (abs(line1.BPR - line2.BPR)< meters):
                     continue
 
+                counter += 1
                 if not invert:
                     data.append({'ref_date':line1.Index, 'rep_date': line2.Index,
                                  'ref_timeline': np.round(line1.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line1.BPR, 2),
