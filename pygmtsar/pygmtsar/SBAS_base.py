@@ -295,10 +295,10 @@ class SBAS_base(tqdm_joblib, datagrid):
                     masked = True
             if geocode:
                 assert self.is_ra(da), 'ERROR: geocode option requires radar coordinates grid'
-                da = self.intf_ra2ll(da)
+                da = self.intf_ra2ll(da, chunksize=chunksize)
             elif inverse_geocode:
                 assert self.is_geo(da), 'ERROR: inverse_geocode option requires geographic coordinates grid'
-                da = self.intf_ll2ra(da)
+                da = self.intf_ll2ra(da, chunksize=chunksize)
             # apply user-defined post-processing function(s)
             if func is not None:
                 if isinstance(func, list):

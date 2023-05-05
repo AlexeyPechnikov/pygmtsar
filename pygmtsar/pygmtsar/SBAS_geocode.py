@@ -68,11 +68,11 @@ class SBAS_geocode(SBAS_sbas):
             return delayed
 
     # lat,lon grid
-    def get_intf_ra2ll(self):
-        return self.open_grids(None, 'intf_ra2ll')
+    def get_intf_ra2ll(self, chunksize=None):
+        return self.open_grids(None, 'intf_ra2ll', chunksize=chunksize)
 
     # TODO: split to blocks and apply transform for the each block parallel
-    def intf_ra2ll(self, grids):
+    def intf_ra2ll(self, grids, chunksize=None):
         """
         Inverse geocoding function based on interferogram geocode matrix to call from open_grids(inverse_geocode=True)
         """
@@ -84,12 +84,15 @@ class SBAS_geocode(SBAS_sbas):
             print ('NOTE: the input grid is not in radar coordinates, miss geocoding')
             return grids
 
+        if chunksize is None:
+            chunksize = self.chunksize
+
         # unify the input grids for transform matrix defined on the intf grid (y, x)
-        source_grid = self.get_intf_ll2ra()
+        source_grid = self.get_intf_ll2ra(chunksize=chunksize)
         grids = grids.interp_like(source_grid, method='nearest')
 
         # target grid is tranform matrix
-        matrix_ra2ll = self.get_intf_ra2ll()
+        matrix_ra2ll = self.get_intf_ra2ll(chunksize=chunksize)
 
         def ra2ll(grid):
             # transform input grid to the trans_ra2ll where the geocoding matrix defined
@@ -112,7 +115,7 @@ class SBAS_geocode(SBAS_sbas):
             output_dtypes=[np.float32],
             output_core_dims=[['lat','lon']],
             dask_gufunc_kwargs={'output_sizes': {'lat': matrix_ra2ll.shape[0], 'lon': matrix_ra2ll.shape[1]}},
-        ).chunk(self.chunksize)
+        ).chunk(chunksize)
 
         # set the output grid and drop the fake dimension if needed
         out = xr.DataArray((grids_ll[0] if len(grids.dims)==2 else grids_ll), coords=matrix_ra2ll.coords)
@@ -227,11 +230,11 @@ class SBAS_geocode(SBAS_sbas):
             return delayed
 
     # y,x grid
-    def get_intf_ll2ra(self):
-        return self.open_grids(None, 'intf_ll2ra')
+    def get_intf_ll2ra(self, chunksize=None):
+        return self.open_grids(None, 'intf_ll2ra', chunksize=chunksize)
 
     # TODO: split to blocks and apply transform for the each block parallel
-    def intf_ll2ra(self, grids):
+    def intf_ll2ra(self, grids, chunksize=None):
         """
         Inverse geocoding function based on interferogram geocode matrix to call from open_grids(inverse_geocode=True)
         """
@@ -242,6 +245,9 @@ class SBAS_geocode(SBAS_sbas):
         if not 'lat' in grids.dims or not 'lon' in grids.dims:
             print ('NOTE: the grid is not in geographic coordinates, miss geocoding')
             return grids
+
+        if chunksize is None:
+            chunksize = self.chunksize
 
         # unify the input grids for transform matrix defined on the trans_dat grid (lat, lon)
         source_grid = self.get_trans_dat().ll
@@ -267,7 +273,7 @@ class SBAS_geocode(SBAS_sbas):
             output_dtypes=[np.float32],
             output_core_dims=[['y','x']],
             dask_gufunc_kwargs={'output_sizes': {'y': matrix_ll2ra.shape[0], 'x': matrix_ll2ra.shape[1]}},
-        ).chunk(self.chunksize)
+        ).chunk(chunksize)
         
         # set the output grid and drop the fake dimension if needed
         return xr.DataArray((grids_ra[0] if len(grids.dims)==2 else grids_ra), coords=matrix_ll2ra.coords)
