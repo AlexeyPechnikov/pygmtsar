@@ -9,6 +9,55 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
     def unwrap(self, pair, threshold=1e-3, conf=None, func=None, mask=None, conncomp=False,
                phase='phasefilt', corr='corr', interactive=True, chunksize=None, debug=False):
+        """
+        Unwraps phase using SNAPHU with the given phase and correlation data.
+
+        This function unwraps the phase of an interferogram using the Statistical-cost, Network-flow Algorithm
+        for Phase Unwrapping (SNAPHU) with user-defined parameters. The unwrapped phase is saved as a grid file
+        in the working directory.
+
+        Parameters
+        ----------
+        pair : list, tuple, or pandas.DataFrame
+            The reference and repeat dates as a list or tuple of strings, or a single-row DataFrame.
+
+        threshold : float, optional
+            The threshold for masking correlation values, default is 1e-3.
+
+        conf : str, optional
+            The SNAPHU configuration string, default is None (use the PRM's snaphu_config method).
+
+        func : callable, optional
+            A user-defined function for post-processing the unwrapped phase, default is None.
+
+        mask : str or xarray.DataArray, optional
+            A user-defined mask for radar coordinates, default is None.
+
+        conncomp : bool, optional
+            If True, output connected components as a separate file, default is False.
+
+        phase : str or xarray.DataArray, optional
+            The phase data as a string or xarray.DataArray, default is 'phasefilt'.
+
+        corr : str or xarray.DataArray, optional
+            The correlation data as a string or xarray.DataArray, default is 'corr'.
+
+        interactive : bool, optional
+            If True, return the unwrapped phase as an xarray.DataArray instead of saving it to disk, default is True.
+
+        chunksize : tuple, optional
+            The chunk size for dask arrays, default is None (use the instance's chunksize).
+
+        debug : bool, optional
+            If True, print debugging information during the unwrapping process, default is False.
+
+        Returns
+        -------
+        xarray.DataArray or None
+            If interactive is True, return the unwrapped phase as an xarray.DataArray; otherwise, return None and
+            save the unwrapped phase to disk.
+
+        """
         import xarray as xr
         import numpy as np
         import pandas as pd

@@ -5,6 +5,34 @@ from .SBAS_unwrap_snaphu import SBAS_unwrap_snaphu
 class SBAS_unwrap(SBAS_unwrap_snaphu):
 
     def unwrap_parallel(self, pairs=None, mask=None, n_jobs=-1, **kwargs):
+        """
+        Unwraps phase using SNAPHU in parallel for multiple interferogram pairs.
+
+        This function unwraps the phase of multiple interferograms using the Statistical-cost, Network-flow Algorithm
+        for Phase Unwrapping (SNAPHU) with user-defined parameters. The unwrapped phase is saved as grid files
+        in the working directory. This function is designed to process multiple interferograms in parallel, 
+        leveraging the available computational resources.
+
+        Parameters
+        ----------
+        pairs : list, tuple, array or pandas.DataFrame, optional
+            A list or array of pairs of reference and repeat dates, or a DataFrame with 'ref' and 'rep' columns.
+
+        mask : str or xarray.DataArray, optional
+            A user-defined mask for radar coordinates, default is None.
+
+        n_jobs : int, optional
+            The number of jobs to run in parallel. -1 means using all available processors, default is -1.
+
+        **kwargs : dict
+            Additional keyword arguments to be passed to the unwrap function.
+
+        Returns
+        -------
+        None
+            This function saves the unwrapped phase to disk as grid files and does not return any values.
+
+        """
         import xarray as xr
         import pandas as pd
         from tqdm.auto import tqdm
@@ -41,6 +69,29 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap_tiledir)(pair, **kwargs) for pair in pairs)
 
     def get_unwrapmask(self, geocode=False):
+        """
+        Retrieves the unwrapping mask created during the unwrap_parallel function execution.
+
+        This function returns the unwrapping mask that was created during the unwrap_parallel() function call.
+        The mask can be returned in either radar or geocoded coordinates.
+
+        Parameters
+        ----------
+        geocode : bool, optional
+            If True, the unwrapping mask will be converted to geocoded coordinates, default is False.
+
+        Returns
+        -------
+        unwrapmask : xarray.DataArray
+            The unwrapping mask as an xarray.DataArray object in either radar or geocoded coordinates.
+
+        Raises
+        ------
+        Exception
+            If the unwrapping mask does not exist, an exception will be raised, suggesting the user call
+            the unwrap_parallel() function with the mask first.
+
+        """
         import xarray as xr
         import numpy as np
         import os

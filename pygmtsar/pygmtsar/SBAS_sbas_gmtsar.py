@@ -6,31 +6,32 @@ class SBAS_sbas_gmtsar(SBAS_detrend):
 
     def sbas(self, baseline_pairs, smooth=0, atm=0, debug=False):
         """
-         USAGE: sbas intf.tab scene.tab N S xdim ydim [-atm ni] [-smooth sf] [-wavelength wl] [-incidence inc] [-range -rng] [-rms] [-dem]
+        Computes Small Baseline Subset (SBAS) InSAR time series analysis using the provided baseline pairs.
+    
+        This function takes a DataFrame of baseline pairs and optional parameters for smoothing and
+        atmospheric correction, and runs the SBAS algorithm to generate displacement time series
+        and mean velocity grids. The outputs are saved in the working directory as 'disp_##.grd' and
+        'vel.grd' files.
 
-         input:
-          intf.tab             --  list of unwrapped (filtered) interferograms:
-           format:   unwrap.grd  corr.grd  ref_id  rep_id  B_perp
-          scene.tab            --  list of the SAR scenes in chronological order
-           format:   scene_id   number_of_days
-           note:     the number_of_days is relative to a reference date
-          N                    --  number of the interferograms
-          S                    --  number of the SAR scenes
-          xdim and ydim        --  dimension of the interferograms
-          -smooth sf           --  smoothing factors, default=0
-          -atm ni              --  number of iterations for atmospheric correction, default=0(skip atm correction)
-          -wavelength wl       --  wavelength of the radar wave (m) default=0.236
-          -incidence theta     --  incidence angle of the radar wave (degree) default=37
-          -range rng           --  range distance from the radar to the center of the interferogram (m) default=866000
-          -rms                 --  output RMS of the data misfit grids (mm): rms.grd
-          -dem                 --  output DEM error (m): dem.grd
+        Parameters
+        ----------
+        baseline_pairs : pandas.DataFrame
+            A DataFrame containing the sorted list of baseline pairs with reference and repeat dates.
 
-         output:
-          disp_##.grd          --  cumulative displacement time series (mm) grids
-          vel.grd              --  mean velocity (mm/yr) grids
+        smooth : float, optional
+            Smoothing factor for SBAS, default is 0.
 
-         example:
-          sbas intf.tab scene.tab 88 28 700 1000
+        atm : int, optional
+            Number of iterations for atmospheric correction, default is 0 (skip atmospheric correction).
+
+        debug : bool, optional
+            If True, print debugging information during the SBAS processing, default is False.
+
+        Returns
+        -------
+        None
+            The function generates output files in the working directory and does not return any value.
+
         """
         import os
         import subprocess
