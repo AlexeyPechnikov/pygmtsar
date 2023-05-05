@@ -42,6 +42,7 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
 
     def get_unwrapmask(self, geocode=False):
         import xarray as xr
+        import numpy as np
         import os
 
         unwrapmask_filename = self.get_filenames(None, None, 'unwrapmask')
