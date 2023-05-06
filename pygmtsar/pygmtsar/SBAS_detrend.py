@@ -8,13 +8,13 @@ class SBAS_detrend(SBAS_unwrap):
             resolution_meters=90, wavelength=None, truncate=3.0, debug=False):
 
         out1 = self._degaussian(dataarray, wavelength=wavelength, truncate=truncate,
-                                         resolution_meters=resolution_meters, debug=debug)
+                 resolution_meters=resolution_meters, debug=debug)
         out2 = self._detrend(out1, fit_intercept=fit_intercept, fit_dem=fit_dem, fit_coords=fit_coords,
                 resolution_meters=resolution_meters, debug=debug)
 
         return out2
 
-    def detrend_parallel(self, pairs=None, n_jobs=-1, interactive=False, **kwargs):
+    def detrend_parallel(self, pairs=None, chunksize=None, n_jobs=-1, interactive=False, **kwargs):
         import dask
         import pandas as pd
         from tqdm.auto import tqdm
@@ -31,7 +31,7 @@ class SBAS_detrend(SBAS_unwrap):
             if interactive:
                 return out
             # prepare pipeline for processing and saving
-            delayed = self.save_grids([out], 'detrend', interactive=False)
+            delayed = self.save_grids([out], 'detrend', chunksize=chunksize, interactive=False)
             # perform the pipeline
             dask.persist(delayed)
 

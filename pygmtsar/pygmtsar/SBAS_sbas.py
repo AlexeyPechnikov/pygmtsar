@@ -274,14 +274,10 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
                               dims=['date','y','x'],
                               coords={'date': coordt, 'y':coordy[iy], 'x':coordx[ix]})\
                  .rename('displacement')
-            # compress 3d output following the processing blocks
-            netcdf_compression = self.compression()
-            # use model chunks as is for better performance
-            netcdf_compression['chunksizes'] = (1, minichunksize, minichunksize)
             # compute and save to NetCDF using chunks of original coordinates
             da.to_netcdf(chunk_filename,
                          unlimited_dims=['y','x'],
-                         encoding={'displacement': netcdf_compression},
+                         encoding={'displacement': self.compression(chunksize=(1, minichunksize, minichunksize))},
                          engine=self.engine,
                          compute=True)
             return chunk_filename
@@ -299,11 +295,8 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             filename = self.get_filenames(None, None, f'disp_{dt}'.replace('-',''))
             if os.path.exists(filename):
                 os.remove(filename)
-            # compress 3d output following the processing blocks
-            netcdf_compression = self.compression()
-            netcdf_compression['chunksizes'] = (chunksize, chunksize)
             das.sel(date=dt).to_netcdf(filename,
-                        encoding={'displacement': netcdf_compression},
+                        encoding={'displacement': self.compression(chunksize=chunksize)},
                         engine=self.engine)
 
         # saving all the grids

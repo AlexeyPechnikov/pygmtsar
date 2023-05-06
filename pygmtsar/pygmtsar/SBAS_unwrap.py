@@ -4,7 +4,7 @@ from .SBAS_unwrap_snaphu import SBAS_unwrap_snaphu
 
 class SBAS_unwrap(SBAS_unwrap_snaphu):
 
-    def unwrap_parallel(self, pairs=None, mask=None, n_jobs=-1, **kwargs):
+    def unwrap_parallel(self, pairs=None, mask=None, chunksize=None, n_jobs=-1, **kwargs):
         """
         Unwraps phase using SNAPHU in parallel for multiple interferogram pairs.
 
@@ -40,7 +40,7 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
         import os
 
         # for now (Python 3.10.10 on MacOS) joblib loads the code from disk instead of copying it
-        kwargs['chunksize'] = self.chunksize
+        kwargs['chunksize'] = chunksize
 
         def unwrap_tiledir(pair, **kwargs):
             # define unique tiledir name for parallel processing
@@ -59,7 +59,7 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
                 os.remove(mask_filename)
             # workaround to save NetCDF file correct
             mask.rename('mask').rename({'y':'a','x':'r'}).\
-                to_netcdf(mask_filename, encoding={'mask': self.compression(chunksize=self.chunksize)}, engine=self.engine)
+                to_netcdf(mask_filename, encoding={'mask': self.compression(chunksize=chunksize)}, engine=self.engine)
             kwargs['mask'] = 'unwrapmask'
 
         # save results to NetCDF files

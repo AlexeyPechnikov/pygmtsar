@@ -14,12 +14,20 @@ class datagrid:
 
     # define lost class variables due to joblib via arguments
     def compression(self, complevel=None, chunksize=None):
+        import numpy as np
+
         if complevel is None:
             complevel = self.complevel
         if chunksize is None:
             chunksize = self.chunksize
         assert chunksize is not None, 'compression() chunksize is None'
-        return dict(zlib=True, complevel=complevel, chunksizes=(chunksize, chunksize))
+        if isinstance(chunksize, (tuple, list, np.ndarray)):
+            # use as is, it can be 2D or 3D grid (even 1D while it is not used for now)
+            chunksizes = chunksize
+        else:
+            # suppose 2D grid
+            chunksizes=(chunksize, chunksize)
+        return dict(zlib=True, complevel=complevel, chunksizes=chunksizes)
 
     @staticmethod
     def is_ra(grid):
