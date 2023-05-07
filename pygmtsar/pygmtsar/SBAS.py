@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
 # Wrapper to scan *xml files and orbits and make data.in file like to prep_data_linux.csh & prep_data.csh tools
-from .SBAS_incidence import SBAS_incidence
+from .SBAS_stl import SBAS_stl
 from .PRM import PRM
 
-class SBAS(SBAS_incidence):
+class SBAS(SBAS_stl):
 
     #text2date('V20171110T225942'), text2date('20171117t145927')
     @staticmethod

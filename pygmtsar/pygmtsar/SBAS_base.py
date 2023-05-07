@@ -156,6 +156,53 @@ class SBAS_base(tqdm_joblib, datagrid):
         # define subswath
         return subswaths[0]
 
+    # function is obsolete
+    def find_pairs(self, name='phasefilt'):
+        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')        
+        pairs = self.pairs(name=name)
+        return pairs
+
+    # function is obsolete
+    def find_dates(self, pairs=None):
+        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')
+        dates = self.pairs(pairs, dates=True)[1]
+        return dates
+
+    def pairs(self, pairs=None, dates=False, name='phasefilt'):
+        import pandas as pd
+        import numpy as np
+        from glob import glob
+
+        if pairs is None:
+            # find all the named grids
+            pattern = self.get_filenames(None, None, f'????????_????????_{name}')
+            filenames = glob(pattern, recursive=False)
+            pairs = [filename.split('_')[-3:-1] for filename in sorted(filenames)]
+            # return as numpy array for compatibility reasons
+            pairs = np.asarray(pairs)
+            # check that all the pairs produced from the SBAS scenes
+            #dates = list(map(lambda x: x.replace('-',''), self.df.index))
+            #invalid = [pair for pair in pairs.flatten() if pair not in dates]
+            #assert len(invalid) == 0, 'ERROR: found grids for pairs not in the SBAS scenes. Define valid pairs manually.'
+
+        if not isinstance(pairs, pd.DataFrame):
+            # Convert numpy array to DataFrame
+            pairs = pd.DataFrame(pairs, columns=['ref', 'rep'])
+            # Convert ref and rep columns to datetime format
+            pairs['ref'] = pd.to_datetime(pairs['ref'])
+            pairs['rep'] = pd.to_datetime(pairs['rep'])
+            # Calculate the duration in days and add it as a new column
+            pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
+        else:
+            # workaround for baseline_pairs() output
+            pairs = pairs.rename(columns={'ref_date': 'ref', 'rep_date': 'rep'})
+
+        if dates:
+            # pairs is DataFrame
+            dates = np.unique(pairs[['ref', 'rep']].astype(str).values.flatten())
+            return (pairs, dates)
+        return pairs
+
     # use the function for open_grids() and save_grids()
     def get_filenames(self, subswath, pairs, name, add_subswath=True):
         import pandas as pd
@@ -392,49 +439,38 @@ class SBAS_base(tqdm_joblib, datagrid):
 
         return dass[0] if len(dass) == 1 else dass
 
-    # function is obsolete
-    def find_pairs(self, name='phasefilt'):
-        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')        
-        pairs = self.pairs(name=name)
-        return pairs
+    def open_model(self, name, chunksize=None):
+        """
+        Opens an xarray 3D Dataset from a NetCDF file and re-chunks it based on the specified chunksize.
 
-    # function is obsolete
-    def find_dates(self, pairs=None):
-        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')
-        dates = self.pairs(pairs, dates=True)[1]
-        return dates
+        This function takes the name of the model to be opened, reads the NetCDF file, and re-chunks
+        the dataset according to the provided chunksize or the default value from the 'sbas' object.
+        The 'date' dimension is always chunked with a size of 1.
 
-    def pairs(self, pairs=None, dates=False, name='phasefilt'):
-        import pandas as pd
-        import numpy as np
-        from glob import glob
+        Parameters
+        ----------
+        name : str
+            The name of the model file to be opened.
+        chunksize : int, optional
+            The chunk size to be used for dimensions other than 'date'. If not provided, the default
+            chunk size from the 'sbas' object will be used.
 
-        if pairs is None:
-            # find all the named grids
-            pattern = self.get_filenames(None, None, f'????????_????????_{name}')
-            filenames = glob(pattern, recursive=False)
-            pairs = [filename.split('_')[-3:-1] for filename in sorted(filenames)]
-            # return as numpy array for compatibility reasons
-            pairs = np.asarray(pairs)
-            # check that all the pairs produced from the SBAS scenes
-            #dates = list(map(lambda x: x.replace('-',''), self.df.index))
-            #invalid = [pair for pair in pairs.flatten() if pair not in dates]
-            #assert len(invalid) == 0, 'ERROR: found grids for pairs not in the SBAS scenes. Define valid pairs manually.'
+        Returns
+        -------
+        xarray.Dataset
+            The re-chunked xarray Dataset read from the specified NetCDF file.
 
-        if not isinstance(pairs, pd.DataFrame):
-            # Convert numpy array to DataFrame
-            pairs = pd.DataFrame(pairs, columns=['ref', 'rep'])
-            # Convert ref and rep columns to datetime format
-            pairs['ref'] = pd.to_datetime(pairs['ref'])
-            pairs['rep'] = pd.to_datetime(pairs['rep'])
-            # Calculate the duration in days and add it as a new column
-            pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
-        else:
-            # workaround for baseline_pairs() output
-            pairs = pairs.rename(columns={'ref_date': 'ref', 'rep_date': 'rep'})
+        """
+        import xarray as xr
 
-        if dates:
-            # pairs is DataFrame
-            dates = np.unique(pairs[['ref', 'rep']].astype(str).values.flatten())
-            return (pairs, dates)
-        return pairs
+        if chunksize is None:
+            chunksize = self.chunksize
+
+        model_filename = self.get_filenames(None, None, name)
+        # Open the dataset without chunking
+        model = xr.open_dataset(model_filename, engine=self.engine)
+        chunks = {dim: 1 if dim == 'date' else chunksize for dim in model.dims}
+        # Re-chunk the dataset using the chunks dictionary
+        model = model.chunk(chunks)
+
+        return model
