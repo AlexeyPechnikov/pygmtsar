@@ -76,7 +76,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
             df = self.get_master(subswath)
             # for 7+ stitched scenes SAT_llt2rat requires pins a bit inside the boundary geometry
             # because the boundaries are not exact and cover some area outside
-            geom = df['geometry'].unary_union.buffer(-0.05)
+            geom = df['geometry'].unary_union
             orbit = df['orbit'][0]
 
             # check the pins validity
