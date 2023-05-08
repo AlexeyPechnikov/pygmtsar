@@ -6,9 +6,19 @@ class SBAS_detrend(SBAS_unwrap):
 
     def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
             resolution_meters=90, wavelength=None, truncate=3.0, debug=False):
+        import numpy as np
 
-        out1 = self._degaussian(dataarray, wavelength=wavelength, truncate=truncate,
-                 resolution_meters=resolution_meters, debug=debug)
+        if wavelength is not None and isinstance(wavelength, (tuple, list, np.ndarray)):
+            # range-pass
+            assert len(wavelength) == 2, 'ERROR: wavelength argument should be a list of two elements or scalar on None (omitted)'
+            out1 = self._gaussian(dataarray, wavelength=np.min(wavelength), truncate=truncate,
+                                    resolution_meters=resolution_meters, debug=debug) \
+                 - self._gaussian(dataarray, wavelength=np.max(wavelength), truncate=truncate,
+                                    resolution_meters=resolution_meters, debug=debug)
+        else:
+            # high-pass
+            out1 = dataarray - self._gaussian(dataarray, wavelength=wavelength, truncate=truncate,
+                     resolution_meters=resolution_meters, debug=debug)
         out2 = self._detrend(out1, fit_intercept=fit_intercept, fit_dem=fit_dem, fit_coords=fit_coords,
                 resolution_meters=resolution_meters, debug=debug)
 
@@ -165,7 +175,7 @@ class SBAS_detrend(SBAS_unwrap):
         # build the model and return the input data without the detected trend
         return postprocessing(regr_predict(regr_fit()))
 
-    def _degaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
+    def _gaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
         """
         Lazy Gaussian filter for arrays with NaN values.
             dataarray - input dataarray with NaNs allowed,
@@ -205,4 +215,4 @@ class SBAS_detrend(SBAS_unwrap):
         gaussian = xr.unify_chunks(dataarray, gaussian)[1]
         if debug:
             print ('DEBUG: return lazy Dask array')
-        return (dataarray - gaussian).astype(np.float32).rename('degaussian')
+        return gaussian.astype(np.float32).rename('gaussian')
