@@ -8,7 +8,9 @@ class SBAS_detrend(SBAS_unwrap):
             resolution_meters=90, wavelength=None, truncate=3.0, debug=False):
         import numpy as np
 
-        if wavelength is not None and isinstance(wavelength, (tuple, list, np.ndarray)):
+        if wavelength is None:
+            out1 = dataarray
+        elif isinstance(wavelength, (tuple, list, np.ndarray)):
             # range-pass
             assert len(wavelength) == 2, 'ERROR: wavelength argument should be a list of two elements or scalar on None (omitted)'
             out1 = self._gaussian(dataarray, wavelength=np.min(wavelength), truncate=truncate,
