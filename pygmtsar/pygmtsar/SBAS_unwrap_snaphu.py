@@ -182,6 +182,6 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
 
         # not interactive mode, save all the results to disk
         if conncomp:
-            conn.to_netcdf(conncomp_filename, encoding={'conncomp': self.compression(chunksize=chunksize)}, engine=self.engine)
+            conn.to_netcdf(conncomp_filename, encoding={'conncomp': self.compression(conn.shape, chunksize=chunksize)}, engine=self.engine)
         # save to NetCDF file
-        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.compression(chunksize=chunksize)}, engine=self.engine)
+        unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.compression(unwrap.shape, chunksize=chunksize)}, engine=self.engine)

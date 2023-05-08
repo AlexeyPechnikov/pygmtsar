@@ -13,7 +13,7 @@ class datagrid:
     noindex = np.uint32(-1)
 
     # define lost class variables due to joblib via arguments
-    def compression(self, complevel=None, chunksize=None):
+    def compression(self, shape=None, complevel=None, chunksize=None):
         import numpy as np
 
         if complevel is None:
@@ -23,10 +23,17 @@ class datagrid:
         assert chunksize is not None, 'compression() chunksize is None'
         if isinstance(chunksize, (tuple, list, np.ndarray)):
             # use as is, it can be 2D or 3D grid (even 1D while it is not used for now)
-            chunksizes = chunksize
+            if shape is not None:
+                assert len(shape) == len(chunksize), 'ERROR: defined shape and chunksize dimensions are not equal'
+                chunksizes = tuple([chunksize[dim] if chunksize[dim]<shape[dim] else shape[dim] for dim in range(len(shape))])
+            else:
+                chunksizes = chunksize
         else:
             # suppose 2D grid
-            chunksizes=(chunksize, chunksize)
+            if shape is not None:
+                chunksizes=(chunksize if chunksize<shape[0] else shape[0], chunksize if chunksize<shape[1] else shape[1])
+            else:
+                chunksizes=(chunksize, chunksize)
         return dict(zlib=True, complevel=complevel, chunksizes=chunksizes)
 
     @staticmethod

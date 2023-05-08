@@ -166,8 +166,7 @@ class SBAS_stl(SBAS_incidence):
         model_filename = self.get_filenames(None, None, f'stl')
         if os.path.exists(model_filename):
             os.remove(model_filename)
-        netcdf_compression = self.compression(chunksize=chunksize)
-        netcdf_compression['chunksizes'] = (1, chunksize, chunksize)
+        netcdf_compression = self.compression(chunksize=(1, chunksize, chunksize))
         delayed = model.to_netcdf(model_filename,
                      engine=self.engine,
                      encoding={varname: netcdf_compression for varname in model.data_vars},

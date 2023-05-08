@@ -59,7 +59,7 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
                 os.remove(mask_filename)
             # workaround to save NetCDF file correct
             mask.rename('mask').rename({'y':'a','x':'r'}).\
-                to_netcdf(mask_filename, encoding={'mask': self.compression(chunksize=chunksize)}, engine=self.engine)
+                to_netcdf(mask_filename, encoding={'mask': self.compression(mask.shape, chunksize=chunksize)}, engine=self.engine)
             kwargs['mask'] = 'unwrapmask'
 
         # save results to NetCDF files

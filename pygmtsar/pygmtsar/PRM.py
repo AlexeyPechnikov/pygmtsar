@@ -546,7 +546,7 @@ class PRM(datagrid, PRM_gmtsar):
             corr_da = func(corr_da)
         if os.path.exists(fullname('corr.grd')):
             os.remove(fullname('corr.grd'))
-        corr_da.to_netcdf(fullname('corr.grd'), encoding={'z': self.compression(chunksize=chunksize)}, engine=self.engine)
+        corr_da.to_netcdf(fullname('corr.grd'), encoding={'z': self.compression(corr_da.shape, chunksize=chunksize)}, engine=self.engine)
 
         # make the Werner/Goldstein filtered phase
         phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.engine, chunks=chunksize)
@@ -556,7 +556,7 @@ class PRM(datagrid, PRM_gmtsar):
             phasefilt_da = func(phasefilt_da)
         if os.path.exists(fullname('phasefilt.grd')):
             os.remove(fullname('phasefilt.grd'))
-        phasefilt_da.to_netcdf(fullname('phasefilt.grd'), encoding={'z': self.compression(chunksize=chunksize)}, engine=self.engine)
+        phasefilt_da.to_netcdf(fullname('phasefilt.grd'), encoding={'z': self.compression(phasefilt_da.shape, chunksize=chunksize)}, engine=self.engine)
 
         # cleanup
         for name in ['amp1_tmp.grd', 'amp2_tmp.grd', 'amp1.grd', 'amp2.grd',

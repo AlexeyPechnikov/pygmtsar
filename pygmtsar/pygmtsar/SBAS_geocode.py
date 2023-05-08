@@ -52,7 +52,7 @@ class SBAS_geocode(SBAS_sbas):
             os.remove(filename)
         # flip vertically for GMTSAR compatibility reasons
         handler = matrix_ll.to_netcdf(filename,
-                                    encoding={'intf_ra2ll': self.compression()},
+                                    encoding={'intf_ra2ll': self.compression(matrix_ll.shape)},
                                     engine=self.engine,
                                     compute=False)
         return handler
@@ -214,7 +214,7 @@ class SBAS_geocode(SBAS_sbas):
         if os.path.exists(filename):
             os.remove(filename)
         handler = matrix_ra.to_netcdf(filename,
-                                    encoding={'intf_ll2ra': self.compression()},
+                                    encoding={'intf_ll2ra': self.compression(matrix_ra.shape)},
                                     engine=self.engine,
                                     compute=False)
         return handler

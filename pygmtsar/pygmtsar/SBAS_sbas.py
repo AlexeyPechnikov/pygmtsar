@@ -295,8 +295,9 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             filename = self.get_filenames(None, None, f'disp_{dt}'.replace('-',''))
             if os.path.exists(filename):
                 os.remove(filename)
-            das.sel(date=dt).to_netcdf(filename,
-                        encoding={'displacement': self.compression(chunksize=chunksize)},
+            da = das.sel(date=dt)
+            da.to_netcdf(filename,
+                        encoding={'displacement': self.compression(da.displacement.shape, chunksize=chunksize)},
                         engine=self.engine)
 
         # saving all the grids

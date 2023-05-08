@@ -261,7 +261,7 @@ class SBAS_base(tqdm_joblib, datagrid):
                 # special case for a single 2D grid
                 filename = self.get_filenames(None, None, name, add_subswath=add_subswath)
                 grids.astype(np.float32).rename(name)\
-                    .to_netcdf(filename, encoding={name: self.compression(chunksize=chunksize)}, engine=self.engine)
+                    .to_netcdf(filename, encoding={name: self.compression(grids.shape, chunksize=chunksize)}, engine=self.engine)
                 return
             else:
                 assert 0, 'ERROR: supported 2D and 3D arrays only'
@@ -286,7 +286,7 @@ class SBAS_base(tqdm_joblib, datagrid):
             if os.path.exists(filename):
                 os.remove(filename)
             da.astype(np.float32).rename(name)\
-                .to_netcdf(filename, encoding={name: self.compression(chunksize=chunksize)}, engine=self.engine)
+                .to_netcdf(filename, encoding={name: self.compression(da.shape, chunksize=chunksize)}, engine=self.engine)
             return
 
         # process all the grids
