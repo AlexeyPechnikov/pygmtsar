@@ -4,9 +4,13 @@ from .SBAS_unwrap import SBAS_unwrap
 
 class SBAS_detrend(SBAS_unwrap):
 
-    def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
+    def detrend(self, dataarray, fit=None, fit_intercept=True, fit_dem=True, fit_coords=True,
             resolution_meters=90, wavelength=None, truncate=3.0, debug=False):
         import numpy as np
+
+        if fit is not None:
+            # set all fir options the same
+            fit_intercept = fit_dem = fit_coords = fit
 
         if wavelength is None:
             out1 = dataarray
