@@ -4,7 +4,7 @@ from .SBAS_detrend import SBAS_detrend
 
 class SBAS_sbas_gmtsar(SBAS_detrend):
 
-    def sbas(self, baseline_pairs, data='detrend', weight='corr', smooth=0, atm=0, debug=False):
+    def sbas(self, baseline_pairs, data='unwrap', weight='corr', smooth=0, atm=0, debug=False):
         """
         Computes Small Baseline Subset (SBAS) InSAR time series analysis using the provided baseline pairs.
     
