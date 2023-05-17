@@ -94,7 +94,7 @@ if ($skip_master == 2) then
   calc_dop_orb $mpre".PRM" tmp 0 0
   cat tmp >> $mpre".PRM"
   rm tmp
-  update_PRM $mpre".PRM" input_file $mpre".raw"
+  #update_PRM $mpre".PRM" input_file $mpre".raw"
 else 
   if ($skip_master == 0) then  
     make_s1a_tops $mxml $mtiff $mpre 0 
@@ -243,13 +243,13 @@ else
     calc_dop_orb $mpre".PRM" tmp 0 0
     cat tmp >> $mpre".PRM"
     rm tmp
-    update_PRM $mpre".PRM" input_file $mpre".raw"
+    #update_PRM $mpre".PRM" input_file $mpre".raw"
   endif
   set earth_radius = `grep earth_radius $mpre".PRM" | awk '{print $3}'`
   calc_dop_orb $spre".PRM" tmp2 $earth_radius 0
   cat tmp2 >> $spre".PRM"
   rm tmp2
-  update_PRM $spre".PRM" input_file $spre".raw"
+  #update_PRM $spre".PRM" input_file $spre".raw"
   #
   rm topo.llt master.ratll aligned.ratll *tmp* flt.grd r.xyz a.xyz *.PRM0
 endif
