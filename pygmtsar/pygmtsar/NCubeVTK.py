@@ -3,9 +3,41 @@
 
 # the code adopted from my project https://github.com/mobigroup/ParaView-plugins
 class NCubeVTK:
+    """
+    This class provides a static method for mapping a 2D image onto a 3D topography.
+
+    Example usage:
+
+    ```python
+    from pygmtsar.NCubeVTK import NCubeVTK
+    import vtk
+
+    vtk_ugrid = NCubeVTK.ImageOnTopography(sbas.get_dem().to_dataset().rename({'lat': 'y', 'lon': 'x'}))
+    writer = vtk.vtkUnstructuredGridWriter()
+    writer.SetFileName("DEM_WGS84.vtk")
+    writer.SetInputData(vtk_ugrid)
+    writer.Write()
+    ```
+    """
 
     @staticmethod
     def ImageOnTopography(dataset, band_mask=None, use_sealevel=False):
+        """
+        Map a 2D image onto a 3D topography.
+
+        Parameters:
+            dataset: A file name or Xarray Dataset to use for mapping the image.
+            band_mask (optional): A string representing a variable in the dataset to use as a mask. Default is None.
+            use_sealevel (optional): A boolean flag indicating whether to replace negative topography by sea level (z=0). Default is False.
+
+        Returns:
+            A vtkUnstructuredGrid representing the image mapped onto the topography.
+
+        Raises:
+            Error if the band_mask variable is not found in the dataset, or if the dataset is not an Xarray Dataset.
+
+        Note: fill NODATA by NAN for float variables.
+        """
         from vtk import vtkPoints, vtkStructuredGrid, vtkThreshold, vtkDataObject, \
             VTK_FLOAT, VTK_UNSIGNED_CHAR, vtkStringArray, vtkFloatArray, vtkIntArray
         from vtk.util import numpy_support as vn
