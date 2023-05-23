@@ -17,6 +17,16 @@ class NCubeVTK:
     writer.SetFileName("DEM_WGS84.vtk")
     writer.SetInputData(vtk_ugrid)
     writer.Write()
+    vtk_ugrid
+    ```
+    ```python
+    from pygmtsar.NCubeVTK import NCubeVTK
+    import pyvista as pv
+
+    vtk_ugrid = NCubeVTK.ImageOnTopography(sbas.get_dem().to_dataset().rename({'lat': 'y', 'lon': 'x'}))
+    vtk_ugrid = pv.UnstructuredGrid(vtk_ugrid)
+    vtk_ugrid.save('DEM_WGS84.vtk')
+    vtk_ugrid
     ```
     """
 
