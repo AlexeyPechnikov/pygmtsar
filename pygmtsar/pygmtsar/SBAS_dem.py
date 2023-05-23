@@ -75,7 +75,7 @@ class SBAS_dem(SBAS_reframe):
         elif product == 'SRTM3':
             resolution = '03s'
         elif product in ['01s', '03s']:
-            pass
+            resolution = product
         else:
             print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
 
