@@ -6,6 +6,25 @@ from .PRM import PRM
 class SBAS_stack(SBAS_dem):
 
     def offset2shift(self, xyz, rmax, amax, method='linear'):
+        """
+        Convert offset coordinates to shift values on a grid.
+
+        Parameters
+        ----------
+        xyz : numpy.ndarray
+            Array containing the offset coordinates (x, y, z).
+        rmax : int
+            Maximum range bin.
+        amax : int
+            Maximum azimuth line.
+        method : str, optional
+            Interpolation method. Default is 'linear'.
+
+        Returns
+        -------
+        xarray.DataArray
+            Array containing the shift values on a grid.
+        """
         import xarray as xr
         import numpy as np
         from scipy.interpolate import griddata
@@ -22,6 +41,25 @@ class SBAS_stack(SBAS_dem):
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
     # use median decimation instead of average
     def get_topo_llt(self, subswath, degrees, geoloc=True, debug=False):
+        """
+        Get the topography coordinates (lon, lat, z) for decimated DEM.
+
+        Parameters
+        ----------
+        subswath : int
+            Subswath number.
+        degrees : float
+            Number of degrees for decimation.
+        geoloc : bool, optional
+            Flag indicating whether to perform geolocation. Default is True.
+        debug : bool, optional
+            Enable debug mode. Default is False.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array containing the topography coordinates (lon, lat, z).
+        """
         import xarray as xr
         import numpy as np
 
@@ -39,13 +77,27 @@ class SBAS_stack(SBAS_dem):
 
     # aligning for master image
     def stack_ref(self, subswath, debug=False):
+        """
+        Align and stack the master image.
+
+        Parameters
+        ----------
+        subswath : int
+            Subswath number.
+        debug : bool, optional
+            Enable debug mode. Default is False.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        sbas.stack_ref(subswath=2, debug=True)
+        """
         import xarray as xr
         import numpy as np
         import os
-
-    #        err, warn = self.validate()
-    #        #print ('err, warn', err, warn)
-    #        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
 
         master_line = list(self.get_master(subswath).itertuples())[0]
         #print (master_line)
@@ -70,6 +122,28 @@ class SBAS_stack(SBAS_dem):
 
     # aligning for secondary image
     def stack_rep(self, subswath, date=None, degrees=12.0/3600, debug=False):
+        """
+        Align and stack secondary images.
+
+        Parameters
+        ----------
+        subswath : int
+            Subswath number.
+        date : str or None, optional
+            Date of the image to process. If None, process all images. Default is None.
+        degrees : float, optional
+            Degrees per pixel resolution for the coarse DEM. Default is 12.0/3600.
+        debug : bool, optional
+            Enable debug mode. Default is False.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        sbas.stack_rep(subswath=2, date='2023-05-01', degrees=15.0/3600, debug=True)
+        """
         import xarray as xr
         import numpy as np
         import os
@@ -217,6 +291,24 @@ class SBAS_stack(SBAS_dem):
             os.remove(filename)
 
     def stack_parallel(self, dates=None, n_jobs=-1, **kwargs):
+        """
+        Stack and align scenes.
+
+        Parameters
+        ----------
+        dates : list or None, optional
+            List of dates to process. If None, process all scenes. Default is None.
+        n_jobs : int, optional
+            Number of parallel processing jobs. n_jobs=-1 means all processor cores are used. Default is -1.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        sbas.stack_parallel()
+        """
         from tqdm.auto import tqdm
         import joblib
 

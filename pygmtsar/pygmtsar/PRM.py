@@ -14,6 +14,44 @@ class PRM(datagrid, PRM_gmtsar):
     # rank = 3 => nu = size-3
     @staticmethod
     def robust_trend2d(data, rank):
+        """
+        Perform robust linear regression to estimate the trend in 2D data.
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            Array containing the input data. The shape of the array should be (N, 3), where N is the number of data points.
+            The first column represents the x-coordinates, the second column represents the y-coordinates (if rank is 3),
+            and the third column represents the z-values.
+        rank : int
+            Number of model parameters to fit. Should be 1, 2, or 3. If rank is 1, the function fits a constant trend.
+            If rank is 2, it fits a linear trend. If rank is 3, it fits a planar trend.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array containing the estimated trend coefficients. The length of the array depends on the specified rank.
+            For rank 1, the array will contain a single value (intercept).
+            For rank 2, the array will contain two values (intercept and slope).
+            For rank 3, the array will contain three values (intercept, slope_x, slope_y).
+
+        Raises
+        ------
+        Exception
+            If the specified rank is not 1, 2, or 3.
+
+        Notes
+        -----
+        The function performs robust linear regression using the M-estimator technique. It iteratively fits a linear model
+        and updates the weights based on the residuals until convergence. The weights are adjusted using Tukey's bisquare
+        weights to downweight outliers.
+
+        References
+        ----------
+        - Rousseeuw, P. J. (1984). Least median of squares regression. Journal of the American statistical Association, 79(388), 871-880.
+
+        - Huber, P. J. (1973). Robust regression: asymptotics, conjectures and Monte Carlo. The Annals of Statistics, 1(5), 799-821.
+        """
         import numpy as np
         from sklearn.linear_model import LinearRegression
         # scale factor for normally distributed data is 1.4826
@@ -323,23 +361,53 @@ class PRM(datagrid, PRM_gmtsar):
         else:
             return prm
 
+    # fitoffset.csh 3 3 freq_xcorr.dat
     # PRM.fitoffset(3, 3, offset_dat)
     # PRM.fitoffset(3, 3, matrix_fromfile='raw/offset.dat')
     @staticmethod
     def fitoffset(rank_rng, rank_azi, matrix=None, matrix_fromfile=None, SNR=20):
+        """
+        Estimates range and azimuth offsets for InSAR (Interferometric Synthetic Aperture Radar) data.
+
+        Parameters
+        ----------
+        rank_rng : int
+            Number of parameters to fit in the range direction.
+        rank_azi : int
+            Number of parameters to fit in the azimuth direction.
+        matrix : numpy.ndarray, optional
+            Array of range and azimuth offset estimates. Default is None.
+        matrix_fromfile : str, optional
+            Path to a file containing range and azimuth offset estimates. Default is None.
+        SNR : int, optional
+            Signal-to-noise ratio cutoff. Data points with SNR below this threshold are discarded.
+            Default is 20.
+
+        Returns
+        -------
+        prm : PRM object
+            An instance of the PRM class with the calculated parameters.
+
+        Raises
+        ------
+        Exception
+            If both 'matrix' and 'matrix_fromfile' arguments are provided or if neither is provided.
+        Exception
+            If there are not enough data points to estimate the parameters.
+
+        Usage
+        -----
+        The function estimates range and azimuth offsets for InSAR data based on the provided input.
+        It performs robust fitting to obtain range and azimuth coefficients, calculates scale coefficients,
+        and determines the range and azimuth shifts. The resulting parameters are then stored in a PRM object.
+
+        Example
+        -------
+        fitoffset(3, 3, matrix_fromfile='raw/offset.dat')
+        """
         import numpy as np
         import math
 
-        """
-        Usage: fitoffset.csh npar_rng npar_azi xcorr.dat [SNR]
- 
-            rank_rng    - number of parameters to fit in range 
-            rank_azi    - number of parameters to fit in azimuth 
-            matrix      - files of range and azimuth offset estimates 
-            SNR         - optional SNR cutoff (default 20)
- 
-        Example: fitoffset.csh 3 3 freq_xcorr.dat 
-        """
         if (matrix is None and matrix_fromfile is None) or (matrix is not None and matrix_fromfile is not None):
             raise Exception('One and only one argument matrix or matrix_fromfile should be defined')
         if matrix_fromfile is not None:
@@ -414,6 +482,40 @@ class PRM(datagrid, PRM_gmtsar):
     # https://github.com/gmtsar/gmtsar/issues/86
     def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, \
             func=None, chunksize=None, debug=False):
+        """
+        Perform interferometric processing on the input SAR data.
+
+        Parameters
+        ----------
+        other : PRM
+            Another instance of the PRM class representing the second SAR data.
+        basedir : str
+            Base directory for storing the processed data files.
+        topo_ra_fromfile : str
+            Path to the topo_ra file used for the calculation.
+        basename : str, optional
+            Base name for the output files. If not provided, a default name will be generated.
+        wavelength : int, optional
+            Wavelength of the SAR data in meters. Default is 200 m.
+        psize : int, optional
+            Werner/Goldstein filter window size in pixels. Default is 32 pixels.
+        func : callable, optional
+            Custom function to apply on the processed data arrays. Default is None.
+        chunksize : int or dict, optional
+            Chunk size for dask arrays. Default is None.
+        debug : bool, optional
+            Enable debug mode. Default is False.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method performs interferometric processing on the input SAR data using GMTSAR tools.
+        It generates various intermediate and final files, including amplitude and phase data,
+        and applies filtering and convolution operations to produce the desired output.
+        """
         import os
         import numpy as np
         import xarray as xr
@@ -570,10 +672,21 @@ class PRM(datagrid, PRM_gmtsar):
 
         return
 
+    # see make_gaussian_filter.c for the original code
     def pixel_size(self):
         """
-        Calculate azimuth and range pixel size in meters
-        Note: see make_gaussian_filter.c for the original code
+        Calculate azimuth and range pixel size in meters.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the azimuth and range pixel sizes in meters.
+
+        Notes
+        -----
+        This method calculates the pixel sizes in the azimuth and range directions based on the provided parameters.
+        The azimuth pixel size is determined using the spacecraft velocity, height, and pulse repetition frequency (PRF),
+        while the range pixel size is calculated based on the speed of light and the range sampling rate.
         """
         import numpy as np
         from scipy.constants import speed_of_light
@@ -598,6 +711,39 @@ class PRM(datagrid, PRM_gmtsar):
 
     # TODO: use PRM parameters to define config parameters
     def snaphu_config(self, defomax=0, **kwargs):
+        """
+        Generate a configuration file for Snaphu phase unwrapping.
+
+        Parameters
+        ----------
+        defomax : int, optional
+            Maximum number of deformation cycles allowed. Default is 0.
+        **kwargs
+            Additional configuration parameters in key-value format.
+
+        Returns
+        -------
+        str
+            The generated configuration file as a string.
+
+        Examples
+        --------
+        Get default SNAPHU config:
+        config = sbas.snaphu_config()
+
+        Get custom SNAPHU config with added tiling options:
+        config = sbas.snaphu_config(defomax=DEFOMAX, NTILEROW=1, NTILECOL=2, ROWOVRLP=200, COLOVRLP=200)
+
+        Notes
+        -----
+        This method generates a configuration file for Snaphu, a phase unwrapping software.
+        The configuration file includes basic parameters and allows customization by passing additional parameters.
+
+        Custom Parameters
+        -----------------
+        Additional configuration parameters can be passed as keyword arguments (e.g., `parameter_name=value`).
+        Boolean values should be provided as `True` or `False`.
+        """
         import os
         # we already use joblib everywhere
         import joblib
@@ -633,37 +779,3 @@ class PRM(datagrid, PRM_gmtsar):
             conf_custom += f'        {key} {value}\n'
         return conf_basic + conf_custom
 
-def main():
-    import sys
-
-    if len(sys.argv) <= 2 :
-        print (f"Usage: {sys.argv[0]} file.PRM parameter1 value1 parameter2 value2 ...")
-        exit(0)
-
-    prm_filename = sys.argv[1]
-    #print ('prm_filename', prm_filename)
-    prm = PRM.from_file(prm_filename)
-    pairs = dict(zip(sys.argv[2::2], sys.argv[3::2]))
-    prm = prm.set(**pairs)
-    prm.to_file(prm_filename)
-
-if __name__ == "__main__":
-    # execute only if run as a script
-    main()
-
-"""
-PRM.from_file('S1_20150403_ALL_F1.PRM').set(nrows=-999).update()
-
-prm1 = PRM.from_file('S1_20150403_ALL_F1.PRM')
-prm2 = PRM.from_file('S1_20150403_ALL_F1.PRM').sel('nrows') + 1000
-(prm1).get('nrows'), (prm2).get('nrows'), (prm1 + prm2).get('nrows'), (prm1).get('nrows')
-
-prm1.set(prm2).update()
-
-(prm1 + prm2).to_file('S1_20150403_ALL_F1.PRM')
-
-(prm1).get('nrows')
-
-prm = PRM.from_file(...)
-prm.set(prm.calc_dop_orb(0,0)).update()
-"""

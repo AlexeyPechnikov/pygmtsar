@@ -6,6 +6,29 @@ class SBAS_merge_gmtsar(SBAS_intf):
 
     # stem_tofile + '.PRM' generating
     def merge_swath(self, conf, grid_tofile, stem_tofile, debug=False):
+        """
+        Merge the swaths.
+
+        Parameters
+        ----------
+        conf : str
+            The configuration file content.
+        grid_tofile : str
+            The file path for the output NetCDF grid.
+        stem_tofile : str
+            The file path for the output stem.
+
+        Returns
+        -------
+        stdout_data : str
+            The standard output from the merge_swath process.
+        stderr_data : str
+            The standard error from the merge_swath process.
+
+        Notes
+        -----
+        This method merges the swaths using the merge_swath command-line tool. It takes the configuration file content as input and generates the output grid and stem files.
+        """
         import subprocess
 
         argv = ['merge_swath', '/dev/stdin', grid_tofile, stem_tofile]

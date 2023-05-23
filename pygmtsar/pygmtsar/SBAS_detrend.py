@@ -6,6 +6,48 @@ class SBAS_detrend(SBAS_unwrap):
 
     def detrend(self, dataarray, fit=None, fit_intercept=True, fit_dem=True, fit_coords=True,
             resolution_meters=90, wavelength=None, truncate=3.0, debug=False):
+        """
+        Detrend the input data array by combining optional topography and linear components removal and Gaussian filtering.
+
+        Parameters
+        ----------
+        dataarray : xarray.DataArray
+            The input data array.
+        fit : bool, optional
+            Whether to apply the same detrend options to all components (fit_intercept, fit_dem, fit_coords).
+        fit_intercept : bool, optional
+            Whether to remove the mean value (plane).
+        fit_dem : bool, optional
+            Whether to detrend the topography.
+        fit_coords : bool, optional
+            Whether to detrend the linear coordinate components.
+        resolution_meters : float, optional
+            The processing resolution in meters to prevent overfitting and reduce grid size.
+        wavelength : float, tuple, list, or ndarray, optional
+            The cut-off wavelength(s) for the Gaussian filter in meters.
+            If a tuple, list, or ndarray is provided, the output is obtained by subtracting the
+            filtered data arrays corresponding to the minimum and maximum wavelength values.
+            If None, no filtering is performed.
+        truncate : float, optional
+            The filter window size in sigmas.
+        debug : bool, optional
+            Whether to print debug information.
+
+        Returns
+        -------
+        xarray.DataArray
+            The detrended data array.
+
+        Examples
+        --------
+        Simplest detrending:
+        sbas.detrend(pair)
+
+        Detrend the unwrapped interferogram in radar coordinates.
+        See the following GitHub issues for more details:
+        - https://github.com/gmtsar/gmtsar/issues/98
+        - https://github.com/gmtsar/gmtsar/issues/411
+        """
         import numpy as np
 
         if fit is not None:
@@ -31,6 +73,44 @@ class SBAS_detrend(SBAS_unwrap):
         return out2
 
     def detrend_parallel(self, pairs=None, chunksize=None, n_jobs=-1, interactive=False, **kwargs):
+        """
+        Detrend and save to files a set of unwrapped interferograms combining optional topography and linear components removal
+        plus optional Gaussian filtering after that.
+
+        Parameters
+        ----------
+        pairs : list, tuple, array or pandas.DataFrame, optional
+            A list or array of pairs of reference and repeat dates, or a DataFrame with 'ref' and 'rep' columns.
+        chunksize : int or None, optional
+            The number of time steps to process at a time. If None, the entire time series is processed at once.
+        n_jobs : int, optional
+            The number of jobs to run in parallel. -1 means using all available processors, default is -1.
+        interactive : bool, optional
+            Whether to return the intermediate results instead of saving them to disk. Default is False.
+        **kwargs : dict
+            Additional keyword arguments to be passed to the detrend function.
+
+        Returns
+        -------
+        None or list
+            If interactive is False (default), returns None. If interactive is True, returns a list of detrended grids.
+
+        Examples
+        --------
+        Detrend plain and topography and read the results:
+        sbas.detrend_parallel(pairs)
+        detrended = sbas.open_grids(pairs, 'detrend')
+
+        Detrend ionospheric effects and solid Earth's tides on large areas using Gaussian filtering
+        and detrend plain and topography after that:
+        sbas.detrend_parallel(pairs, wavelength=12000)
+
+        Notes
+        -----
+        This function detrends and saves a set of unwrapped interferograms by combining optional topography and linear components removal.
+        Additional keyword arguments can be passed to customize the detrending process.
+        The detrended grids can be saved to disk or returned as intermediate results.
+        """
         import dask
         import pandas as pd
         from tqdm.auto import tqdm
@@ -61,9 +141,36 @@ class SBAS_detrend(SBAS_unwrap):
     def _detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
                 resolution_meters=90, debug=False):
         """
-        Detrend unwrapped interferogram in radar coordinates, see for details
-            https://github.com/gmtsar/gmtsar/issues/98
-            https://github.com/gmtsar/gmtsar/issues/411
+        Detrend and return output for a single unwrapped interferogram combining optional topography and linear components removal.
+
+        Parameters
+        ----------
+        dataarray : xarray.DataArray
+            The input data array to detrend.
+        fit_intercept : bool, optional
+            Whether to remove the mean value (plane) from the data. Default is True.
+        fit_dem : bool, optional
+            Whether to detrend the topography. Default is True.
+        fit_coords : bool, optional
+            Whether to detrend the linear coordinate components. Default is True.
+        resolution_meters : int, optional
+            The processing resolution to prevent overfitting and reduce grid size. Default is 90.
+        debug : bool, optional
+            Whether to print debug information. Default is False.
+
+        Returns
+        -------
+        xarray.DataArray
+            The detrended 2D data array.
+
+        Examples
+        --------
+        Simplest detrending:
+        unwrap_detrended = sbas.detrend(pair.values[0] if isinstance(pairs, pd.DataFrame) else pair[0])
+
+        Detrend unwrapped interferogram in radar coordinates, see for details:
+        - [GitHub Issue 98](https://github.com/gmtsar/gmtsar/issues/98)
+        - [GitHub Issue 411](https://github.com/gmtsar/gmtsar/issues/411)
         """
         import xarray as xr
         import numpy as np
@@ -183,14 +290,39 @@ class SBAS_detrend(SBAS_unwrap):
 
     def _gaussian(self, dataarray, wavelength, truncate=3.0, resolution_meters=90, debug=False):
         """
-        Lazy Gaussian filter for arrays with NaN values.
-            dataarray - input dataarray with NaNs allowed,
-            wavelength - cut-off wavelength [m],
-            truncate - filter window size [sigma],
-            resolution_meters - Gaussian filter processing resolution [m],
-            debug - print debug information.
-        Returns filtered dataarray with the same coordinates as input one.
-        Fast approximate calculation silently skipped when sigma is less than 64 so the result is always exact for small filters.
+        Apply a lazy Gaussian filter to an input data array, allowing NaN values.
+
+        Parameters
+        ----------
+        dataarray : xarray.DataArray
+            The input data array with NaN values allowed.
+        wavelength : float, optional
+            The cut-off wavelength for the Gaussian filter in meters.
+        truncate : float, optional
+            The filter window size in sigmas.
+        resolution_meters : float, optional
+            The processing resolution for the Gaussian filter in meters.
+        debug : bool, optional
+            Whether to print debug information.
+
+        Returns
+        -------
+        xarray.DataArray
+            The filtered data array with the same coordinates as the input.
+
+        Examples
+        --------
+        Detrend ionospheric effects and solid Earth's tides on a large area:
+        unwrap_degaussian = sbas.degaussian(pairs.values[0], wavelength=12000)
+
+        Lazy Gaussian filter for arrays with NaN values:
+            - dataarray: Input data array with NaNs allowed.
+            - wavelength: Cut-off wavelength in meters.
+            - truncate: Filter window size in sigmas.
+            - resolution_meters: Gaussian filter processing resolution in meters.
+            - debug: Print debug information.
+        Returns the filtered data array with the same coordinates as the input.
+        Fast approximate calculation is silently skipped when sigma is less than 64, so the result is always exact for small filters.
         """
         import xarray as xr
         import numpy as np

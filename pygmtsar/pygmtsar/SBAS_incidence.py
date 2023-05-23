@@ -6,6 +6,24 @@ from .tqdm_dask import tqdm_dask
 class SBAS_incidence(SBAS_geocode):
 
     def get_sat_look(self):
+        """
+        Return satellite look vectors in geographic coordinates as Xarray Dataset.
+
+        Returns
+        -------
+        xarray.Dataset
+            The satellite look vectors in geographic coordinates.
+
+        Examples
+        --------
+        Get satellite look vectors:
+        sat_look_ll = sbas.get_sat_look()
+
+        Notes
+        -----
+        This function returns the satellite look vectors in geographic coordinates as Xarray Dataset. The satellite look vectors
+        should be computed and saved prior to calling this function using the `sat_look_parallel` method.
+        """
         import xarray as xr
         import os
 
@@ -17,6 +35,35 @@ class SBAS_incidence(SBAS_geocode):
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, unwraps):
+        """
+        Compute line-of-sight (LOS) displacement in millimeters.
+
+        Parameters
+        ----------
+        unwraps : xarray.DataArray or xarray.Dataset
+            Unwrapped phase grid(s) in radar or geographic coordinates.
+
+        Returns
+        -------
+        xarray.DataArray
+            Line-of-sight (LOS) displacement grid(s) in millimeters.
+
+        Examples
+        --------
+        Calculate LOS displacement for unwrapped phase grids in radar coordinates:
+        unwraps_ra = sbas.open_grids(pairs, 'unwrap')
+        los_disp_ra = sbas.los_displacement_mm(unwraps_ra)
+        # or the same code in one line
+        los_disp_ra = sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm)
+        # Note: here "func" argument for open_grids() function reduces the code to a single command.
+
+        Calculate LOS displacement for detrended unwrapped phase grids in geographic coordinates:
+        detrend_ll = sbas.open_grids(pairs, 'detrend', geocode=True)
+        los_disp_ll = sbas.los_displacement_mm(detrend_ll)
+        # or the same code in one line
+        los_disp_ll = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.los_displacement_mm)
+        # Note: here "func" argument for open_grids() function reduces the code to a single command.
+        """
         # constant is negative to make LOS = -1 * range change
         # constant is (1000 mm) / (4 * pi)
         scale = -79.58 * self.PRM().get('radar_wavelength')
@@ -24,6 +71,26 @@ class SBAS_incidence(SBAS_geocode):
         return los_disp.rename('los')
 
     def incidence_angle(self):
+        """
+        Compute the incidence angle grid in geographic coordinates.
+
+        Returns
+        -------
+        xarray.DataArray
+            The incidence angle grid in geographic coordinates.
+
+        Examples
+        --------
+        Compute the incidence angle grid:
+        inc_angle_ll = sbas.incidence_angle()
+
+        Notes
+        -----
+        This function computes the incidence angle grid in geographic coordinates based on the satellite look vectors.
+        The satellite look vectors should be computed and saved prior to calling this function using the `sat_look_parallel` method.
+        The incidence angle is calculated using the formula:
+        incidence_angle = arctan2(sqrt(look_E**2 + look_N**2), look_U)
+        """
         import xarray as xr
         import numpy as np
 
@@ -32,6 +99,29 @@ class SBAS_incidence(SBAS_geocode):
         return incidence_ll
 
     def vertical_displacement_mm(self, unwraps):
+        """
+        Compute vertical displacement in millimeters in geographic coordinates.
+
+        Parameters
+        ----------
+        unwraps : xarray.DataArray or xarray.Dataset
+            Unwrapped phase grid(s) in geographic coordinates.
+
+        Returns
+        -------
+        xarray.DataArray
+            Vertical displacement grid(s) in millimeters.
+
+        Examples
+        --------
+        Calculate vertical displacement for unwrapped phase grids in geographic coordinates:
+        unwraps_ll = sbas.open_grids(pairs, 'unwrap', geocode=True)
+        vert_disp_mm = sbas.vertical_displacement_mm(unwraps_ll)
+
+        Calculate vertical displacement for detrended unwrapped phase grids in geographic coordinates:
+        vert_disp_mm = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.vertical_displacement_mm)
+        # Note: here "func" argument for open_grids() function reduces the code to a single command.
+        """
         import numpy as np
     
         assert self.is_geo(unwraps), 'ERROR: unwrapped phase defined in radar coordinates'
@@ -41,6 +131,29 @@ class SBAS_incidence(SBAS_geocode):
         return los_disp/np.cos(incidence_ll)
 
     def eastwest_displacement_mm(self, unwraps):
+        """
+        Compute East-West displacement in millimeters.
+
+        Parameters
+        ----------
+        unwraps : xarray.DataArray or xarray.Dataset
+            Unwrapped phase grid(s) in geographic coordinates.
+
+        Returns
+        -------
+        xarray.DataArray or xarray.Dataset
+            East-West displacement grid(s) in millimeters.
+
+        Examples
+        --------
+        Calculate East-West displacement for unwrapped phase grids in geographic coordinates:
+        unwraps_ll = sbas.open_grids(pairs, 'unwrap', geocode=True)
+        ew_disp_mm = sbas.eastwest_displacement_mm(unwraps_ll)
+
+        Calculate East-West displacement for detrended unwrapped phase grids in geographic coordinates:
+        ew_disp_mm = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.eastwest_displacement_mm)
+        # Note: here "func" argument for open_grids() function reduces the code to a single command.
+        """
         import numpy as np
     
         # this displacement is not symmetrical for the orbits due to scene geometries
@@ -116,6 +229,39 @@ class SBAS_incidence(SBAS_geocode):
 
 
     def sat_look_parallel(self, interactive=False):
+        """
+        Build and save satellite look vectors in geographic coordinates.
+
+        Parameters
+        ----------
+        n_jobs : int, optional
+            Number of parallel processing jobs. n_jobs=-1 means using all available processor cores.
+        interactive : bool, optional
+            If True, returns the delayed computation object for further processing (default is False).
+
+        Returns
+        -------
+        None or dask.delayed object
+            If interactive is False, the function executes the computation and returns None. If interactive is True,
+            it returns the delayed computation object for further processing.
+
+        Examples
+        --------
+        Build and save satellite look vectors:
+        sbas.sat_look_parallel()
+
+        Returns
+        -------
+        None or dask.delayed object
+            If interactive is False, the function executes the computation and returns None. If interactive is True,
+            it returns the delayed computation object for further processing.
+
+        Notes
+        -----
+        This function builds and saves satellite look vectors in geographic coordinates. It leverages parallel processing
+        using Dask. If interactive is True, it returns the delayed computation object for further processing. Otherwise,
+        it executes the computation and returns None.
+        """
         import dask
 
         delayed = self.sat_look(interactive=interactive)

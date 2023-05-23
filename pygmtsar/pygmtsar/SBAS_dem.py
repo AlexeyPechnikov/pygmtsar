@@ -6,6 +6,36 @@ from .PRM import PRM
 class SBAS_dem(SBAS_reframe):
 
     def set_dem(self, dem_filename):
+        """
+        Set the filename of the digital elevation model (DEM) in WGS84 NetCDF grid.
+
+        Parameters
+        ----------
+        dem_filename : str or None
+            Path to the WGS84 NetCDF DEM file. If provided, the DEM filename will be set. If None, the DEM filename will be cleared.
+
+        Returns
+        -------
+        self
+            Returns the modified instance of the class.
+
+        Examples
+        --------
+        Set the DEM filename:
+
+        >>> sbas = sbas.set_dem('data/DEM_WGS84.nc')
+
+        Alternatively, the same result can be achieved during SBAS initialization:
+
+        >>> sbas = SBAS(..., dem_filename='data/DEM_WGS84.nc')
+
+        Notes
+        -----
+        This method sets the filename of the digital elevation model (DEM) data to be used in the SAR processing.
+        The DEM file is a NetCDF dataset in geographical coordinates containing elevation values for the Earth's surface.
+        By setting the DEM filename, it allows SAR processing algorithms to utilize the DEM data for geocoding, topographic
+        correction, and other applications. If `dem_filename` is None, the DEM filename will be cleared.
+        """
         import os
         if dem_filename is not None:
             self.dem_filename = os.path.relpath(dem_filename,'.')
@@ -17,6 +47,48 @@ class SBAS_dem(SBAS_reframe):
     # small buffer produces incomplete area coverage and restricted NaNs
     # minimum buffer size: 8 arc seconds for 90 m DEM
     def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.02):
+        """
+        Retrieve the digital elevation model (DEM) data.
+
+        Parameters
+        ----------
+        subswath : str, optional
+            Subswath name. Default is None.
+        geoloc : bool, optional
+            Flag indicating whether to return geolocated DEM. If True, the returned DEM will be limited to the area covered
+            by the specified subswath, plus an additional buffer around it. If False, the full DEM extent will be returned.
+            Default is False.
+        buffer_degrees : float, optional
+            Buffer size in degrees to expand the area covered by the DEM. Default is 0.02 degrees.
+
+        Returns
+        -------
+        xarray.DataArray
+            The DEM data as a DataArray object.
+
+        Raises
+        ------
+        Exception
+            If the DEM is not set before calling this method.
+
+        Examples
+        --------
+        Get DEM for all the processed subswaths:
+
+        >>> topo_ll = sbas.get_dem()
+
+        Get DEM for a single subswath IW1:
+
+        >>> topo_ll = sbas.get_dem(1)
+
+        Notes
+        -----
+        This method retrieves the digital elevation model (DEM) data previously downloaded and stored in a NetCDF file.
+        The DEM file is opened, and the elevation variable is extracted. Any missing values in the elevation data are filled
+        with zeros (mostly representing water surfaces). If the `geoloc` parameter is True, the returned DEM is geolocated,
+        limited to the area covered by the specified subswath, plus an additional buffer around it. If `geoloc` is False,
+        the full extent of the DEM will be returned.
+        """
         import xarray as xr
         import os
 
@@ -52,9 +124,46 @@ class SBAS_dem(SBAS_reframe):
     # only bicubic interpolation supported as the best one for the case
     def download_dem(self, backend=None, product='SRTM1', resolution_meters=60, method=None, buffer_degrees=0.02, debug=False):
         """
-        Use GMT server to download SRTM 1 or 3 arcsec data (@earth_relief_01s or @earth_relief_03s)
-        Remove EGM96 geoid to make heights relative to WGS84
-        Regrid to specified approximate resolution_meters (60m by default)
+        Download and preprocess digital elevation model (DEM) data.
+
+        Parameters
+        ----------
+        backend : None, optional
+            Deprecated argument. Ignored.
+        product : str, optional
+            Product type of the DEM data. Available options are 'SRTM1' (default) and 'SRTM3'.
+        resolution_meters : int, optional
+            Approximate desired resolution of the DEM data in meters. Default is 60 meters.
+        method : None, optional
+            Deprecated argument. Ignored.
+        buffer_degrees : float, optional
+            Buffer size in degrees to expand the area covered by the DEM. Default is 0.02 degrees.
+        debug : bool, optional
+            Enable debug mode. Default is False.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        Download STRM1 DEM with a resolution of 30 meters and convert it to the default 60-meter grid:
+
+        >>> sbas.download_dem()
+
+        Download STRM1 DEM with a resolution of 30 meters and convert it to a 60-meter grid:
+
+        >>> sbas.download_dem(resolution_meters=60)
+
+        Download STRM3 DEM with a resolution of 90 meters and convert it to a 120-meter grid:
+
+        >>> sbas.download_dem(product='STRM3', resolution_meters=120)
+
+        Notes
+        -----
+        This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then preprocessed
+        by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid. The DEM is regridded to the specified
+        approximate resolution using bicubic interpolation.
         """
         import numpy as np
         import pygmt

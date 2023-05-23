@@ -7,9 +7,46 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
 
     def get_pins(self, subswath=None):
         """
-        Return linear list of two pin coordinates for one or all subswaths. Use this list to easy plot the pins.
+        Return pins list.
+
+        Pins are lon/lat points to crop extra bursts, minimizing the processing area.
+
+        Parameters
+        ----------
+        subswath : int, optional
+            Optional subswath number.
+
+        Returns
+        -------
+        list
+            Python list of pairs of lon/lat coordinate points.
+
+        Examples
+        --------
+        Get pins for a single subswath IW1:
+        >>> sbas.get_pins(1)
+        [47.5, 37.8, 47.5, 38.3]
+
+        Get pins for a single subswath IW2:
+        >>> sbas.get_pins(2)
+        [48.5, 38, 48.5, 38.5]
+
+        Get pins for all the subswaths for a single subswath IW1 processing:
+        >>> sbas.get_pins()
+        [47.5, 37.8, 47.5, 38.3]
+
+        Get pins for all the subswaths for a single subswath IW2 processing:
+        >>> sbas.get_pins()
+        [48.5, 38, 48.5, 38.5]
+
+        Get pins for all the subswaths for two subswaths IW1 and IW2 processing:
+        >>> sbas.get_pins()
+        [47.5, 37.8, 47.5, 38.3, 48.5, 38, 48.5, 38.5]
+
+        Get pins for all the subswaths for three subswaths IW1, IW2, IW3 processing:
+        >>> sbas.get_pins()
+        [47.5, 37.8, 47.5, 38.8, 48.5, 38, 48.5, 39, 49.5, 38.2, 49.5, 39.2]
         """
-    
         if subswath is None:
             # that's ok when pins are not defined here
             # all the pins useful for plotting only
@@ -25,17 +62,39 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
             pins = self.pins[4*idx:4*(idx+1)]
             assert len(pins) == 4, f'ERROR: wrong number of pins detected. Found {len(pins)} for subswath {subswath}'
             return pins
-
+     
     def set_pins(self, *args):
         """
-        Estimate framed area using two pins on Sentinel-1 GCPs approximation.
-        For each defined subswath the pins should be defined like to
-            [x1, y1, x2, y2]
-            [[x1, y1], [x2, y2]]
-            [[x1, y1], None]
-            [None, [x2, y2]]
-            [None, None]
-        The pins automatically ordering for ascending and descending orbits.
+        Define pins for scene framing.
+
+        Pins are lon/lat points to crop extra bursts, minimizing the processing area.
+
+        Parameters
+        ----------
+        *args : list of pairs of lon/lat coordinate points
+            List of pin coordinates for each subswath.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> sbas.set_pins([47.5, 37.8, None, None])
+        >>> sbas.set_pins([48.5, 38, 48.5, 38.5])
+        >>> sbas.set_pins([47.5, 37.8, 47.5, 38.3], [48.5, 38, 48.5, 38.5])
+        >>> sbas.set_pins([47.5, 38-0.2, 47.5, 39-0.2], [48.5, 38, 48.5, 39], [49.5, 38+0.2, 49.5, 39+0.2])
+
+        Notes
+        -----
+        For each defined subswath, the pins should be defined using the following formats:
+        - [x1, y1, x2, y2]
+        - [[x1, y1], [x2, y2]]
+        - [[x1, y1], None]
+        - [None, [x2, y2]]
+        - [None, None]
+
+        The pins are automatically ordered based on the ascending or descending orbit.
         """
         import numpy as np
         from shapely.geometry import Point
@@ -132,6 +191,24 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
     def reframe(self, subswath, date, debug=False):
         """
         Estimate framed area using two pins using Sentinel-1 GCPs approximation.
+
+        Parameters
+        ----------
+        subswath : int
+            The subswath number.
+        date : str
+            The date of the scene.
+        debug : bool, optional
+            Enable debug mode. Default is False.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The updated DataFrame with the estimated framed area.
+
+        Examples
+        --------
+        df = sbas.reframe(1, '2023-05-20')
         """
         import numpy as np
         import shapely
@@ -201,6 +278,21 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         return df
 
     def reframe_parallel(self, dates=None, n_jobs=-1, **kwargs):
+        """
+        Reorder bursts from sequential scenes to cover the full orbit area between pins only.
+
+        Args:
+            dates : list, optional
+                Optional list of dates. All the scenes are processed when the argument is not defined.
+            n_jobs : int, optional
+                Number of parallel processing jobs. n_jobs=-1 means all the processor cores are used.
+
+        Returns:
+            None
+
+        Examples:
+            sbas.reframe_parallel()
+        """
         from tqdm.auto import tqdm
         import joblib
         import pandas as pd

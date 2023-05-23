@@ -32,6 +32,32 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
         None
             This function saves the unwrapped phase to disk as grid files and does not return any values.
 
+        Examples
+        --------
+        Simplest unwrapping:
+        sbas.unwrap_parallel(pairs)
+
+        Filter low-coherence areas with common correlation threshold 0.75:
+        sbas.unwrap_parallel(pairs, threshold=0.075)
+
+        Unwrap with coherence threshold 0.075 and fill NODATA gaps:
+        interpolator = lambda corr, unwrap: sbas.nearest_grid(unwrap).where(corr>=0)
+        sbas.unwrap_parallel(pairs, threshold=0.075, func=interpolator)
+
+        Unwrap with coherence threshold 0.075 and apply land mask:
+        cleaner = lambda corr, unwrap: xr.where(corr>=0.075, unwrap, np.nan)
+        sbas.unwrap_parallel(pairs, threshold=0.075, mask=landmask_ra, func=cleaner)
+
+        Unwrap with coherence threshold 0.075 and use SNAPHU tiling for faster processing and smaller RAM usage:
+        cleaner = lambda corr, unwrap: xr.where(corr>=0.075, unwrap, np.nan)
+        conf = sbas.PRM().snaphu_config(NTILEROW=1, NTILECOL=2, ROWOVRLP=200, COLOVRLP=200)
+        sbas.unwrap_parallel(pairs, n_jobs=1, threshold=0.075, func=cleaner, conf=conf)
+
+        Notes
+        -----
+        This function unwraps phase using SNAPHU in parallel for multiple interferogram pairs.
+        The unwrapped phase is saved as grid files in the working directory.
+        Additional keyword arguments can be passed to customize the unwrapping process.
         """
         import xarray as xr
         import pandas as pd

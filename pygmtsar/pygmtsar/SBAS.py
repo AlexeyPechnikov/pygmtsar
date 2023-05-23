@@ -9,6 +9,16 @@ class SBAS(SBAS_stl):
     #text2date('V20171110T225942'), text2date('20171117t145927')
     @staticmethod
     def text2date(text, as_date=True):
+        """
+        Convert a text string in the format 'VYYYYMMDDTHHMMSS' or 'YYYYMMDDTHHMMSS' to a datetime object or date object.
+
+        Parameters:
+            text (str): The text string to convert.
+            as_date (bool): If True, return a date object. If False, return a datetime object. Default is True.
+
+        Returns:
+            datetime.date or datetime.datetime: The converted date or datetime object.
+        """
         from datetime import datetime
         
         date_fmt = '%Y%m%dT%H%M%S'
@@ -20,6 +30,40 @@ class SBAS(SBAS_stl):
 
     def __init__(self, datadir, dem_filename=None, basedir='.', landmask_filename=None,
                 filter_orbit=None, filter_mission=None, filter_subswath=None, filter_polarization=None, force=True):
+        """
+        Initialize an instance of the SBAS class.
+
+        Parameters
+        ----------
+        datadir : str
+            The directory containing the data files.
+        dem_filename : str, optional
+            The filename of the DEM (Digital Elevation Model) WGS84 NetCDF file. Default is None.
+        basedir : str, optional
+            The base directory for processing. Default is '.'.
+        landmask_filename : str, optional
+            The filename of the landmask WGS84 NetCDF file. Default is None.
+        filter_orbit : str, optional
+            Filter for orbit direction. Use 'A' for Ascending, 'D' for Descending, or None for no filter. Default is None.
+        filter_mission : str, optional
+            Filter for mission name. Use 'S1A' for Sentinel-1A, 'S1B' for Sentinel-1B, or None for no filter. Default is None.
+        filter_subswath : int, optional
+            Filter for subswath number. Use a single or sequential numbers 1, 2, 3, 12, 23, 123, or None for no filter. Default is None.
+        filter_polarization : str, optional
+            Filter for polarization. Use 'VV', 'VH', 'HH', 'HV', or None for no filter. Default is None.
+        force : bool, optional
+            If True, recreate the basedir directory if it already exists. If False, use the existing directory. Default is True.
+
+        Examples
+        --------
+        Initialize an SBAS object with the data directory 'data' and the base directory 'raw':
+
+        >>> sbas = SBAS('data', basedir='raw')
+
+        Initialize an SBAS object with the data directory 'data', DEM filename 'data/DEM_WGS84.nc', and the base directory 'raw':
+
+        >>> sbas = SBAS('data', 'data/DEM_WGS84.nc', 'raw')
+        """
         import os
         import shutil
         from glob import glob
@@ -155,6 +199,19 @@ class SBAS(SBAS_stl):
         self.pins = []
 
     def validate(self, df=None):
+        """
+        Validate the DataFrame to check for any issues or inconsistencies.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame, optional
+            The DataFrame to validate. If None, validate self.df. Default is None.
+
+        Returns
+        -------
+        bool, bool
+            A tuple containing two booleans indicating the presence of errors and warnings, respectively.
+        """
         import numpy as np
 
         if df is None:
@@ -188,7 +245,17 @@ class SBAS(SBAS_stl):
     @staticmethod
     def annotation(filename):
         """
-        Return XML scene annotation
+        Return the XML scene annotation as a dictionary.
+
+        Parameters
+        ----------
+        filename : str
+            The filename of the XML scene annotation.
+
+        Returns
+        -------
+        dict
+            The XML scene annotation as a dictionary.
         """
         import xmltodict
 
@@ -201,7 +268,17 @@ class SBAS(SBAS_stl):
 
     def geoloc(self, filename=None):
         """
-        Build approximate scene polygons using GCPs from XML scene annotation
+        Build approximate scene polygons using Ground Control Points (GCPs) from XML scene annotation.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The filename of the XML scene annotation. If None, print a note and return an empty DataFrame. Default is None.
+
+        Returns
+        -------
+        geopandas.GeoDataFrame
+            A GeoDataFrame containing the approximate scene polygons.
         """
         import numpy as np
         import pandas as pd
@@ -223,9 +300,23 @@ class SBAS(SBAS_stl):
 
     def PRM(self, subswath=None, date=None, multi=True, singleswath=False):
         """
-        multi=True/False - open multistem or stem file
-        singleswath=False/True - open a single-digit subswath instead of a multi-digit (merged) one
-            single-digit subswath exists always while multi-digit exists only for interferogram pair references
+        Open a PRM (Parameter) file.
+
+        Parameters
+        ----------
+        subswath : int, optional
+            The subswath number. If None, return a single subswath PRM file. Default is None.
+        date : str, optional
+            The date of the PRM file. If None or equal to self.master, return the master PRM file. Default is None.
+        multi : bool, optional
+            If True, open a multistem PRM file. If False, open a stem PRM file. Default is True.
+        singleswath : bool, optional
+            If True, open a single-digit subswath PRM file instead of a merged (multi-digit) one. Default is False.
+
+        Returns
+        -------
+        PRM
+            An instance of the PRM class representing the opened PRM file.
         """
         import os
 

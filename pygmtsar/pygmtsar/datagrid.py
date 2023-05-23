@@ -52,7 +52,31 @@ class datagrid:
 
     def as_geo(self, da):
         """
-        Add spatial attributes to allow use rioxarray functions like to .rio.clip([geometry])
+        Add geospatial attributes (CRS and spatial dimensions) to allow raster operations using RioXarray.
+
+        Parameters
+        ----------
+        da : xarray.DataArray
+            The input 2D or 3D grid to be converted to geospatial.
+
+        Returns
+        -------
+        xarray.DataArray
+            The geospatial 2D or 3D grid.
+
+        Examples
+        --------
+        Convert a raster to geospatial and mask it using a Shapely vector geometry:
+        sbas.as_geo(grid).rio.clip([geometry])
+
+        Notes
+        -----
+        This method adds geospatial attributes (CRS and spatial dimensions) to the input grid,
+        allowing raster operations using the RioXarray library. If the input grid is already
+        in geographic coordinates, the CRS is set to EPSG 4326 with spatial dimensions 'lat' and 'lon'.
+        Otherwise, if the input grid is in radar coordinates, a fake metric coordinate system is used
+        with EPSG 3857 and spatial dimensions 'y' and 'x'. The method relies on the availability of the
+        'rioxarray' module.
         """
         import sys
         assert 'rioxarray' in sys.modules, 'rioxarray module is not found'
@@ -82,6 +106,31 @@ class datagrid:
  
     @staticmethod
     def cropna(das):
+        """
+        Crop the valid extent of a raster by removing rows and columns containing only NODATA values.
+
+        Parameters
+        ----------
+        das : xarray.DataArray
+            The input 2D or 3D grid to be cropped.
+
+        Returns
+        -------
+        xarray.DataArray
+            The cropped 2D or 3D grid.
+
+        Examples
+        --------
+        Crop the valid extent of a raster:
+        sbas.cropna(grid)
+
+        Notes
+        -----
+        This method crops the input grid by removing rows and columns that contain only NODATA values.
+        It operates on 2D or 3D grids, where the NODATA values are represented as NaN values.
+        The resulting grid has a reduced size, containing only the valid extent of the input grid.
+        If the input grid is 3D, the cropping is performed along the dimensions other than 'pair' or 'date'.
+        """
         # crop NaNs
         dims = [dim for dim in das.dims if dim != 'pair' and dim != 'date']
         dim0 = [dim for dim in das.dims if dim in ['pair', 'date']]
@@ -147,7 +196,30 @@ class datagrid:
 
     def nearest_grid(self, in_grid, search_radius_pixels=None):
         """
-        Nearest Neighbour interpolation
+        Perform nearest neighbor interpolation on a 2D grid.
+
+        Parameters
+        ----------
+        in_grid : xarray.DataArray
+            The input 2D grid to be interpolated.
+        search_radius_pixels : int, optional
+            The interpolation distance in pixels. If not provided, the default is set to the chunksize of the SBAS object.
+
+        Returns
+        -------
+        xarray.DataArray
+            The interpolated 2D grid.
+
+        Examples
+        --------
+        Fill gaps in the specified grid using nearest neighbor interpolation:
+        sbas.nearest_grid(grid)
+
+        Notes
+        -----
+        This method performs nearest neighbor interpolation on a 2D grid. It replaces the NaN values in the input grid with
+        the nearest non-NaN values. The interpolation is performed within a specified search radius in pixels.
+        If a search radius is not provided, the default search radius is set to the chunksize of the SBAS object.
         """
         from scipy.spatial import cKDTree
         import xarray as xr
@@ -225,6 +297,47 @@ class datagrid:
         return grid
 
     def pixel_size(self, grid=(1, 4), average=True):
+        """
+        Compute the ground pixel size in meters for the default processing grid or the defined one.
+
+        Parameters
+        ----------
+        grid : tuple or xarray.DataArray, optional
+            A pair of x, y grid decimation coefficients or a 2D or 3D Xarray DataArray representing the decimation grid.
+            The default is (1, 4) for the default processing grid.
+        average : bool, optional
+            Flag indicating whether to calculate the average ground pixel size per subswath resolution.
+            If True, the average pixel size across all subswaths is returned. If False, a list of pixel sizes per subswath
+            is returned. Default is True.
+
+        Returns
+        -------
+        tuple or list of tuples
+            The ground pixel size(s) in meters. If average is True, a tuple of average pixel sizes is returned.
+            If average is False, a list of tuples containing the pixel sizes per subswath is returned.
+
+        Examples
+        --------
+        Get the default average ground pixel size:
+        sbas.pixel_size()
+        >>> (14.0, 15.7)
+
+        Get the default ground pixel size per subswath:
+        sbas.pixel_size(average=False)
+        >>> [(14.0, 16.7), (14.0, 14.7)]
+
+        Get the ground pixel size for an unwrapped phase grid with a decimation of {'y': 2, 'x': 2}:
+        sbas.pixel_size(unwraps)
+        >>> (27.9, 29.5)
+
+        Notes
+        -----
+        This method computes the ground pixel size in meters for the default processing grid or a user-defined grid.
+        The pixel size is calculated based on the azimuth and range pixel sizes obtained from the processing parameters.
+        If a grid is provided, the pixel sizes are adjusted according to the grid decimation coefficients.
+        By default, the method returns the average pixel size across all subswaths. Setting `average` to False will return
+        a list of pixel sizes per subswath. The pixel sizes are rounded to one decimal place.
+        """
         import xarray as xr
         import numpy as np
 
@@ -247,6 +360,29 @@ class datagrid:
 
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
     def pixel_decimator(self, resolution_meters=60, grid=(1, 4), debug=False):
+        """
+        Return function for pixel decimation to the specified output resolution.
+    
+        Parameters
+        ----------
+        resolution_meters : int, optional
+            DEM grid resolution in meters. The same grid is used for geocoded results output.
+        grid : tuple, optional
+            Grid size for pixel decimation in the format (vertical, horizontal).
+        debug : bool, optional
+            Boolean flag to print debug information.
+    
+        Returns
+        -------
+        callable
+            Post-processing function for SBAS.ints() and SBAS.intf_parallel().
+    
+        Examples
+        --------
+        Decimate computed interferograms to default DEM resolution 60 meters:
+        decimator = sbas.pixel_decimator()
+        sbas.intf_parallel(pairs, func=decimator)
+        """
         import numpy as np
         import dask
 

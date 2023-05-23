@@ -5,6 +5,25 @@ from .SBAS_merge import SBAS_merge
 class SBAS_landmask(SBAS_merge):
 
     def set_landmask(self, landmask_filename):
+        """
+        Set the landmask file path.
+
+        Parameters
+        ----------
+        landmask_filename : str or None
+            The NetCDF file path of the landmask. If None, the landmask file path will be set to None.
+
+        Examples
+        --------
+        sbas = sbas.set_landmask('data/landmask.nc')
+        Also, the same result is possible on SBAS initialization:
+        sbas = SBAS(..., landmask_filename='data/landmask.nc')
+
+        Returns
+        -------
+        self : SBAS
+            The SBAS object with the updated landmask file path.
+        """
         import os
         if landmask_filename is not None:
             self.landmask_filename = os.path.relpath(landmask_filename,'.')
@@ -13,6 +32,35 @@ class SBAS_landmask(SBAS_merge):
         return self
 
     def get_landmask(self, inverse_geocode=False, crop_valid=True):
+        """
+        Get the landmask grid in geographic or radar coordinates.
+
+        Parameters
+        ----------
+        inverse_geocode : bool, optional
+            Whether to perform inverse geocoding on the landmask grid. If True, the grid will be transformed from geographic
+            coordinates to radar coordinates. Default is False.
+        crop_valid : bool, optional
+            Whether to crop the landmask to the valid area only based on the interferogram DEM. Default is True.
+
+        Returns
+        -------
+        landmask : xarray.DataArray
+            The landmask grid.
+
+        Examples
+        --------
+        Get land mask in geographic coordinates:
+        landmask_ll = sbas.get_landmask()
+
+        Get land mask in radar coordinates:
+        landmask_ra = sbas.get_landmask(inverse_geocode=True)
+
+        Notes
+        -----
+        This method opens the landmask NetCDF file and extracts the landmask grid. The grid can be cropped to the valid area
+        only or transformed from geographic coordinates to radar coordinates using inverse geocoding.
+        """
         import xarray as xr
         import os
 
@@ -44,7 +92,22 @@ class SBAS_landmask(SBAS_merge):
 
     def download_landmask(self, backend=None, debug=False):
         """
-        Use GMT local data or server to download and build landmask on interferogram DEM area
+        Download the landmask and save as NetCDF file.
+
+        Parameters
+        ----------
+        backend : deprecated
+            This parameter is deprecated and should be omitted.
+        debug : bool, optional
+            Whether to enable debug mode. Default is False.
+
+        Examples
+        --------
+        sbas = sbas.download_landmask()
+
+        Notes
+        -----
+        This method downloads the landmask using GMT's local data or server. The landmask is built based on the interferogram DEM area.
         """
         import pygmt
         import os

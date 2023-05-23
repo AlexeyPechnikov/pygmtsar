@@ -9,9 +9,44 @@ class SBAS_base(tqdm_joblib, datagrid):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
     def to_dataframe(self):
+        """
+        Return a Pandas DataFrame for all SBAS scenes.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The DataFrame containing SBAS scenes.
+
+        Examples
+        --------
+        df = sbas.to_dataframe()
+        """
         return self.df
 
     def dump(self, to_path=None):
+        """
+        Dump SBAS object state to a pickle file (SBAS.pickle in the processing directory by default).
+
+        Parameters
+        ----------
+        to_path : str, optional
+            Path to the output dump file. If not provided, the default dump file in the processing directory is used.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        Dump the current state to the default dump file in the processing directory:
+        sbas.dump()
+
+        Notes
+        -----
+        This method serializes the state of the SBAS object and saves it to a pickle file. The pickle file can be used to
+        restore the SBAS object with its processed data and configuration. By default, the dump file is named "SBAS.pickle"
+        and is saved in the processing directory. An alternative file path can be provided using the `to_path` parameter.
+        """
         import pickle
         import os
 
@@ -30,6 +65,31 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     @staticmethod
     def restore(from_path):
+        """
+        Restore SBAS object state from a pickle file (SBAS.pickle in the processing directory by default).
+
+        Parameters
+        ----------
+        from_path : str
+            Path to the input dump file.
+
+        Returns
+        -------
+        SBAS
+            The restored SBAS object.
+
+        Examples
+        --------
+        Restore the current state from the default dump file in the processing directory:
+        sbas.restore()
+
+        Notes
+        -----
+        This static method restores the state of an SBAS object from a pickle file. The pickle file should contain the
+        serialized state of the SBAS object, including its processed data and configuration. By default, the method assumes
+        the input file is named "SBAS.pickle" and is located in the processing directory. An alternative file path can be
+        provided using the `from_path` parameter. The method returns the restored SBAS object.
+        """
         import pickle
         import os
 
@@ -43,6 +103,41 @@ class SBAS_base(tqdm_joblib, datagrid):
 
 
     def backup(self, backup_dir, copy=False, debug=False):
+        """
+        Backup framed SBAS scenes, orbits, DEM, and landmask files to build a minimal reproducible dataset.
+
+        Parameters
+        ----------
+        backup_dir : str
+            The backup directory where the files will be copied.
+        copy : bool, optional
+            Flag indicating whether to make a copy of scene and orbit files and remove the originals in the work directory.
+            If False, the files will be moved to the backup directory. Default is False.
+        debug : bool, optional
+            Flag indicating whether to print debug information. Default is False.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        Backup the files to the specified directory:
+        sbas.backup('backup')
+
+        Open the backup for the reproducible run by defining it as a new data directory:
+        sbas = SBAS('backup', 'backup/DEM_WGS84.nc', 'raw')
+
+        Notes
+        -----
+        This method backs up the framed SBAS scenes, orbits, DEM, and landmask files to a specified backup directory.
+        It provides a way to create a minimal reproducible dataset by preserving the necessary files for processing.
+        The method creates the backup directory if it does not exist. By default, the method moves the scene and orbit files
+        to the backup directory, effectively removing them from the work directory. The DEM and landmask files are always
+        copied to the backup directory. If the `copy` parameter is set to True, the scene and orbit files will be copied
+        instead of moved. Use caution when setting `copy` to True as it can result in duplicated files and consume
+        additional storage space. The method also updates the SBAS object's dataframe to mark the removed files as empty.
+        """
         import os
         import shutil
 
@@ -107,7 +202,23 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     def set_master(self, master):
         """
-        Set master image date
+        Define master scene for SBAS object.
+
+        Parameters
+        ----------
+        master : str
+            Date string representing the master scene.
+
+        Returns
+        -------
+        SBAS
+            Modified instance of the SBAS class.
+
+        Examples
+        --------
+        Set the master scene to '2022-01-20':
+
+        >>> sbas.set_master('2022-01-20')
         """
         if not master in self.df.index:
             raise Exception('Master image not found')
@@ -300,6 +411,77 @@ class SBAS_base(tqdm_joblib, datagrid):
     # Backward-compatible open_grids() returns list of grids fot the name or a single grid for a single subswath
     def open_grids(self, pairs, name, geocode=False, inverse_geocode=False,  mask=None, func=None,
                    crop_valid=False, add_subswath=True, chunksize=None, n_jobs=-1, interactive=True):
+        """
+        Lazy open PyGMTSAR produced NetCDF grids as 3D data cube and apply a set of functions on it.
+
+        Parameters
+        ----------
+        pairs : list, pandas.DataFrame, or numpy.ndarray
+            List of date pairs (baseline pairs) or dates.
+        name : str
+            Grid name: 'phasefilt', 'corr', 'unwrap', 'detrend', 'disp'.
+        geocode : bool, optional
+            Whether to geocode the grid to geographic coordinates. Default is False.
+        inverse_geocode : bool, optional
+            Whether to inverse geocode the grid to radar coordinates. Default is False.
+        mask : xarray.DataArray, optional
+            Mask to exclude invalid areas. Default is None.
+        func : function or list of functions, optional
+            Function(s) to apply to each input grid. Default is None.
+        crop_valid : bool, optional
+            Whether to crop NaN values in the grids. Default is False.
+        add_subswath : bool, optional
+            Whether to add subswath name as 'Fn' to grid names. Default is True.
+        chunksize : int, optional
+            Size of the chunks for processing the data instead of the default value. Default is None.
+        n_jobs : int, optional
+            Number of CPU cores to use for parallel processing. Default is -1, which means using all available cores.
+        interactive : bool, optional
+            If True, show the progress indicator. Default is True.
+
+        Returns
+        -------
+        3D Xarray DataArray or list of 3D Xarray DataArray
+            The opened and processed grids as a 3D Xarray DataArray or a list of 3D Xarray DataArray.
+
+        Examples
+        --------
+        Open unwrapped phase grids in radar coordinates:
+        unwraps_ra = sbas.open_grids(pairs, 'unwrap')
+
+        Open PyGMTSAR SBAS grids in radar coordinates and calculate LOS displacement and fill NODATA areas:
+        dates = np.unique(pairs.values.flatten() if isinstance(pairs, pd.DataFrame) else pairs.flatten())
+        disps = sbas.open_grids(dates, 'disp', func=[sbas.los_displacement_mm, sbas.nearest_grid])
+
+        Open GMTSAR SBAS grids in radar coordinates using compatibility option add_subswath=False:
+        sbas.open_grids(sbas.df.index, 'disp', func=sbas.nearest_grid, add_subswath=False)
+
+        Calculate LOS displacement for unwrapped phase grids in radar coordinates:
+        unwraps_ra = sbas.open_grids(pairs, 'unwrap')
+        los_disp_ra = sbas.los_displacement_mm(unwraps_ra)
+        # or the same code in one line
+        los_disp_ra = sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm)
+        # Note: here "func" argument for open_grids() function reduces the code to a single command.
+
+        Calculate LOS displacement for detrended unwrapped phase grids in geographic coordinates:
+        detrend_ll = sbas.open_grids(pairs, 'detrend', geocode=True)
+        los_disp_ll = sbas.los_displacement_mm(detrend_ll)
+        # or the same code in one line
+        los_disp_ll = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.los_displacement_mm)
+        # Note: here "func" argument for open_grids() function reduces the code to a single command.
+
+        Open GMTSAR SBAS velocity grid in radar coordinates:
+        vel = sbas.open_grids(None, 'vel', add_subswath=False)
+        Open GMTSAR SBAS velocity grid in geographic coordinates:
+        vel = sbas.open_grids(None, 'vel', geocode=True, add_subswath=False)
+
+        Notes
+        -----
+        This method lazily opens PyGMTSAR-produced NetCDF grids as a 3D data cube and applies a set of functions on it.
+        It can open multiple subswaths of grids and process them in parallel using Dask and Joblib.
+        The grids can be geocoded to geographic coordinates or inverse geocoded to radar coordinates.
+        Various processing options such as applying functions, cropping NaN values, and adding subswath names are available.
+        """
         import pandas as pd
         import xarray as xr
         import numpy as np

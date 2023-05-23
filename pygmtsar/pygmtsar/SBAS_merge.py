@@ -6,6 +6,24 @@ from .PRM import PRM
 class SBAS_merge(SBAS_merge_gmtsar):
 
     def merge(self, pair, grid, debug=False):
+        """
+        Merge the interferograms.
+
+        Parameters
+        ----------
+        pair : tuple
+            A tuple containing the reference and repeat dates of the interferogram pair.
+        grid : str
+            The type of grid to merge, such as 'phasefilt' or 'corr'.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
+
+        Notes
+        -----
+        This method merges the interferograms for a given pair and grid name. It generates the necessary
+        configuration files, PRM files, and performs the merge using the merge_swath command-line tool.
+
+        """
         import os
 
         record2multistem = lambda record: self.multistem_stem(record.subswath, record.datetime)[0]
@@ -76,6 +94,30 @@ class SBAS_merge(SBAS_merge_gmtsar):
             os.remove(filename)
 
     def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=-1, **kwargs):
+        """
+        Perform parallel merging of interferograms.
+
+        Parameters
+        ----------
+        pairs : list or None
+            List of interferogram date pairs to merge. If None, all available pairs will be merged.
+        grids : list, optional
+            List of grid names to merge, such as 'phasefilt' or 'corr'. Default is ['phasefilt', 'corr'].
+        n_jobs : int, optional
+            The number of parallel jobs to run. Default is -1, which uses all available CPU cores.
+        **kwargs : additional keyword arguments
+            Additional arguments to be passed to the merge function.
+
+        Examples
+        --------
+        sbas.merge_parallel(pairs)
+
+        Notes
+        -----
+        This method performs parallel merging of the interferograms for the specified pairs and grids. It utilizes
+        joblib.Parallel for efficient parallel processing. The merged interferograms are stored in the 'df' attribute
+        of the SBAS object, which is a GeoDataFrame containing information about the original or merged interferograms.
+        """
         from tqdm.auto import tqdm
         import joblib
         import pandas as pd

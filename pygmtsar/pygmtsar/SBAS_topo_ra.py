@@ -7,6 +7,30 @@ from .tqdm_dask import tqdm_dask
 class SBAS_topo_ra(SBAS_trans):
 
     def topo_ra(self, subswath=None, idec=2, jdec=2, n_jobs=-1, interactive=False):
+        """
+        Compute the topography in radar coordinates (topo_ra).
+
+        Parameters
+        ----------
+        subswath : int or None, optional
+            The subswath number to compute the topographic radar coordinates for. If None, the computation
+            will be performed for all subswaths. Default is None.
+        idec : int, optional
+            The decimation factor in the range direction. Default is 2.
+        jdec : int, optional
+            The decimation factor in the azimuth direction. Default is 2.
+        n_jobs : int, optional
+            The number of parallel jobs to run. Default is -1, which uses all available CPU cores.
+        interactive : bool, optional
+            If True, the computation will be performed interactively and the result will be returned as a delayed object.
+            Default is False.
+
+        Notes
+        -----
+        This method computes the topography in radar coordinates (topo_ra) for the specified subswath(s). It uses the trans.dat
+        and trans_blocks_extents data files to build the necessary index tree and perform the coordinate transformation.
+        The computed topo_ra grids are saved in NetCDF files and can be accessed using the 'get_topo_ra' method.
+        """
         from scipy.spatial import cKDTree
         import dask
         import xarray as xr
@@ -103,6 +127,30 @@ class SBAS_topo_ra(SBAS_trans):
         return handler
 
     def topo_ra_parallel(self, interactive=False):
+        """
+        Build topography in radar coordinates from WGS84 DEM using parallel computation.
+
+        Parameters
+        ----------
+        interactive : bool, optional
+            If True, the computation will be performed interactively and the results will be returned as delayed objects.
+            If False, the progress will be displayed using tqdm_dask. Default is False.
+
+        Returns
+        -------
+        handler or list of handlers
+            The handler(s) of the delayed computation if 'interactive' is True. Otherwise, None.
+
+        Examples
+        --------
+        sbas.topo_ra_parallel()
+
+        Notes
+        -----
+        This method performs the parallel computation of topography in the radar coordinates (topo_ra) for all subswaths
+        using Dask. It calls the 'topo_ra' method for each subswath in parallel. If 'interactive' is True, the delayed
+        computation handlers will be returned. Otherwise, the progress will be displayed using tqdm_dask.
+        """
         import dask
 
         # auto generate the trans.dat file
@@ -122,7 +170,25 @@ class SBAS_topo_ra(SBAS_trans):
             return delayeds[0] if len(delayeds)==1 else delayeds
 
     def get_topo_ra(self):
-        #import numpy as np
+        """
+        Get the radar topography grid.
+
+        Returns
+        -------
+        xarray.DataArray or list of xarray.DataArray
+            The 'topo_ra' grid data as a single xarray.DataArray if only one grid is found,
+            or a list of xarray.DataArray if multiple grids are found.
+
+        Examples
+        --------
+        Get DEM for all the processed subswaths:
+        topo_ra = sbas.get_topo_ra()
+
+        Notes
+        -----
+        This method opens the 'topo_ra' grids using the `open_grids` method and applies the `func` function
+        to each grid to flip it vertically for compatibility reasons with GMTSAR. The resulting grids are returned.
+        """
         import xarray as xr
         import dask.array
 

@@ -6,9 +6,17 @@ class PRM_gmtsar:
     @staticmethod
     def gmtsar_sharedir():
         """
-        Call GMTSAR tool to obtain GMTSAR shared directory location.
-        Note: Docker builds on Apple Silicon for linux/amd64 platform produce weird issue
-        when gmtsar_sharedir.csh output switches to stderr in joblib calls with n_jobs > 1
+        Get the location of the GMTSAR shared directory.
+
+        Returns
+        -------
+        str
+            The path to the GMTSAR shared directory.
+
+        Notes
+        -----
+        This method calls the GMTSAR tool 'gmtsar_sharedir.csh' to obtain the location of the GMTSAR shared directory.
+        The shared directory contains essential files and data used by GMTSAR.
         """
         import os
         import subprocess
@@ -27,12 +35,25 @@ class PRM_gmtsar:
 
     def calc_dop_orb(self, earth_radius=0, doppler_centroid=0, inplace=False, debug=False):
         """
-        Usage: calc_dop_orb  file.PRM  added.PRM  earth_radius  [doppler_centroid]
-            file.PRM     - input name of PRM file 
-            new.PRM      - output additional parameters to add to the PRM file 
-            earth_radius - input set earth radius, 0 calculates radius 
-            [doppler_centroid] - no parameter calculates doppler 
-            [doppler_centroid] - use value (e.g. 0.0) to force doppler 
+        Calculate the Doppler orbit.
+
+        Parameters
+        ----------
+        earth_radius : float, optional
+            The Earth radius. If set to 0, the radius will be calculated. Default is 0.
+        doppler_centroid : float, optional
+            The Doppler centroid. If set to 0, the Doppler will be calculated. Default is 0.
+        inplace : bool, optional
+            If True, the calculated Doppler orbit will be set in the current PRM object. If False, a new PRM object
+            with the calculated Doppler orbit will be returned. Default is False.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
+
+        Returns
+        -------
+        PRM or None
+            If inplace is True, returns the current PRM object with the calculated Doppler orbit.
+            If inplace is False, returns a new PRM object with the calculated Doppler orbit.
         """
         import subprocess
         import os
@@ -54,27 +75,26 @@ class PRM_gmtsar:
 
     def SAT_baseline(self, other, tail=None, debug=False):
         """
-        SAT_baseline
+        Compute the satellite baseline.
 
-        Usage: (two modes)
+        Parameters
+        ----------
+        other : PRM
+            The PRM object for the other image.
+        tail : int, optional
+            The number of lines to keep from the computed baseline. Default is None, which keeps all lines.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
 
-        mode 1:
+        Returns
+        -------
+        PRM
+            The PRM object with the computed satellite baseline.
 
-            SAT_baseline PRM_master PRM_master
-
-            This is used to compute height information
-            (writes out height information for appending to PRM file)
-
-        mode 2:
-
-            SAT_baseline PRM_master PRM_aligned 
-
-            PRM_master     PRM file for reference image
-            PRM_aligned        PRM file of secondary image
-            Please make sure the orbit file data is in PRM 
-            Program runs through repeat orbit to find nearest point 
-            to the start, center and end on the reference orbit
-            (writes out parameters for appending to PRM file)
+        Notes
+        -----
+        This method computes the satellite baseline between the current PRM object and the specified PRM object.
+        The resulting parameters are stored in the returned PRM object.
         """
         import os
         import subprocess
@@ -122,15 +142,35 @@ class PRM_gmtsar:
     """
     def SAT_llt2rat(self, coords=None, fromfile=None, tofile=None, precise=1, binary=False, debug=False):
         """
-         Usage: SAT_llt2rat master.PRM prec [-bo[s|d]] < inputfile > outputfile
+        Convert latitude, longitude, and elevation (LLT) coordinates to radar (RAT) coordinates.
 
-             master.PRM   -  parameter file for master image and points to LED orbit file.
-             precise      -  (0) standard back geocoding, (1) - polynomial refinenent (slower).
-             inputfile    -  lon, lat, elevation [ASCII].
-             outputfile   -  range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default].
-             -bos or -bod -  binary single or double precision output.
+        Parameters
+        ----------
+        coords : array_like or None, optional
+            The LLT coordinates to convert. Should be a 2D array-like object with shape (N, 3), where N is the number of coordinates.
+            Each coordinate should be in the format [longitude, latitude, elevation].
+        fromfile : str or None, optional
+            The file path to read the LLT coordinates from. The file should contain a space-separated list of LLT coordinates in the
+            format "longitude latitude elevation". If provided, the 'coords' parameter will be ignored. Default is None.
+        tofile : str or None, optional
+            The file path to save the converted RAT coordinates to. If not provided, the converted RAT coordinates will be returned as a numpy array.
+        precise : int, optional
+            The precision level of the conversion. Set to 0 for standard back geocoding or 1 for polynomial refinement (slower). Default is 1.
+        binary : bool, optional
+            If True, the output coordinates will be saved in binary format. Default is False.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
 
-             Note: -bos mode support deleted as obsolete
+        Returns
+        -------
+        numpy.ndarray or None
+            If 'tofile' is None, returns a numpy array of the converted RAT coordinates with shape (N, 5), where N is the number of coordinates.
+            Each coordinate is in the format [longitude, latitude, elevation, range, azimuth]. If 'tofile' is provided, returns None.
+
+        Notes
+        -----
+        This method converts LLT coordinates to RAT coordinates using the current PRM object. The converted RAT coordinates can be saved
+        to a file or returned as a numpy array.
         """
         import numpy as np
         from io import StringIO, BytesIO
@@ -190,16 +230,28 @@ class PRM_gmtsar:
 
     def resamp(self, alignedPRM, alignedSLC_tofile, interp, debug=False):
         """
-        Usage: resamp master.PRM aligned.PRM new_aligned.PRM new_aligned.SLC interp
-        master.PRM         - PRM for master imagea
-        aligned.PRM        - PRM for aligned image
-        new_aligned.PRM    - PRM for aligned aligned image
-        new_aligned.SLC    - SLC for aligned aligned image
-        interp             - interpolation method: 1-nearest; 2-bilinear; 3-biquadratic; 4-bisinc
+        Resample the aligned image.
 
-        master  = PRM.from_file('master.PRM')
-        aligned = PRM.from_file('aligned.PRM')
-        master.resamp(aligned,'new_aligned.SLC',interp).to_file('new_aligned.PRM')
+        Parameters
+        ----------
+        alignedPRM : PRM
+            The PRM object for the aligned image.
+        alignedSLC_tofile : str
+            The file path to save the resampled aligned SLC image to.
+        interp : int
+            The interpolation method: 1 for nearest, 2 for bilinear, 3 for biquadratic, or 4 for bisinc.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
+
+        Returns
+        -------
+        PRM
+            The PRM object for the resampled aligned image.
+
+        Notes
+        -----
+        This method resamples the aligned image using the current PRM object and the PRM object for the aligned image.
+        The resampled aligned SLC image is saved to the specified file, and the resulting PRM parameters are returned.
         """
         import os
         import subprocess
@@ -250,10 +302,29 @@ class PRM_gmtsar:
     # TBD: update phasediff tool to allow output files basename argument
     def phasediff(self, other, topo_ra_fromfile, imag_tofile, real_tofile, debug=False):
         """
-        phasediff [GMTSAR] - Compute phase difference of two images
+        Compute the phase difference of two images.
 
-        Usage: phasediff ref.PRM rep.PRM [-topo topo_ra.grd] [-model modelphase.grd] [-imag imag.grd] [-real real.grd]
-            (topo_ra and model in GMT grd format)
+        Parameters
+        ----------
+        other : PRM
+            The PRM object for the other image.
+        topo_ra_fromfile : str or None, optional
+            The file path to the topo_ra grid. If provided, the topo_ra grid will be used in the phase difference computation. Default is None.
+        imag_tofile : str
+            The file path to save the imaginary component of the phase difference to.
+        real_tofile : str
+            The file path to save the real component of the phase difference to.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method computes the phase difference of two images using the current PRM object and the PRM object for the other image.
+        The resulting imaginary and real components of the phase difference are saved to the specified files.
         """
         import os
         import subprocess
@@ -294,11 +365,30 @@ class PRM_gmtsar:
     # make_gaussian_filter S1_20150121_ALL_F1.PRM 2 1 400
     def make_gaussian_filter(self, range_dec, azi_dec, wavelength=200, debug=False):
         """
-        make_gaussian_filter
+        Create a Gaussian filter.
 
-        Usage: make_gaussian_filter name_of_PRM_file RNG_DEC AZI_DEC WAVELENGTH(m) [output_filename]
-        Example: make_gaussian_filter IMG-HH-ALPSRP211830620-H1.0__A.PRM 2 4 200
-        Output: gauss_WAVELENGTH or output_filename
+        Parameters
+        ----------
+        range_dec : int
+            The row decimation factor.
+        azi_dec : int
+            The column decimation factor.
+        wavelength : int, optional
+            The wavelength in meters. Default is 200.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
+
+        Returns
+        -------
+        list
+            A list containing the parameters of the Gaussian filter.
+        str
+            The output from the Gaussian filter command.
+
+        Notes
+        -----
+        This method creates a Gaussian filter using the current PRM object. The parameters of the Gaussian filter
+        are returned as a list, and the output from the Gaussian filter command is returned as a string.
         """
         import os
         import subprocess
@@ -326,21 +416,34 @@ class PRM_gmtsar:
     # the command line tool supports only GMT binary format input (=bf) while NetCDF output is possible too
     def conv(self, idec, jdec, output_file, filter_file=None, filter_string=None, input_file=None, debug=False):
         """
-        conv [GMTSAR] - 2-D image convolution
+        Perform 2-D image convolution.
 
-        Usage: conv idec jdec filter_file input output
-           idec           - row decimation factor
-           jdec           - column decimation factor
-           filter_file    - eg. filters/gauss17x5
-           input          - name of file to be filtered (I*2 or R*4)
-           output         - name of filtered output file (R*4 only)
+        Parameters
+        ----------
+        idec : int
+            The row decimation factor.
+        jdec : int
+            The column decimation factor.
+        output_file : str
+            The file path to save the filtered output file to.
+        filter_file : str or None, optional
+            The file path to the filter file. Either 'filter_file' or 'filter_string' should be provided. Default is None.
+        filter_string : str or None, optional
+            The filter string. Either 'filter_file' or 'filter_string' should be provided. Default is None.
+        input_file : str or None, optional
+            The file path to the input file. If not provided, the current PRM object should be created from a file. Default is None.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
 
-           examples:
-           conv 4 2 filters/gauss9x5 IMG-HH-ALPSRP109430660-H1.0__A.PRM test.grd
-           (makes and filters amplitude file from an SLC-file)
+        Returns
+        -------
+        None
 
-           conv 4 2 filters/gauss5x5 infile.grd outfile.grd
-           (filters a float file)
+        Notes
+        -----
+        This method performs 2-D image convolution using the current PRM object. The filtered output file is saved to the specified
+        file path. Either 'filter_file' or 'filter_string' should be provided to define the filter. If 'input_file' is not provided,
+        the current PRM object should be created from a file.
         """
         import os
         import subprocess
@@ -391,21 +494,36 @@ class PRM_gmtsar:
     def phasefilt(self, imag_fromfile, real_fromfile, amp1_fromfile, amp2_fromfile,
                   phasefilt_tofile, corrfilt_tofile, psize=32, debug=False):
         """
-        phasefilt [GMTSAR] - Apply adaptive non-linear phase filter
+        Apply adaptive non-linear phase filter.
 
-        USAGE:
-            phasefilt -imag imag.grd -real real.grd [-alpha alpha][-psize size][-amp1 amp1.grd -amp2 amp2.grd][-diff][-v]
-             applies Goldstein adaptive filter to phase [output: filtphase.grd]
-             or applies modified Goldstein adaptive filter to phase [output: filtphase.grd, corrfilt.grd]
-            -imag [required] GMT format file of imaginary component
-            -real [required] GMT format file of real component
-            -alpha  exponent for filter - usually between 0.0 and 1.5 (0.0 should not filter).
-                    default: 0.5 [Goldstein filter] (anything above 1.0 may be excessive)
-                    alpha < 0 will set alpha = (1 - coherence) [modified Goldstein]
-            -psize patch size for filtering. Must be power of two.
-                    default: 32
-            -amp1 GMT format file of amplitude image of image 1. Needed (and applies) modified filter.
-            -amp2 GMT format file of amplitude image of image 2. Needed (and applies) modified filter.
+        Parameters
+        ----------
+        imag_fromfile : str
+            The file path to the GMT format file of the imaginary component.
+        real_fromfile : str
+            The file path to the GMT format file of the real component.
+        amp1_fromfile : str
+            The file path to the GMT format file of the amplitude image for image 1.
+        amp2_fromfile : str
+            The file path to the GMT format file of the amplitude image for image 2.
+        phasefilt_tofile : str
+            The file path to save the filtered phase output to.
+        corrfilt_tofile : str or None, optional
+            The file path to save the filtered correlation output to. If not provided, the correlation output will not be saved.
+            Default is None.
+        psize : int, optional
+            The patch size for filtering. Must be a power of two. Default is 32.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method applies an adaptive non-linear phase filter to the phase components of two images. The filtered phase output
+        is saved to the specified file, and the filtered correlation output is saved to the specified file if provided.
         """
         import os
         import subprocess
@@ -434,18 +552,34 @@ class PRM_gmtsar:
 
     def SAT_look(self, coords=None, fromfile=None, tofile=None, binary=False, debug=False):
         """
-        Usage: SAT_look master.PRM [-bo[s|d]] < inputfile > outputfile
+        Compute the satellite look vector.
 
-            master.PRM   -  parameter file for master image and points to LED orbit file
-            inputfile    -  lon, lat, elevation [ASCII]
-            outputfile   -  lon, lat, elevation look_E look_N look_U [ASCII default]
-            -bos or -bod -  binary single or double precision output
+        Parameters
+        ----------
+        coords : array_like or None, optional
+            The LLT coordinates to compute the look vector for. Should be a 2D array-like object with shape (N, 3),
+            where N is the number of coordinates. Each coordinate should be in the format [longitude, latitude, elevation].
+        fromfile : str or None, optional
+            The file path to read the LLT coordinates from. The file should contain a space-separated list of LLT coordinates
+            in the format "longitude latitude elevation". If provided, the 'coords' parameter will be ignored. Default is None.
+        tofile : str or None, optional
+            The file path to save the computed look vectors to. If not provided, the computed look vectors will be returned as a numpy array.
+        binary : bool, optional
+            If True, the output look vectors will be saved in binary format. Default is False.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
 
-                Note: -bos mode does not work
+        Returns
+        -------
+        numpy.ndarray or None
+            If 'tofile' is None, returns a numpy array of the computed look vectors with shape (N, 6), where N is the number of coordinates.
+            Each look vector is in the format [longitude, latitude, elevation, look_E, look_N, look_U].
+            If 'tofile' is provided, returns None.
 
-        example: SAT_look master.PRM < topo.llt > topo.lltn
-
-        Note that the output elevation is the one above reference radius specified in the PRM file
+        Notes
+        -----
+        This method computes the look vectors for LLT coordinates using the current PRM object. The computed look vectors can be saved
+        to a file or returned as a numpy array.
         """
         import numpy as np
         from io import StringIO, BytesIO

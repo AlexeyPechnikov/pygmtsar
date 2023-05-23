@@ -21,6 +21,33 @@ class SBAS_intf(SBAS_topo_ra):
                      **kwargs)
 
     def intf_parallel(self, pairs, n_jobs=-1, **kwargs):
+        """
+        Build interferograms for all the subswaths in parallel.
+
+        Parameters
+        ----------
+        pairs : list
+            List of date pairs (baseline pairs).
+        n_jobs : int, optional
+            Number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
+        wavelength : float, optional
+            Filtering wavelength in meters.
+        psize : int, optional
+            Patch size for modified Goldstein adaptive filter (power of two).
+        func : function, optional
+            Post-processing function usually used for decimation.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        For default 60m DEM resolution and other default parameters use command below:
+        pairs = [sbas.to_dataframe().index.unique()]
+        decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
+        sbas.intf_parallel(pairs, func=decimator)
+        """
         import pandas as pd
         import numpy as np
         from tqdm.auto import tqdm

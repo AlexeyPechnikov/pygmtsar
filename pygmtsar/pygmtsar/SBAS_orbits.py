@@ -7,6 +7,17 @@ class SBAS_orbits(SBAS_base):
     # for approximate orbit 2 and maybe more orbits per day are possible
     # so check orbit file for for each subswath
     def download_orbits(self):
+        """
+        Download missed orbits for all the SBAS scenes.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        sbas.download_orbits()
+        """
         from eof.download import download_eofs
 
         df = self.df[self.df['orbitpath'].isna()]

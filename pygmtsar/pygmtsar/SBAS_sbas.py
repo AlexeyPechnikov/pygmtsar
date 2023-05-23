@@ -143,12 +143,23 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         xarray.DataArray
             The computed least squares model as an xarray DataArray.
 
+        Examples
+        --------
+        Process detrended unwrapped phase:
+        sbas.sbas_parallel(pairs, data='detrended', weight='corr')
+
+        Process unwrapped phase without detrending:
+        sbas.sbas_parallel(pairs, data='unwrap', weight='corr')
+
+        Process defined data stack only:
+        unwraps = sbas.open_grids(pairs, 'unwrap')
+        sbas.sbas_parallel(pairs, data=unwraps)
+
         Notes
         -----
         This function processes large stacks by splitting them into chunks, performing the computation,
         and then rebuilding and saving the results in a user-friendly format. It is an alias for the
         lstsq_parallel function.
-
         """
         print ('NOTE: sbas_parallel() is alias for [Weighted] Least Squares lstsq_parallel() function')
 
