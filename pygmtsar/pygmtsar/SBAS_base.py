@@ -1,5 +1,12 @@
-#!/usr/bin/env python3
-# Alexey Pechnikov, Sep, 2021, https://github.com/mobigroup/gmtsar
+# ----------------------------------------------------------------------------
+# PyGMTSAR
+# 
+# This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
+# 
+# Copyright (c) 2021, Alexey Pechnikov
+# 
+# Licensed under the BSD 3-Clause License (see LICENSE for details)
+# ----------------------------------------------------------------------------
 from .tqdm_joblib import tqdm_joblib
 from .datagrid import datagrid
 

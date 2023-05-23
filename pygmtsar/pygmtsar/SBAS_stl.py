@@ -1,5 +1,12 @@
-#!/usr/bin/env python3
-# Alexey Pechnikov, May, 2023, https://github.com/mobigroup/gmtsar
+# ----------------------------------------------------------------------------
+# PyGMTSAR
+# 
+# This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
+# 
+# Copyright (c) 2023, Alexey Pechnikov
+# 
+# Licensed under the BSD 3-Clause License (see LICENSE for details)
+# ----------------------------------------------------------------------------
 from .SBAS_incidence import SBAS_incidence
 from .tqdm_dask import tqdm_dask
 

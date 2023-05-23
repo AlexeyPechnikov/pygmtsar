@@ -1,5 +1,12 @@
-#!/usr/bin/env python3
-# Alexey Pechnikov, May, 2023, https://github.com/mobigroup/gmtsar
+# ----------------------------------------------------------------------------
+# PyGMTSAR
+# 
+# This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
+# 
+# Copyright (c) 2023, Alexey Pechnikov
+# 
+# Licensed under the BSD 3-Clause License (see LICENSE for details)
+# ----------------------------------------------------------------------------
 
 # the code adopted from my project https://github.com/mobigroup/ParaView-plugins
 class NCubeVTK:
@@ -9,7 +16,7 @@ class NCubeVTK:
     Example usage:
 
     ```python
-    from pygmtsar.NCubeVTK import NCubeVTK
+    from pygmtsar import NCubeVTK
     import vtk
 
     vtk_ugrid = NCubeVTK.ImageOnTopography(sbas.get_dem().to_dataset().rename({'lat': 'y', 'lon': 'x'}))
@@ -20,7 +27,7 @@ class NCubeVTK:
     vtk_ugrid
     ```
     ```python
-    from pygmtsar.NCubeVTK import NCubeVTK
+    from pygmtsar import NCubeVTK
     import pyvista as pv
 
     vtk_ugrid = NCubeVTK.ImageOnTopography(sbas.get_dem().to_dataset().rename({'lat': 'y', 'lon': 'x'}))

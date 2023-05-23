@@ -1,5 +1,12 @@
-#!/usr/bin/env python3
-# Alexey Pechnikov, Oct, 2022, https://github.com/mobigroup/gmtsar
+# ----------------------------------------------------------------------------
+# PyGMTSAR
+# 
+# This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
+# 
+# Copyright (c) 2022, Alexey Pechnikov
+# 
+# Licensed under the BSD 3-Clause License (see LICENSE for details)
+# ----------------------------------------------------------------------------
 from .SBAS_landmask import SBAS_landmask
 
 class SBAS_unwrap_snaphu(SBAS_landmask):
