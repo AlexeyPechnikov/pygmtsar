@@ -32,6 +32,9 @@ class SBAS_dem(SBAS_reframe):
         assert len(z_array_name) == 1
         # extract the array and fill missed values (mostly water surfaces)
         dem = dem[z_array_name[0]].fillna(0)
+        # round the coordinates up to 1 mm
+        dem['lat'] = dem.lat.round(8)
+        dem['lon'] = dem.lon.round(8)
 
         if geoloc is False:
             return dem
@@ -53,13 +56,11 @@ class SBAS_dem(SBAS_reframe):
         Remove EGM96 geoid to make heights relative to WGS84
         Regrid to specified approximate resolution_meters (60m by default)
         """
+        import numpy as np
         import pygmt
         import os
         #import subprocess
         from tqdm.auto import tqdm
-        # 0.000833333333333 cell size for SRTM3 90m
-        # 0.000277777777778 cell size for SRTM1 30m
-        #scale = 0.000833333333333/90
 
         if self.dem_filename is not None:
             print ('NOTE: DEM exists, ignore the command. Use SBAS.set_dem(None) to allow new DEM downloading')
@@ -84,10 +85,13 @@ class SBAS_dem(SBAS_reframe):
         assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
 
         # define approximate resolution in arc seconds
-        spacing = f'{resolution_meters / 30}s'
+        spacing = np.round(resolution_meters / 30, 3)
+        # convert to string
+        spacing = f'{spacing}s'
         #print ('spacing', spacing)
         # generate DEM for the full area using GMT extent as W E S N
-        minx, miny, maxx, maxy = self.df.dissolve().envelope.buffer(buffer_degrees).bounds.values[0]
+        # round the coordinates up to 1 mm
+        minx, miny, maxx, maxy = self.df.dissolve().envelope.buffer(buffer_degrees).bounds.round(8).values[0]
 
         # Set the region for the grdcut and grdsample operations
         region = [minx, maxx, miny, maxy]
@@ -101,8 +105,9 @@ class SBAS_dem(SBAS_reframe):
             ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=region)
             ortho_resamp = pygmt.grdsample(ortho, region=region, spacing=spacing)
             geoid_resamp = pygmt.grdsample(geoid_filename, region=region, spacing=spacing)
+            if os.path.exists(dem_filename):
+                os.remove(dem_filename)
             (ortho_resamp + geoid_resamp).to_netcdf(dem_filename)
-    
             pbar.update(1)
 
         self.dem_filename = dem_filename
