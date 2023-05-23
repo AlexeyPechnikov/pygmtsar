@@ -33,14 +33,14 @@ setup(
                       'scipy>=1.9.1',
                       'shapely>=2.0.1',
                       'scikit-learn',
-                      'elevation',
                       'xmltodict',
                       'rioxarray',
                       'ipywidgets',
                       'h5netcdf==1.0.2',
                       'h5py',
                       'nc-time-axis',
-                      'statsmodels>=0.13.5'
+                      'statsmodels>=0.13.5',
+                      'vtk'
                       ],
 
     classifiers=[
