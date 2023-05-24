@@ -7,29 +7,59 @@
 
 ## PyGMTSAR (Python GMTSAR) - Sentinel-1 Satellite Interferometry for Everyone
 
-Hint: You can sponsor PyGMTSAR software development on [Patreon](https://www.patreon.com/pechnikov).
-
 <img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" width="40%" />
 
-This repository is based on a fork of the original GMTSAR and extended with my patches to binary tools and the Python library PyGMTSAR. I commit my changes to binary tools to GMTSAR upstream, so it's possible to use the original GMTSAR master branch installation plus the PyGMTSAR Python package via PIP. The project documentation, including installation instructions, is available at the following link: https://mobigroup.github.io/gmtsar/
+PyGMTSAR (Python GMTSAR) is an open-source project and Python package that aims to provide accessible and efficient Sentinel-1 Satellite Interferometry for users. While it is built on a pure Python package, it utilizes the GMTSAR binary tools, which need to be installed.
 
-The goal of the project is to provide easy and fast satellite interferometry (InSAR) processing for Sentinel-1 radar scenes across various environments such as local hosts, cloud environments like Google Cloud VM and AI Notebooks, Amazon EC2, free-of-charge cloud environments like Google Colab, and Docker images. GMTSAR binary command-line tools are used under the hood, but all GMTSAR scripts and GMT commands are replaced by Python code using modern and robust algorithms.
+The main objective of PyGMTSAR is to enable easy and fast satellite interferometry (InSAR) processing using Python scripts and Jupyter Notebooks. It supports Sentinel-1 SLC scenes and can be used on local machines, as well as cloud environments such as Google Cloud VM, AI Notebooks, Amazon EC2, and even the free cloud environment Google Colab. This means that PyGMTSAR-based interferometry processing is readily available in various computing environments, including Google Colab notebooks and Docker images (see below for more information).
+
+Initially, PyGMTSAR was forked from the GMTSAR GitHub repository and underwent significant changes to seamlessly integrate the binary tools within a Python API. Currently, all the modifications developed for the PyGMTSAR project have been merged into GMTSAR. However, PyGMTSAR maintains a feature-rich Python API for interactive and batch computations, while GMTSAR primarily focuses on providing shell scripts for batch processing.
+
+PyGMTSAR is equipped with numerous state-of-the-art features for InSAR data processing, including detrending, flexible weighted and unweighted least-squares processing for SBAS (Small Baseline Subset) time series analysis, Seasonal-Trend decomposition using LOESS (STL), VTK export, and more. These tools are efficiently parallelized and designed to be memory-effective, allowing for effective processing on a wide range of hardware setups, from standard laptops to powerful workstations or servers.
+
+While there are many new features in the roadmap, it's important to note that PyGMTSAR is developed by a solo developer with limited free time. As a result, there is no specific timeline for the development of these features. However, the developer is passionate about exploring new theoretical mathematics and physics approaches and hopes to implement many more functions in the future. 
+
+You can sponsor PyGMTSAR software development and get access to lots of real world use cases on [Patreon](https://www.patreon.com/pechnikov).
+
+## Why PyGMTSAR?
+
+PyGMTSAR offers several compelling reasons for its usage. Firstly, it leverages powerful Python libraries such as xarray for multidimensional processing, dask for lazy calculations and parallel computing, and joblib for efficient parallelization. These libraries enable fast and interactive processing on large datasets, while applying the best algorithms and numerical computation approaches for each step of the processing pipeline.
+
+PyGMTSAR also provides features such as progress bars and preview plots for visualizing the processing steps, allowing users to save intermediate results and resume their work later on the same or different host. Furthermore, the use of joblib ensures that the execution can be safely interrupted at any time without memory leaks, which is a common issue with dask-based solutions.
+
+The combination of powerful Python libraries, optimized algorithms, and user-friendly functions makes PyGMTSAR fast and efficient. With its human-readable and concise code syntax and powerful computing capabilities, PyGMTSAR is a versatile tool that can be used in various domains, from education to research and beyond.
 
 ## PyGMTSAR Docker Images for Everyone on DockerHub
 
-<img src="https://user-images.githubusercontent.com/7342379/203853391-b0dd50e5-3b07-4655-b5f4-c08109f23ffd.png" width="50%">
+The PyGMTSAR project provides Docker images that are readily available on DockerHub. These Docker images are designed to facilitate the use of PyGMTSAR for various interferometry tasks, including merged subswaths, cropped scenes, and SBAS time series processing.
 
-See Docker basic image for merged subswaths and cropped scenes and SBAS time series processing on [DockerHub PyGMTSAR for Everyone](https://hub.docker.com/r/mobigroup/pygmtsar) This image is the right choice to start and perform lots of common interferometry tasks. 
+You can find the PyGMTSAR Docker images on [DockerHub PyGMTSAR for Everyone](https://hub.docker.com/r/mobigroup/pygmtsar). These images provide a convenient and easily accessible platform for running PyGMTSAR without the need for complex software installation or configuration. Simply download the Docker image and start using PyGMTSAR right away.
+
+The PyGMTSAR Docker images are a great choice for getting started with satellite interferometry tasks and performing common processing operations. They offer a seamless and hassle-free experience, allowing you to focus on your data analysis and insights.
+
+![Docker Image](https://user-images.githubusercontent.com/7342379/203853391-b0dd50e5-3b07-4655-b5f4-c08109f23ffd.png)
+
+By utilizing the PyGMTSAR Docker images, you can leverage the power of PyGMTSAR in a convenient and easily deployable manner, making it accessible to everyone interested in satellite interferometry.
 
 ## PyGMTSAR Docker Images for Experts on DockerHub
 
-<img src="https://user-images.githubusercontent.com/7342379/205281391-682816e5-8f1e-44bd-b7b6-478df7453bb1.png" width="50%">
+The PyGMTSAR project also provides Docker images tailored for experts and advanced users who require more advanced functionalities and processing capabilities. These Docker images are available on [DockerHub PyGMTSAR for Experts](https://hub.docker.com/r/mobigroup/pygmtsar-large).
 
-See Docker images for multiple stitched scenes and long SBAS time series processing on [DockerHub PyGMTSAR for Experts](https://hub.docker.com/r/mobigroup/pygmtsar-large)
+The Docker images for experts are designed to handle multiple stitched scenes and support long SBAS time series processing. These images offer enhanced processing power and scalability, allowing users to perform more complex and resource-intensive interferometry tasks.
+
+By utilizing the PyGMTSAR Docker images for experts, users can leverage the full potential of PyGMTSAR for their advanced processing needs. The images provide a comprehensive platform with the necessary tools and libraries to tackle sophisticated satellite interferometry tasks efficiently.
+
+![Docker Image](https://raw.githubusercontent.com/mobigroup/articles/main/205281391-682816e5-8f1e-44bd-b7b6-478df7453bb1.png)
+
+If you are an expert user and require extensive processing capabilities and scalability, the PyGMTSAR Docker images for experts are the ideal choice. They enable you to harness the full power of PyGMTSAR for your advanced satellite interferometry projects.
 
 ## PyGMTSAR Live Examples on Google Colab
 
-These notebooks provide interactive examples directly in your web browser. All steps are automated, including software installation on Google Colab's cloud host, downloading of Sentinel-1 orbit files, SRTM DEM (and its conversion to ellipsoidal heights using the EGM96 model), a landmask (to mask low-coherence water surfaces), Sentinel-1 SLC scenes from the Alaska Satellite Facility (ASF) datastore, and of course, the complete interferometry processing and result mapping.
+These notebooks offer an automated environment where all the necessary software installations, data downloads, and processing steps are handled seamlessly. By opening the notebooks in your web browser, you can directly interact with the examples and explore the functionalities of PyGMTSAR.
+
+The automated process includes the installation of the required software on Google Colab's cloud host, such as the downloading of Sentinel-1 orbit files, SRTM DEM data (which is also converted to ellipsoidal heights using the EGM96 model), and a landmask to mask low-coherence water surfaces. Additionally, the notebooks provide access to Sentinel-1 SLC scenes from the Alaska Satellite Facility (ASF) datastore, enabling you to perform complete interferometry processing and visualize the results.
+
+With these Live Examples, you can gain hands-on experience with satellite interferometry using PyGMTSAR without the need for local installations or configurations. The step-by-step instructions and interactive nature of the notebooks make it easy to follow along and understand the various processing steps involved.
 
 ### Notebooks to Compare Results with GMTSAR, SNAP, and GAMMA Software
 
@@ -89,25 +119,39 @@ The notebooks processing more than a single subswath or scene. It's possible on 
 
 ### Long Timeseries Analysis is not available on Google Colab 
 
-Check out the separate GitHub repository for the Yamchi Dam area dynamic model, [YamchiDam](https://github.com/mobigroup/YamchiDam). The software tools [PyGMTSAR](https://github.com/mobigroup/gmtsar) and [N-Cube ParaView plugin for 3D/4D GIS Data Visualization](https://github.com/mobigroup/ParaView-plugins) are combined for comprehensive 4D analysis and visualization. Explore these repositories to learn more about the tools and methods used in the Yamchi Dam area dynamic model.
+For long timeseries analysis, you can explore the separate GitHub repository for the Yamchi Dam area dynamic model, [YamchiDam](https://github.com/mobigroup/YamchiDam). This repository combines the software tools [PyGMTSAR](https://github.com/mobigroup/gmtsar) and the [N-Cube ParaView plugin for 3D/4D GIS Data Visualization](https://github.com/mobigroup/ParaView-plugins) to provide comprehensive 4D analysis and visualization capabilities. By exploring these repositories, you can learn more about the tools and methods used in the Yamchi Dam area dynamic model.
 
 <img src="https://user-images.githubusercontent.com/7342379/144747743-a24d72ec-8875-4272-91f9-ec1f937bb798.gif" width="50%">
 
+## Documentation
+
+With PyGMTSAR, you can leverage the ready-to-use interactive examples in Live Google Colab notebooks. These examples serve as a starting point for your own analysis and can be easily modified to suit your specific needs. The advantage of using PyGMTSAR in a Live Jupyter notebook environment is that you can immediately access the functionality without the hassle of software installation and configuration.
+
+PyGMTSAR provides self-documented functions using Python docstrings. To access the complete documentation for a specific function, you can use the `help()` function in Jupyter notebook cells or in a Python editor. Simply pass the function name as an argument to `help()` and it will display the docstring, which contains detailed information about the function's usage, parameters, and return values.
+
+By using `help()`, you can easily access the comprehensive documentation for each function in PyGMTSAR and gain a better understanding of its functionality and how to use it effectively in your code.
+
+In addition to the `help()` function, you can also explore the PyGMTSAR sources and track any reported issues on the [PyGMTSAR GitHub](https://github.com/mobigroup/gmtsar) repository. Documentation is available on the [PyGMTSAR GitHub Pages](https://mobigroup.github.io/gmtsar/), providing further guidance on using PyGMTSAR and installing GMTSAR.
+
 ## Learn more
 
-- Documentation: https://github.com/mobigroup/gmtsar
+Here are some additional resources to learn more about PyGMTSAR:
 
-- Issue tracker: https://github.com/mobigroup/gmtsar/issues
+- Documentation: [PyGMTSAR Documentation](https://github.com/mobigroup/gmtsar)
+- Issue tracker: [PyGMTSAR Issue Tracker](https://github.com/mobigroup/gmtsar/issues)
+- Source code: [PyGMTSAR GitHub Repository](https://github.com/mobigroup/gmtsar)
+- Docker Images: [PyGMTSAR Docker Images](https://hub.docker.com/repository/docker/mobigroup/pygmtsar)
+- PyPI Python library: [PyGMTSAR on PyPI](https://pypi.org/project/pygmtsar/)
 
-- Source code: https://github.com/mobigroup/gmtsar
-
-- Docker Images: https://hub.docker.com/repository/docker/mobigroup/pygmtsar
-
-- PyPI Python library: https://pypi.org/project/pygmtsar/
+These resources will provide you with detailed documentation, issue tracking, source code, Docker images, and the PyPI package for PyGMTSAR. They will help you explore, troubleshoot, and utilize the functionalities of PyGMTSAR effectively.
 
 ## About me
 
-I have STEM master’s degree in radio physics and in 2004 I have got the first prize of the All-Russian Physics competition for significant results in forward and inverse modeling for non-linear optics and holography, also applicable for modeling of Gravity, Magnetic, and Thermal fields and satellite interferometry processing. And I’m data scientist and software developer with 20 year’s experience in science and industrial development. I had been working on government contracts and universities projects and on projects for LG Corp, Google Inc, etc.
+I hold a master's degree in radio physics with a focus on forward and inverse modeling for non-linear optics, holography, gravity, magnetic, and thermal fields, and satellite interferometry processing. In 2004, I was awarded the first prize in the All-Russian Physics competition for my significant contributions in these areas. With over 20 years of experience as a data scientist and software developer, I have worked on various projects for government contracts, universities, and companies like LG Corp and Google Inc.
+
+I also have a YouTube channel where I share geological models and an Augmented Reality (AR) Geological Models project. You can find my GitHub repositories and DockerHub repositories for my open-source projects. I have published articles and posts in English on LinkedIn and Medium, as well as in Russian on Habr.
+
+Feel free to explore my work and connect with me on these platforms.
 
 [Geological models on YouTube channel](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg)
 

@@ -7,237 +7,121 @@
 
 ## About
 
-PyGMTSAR (Python GMTSAR) is an open source project and Python package that provides Sentinel-1 Satellite Interferometry for everyone! While it's pure Python package under the hood it uses GMTSAR binary tools which should be installed.
+PyGMTSAR (Python GMTSAR) is an open-source project and Python package that aims to provide accessible and efficient Sentinel-1 Satellite Interferometry for users. While it is built on a pure Python package, it utilizes the GMTSAR binary tools, which need to be installed.
 
-Initially, PyGMTSAR is forked from GMTSAR GitHub repository and lot's of changes are made to seamlessly call all the binary tools from Python API. For now, all the changes developed for PyGMTSAR project merged into GMTSAR and the both projects use the same binary tools  although PyGMTSAR maintains rich Python API for interactive and batch computations and GMTSAR provides a set of shell scripts for the batch processing only. To prevent confusing, below PyGMTSAR means the Python package only and GMTSAR means the binary core tools (while these are available in PyGMTSAR GitHub repository too). 
+The main objective of PyGMTSAR is to enable easy and fast satellite interferometry (InSAR) processing using Python scripts and Jupyter Notebooks. It supports Sentinel-1 SLC scenes and can be used on local machines, as well as cloud environments such as Google Cloud VM, AI Notebooks, Amazon EC2, and even the free cloud environment Google Colab. This means that PyGMTSAR-based interferometry processing is readily available in various computing environments, including Google Colab notebooks and Docker images (see below for more information).
 
-The goal of the project is easy and fast satellite interferometry (InSAR) interactive and batch processing in Python scripts and Jupyter Notebooks for Sentinel-1 SLC scenes everywhere as on localhost as on cloud environments like to Google Cloud VM and AI Notebooks and Amazon EC2 and even on free of charge cloud environment Google Colab. By this way, PyGMTSAR-based interferometry processing is available even in Google Colab notebooks and in Docker image (see below).
+Initially, PyGMTSAR was forked from the GMTSAR GitHub repository and underwent significant changes to seamlessly integrate the binary tools within a Python API. Currently, all the modifications developed for the PyGMTSAR project have been merged into GMTSAR. However, PyGMTSAR maintains a feature-rich Python API for interactive and batch computations, while GMTSAR primarily focuses on providing shell scripts for batch processing.
 
-Hint: You can sponsor PyGMTSAR software development on [Patreon](https://www.patreon.com/pechnikov).
+PyGMTSAR is equipped with numerous state-of-the-art features for InSAR data processing, including detrending, flexible weighted and unweighted least-squares processing for SBAS (Small Baseline Subset) time series analysis, Seasonal-Trend decomposition using LOESS (STL), VTK export, and more. These tools are efficiently parallelized and designed to be memory-effective, allowing for effective processing on a wide range of hardware setups, from standard laptops to powerful workstations or servers.
+
+While there are many new features in the roadmap, it's important to note that PyGMTSAR is developed by a solo developer with limited free time. As a result, there is no specific timeline for the development of these features. However, the developer is passionate about exploring new theoretical mathematics and physics approaches and hopes to implement many more functions in the future. 
+
+You can sponsor PyGMTSAR software development and get access to lots of real world use cases on [Patreon](https://www.patreon.com/pechnikov).
 
 ## Why PyGMTSAR?
 
-PyGMTSAR itself combines powerful Python instrumentary for sophisticated multidementional processing (xarray library) and lazy calculations (dask library) plus parallel computing (dask and joblib libraries) to perform fast and interactive processing on huge datasets. And the best algorithms and numerical computation approaches applied for all the processing steps. There are progressbars and preview plots for the every step and that's easy to save intermediate results and continue work later on the same or other host. And (thanks to joblib library) that's safe to interrupt the execution at any time without memory leaks (common for dask-based solutions).
+PyGMTSAR offers several compelling reasons for its usage. Firstly, it leverages powerful Python libraries such as xarray for multidimensional processing, dask for lazy calculations and parallel computing, and joblib for efficient parallelization. These libraries enable fast and interactive processing on large datasets, while applying the best algorithms and numerical computation approaches for each step of the processing pipeline.
 
-Thanks to all the powerful Python libraries and the best used algorithms PyGMTSAR is fast and its possible to complete SBAS analysis for 5 years on 800 interferograms in just one day on Apple Air or Apple iMac (8 cores and 16 GB RAM) using 2 TB Sentinel-1 SLC scenes. And PyGMTSAR is user-friendly providing functions to download the required satellite orbit files and DEM and so on. This combination of the human-readable and short code and powerful computing is the key to use PyGMTSAR everywhere from education and to research and more. 
+PyGMTSAR also provides features such as progress bars and preview plots for visualizing the processing steps, allowing users to save intermediate results and resume their work later on the same or different host. Furthermore, the use of joblib ensures that the execution can be safely interrupted at any time without memory leaks, which is a common issue with dask-based solutions.
+
+The combination of powerful Python libraries, optimized algorithms, and user-friendly functions makes PyGMTSAR fast and efficient. With its human-readable and concise code syntax and powerful computing capabilities, PyGMTSAR is a versatile tool that can be used in various domains, from education to research and beyond.
 
 ## Documentation
 
-Satellite interferometry is a complex field of knowledge and usually that's requires a lot of time to understood it enough to build the meaningful results. Really, there is a big gap between GMTSAR github cloning and, for an example, valid SBAS + PSI results computation. PyGMTSAR resolves the software-related complexity providing high-level functions running in Live Jupyter notebooks on Google Colab so you have immediate access to the ready to use and working interactive examples which can be easily modified to produce your own results without hassle with software installation and configuration. You'd start from the self-documented Live Google Colab examples and view PyGMTSAR functions documentation and GMTSAR installation instructions  later.
+With PyGMTSAR, you can leverage the ready-to-use interactive examples in Live Google Colab notebooks. These examples serve as a starting point for your own analysis and can be easily modified to suit your specific needs. The advantage of using PyGMTSAR in a Live Jupyter notebook environment is that you can immediately access the functionality without the hassle of software installation and configuration.
 
-See the project sources and bug tracker on [PyGMTSAR GitHub](https://github.com/mobigroup/gmtsar) and documentation on [PyGMTSAR GitHub Pages](https://mobigroup.github.io/gmtsar/)
+PyGMTSAR provides self-documented functions using Python docstrings. To access the complete documentation for a specific function, you can use the `help()` function in Jupyter notebook cells or in a Python editor. Simply pass the function name as an argument to `help()` and it will display the docstring, which contains detailed information about the function's usage, parameters, and return values.
 
-### Tutorials: Live Examples in Docker image
+By using `help()`, you can easily access the comprehensive documentation for each function in PyGMTSAR and gain a better understanding of its functionality and how to use it effectively in your code.
 
-Configure your Docker runtime (Preferences -> Resources tab for Docker Desktop) to use 2 CPU cores and 8 GB RAM or 4 CPU cores and 16 GB RAM and so on. Download the Docker image (or build it yourself using the Dockerfile in the repository) and run the container forwarding port 8888 to JupyterLab using this commands inside your command line terminal window:
+In addition to the `help()` function, you can also explore the PyGMTSAR sources and track any reported issues on the [PyGMTSAR GitHub](https://github.com/mobigroup/gmtsar) repository. Documentation is available on the [PyGMTSAR GitHub Pages](https://mobigroup.github.io/gmtsar/), providing further guidance on using PyGMTSAR and installing GMTSAR.
 
-```
-docker pull mobigroup/pygmtsar
+### Tutorials: Live Examples in Docker images
 
-docker run -dp 8888:8888 --name pygmtsar docker.io/mobigroup/pygmtsar
+You can download the PyGMTSAR Docker image from DockerHub by clicking on the Docker badge [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar). Alternatively, you can build the Docker image yourself using the Dockerfiles provided in the [docker](https://github.com/mobigroup/gmtsar/tree/pygmtsar/docker) directory of the PyGMTSAR repository.
 
-docker logs pygmtsar
-```
-
-See the output for the JupyterLab link and copy and past it into your web browser address line. Also, the donwloaded Docker image can be started in Docker Desktop app - press "RUN" button and define the container name and the port in the opened dialog window (see "Optional settings" for the port number input field) and click on the newly created container to launch it and see the output log with the clickable link.
+For detailed instructions on how to use the Docker images, including pulling the image from DockerHub and running it, you can refer to the DockerHub page linked above. It provides step-by-step guidance on setting up and running the PyGMTSAR Docker image for accessing the live examples.
 
 ## Tutorials: Live Examples on Google Colab
 
-Click on the examples below to run the processing in your own browser without any software installation. That's like to magic and it works.
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12LJqlZNBUmvLlRl98rRFCbKveVPg9Ami?usp=sharing) **ASF Downloading 2017 Iran–Iraq Earthquake vs GMTSAR GAMMA SNAP Co-Seismic Interferogram** The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** and **compares the results to GMTSAR, SNAP and GAMMA Software**. Note: replace the scene names to produce an **interferogram** and **LOS displacement** for your area of interest.
-
-<img src="https://user-images.githubusercontent.com/7342379/177748605-788889e5-9afd-44d8-bc3c-dc6efe920ea0.png" width="50%">
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1PyYcxvuyzhh-g4NQEbKjcfTDQhREZInn?usp=sharing) **Live Example S1A_2016_Kumamoto Earthquake_Co-Seismic Interferogram vs ESA Sentinel 1 Toolbox on Alaska Satellite Facility**. This is a single subswath processing with **landmask** applied to **interferogram**, **unwapped phase**, and **LOS, east-west, vertical displacement** results.
-
-<img src="https://user-images.githubusercontent.com/7342379/183805898-d7c1ad76-822e-428e-9259-f19cc9e7540e.jpg" width="50%">
-
-<img src="https://user-images.githubusercontent.com/7342379/183816622-1dacce7e-6a2f-46b9-8e67-d701f55bdd30.png" width="50%">
-
-<img src="https://user-images.githubusercontent.com/7342379/183649417-7fcb7f3f-8c8d-45e8-a2c9-9293498ebada.png" width="50%">
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZTPV4HY-UoLvDYVx0UGh_Z3B12scSh9E?usp=sharing) **Live Example S1AB 2021 Crete Earthquake Co-Seismic Interferogram vs Centre of EO Research & Satellite Remote Sensing, Greece Report** This is a single **cropped subswath** processing with **landmask** applied to **interferogram**, **unwapped phase**, and **LOS, east-west, vertical displacement** results.
-
-<img src="https://user-images.githubusercontent.com/7342379/177004287-cdd4351c-0834-42ae-8e46-9da5e8b124bf.jpg" width="50%">
-
-<img src="https://user-images.githubusercontent.com/7342379/183645260-f8529ff3-b014-499e-ba2f-ebea4937b2c2.png" width="50%">
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1sljxm2jAMGXynq4EYam6Siz8OLcPLN0h?usp=sharing) **GMTSAR example dataset S1A_Stack_CPGF_T173** This example illustrates **SBAS** and **PSI** analyses and **detrending** approach to remove **atmospheric noise** to produce much better results.
-
-<img src="https://user-images.githubusercontent.com/7342379/135814732-aa0eb142-ae54-4a57-b271-c33b5174a28e.png" width="50%">
-
-<img src="https://user-images.githubusercontent.com/7342379/189961167-bf3901e5-417c-41ce-a5ca-d1c74c239a04.png" width="50%">
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZBVwlkiXMhSDS96oojpWrzTyRFIxv8Rp?usp=sharing) **ASF Downloading 2020 Ardabil, Iran Earthquake Co-Seismic Interferogram and LOS Displacement** The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** to **crop the area** and **merge subswaths** and **detrend** results. Note: replace the scene names to produce an interferogram for your area of interest.
-
-<img src="https://user-images.githubusercontent.com/7342379/194813466-fc4734a3-770d-4d6e-8012-91a4e5d781ba.png" width="50%">
-
-<img src="https://user-images.githubusercontent.com/7342379/190451656-386d6cb8-f536-447c-8274-71d4f0435408.png" width="50%">
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17D53uZu3XcEoWz5T73D__t9Ampzn5l3J?usp=sharing) **ASF Downloading 2023-02-06 Türkiye Earthquakes Co-Seismic Interferogram and LOS Displacement Projections** The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** to **stitch 2 scenes** and **merge subswaths** and **detrend** results. Note: replace the scene names to produce an interferogram for your area of interest.
-
-<img width="50%" src="https://user-images.githubusercontent.com/7342379/223332314-afd00f9d-0691-4d21-8be5-4c2ac96f8f3c.png">
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1H652deK0W7nujEky9j9K20729vywntuD?usp=sharing) **ASF Downloading 2023-02-06 Türkiye Earthquakes Co-Seismic Interferogram and LOS Displacement Projections**  The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** to **stitch 3 scenes** and **merge subswaths** and **detrend** results. Here are some tricks used to process the large amount of data on Google Colab. Note: replace the scene names to produce an interferogram for your area of interest.
-
-<img width="50%" src="https://user-images.githubusercontent.com/7342379/223332721-2dab4ef5-713a-4bc9-8f6b-1a968e481561.png">
-
-<img width="50%" src="https://user-images.githubusercontent.com/7342379/223333303-91f81035-8ba9-4637-b257-ccbeb3502e95.png">
+By visiting the GitHub page at https://github.com/mobigroup/gmtsar, you'll have access to various notebooks that demonstrate different processing examples. You can click on the notebooks to open them directly in Google Colab and interact with the code. It's a convenient and interactive way to explore the capabilities of PyGMTSAR without the need for local software installation. Enjoy the live examples and delve into the world of satellite interferometry with PyGMTSAR!
 
 ## Reference
 
-PyGMTSAR defines a high-level Python SBAS class for an interferometry processing. Below listed the SBAS user-friendly functions grouped by common tasks in order of the full pipeline processing steps. For simple pipelines some of the steps can be missed.
+PyGMTSAR defines a high-level Python `SBAS` class for interferometry processing. The following functions are grouped by common tasks in the order of the full pipeline processing steps. For simple pipelines, some steps can be skipped.
 
-The detailed documentation available interactively in docstring format, use help(function_name) to read it in your code editor.
+The detailed documentation is available interactively in docstring format. Use `help(function_name)` to read it in your code editor.
 
 ### SBAS class functions
 
-Firstly, import the class from PyGMTSAR Python package as
+Firstly, import the class from the PyGMTSAR Python package as:
 
 ```
+pythonCopy code
 from pygmtsar import SBAS
 ```
 
 #### Initialisation (PyGMTSAR original)
 
-```
-SBAS: Initialise SBAS object using scenes directory and some filters.
-set_master: Set master scene for SBAS object (first scene is used by default).
-```
+- `SBAS`: Initialise `SBAS` object using scenes directory and filters.
+- `set_master`: Set master scene for `SBAS` object (the first scene is used by default).
 
 #### Manage orbits (PyGMTSAR original)
 
-```
-download_orbits: Download missed orbits for all the SBAS scenes.
-```
+- `download_orbits`: Download missed orbits for all the `SBAS` scenes.
 
 #### List scenes and orbits (PyGMTSAR original)
 
-```
-to_dataframe: Return Pandas Dataframe for all SBAS scenes.
-```
+- `to_dataframe`: Return Pandas DataFrame for all `SBAS` scenes.
 
 #### Manage DEM (PyGMTSAR original)
 
-```
-set_dem: Set existing WGS84 DEM file in geographic coordinates for SBAS object.
-download_dem: Download missed DEM file in geographic coordinates and convert it for WGS84 ellipsoid.
-get_dem: Return WGS84 DEM in geographic coordinates as just one or list of Xarray Dataarray.
-```
+- `set_dem`: Set existing WGS84 DEM file in geographic coordinates for `SBAS` object.
+- `download_dem`: Download missed DEM file in geographic coordinates and convert it for the WGS84 ellipsoid.
+- `get_dem`: Return WGS84 DEM in geographic coordinates as a single or list of Xarray DataArrays.
 
 #### Manage topography in radar coordinates (combined GMTSAR wrapper and PyGMTSAR original)
 
-```
-topo_ra_parallel: Build WGS84 DEM in radar coordinates for interferogram processing.
-get_topo_ra: Return WGS84 DEM in radar coordinates as one or list of Xarray Dataarray depending of the subswaths count.
-
-```
+- `topo_ra_parallel`: Build WGS84 DEM in radar coordinates for interferogram processing.
+- `get_topo_ra`: Return WGS84 DEM in radar coordinates as a single or list of Xarray DataArrays depending on the subswaths count.
 
 #### Framing (combined GMTSAR wrapper and PyGMTSAR original)
 
-```
-set_pins: Set pins for scene framing. Pins are lon/lat points to crop extra bursts.
-get_pins: Return pins list. Pins are lon/lat points.
-reframe_parallel: Reorder bursts from sequential scenes to cover the full orbit area between pins only.
-```
+- `set_pins`: Set pins for scene framing. Pins are lon/lat points to crop extra bursts.
+- `get_pins`: Return pins list. Pins are lon/lat points.
+- `reframe_parallel`: Reorder bursts from sequential scenes to cover the full orbit area between pins only.
 
 #### Build Interferogram (GMTSAR wrapper)
 
-```
-stack_parallel: Stack and align scenes.
-intf_parallel: Build interferograms for all the subswaths separately.
-pixel_decimator: Return function for pixel decimation to the specified output resolution.
-```
+- `stack_parallel`: Stack and align scenes.
+- `intf_parallel`: Build interferograms for all the subswaths separately.
+- `pixel_decimator`: Return function for pixel decimation to the specified output resolution.
 
 #### Merging (GMTSAR wrapper)
 
-```
-merge_parallel: Merge all the separate subswath interferograms into one large interferogram.
-```
+- `merge_parallel`: Merge all the separate subswath interferograms into one large interferogram.
 
 #### Manage landmask (PyGMTSAR original)
 
-```
-set_landmask: Set existing land mask file name for SBAS object.
-download_landmask: Download missed land mask file in geographic coordinates.
-get_landmask: Return WGS84 land mask in geographic coordinates as Xarray Dataarray.
-```
+- `set_landmask`: Set existing land mask file name for `SBAS` object.
+- `download_landmask`: Download missed land mask file in geographic coordinates.
+- `get_landmask`: Return WGS84 land mask in geographic coordinates as an Xarray DataArray.
 
 #### Unwrapping (SNAPHU wrapper)
 
-```
-snaphu_config: Return SNAPHU text configuration to use it for unwrapping.
-unwrap_parallel: parallel phase unwrapping using SNAPHU.
-```
+- `snaphu_config`: Return SNAPHU text configuration for unwrapping.
+- `unwrap_parallel`: Perform parallel phase unwrapping using SNAPHU.
 
 #### Detrending (PyGMTSAR original)
 
-```
-detrend_parallel: Detrend and save to files a set of unwrapped interferograms combining topography and linear components removal and Gaussian filtering.
-detrend: Detrend and return output for a single unwrapped interferogram combining topography and linear components removal and Gaussian filtering.
-
-```
+- `detrend_parallel`: Detrend and save to files a set of unwrapped interferograms combining topography and linear components removal and Gaussian filtering.
+- `detrend`: Detrend and return output for a single unwrapped interferogram combining topography and linear components removal and Gaussian filtering.
 
 #### SBAS (GMTSAR wrapper)
 
-```
-baseline_pairs: Generate SBAS baseline pairs.
-sbas: SBAS unwrapped interferograms timeseries analysis, see GMTSAR documentation for the details.
-```
-
-#### SBAS (PyGMTSAR original)
-
-```
-sbas_parallel: SBAS unwrapped and detrended interferograms timeseries analysis using pixel-wise correlation-weighted least squares approach.
-```
-
-#### Look vectors and Incidence angle (PyGMTSAR original)
-
-```
-sat_look_parallel: Build and save to file satellite look vectors in geographic coordinates.
-get_sat_look: Return satellite look vectors in geographic coordinates as just one or list of Xarray Datasets.
-incidence_angle: Compute incidence angle grid in geographic coordinates. 
-```
-
-#### Displacements (PyGMTSAR original)
-
-```
-los_displacement_mm: Compute LOS displacement in millimeters.
-vertical_displacement_mm: Compute vertical displacement in millimeters in geographic coordinates.
-eastwest_displacement_mm: Compute East-West displacement in millimeters. 
-```
-
-#### Data output (PyGMTSAR original)
-
-```
-open_grids: Lazy open PyGMTSAR produced NetCDF grids as 3D data cube and apply a set of functions on it.
-```
-
-#### Geocoding (PyGMTSAR original)
-
-```
-geocode_parallel: Build and save to files direct and inverse geocoding matrices.
-intf_ra2ll: Geocoding function based on interferogram geocode matrix.
-intf_ll2ra: Inverse geocoding function based on interferogram inverse geocode matrix.
-```
-
-#### Backup and restore (PyGMTSAR original)
-```
-dump: Dump SBAS object state to pickle file (SBAS.pickle in the processing directory by default).
-restore: Restore SBAS object state from pickle file (SBAS.pickle in the processing directory by default).
-backup: Backup framed SBAS scenes, orbits, DEM and landmask files to build a minimal reproducible dataset.
-```
-
-#### Helpers (PyGMTSAR original)
-
-```
-pixel_size: Compute ground pixel size in meters for the default processing grid or the defined one.
-nearest_grid: Nearest neighbor interpolation.
-cropna: Crop raster valid extent removing all rows and columns containing NODATA values only.
-as_geo: Add geospatial attributes (CRS and spatial dimentions) to allow RioXarray raster operations.
-```
-
+- `baseline_pairs`: Generate SBAS baseline pairs.
+- `sbas`: Perform SBAS unwrapped interferogram timeseries analysis. Refer to GMTSAR.
 
 ## Installation
 
