@@ -39,7 +39,7 @@ In addition to the `help()` function, you can also explore the PyGMTSAR sources 
 
 ### Tutorials: Live Examples in Docker images
 
-You can download the PyGMTSAR Docker image from DockerHub by clicking on the Docker badge [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar). Alternatively, you can build the Docker image yourself using the Dockerfiles provided in the [docker](https://github.com/mobigroup/gmtsar/tree/pygmtsar/docker) directory of the PyGMTSAR repository.
+You can download the PyGMTSAR Docker image from DockerHub by clicking on the Docker badge [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar) Alternatively, you can build the Docker image yourself using the Dockerfiles provided in the [docker](https://github.com/mobigroup/gmtsar/tree/pygmtsar/docker) directory of the PyGMTSAR repository.
 
 For detailed instructions on how to use the Docker images, including pulling the image from DockerHub and running it, you can refer to the DockerHub page linked above. It provides step-by-step guidance on setting up and running the PyGMTSAR Docker image for accessing the live examples.
 
@@ -58,7 +58,6 @@ The detailed documentation is available interactively in docstring format. Use `
 Firstly, import the class from the PyGMTSAR Python package as:
 
 ```
-pythonCopy code
 from pygmtsar import SBAS
 ```
 
