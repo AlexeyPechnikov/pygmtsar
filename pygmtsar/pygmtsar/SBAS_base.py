@@ -224,8 +224,7 @@ class SBAS_base(tqdm_joblib, datagrid):
         Examples
         --------
         Set the master scene to '2022-01-20':
-
-        >>> sbas.set_master('2022-01-20')
+        sbas.set_master('2022-01-20')
         """
         if not master in self.df.index:
             raise Exception('Master image not found')
@@ -234,7 +233,17 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     def get_master(self, subswath=None):
         """
-        Return dataframe master record(s) for all or only selected subswath
+        Return dataframe master record(s) for all or only selected subswath.
+
+        Parameters
+        ----------
+        subswath : str, optional
+            The subswath to select. If None, all subswaths are considered. Default is None.
+
+        Returns
+        -------
+        pd.DataFrame
+            The DataFrame containing master records for the specified subswath.
         """
         df = self.df.loc[[self.master]]
         if not subswath is None:
@@ -244,7 +253,19 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     def get_aligned(self, subswath=None, date=None):
         """
-        Return dataframe aligned records (excluding master) for selected subswath
+        Return dataframe aligned records (excluding master) for selected subswath.
+
+        Parameters
+        ----------
+        subswath : str, optional
+            The subswath to select. If None, all subswaths are considered. Default is None.
+        date : datetime, optional
+            The date for which to return aligned records. If None, all dates are considered. Default is None.
+
+        Returns
+        -------
+        pd.DataFrame
+            The DataFrame containing aligned records for the specified subswath and date.
         """
         if date is None:
             idx = self.df.index.difference([self.master])
@@ -257,6 +278,14 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     # enlist all the subswaths
     def get_subswaths(self):
+        """
+        Enlist all the subswaths.
+
+        Returns
+        -------
+        np.array
+            An array containing all unique subswaths.
+        """
         import numpy as np
         # note: df.unique() returns unsorted values so it would be 21 instead of expected 12
         return np.unique(self.df.subswath)
@@ -264,6 +293,16 @@ class SBAS_base(tqdm_joblib, datagrid):
     def get_subswath(self, subswath=None):
         """
         Check and return subswath or return an unique subswath to functions which work with a single subswath only.
+
+        Parameters
+        ----------
+        subswath : str, optional
+            The subswath to check. If None, an unique subswath is returned. Default is None.
+
+        Returns
+        -------
+        str
+            The checked or unique subswath.
         """
         # detect all the subswaths
         subswaths = self.get_subswaths()
@@ -276,17 +315,60 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     # function is obsolete
     def find_pairs(self, name='phasefilt'):
+        """
+        Find pairs. This function is obsolete. Use SBAS.pairs() function instead.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of the phase filter. Default is 'phasefilt'.
+
+        Returns
+        -------
+        np.ndarray
+            An array of pairs.
+        """
         print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')        
         pairs = self.pairs(name=name)
         return pairs
 
     # function is obsolete
     def find_dates(self, pairs=None):
+        """
+        Find dates. This function is obsolete. Use SBAS.pairs() function instead.
+
+        Parameters
+        ----------
+        pairs : np.ndarray, optional
+            An array of pairs. If None, all pairs are considered. Default is None.
+
+        Returns
+        -------
+        np.ndarray
+            An array of dates.
+        """
         print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')
         dates = self.pairs(pairs, dates=True)[1]
         return dates
 
     def pairs(self, pairs=None, dates=False, name='phasefilt'):
+        """
+        Get pairs as DataFrame and optionally dates array.
+
+        Parameters
+        ----------
+        pairs : np.ndarray, optional
+            An array of pairs. If None, all pairs are considered. Default is None.
+        dates : bool, optional
+            Whether to return dates array. Default is False.
+        name : str, optional
+            The name of the phase filter. Default is 'phasefilt'.
+
+        Returns
+        -------
+        pd.DataFrame or tuple
+            A DataFrame of pairs. If dates is True, also returns an array of dates.
+        """
         import pandas as pd
         import numpy as np
         from glob import glob
@@ -323,6 +405,25 @@ class SBAS_base(tqdm_joblib, datagrid):
 
     # use the function for open_grids() and save_grids()
     def get_filenames(self, subswath, pairs, name, add_subswath=True):
+        """
+        Get the filenames of the data grids. The filenames are determined by the subswath, pairs, and name parameters.
+
+        Parameters
+        ----------
+        subswath : int or None
+            The subswath number. If None, the function will determine it based on the dataset.
+        pairs : np.ndarray or pd.DataFrame or None
+            An array or DataFrame of pairs. If None, the function will open a single grid or a set of subswath grids.
+        name : str
+            The name of the grid to be opened.
+        add_subswath : bool, optional
+            Whether to add subswath to the prefix of the filename. Default is True.
+
+        Returns
+        -------
+        str or list of str
+            The filename or a list of filenames of the grids.
+        """
         import pandas as pd
         import numpy as np
         import os
@@ -362,6 +463,33 @@ class SBAS_base(tqdm_joblib, datagrid):
         return filenames
 
     def save_grids(self, grids, name, func=None, add_subswath=True, chunksize=None, n_jobs=1, interactive=True, **kwargs):
+        """
+        Save the input grids with the given name. The grids are preprocessed by a given function before saving.
+
+        Parameters
+        ----------
+        grids : xr.DataArray
+            The input data grids to be saved.
+        name : str
+            The name of the grid to be saved.
+        func : callable, list of callable or None, optional
+            Function or list of functions to be applied to each grid before saving. 
+            If None, no function is applied. Default is None.
+        add_subswath : bool, optional
+            Whether to add subswath to the prefix of the filename. Default is True.
+        chunksize : int or None, optional
+            The chunk size to be used when saving the grid. If None, the chunk size is determined automatically. Default is None.
+        n_jobs : int, optional
+            The number of jobs to run in parallel for saving the grids. Default is 1.
+        interactive : bool, optional
+            Whether to display a progress bar during the saving process. Default is True.
+        **kwargs
+            Additional keyword arguments to be passed to the saving function.
+
+        Returns
+        -------
+        None
+        """
         import xarray as xr
         import numpy as np
         from tqdm.auto import tqdm

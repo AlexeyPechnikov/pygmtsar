@@ -18,12 +18,17 @@ class SBAS(SBAS_stl):
         """
         Convert a text string in the format 'VYYYYMMDDTHHMMSS' or 'YYYYMMDDTHHMMSS' to a datetime object or date object.
 
-        Parameters:
-            text (str): The text string to convert.
-            as_date (bool): If True, return a date object. If False, return a datetime object. Default is True.
+        Parameters
+        ----------
+        text : str
+            The text string to convert.
+        as_date : bool, optional
+            If True, return a date object. If False, return a datetime object. Default is True.
 
-        Returns:
-            datetime.date or datetime.datetime: The converted date or datetime object.
+        Returns
+        -------
+        datetime.date or datetime.datetime
+            The converted date or datetime object.
         """
         from datetime import datetime
         
@@ -63,12 +68,10 @@ class SBAS(SBAS_stl):
         Examples
         --------
         Initialize an SBAS object with the data directory 'data' and the base directory 'raw':
-
-        >>> sbas = SBAS('data', basedir='raw')
+        sbas = SBAS('data', basedir='raw')
 
         Initialize an SBAS object with the data directory 'data', DEM filename 'data/DEM_WGS84.nc', and the base directory 'raw':
-
-        >>> sbas = SBAS('data', 'data/DEM_WGS84.nc', 'raw')
+        sbas = SBAS('data', 'data/DEM_WGS84.nc', 'raw')
         """
         import os
         import shutil

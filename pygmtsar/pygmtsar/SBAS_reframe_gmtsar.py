@@ -13,6 +13,29 @@ from .PRM import PRM
 class SBAS_reframe_gmtsar(SBAS_orbits):
 
     def ext_orb_s1a(self, subswath, stem, date=None, debug=False):
+        """
+        Extracts orbital data for the Sentinel-1A satellite by running GMTSAR binary `ext_orb_s1a`.
+
+        Parameters
+        ----------
+        subswath : int
+            Subswath number to extract the orbital data from.
+        stem : str
+            Stem name used for file naming.
+        date : str, optional
+            Date for which to extract the orbital data. If not provided or if date is the master, 
+            it will extract the orbital data for the master. Defaults to None.
+        debug : bool, optional
+            If True, prints debug information. Defaults to False.
+
+        Notes
+        -----
+        The function executes an external script `ext_orb_s1a` likely a shell script or compiled binary.
+
+        Examples
+        --------
+        ext_orb_s1a(1, 'stem_name', '2023-05-24', True)
+        """
         import os
         import subprocess
 
@@ -39,11 +62,37 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
     # when date=None work on master image
     def make_s1a_tops(self, subswath, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
         """
-        Usage: make_slc_s1a_tops xml_file tiff_file output mode dr.grd da.grd
-         xml_file    - name of xml file 
-         tiff_file   - name of tiff file 
-         output      - stem name of output files .PRM, .LED, .SLC 
-         mode        - (0) no SLC; (1) center SLC; (2) high SLCH and lowSLCL; (3) output ramp phase
+        Produces LED and PRM in the base directory by executing GMTSAR binary `make_s1a_tops`.
+
+        Parameters
+        ----------
+        subswath : int
+            Subswath number to process.
+        date : str, optional
+            Date for which to create the Sentinel-1A TOPS products. If not provided, 
+            it processes the master image. Defaults to None.
+        mode : int, optional
+            Mode for `make_s1a_tops` script: 
+            0 - no SLC; 
+            1 - center SLC; 
+            2 - high SLCH and low SLCL; 
+            3 - output ramp phase.
+            Defaults to 0.
+        rshift_fromfile : str, optional
+            Path to the file with range shift data. Defaults to None.
+        ashift_fromfile : str, optional
+            Path to the file with azimuth shift data. Defaults to None.
+        debug : bool, optional
+            If True, prints debug information. Defaults to False.
+
+        Notes
+        -----
+        The function executes an external binary `make_s1a_tops`.
+        Also, this function calls the `ext_orb_s1a` method internally.
+
+        Examples
+        --------
+        make_s1a_tops(1, '2023-05-24', 1, '/path/to/rshift.grd', '/path/to/ashift.grd', True)
         """
         import os
         import subprocess
@@ -81,16 +130,29 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
 
     def assemble_tops(self, subswath, date, azi_1, azi_2, debug=False):
         """
-        Usage: assemble_tops azi_1 azi_2 name_stem1 name_stem2 ... output_stem
+        Assemble Sentinel-1 TOPS products for a given date and swath using GMTSAR binary `assemble_tops`.
 
-        Example: assemble_tops 1685 9732 s1a-iw1-slc-vv-20150706t135900-20150706t135925-006691-008f28-001
-            s1a-iw1-slc-vv-20150706t135925-20150706t135950-006691-008f28-001
-            s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001
+        Parameters
+        ----------
+        subswath : int
+            Subswath number to process.
+        date : str
+            Date for which to assemble the Sentinel-1A TOPS products.
+        azi_1 : float
+            Starting azimuth index. If set to zero, all bursts will be output.
+        azi_2 : float
+            Ending azimuth index. If set to zero, all bursts will be output.
+        debug : bool, optional
+            If True, prints debug information. Defaults to False.
 
-        Output:s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.xml
-            s1a-iw1-slc-vv-20150706t135900-20150706t135950-006691-008f28-001.tiff
+        Notes
+        -----
+        The function executes an external script `assemble_tops` which is likely a shell script or compiled binary.
+        The output files are bursts that cover area between azi_1 and azi_2. If these are set to zero, all bursts will be output.
 
-        Note: output files are bursts that covers area between azi_1 and azi_2, set them to 0s to output all bursts
+        Examples
+        --------
+        assemble_tops(1, '2023-05-24', 1685, 9732, True)
         """
         import numpy as np
         import os

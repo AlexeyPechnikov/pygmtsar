@@ -14,7 +14,34 @@ class SBAS_trans(SBAS_stack):
 
     def get_trans_dat_blocks_extents(self, subswath=None, n_jobs=-1):
         """
-        Compute trans_dat dask blocks extents in radar coordinates for geocoding matrices
+        Compute `trans_dat` dask blocks extents in radar coordinates for geocoding matrices.
+
+        This function calculates the extent of each block in the azimuth-range domain, which can 
+        be used for later processing, such as data filtering or cropping. 
+
+        Parameters
+        ----------
+        subswath : int, optional
+            Subswath number to process. If not specified, the function will calculate the extents
+            for all available subswaths.
+        n_jobs : int, optional
+            Number of parallel jobs to run. If -1, all CPUs are used. Defaults to -1.
+
+        Returns
+        -------
+        numpy.ndarray
+            Numpy array containing the extents of each block in the azimuth-range domain.
+
+        Notes
+        -----
+        The function makes use of the Dask library for parallel computing.
+
+        Examples
+        --------
+        >>> get_trans_dat_blocks_extents(1, -1)
+        array([[iy1, ix1, min_azi1, max_azi1, min_rng1, max_rng1],
+               [iy2, ix2, min_azi2, max_azi2, min_rng2, max_rng2],
+               ...])
         """
         from tqdm.auto import tqdm
         import joblib
@@ -48,6 +75,31 @@ class SBAS_trans(SBAS_stack):
         return extents
     
     def get_trans_dat(self, subswath=None):
+        """
+        Retrieve the transform data for a specific or all subswaths.
+
+        This function opens a NetCDF dataset, which contains data mapping from geographical
+        coordinates to radar coordinates (azimuth-range domain).
+
+        Parameters
+        ----------
+        subswath : int, optional
+            Subswath number to retrieve. If not specified, the function will retrieve the transform
+            data for all available subswaths.
+
+        Returns
+        -------
+        xarray.Dataset
+            An xarray dataset with the transform data.
+
+        Examples
+        --------
+        Get the transform data for a specific subswath:
+        get_trans_dat(1)
+        
+        Get the transform data for all available subswaths:
+        get_trans_dat()
+        """
         import xarray as xr
 
         subswath = self.get_subswath(subswath)
@@ -56,6 +108,44 @@ class SBAS_trans(SBAS_stack):
         return trans
 
     def trans_dat(self, subswath=None, interactive=False):
+        """
+        Retrieve or calculate the transform data for a specific or all subswaths. This transform data is then saved as
+        a NetCDF file for future use.
+
+        This function generates data mapping from geographical coordinates to radar coordinates (azimuth-range domain).
+        The function uses a Digital Elevation Model (DEM) to derive the geographical coordinates, and then uses the
+        `SAT_llt2rat` function to map these to radar coordinates.
+
+        Parameters
+        ----------
+        subswath : int, optional
+            Subswath number to retrieve. If not specified, the function will retrieve the transform
+            data for all available subswaths.
+
+        interactive : bool, optional
+            If True, the function returns the transform data without saving it. If False, the function
+            saves the transform data as a NetCDF file. Default is False.
+
+        Returns
+        -------
+        xarray.Dataset or dask.delayed.Delayed
+            If interactive is True, it returns an xarray dataset with the transform data.
+            If interactive is False, it returns a dask Delayed object representing the computation of writing
+            the transform data to a NetCDF file.
+
+        Examples
+        --------
+        Calculate and get the transform data for a specific subswath:
+        >>> trans_dat(1)
+        <dask.delayed.Delayed at 0x7f8d13a69a90>
+
+        Calculate and get the transform data for all available subswaths:
+        >>> trans_dat()
+        <dask.delayed.Delayed at 0x7f8d13a69b70>
+
+        Calculate and get the transform data without saving it:
+        >>> trans_dat(interactive=True)
+        """
         import dask
         import xarray as xr
         import numpy as np
@@ -178,6 +268,37 @@ class SBAS_trans(SBAS_stack):
         return handler
 
     def trans_dat_parallel(self, interactive=False):
+        """
+        Retrieve or calculate the transform data for all subswaths in parallel. This function processes each subswath
+        concurrently using Dask.
+
+        Parameters
+        ----------
+        interactive : bool, optional
+            If True, the function returns a list of dask.delayed.Delayed objects representing the computation of
+            transform data for each subswath. If False, the function processes the transform data for each subswath
+            concurrently using Dask. Default is False.
+
+        Returns
+        -------
+        list or dask.delayed.Delayed
+            If interactive is True, it returns a list of dask.delayed.Delayed objects representing the computation
+            of transform data for each subswath.
+            If interactive is False, it returns a dask.delayed.Delayed object representing the computation of
+            transform data for all subswaths.
+
+        Examples
+        --------
+        Calculate and get the transform data for all subswaths in parallel:
+
+        >>> trans_dat_parallel()
+        <dask.delayed.Delayed at 0x7f8d13a69a90>
+
+        Calculate and get the transform data for all subswaths in parallel without saving it:
+
+        >>> trans_dat_parallel(interactive=True)
+        [<dask.delayed.Delayed at 0x7f8d13a69a90>, <dask.delayed.Delayed at 0x7f8d13a69b70>]
+        """
         import dask
 
         # process all the subswaths

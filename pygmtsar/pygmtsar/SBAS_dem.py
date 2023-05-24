@@ -29,12 +29,10 @@ class SBAS_dem(SBAS_reframe):
         Examples
         --------
         Set the DEM filename:
-
-        >>> sbas = sbas.set_dem('data/DEM_WGS84.nc')
+        sbas = sbas.set_dem('data/DEM_WGS84.nc')
 
         Alternatively, the same result can be achieved during SBAS initialization:
-
-        >>> sbas = SBAS(..., dem_filename='data/DEM_WGS84.nc')
+        sbas = SBAS(..., dem_filename='data/DEM_WGS84.nc')
 
         Notes
         -----
@@ -81,12 +79,10 @@ class SBAS_dem(SBAS_reframe):
         Examples
         --------
         Get DEM for all the processed subswaths:
-
-        >>> topo_ll = sbas.get_dem()
+        topo_ll = sbas.get_dem()
 
         Get DEM for a single subswath IW1:
-
-        >>> topo_ll = sbas.get_dem(1)
+        topo_ll = sbas.get_dem(1)
 
         Notes
         -----
@@ -155,16 +151,13 @@ class SBAS_dem(SBAS_reframe):
         Examples
         --------
         Download STRM1 DEM with a resolution of 30 meters and convert it to the default 60-meter grid:
-
-        >>> sbas.download_dem()
+        sbas.download_dem()
 
         Download STRM1 DEM with a resolution of 30 meters and convert it to a 60-meter grid:
-
-        >>> sbas.download_dem(resolution_meters=60)
+        sbas.download_dem(resolution_meters=60)
 
         Download STRM3 DEM with a resolution of 90 meters and convert it to a 120-meter grid:
-
-        >>> sbas.download_dem(product='STRM3', resolution_meters=120)
+        sbas.download_dem(product='STRM3', resolution_meters=120)
 
         Notes
         -----

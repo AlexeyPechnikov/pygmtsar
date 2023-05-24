@@ -173,18 +173,57 @@ class PRM(datagrid, PRM_gmtsar):
 
     @staticmethod
     def from_list(prm_list):
+        """
+        Convert a list of parameter and value pairs to a PRM object.
+
+        Parameters
+        ----------
+        prm_list : list
+            A list of PRM strings.
+
+        Returns
+        -------
+        PRM
+            A PRM object.
+        """
         from io import StringIO
         prm = StringIO('\n'.join(prm_list))
         return PRM._from_io(prm)
 
     @staticmethod
     def from_str(prm_string):
+        """
+        Convert a string of parameter and value pairs to a PRM object.
+
+        Parameters
+        ----------
+        prm_string : str
+            A PRM string.
+
+        Returns
+        -------
+        PRM
+            A PRM object.
+        """
         from io import StringIO
         prm = StringIO(prm_string)
         return PRM._from_io(prm)
 
     @staticmethod
     def from_file(prm_filename):
+        """
+        Convert a PRM file of parameter and value pairs to a PRM object.
+
+        Parameters
+        ----------
+        prm_filename : str
+            The filename of the PRM file.
+
+        Returns
+        -------
+        PRM
+            A PRM object.
+        """
         #data = json.loads(document)
         prm = PRM._from_io(prm_filename)
         prm.filename = prm_filename
@@ -192,11 +231,36 @@ class PRM(datagrid, PRM_gmtsar):
 
     @staticmethod
     def _from_io(prm):
+        """
+        Read parameter and value pairs from IO stream to a PRM object.
+
+        Parameters
+        ----------
+        prm : IO stream
+            The IO stream.
+
+        Returns
+        -------
+        PRM
+            A PRM object.
+        """
         import pandas as pd
         return PRM(pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')\
                     .applymap(lambda val : pd.to_numeric(val,errors='ignore')))
 
     def __init__(self, prm=None):
+        """
+        Initialize a PRM object.
+
+        Parameters
+        ----------
+        prm : PRM or pd.DataFrame, optional
+            The PRM object or DataFrame to initialize from. Default is None.
+
+        Returns
+        -------
+        None
+        """
         import pandas as pd
         #print ('__init__')
         if prm is None:
@@ -210,12 +274,43 @@ class PRM(datagrid, PRM_gmtsar):
         self.filename = None
 
     def __eq__(self, other):
+        """
+        Compare two PRM objects for equality.
+
+        Parameters
+        ----------
+        other : PRM
+            The other PRM object to compare with.
+
+        Returns
+        -------
+        bool
+            True if the PRM objects are equal, False otherwise.
+        """
         return isinstance(self, PRM) and self.df == other.df
 
     def __str__(self):
+        """
+        Return a string representation of the PRM object.
+
+        Returns
+        -------
+        str
+            The string representation of the PRM object.
+        """
         return self.to_str()
 
     def __repr__(self):
+        """
+        Return a string representation of the PRM object for debugging.
+
+        Returns
+        -------
+        str
+            The string representation of the PRM object. If the PRM object was created from a file, 
+            the filename and the number of items in the DataFrame representation of the PRM object 
+            are included in the string.
+        """
         if self.filename:
             return 'Object %s (%s) %d items\n%r' % (self.__class__.__name__, self.filename, len(self.df), self.df)
         else:
@@ -223,6 +318,23 @@ class PRM(datagrid, PRM_gmtsar):
 
     # use 'g' format for Python and numpy float values
     def set(self, prm=None, gformat=False, **kwargs):
+        """
+        Set PRM values.
+
+        Parameters
+        ----------
+        prm : PRM, optional
+            The PRM object to set values from. Default is None.
+        gformat : bool, optional
+            Whether to use 'g' format for float values. Default is False.
+        **kwargs
+            Additional keyword arguments for setting individual values.
+
+        Returns
+        -------
+        PRM
+            The updated PRM object.
+        """
         import numpy as np
 
         if isinstance(prm, PRM):
@@ -236,9 +348,30 @@ class PRM(datagrid, PRM_gmtsar):
         return self
 
     def to_dataframe(self):
+        """
+        Convert the PRM object to a DataFrame.
+
+        Returns
+        -------
+        pd.DataFrame
+            The DataFrame representation of the PRM object.
+        """
         return self.df
 
     def to_file(self, prm):
+        """
+        Save the PRM object to a PRM file.
+
+        Parameters
+        ----------
+        prm : str
+            The filename of the PRM file to save to.
+
+        Returns
+        -------
+        PRM
+            The PRM object.
+        """
         self._to_io(prm)
         return self
 
@@ -248,8 +381,22 @@ class PRM(datagrid, PRM_gmtsar):
     #    return self._to_io(self.filename)
     def update(self, name=None, safe=False, debug=False):
         """
-        Save PRM file to disk and rename all 3 linked files together: input, LED, SLC if "name" defined
+        Save PRM file to disk and rename all 3 linked files together: input, LED, SLC if "name" defined.
         If safe=True, save old (small) PRM and LED files and move only (large) SLC file.
+
+        Parameters
+        ----------
+        name : str, optional
+            The new name for the PRM file. Default is None.
+        safe : bool, optional
+            Whether to use safe mode. Default is False.
+        debug : bool, optional
+            Whether to enable debug mode. Default is False.
+
+        Returns
+        -------
+        PRM
+            The updated PRM object.
         """
         import shutil
         import os
@@ -323,16 +470,63 @@ class PRM(datagrid, PRM_gmtsar):
         return self.to_file(self.filename)
 
     def to_str(self):
+        """
+        Convert the PRM object to a string.
+
+        Returns
+        -------
+        str
+            The PRM string.
+        """
         return self._to_io()
 
     def _to_io(self, output=None):
+        """
+        Convert the PRM object to an IO stream.
+
+        Parameters
+        ----------
+        output : IO stream, optional
+            The IO stream to write the PRM string to. Default is None.
+
+        Returns
+        -------
+        str
+            The PRM string.
+        """
         return self.df.reset_index().astype(str).apply(lambda row: (' = ').join(row), axis=1)\
             .to_csv(output, header=None, index=None)
 
     def sel(self, *args):
+        """
+        Select specific PRM attributes and create a new PRM object.
+
+        Parameters
+        ----------
+        *args : str
+            The attribute names to select.
+
+        Returns
+        -------
+        PRM
+            The new PRM object with selected attributes.
+        """
         return PRM(self.df.loc[[*args]])
 
     def __add__(self, other):
+        """
+        Add two PRM objects or a PRM object and a scalar.
+
+        Parameters
+        ----------
+        other : PRM or scalar
+            The PRM object or scalar to add.
+
+        Returns
+        -------
+        PRM
+            The resulting PRM object after addition.
+        """
         import pandas as pd
         if isinstance(other, PRM):
             prm = pd.concat([self.df, other.df])
@@ -343,6 +537,19 @@ class PRM(datagrid, PRM_gmtsar):
         return PRM(prm)
 
     def __sub__(self, other):
+        """
+        Subtract two PRM objects or a PRM object and a scalar.
+
+        Parameters
+        ----------
+        other : PRM or scalar
+            The PRM object or scalar to subtract.
+
+        Returns
+        -------
+        PRM
+            The resulting PRM object after subtraction.
+        """
         import pandas as pd
         if isinstance(other, PRM):
             prm = pd.concat([self.df, other.df])
@@ -353,6 +560,20 @@ class PRM(datagrid, PRM_gmtsar):
         return PRM(prm)
 
     def get(self, *args):
+        """
+        Get the values of specific PRM attributes.
+
+        Parameters
+        ----------
+        *args : str
+            The attribute names to get values for.
+
+        Returns
+        -------
+        Union[Any, List[Any]]
+            The values of the specified attributes. If only one attribute is requested, 
+            return its value directly. If multiple attributes are requested, return a list of values.
+        """
         out = [self.df.loc[[key]].iloc[0].values[0] for key in args]
         if len(out) == 1:
             return out[0]
@@ -360,7 +581,20 @@ class PRM(datagrid, PRM_gmtsar):
 
     def shift_atime(self, lines, inplace=False):
         """
-        Shift time in azimuth by a number of lines
+        Shift time in azimuth by a number of lines.
+
+        Parameters
+        ----------
+        lines : float
+            The number of lines to shift by.
+        inplace : bool, optional
+            Whether to modify the PRM object in-place. Default is False.
+
+        Returns
+        -------
+        PRM
+            The shifted PRM object or DataFrame. If 'inplace' is True, returns modified PRM object,
+            otherwise, returns a new PRM with shifted times.
         """
         prm = self.sel('clock_start','clock_stop','SC_clock_start','SC_clock_stop') + lines/self.get('PRF')/86400.0
         if inplace:
@@ -467,7 +701,19 @@ class PRM(datagrid, PRM_gmtsar):
 
     def diff(self, other, gformat=True):
         """
-        Compare to other dataframe and return difference
+        Compare the PRM object with another PRM object and return the differences.
+
+        Parameters
+        ----------
+        other : PRM
+            The other PRM object to compare with.
+        gformat : bool, optional
+            Whether to use 'g' format for float values. Default is True.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the differences between the two PRM objects.
         """
         import pandas as pd
         import numpy as np

@@ -303,10 +303,12 @@ class SBAS_detrend(SBAS_unwrap):
         ----------
         dataarray : xarray.DataArray
             The input data array with NaN values allowed.
-        wavelength : float, optional
+        wavelength : float
             The cut-off wavelength for the Gaussian filter in meters.
         truncate : float, optional
-            The filter window size in sigmas.
+            Size of the Gaussian kernel, defined in terms of standard deviation, or 'sigma'. 
+            It is the number of sigmas at which the window (filter) is truncated. 
+            For example, if truncate = 3.0, the window will cut off at 3 sigma. Default is 3.0.
         resolution_meters : float, optional
             The processing resolution for the Gaussian filter in meters.
         debug : bool, optional
@@ -322,13 +324,6 @@ class SBAS_detrend(SBAS_unwrap):
         Detrend ionospheric effects and solid Earth's tides on a large area:
         unwrap_degaussian = sbas.degaussian(pairs.values[0], wavelength=12000)
 
-        Lazy Gaussian filter for arrays with NaN values:
-            - dataarray: Input data array with NaNs allowed.
-            - wavelength: Cut-off wavelength in meters.
-            - truncate: Filter window size in sigmas.
-            - resolution_meters: Gaussian filter processing resolution in meters.
-            - debug: Print debug information.
-        Returns the filtered data array with the same coordinates as the input.
         Fast approximate calculation is silently skipped when sigma is less than 64, so the result is always exact for small filters.
         """
         import xarray as xr

@@ -9,6 +9,20 @@
 # ----------------------------------------------------------------------------
 
 class datagrid:
+    """
+    A class representing a data grid.
+
+    Attributes
+    ----------
+    chunksize : int
+        The chunk size for data compression. Default is 512.
+    engine : str
+        The engine used for NetCDF file operations. Default is 'h5netcdf'.
+    complevel : int
+        The compression level for data compression. Default is 3.
+    noindex : np.uint32
+        The NODATA index value for transform matrices.
+    """
     import numpy as np
 
     # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
@@ -21,6 +35,35 @@ class datagrid:
 
     # define lost class variables due to joblib via arguments
     def compression(self, shape=None, complevel=None, chunksize=None):
+        """
+        Return the compression options for a data grid.
+
+        Parameters
+        ----------
+        shape : tuple, list, np.ndarray, optional
+            The shape of the data grid. Required if chunksize is less than grid dimension sizes. Default is None.
+        complevel : int, optional
+            The compression level for data compression. If not specified, the class attribute complevel is used.
+        chunksize : int or tuple, optional
+            The chunk size for data compression. If not specified, the class attribute chunksize is used.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the compression options for the data grid.
+
+        Examples
+        --------
+        Get the compression options for a data grid with shape (1000, 1000):
+
+        >>> compression(shape=(1000, 1000))
+        {'zlib': True, 'complevel': 3, 'chunksizes': (512, 512)}
+
+        Get the compression options for a data grid with chunksize 256:
+
+        >>> compression(chunksize=256)
+        {'zlib': True, 'complevel': 3, 'chunksizes': (256, 256)}
+        """
         import numpy as np
 
         if complevel is None:
@@ -45,6 +88,19 @@ class datagrid:
 
     @staticmethod
     def is_ra(grid):
+        """
+        Checks if the given grid is in radar coordinates.
+
+        Parameters
+        ----------
+        grid : xarray.DataArray
+            The grid to check.
+
+        Returns
+        -------
+        bool
+            True if the grid is in radar coordinates, False otherwise.
+        """
         dims = grid.dims
         if 'y' in dims and 'x' in dims:
             return True
@@ -52,6 +108,19 @@ class datagrid:
 
     @staticmethod
     def is_geo(grid):
+        """
+        Checks if the given grid is in geographic coordinates.
+
+        Parameters
+        ----------
+        grid : xarray.DataArray
+            The grid to check.
+
+        Returns
+        -------
+        bool
+            True if the grid is in geographic coordinates, False otherwise.
+        """
         dims = grid.dims
         if 'lat' in dims and 'lon' in dims:
             return True
@@ -100,6 +169,21 @@ class datagrid:
 
     @staticmethod
     def is_same(grid1, grid2):
+        """
+        Check if two grids have the same coordinate dimensions.
+
+        Parameters
+        ----------
+        grid1 : xarray.DataArray
+            The first grid to compare.
+        grid2 : xarray.DataArray
+            The second grid to compare.
+
+        Returns
+        -------
+        bool
+            True if the grids have the same coordinate dimensions, False otherwise.
+        """
         dims1 = grid1.dims
         dims2 = grid2.dims
         if 'lat' in dims1 and 'lon' in dims1 and 'lat' in dims2 and 'lon' in dims2:
@@ -109,6 +193,33 @@ class datagrid:
         return False
 
     def snaphu_config(self, defomax=0, **kwargs):
+        """
+        Generate a Snaphu configuration file.
+
+        Parameters
+        ----------
+        defomax : int, optional
+            Maximum deformation value. Default is 0.
+        **kwargs : dict, optional
+            Additional parameters to include in the configuration file.
+
+        Returns
+        -------
+        str
+            The Snaphu configuration file content.
+
+        Notes
+        -----
+        This method uses the `snaphu_config` method of the PRM object.
+
+        Examples
+        --------
+        Generate a Snaphu configuration file with defomax=10:
+        snaphu_config(defomax=10)
+
+        Generate a Snaphu configuration file with defomax=5 and additional parameters:
+        snaphu_config(defomax=5, param1=10, param2=20)
+        """
         return self.PRM().snaphu_config(defomax, **kwargs)
  
     @staticmethod
@@ -156,7 +267,29 @@ class datagrid:
     # gaussian_kernel(5,1) ~= gauss5x5
     @staticmethod
     def gaussian_kernel(size=(5,5), std=(1,1)):
-        """Make 2D Gaussian kernel matrix"""
+        """
+        Generate a 2D Gaussian kernel matrix.
+
+        Parameters
+        ----------
+        size : tuple, optional
+            The size of the kernel matrix in (rows, columns). Default is (5, 5).
+        std : tuple, optional
+            The standard deviation of the Gaussian distribution in (row_std, column_std). Default is (1, 1).
+
+        Returns
+        -------
+        numpy.ndarray
+            The 2D Gaussian kernel matrix.
+
+        Examples
+        --------
+        Generate a 5x5 Gaussian kernel with standard deviation of 1 in both dimensions:
+        gaussian_kernel(size=(5, 5), std=(1, 1))
+
+        Generate a 3x3 Gaussian kernel with standard deviation of 0.5 in row dimension and 1 in column dimension:
+        gaussian_kernel(size=(3, 3), std=(0.5, 1))
+        """
         import numpy as np
         from scipy import signal
         matrix1 = signal.gaussian(size[0], std=std[0]).reshape(size[0], 1)
@@ -190,7 +323,26 @@ class datagrid:
     @staticmethod
     def nanconvolve2d_gaussian(dataarray, sigmas, truncate):
         """
-        Lazy convolution using Gaussian kernel on a 2D array with NaNs
+        Apply lazy convolution using Gaussian kernel on a 2D array with NaN values.
+
+        Parameters
+        ----------
+        dataarray : xarray.DataArray
+            The input 2D array with NaN values.
+        sigmas : tuple
+            The standard deviations of the Gaussian kernel in (row_sigma, column_sigma).
+        truncate : float
+            The truncation factor for the Gaussian kernel.
+
+        Returns
+        -------
+        xarray.DataArray
+            The convolved data array with NaN values.
+
+        Examples
+        --------
+        Apply Gaussian convolution with sigmas (2, 2) and truncate factor 3 to a 2D data array:
+        nanconvolve2d_gaussian(dataarray, sigmas=(2, 2), truncate=3)
         """
         import xarray as xr
         import dask

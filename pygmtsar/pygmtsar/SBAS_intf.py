@@ -12,6 +12,29 @@ from .SBAS_topo_ra import SBAS_topo_ra
 class SBAS_intf(SBAS_topo_ra):
 
     def intf(self, subswath, pair, **kwargs):
+        """
+        Generate an interferogram for a given pair of dates representing synthetic aperture radar (SAR) images.
+
+        Parameters:
+        ----------
+        subswath : int
+            The subswath number to use.
+
+        pair : tuple
+            A tuple of strings representing the dates for the pair of images in the form 'YYYYMMDD'.
+
+        kwargs : dict, optional
+            Additional keyword arguments for the PRM.intf() method. This can be used to customize the interferogram generation process.
+
+        Raises:
+        ------
+        OSError
+            If the required input files or directories cannot be accessed.
+
+        Notes:
+        ------
+        This method generates an interferogram by first creating PRM objects for the reference (ref) and repeat (rep) images. It then calls the intf() method of the PRM object for the reference image, passing the PRM object for the repeat image and any additional keyword arguments. The output is an interferogram stored as a grid file.
+        """
         import os
 
         # extract dates from pair
