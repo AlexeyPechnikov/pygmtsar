@@ -10,16 +10,20 @@
 # ----------------------------------------------------------------------------
 
 from setuptools import setup
+import urllib.request
 
 # read the contents of your README file
-from pathlib import Path
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+#from pathlib import Path
+#this_directory = Path(__file__).parent
+#long_description = (this_directory / "README.md").read_text()
+
+upstream_url = 'https://raw.githubusercontent.com/mobigroup/gmtsar/pygmtsar/README.md'
+response = urllib.request.urlopen(upstream_url)
+long_description = response.read().decode('utf-8')
 
 setup(
     name='pygmtsar',
     version='2023.5.3',
-    include_package_data=True,
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
