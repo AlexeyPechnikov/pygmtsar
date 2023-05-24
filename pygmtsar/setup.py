@@ -1,5 +1,13 @@
 #!/usr/bin/env python
-# TODO: xarray 2023.3.0 requires pandas<2,>=1.4
+# ----------------------------------------------------------------------------
+# PyGMTSAR
+# 
+# This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
+# 
+# Copyright (c) 2021, Alexey Pechnikov
+# 
+# Licensed under the BSD 3-Clause License (see LICENSE for details)
+# ----------------------------------------------------------------------------
 
 from setuptools import setup
 
@@ -11,6 +19,7 @@ long_description = (this_directory / "README.md").read_text()
 setup(
     name='pygmtsar',
     version='2023.5.3',
+    include_package_data=True,
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
