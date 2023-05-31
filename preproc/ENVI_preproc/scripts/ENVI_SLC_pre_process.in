@@ -96,7 +96,7 @@ endif
 set FD1 = `grep fd1 $1.PRM | awk '{print $3}'`
 calc_dop_orb $1.PRM $1.log $2 $FD1
 cat $1.log >> $1.PRM
-update_PRM.csh $1.PRM fd1 $FD1
+update_PRM $1.PRM fd1 $FD1
 #
 # clean unwanted files
 #

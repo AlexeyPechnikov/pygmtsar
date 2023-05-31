@@ -130,7 +130,7 @@ echo "SLC_file                = $1.SLC" >> $1.PRM
 #  6) change the number of patches
 # 
   if ($4 != 0) then
-    update_PRM.csh $1.PRM num_patches $4
+    update_PRM $1.PRM num_patches $4
     echo "Number of patches is set to $4"
   endif
 #

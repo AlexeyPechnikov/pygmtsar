@@ -157,7 +157,7 @@ grep near_range $1fix.log >> $1.PRM
 #  8) change the number of patches
 # 
   if ($4 != 0) then
-    update_PRM.csh $1.PRM num_patches $4
+    update_PRM $1.PRM num_patches $4
     echo "Number of patches is set to $4"
   endif
 #
