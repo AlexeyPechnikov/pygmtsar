@@ -220,7 +220,9 @@
     cd raw
     ls *.PRM > prmlist
     if ($SAT == "S1_TOPS") then
-      set mmaster = ` echo $master | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+      set mmaster = `echo $master | awk '{ print "S1_"substr($1,16,8)"_"substr($1,25,6)"_F"substr($1,7,1)}'`
+    else
+      set mmaster = `echo $master`
     endif
     get_baseline_table.csh prmlist $mmaster".PRM"
     cd ..
