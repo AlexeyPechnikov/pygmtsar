@@ -133,7 +133,7 @@ echo $fs1
     gmt grdcut $grid1 -R0/$rtmp/0/$r1y2 -Gtmp.grd
     gmt grdmath tmp.grd 0 MUL 0 NAN = tmp.grd
     gmt grdedit tmp.grd -R-$rtmp/0/0/$r1y2 -Gtmp2.grd
-    gmt grdpaste $grid2 tmp2.grd -Gtmp_grid1.grd
+    gmt grdpaste $grid1 tmp2.grd -Gtmp_grid1.grd
     set rtmp2 = `echo $rtmp $r1x2 | awk '{print $1+$2}'`
     gmt grdedit tmp_grid1.grd -R0/$rtmp2/0/$r1y2
 
@@ -144,7 +144,7 @@ echo $fs1
       gmt grdcut $grid2 -R0/$rtmp/0/$r2y2 -Gtmp.grd
       gmt grdmath tmp.grd 0 MUL 0 NAN = tmp.grd
       set rtmp2 = `echo $rtmp $r2x2 | awk '{print $1+$2}'`
-      gmt grdedit tmp.grd -R$r1x2/$rtmp2/0/$r2y2 -Gtmp2.grd
+      gmt grdedit tmp.grd -R$r2x2/$rtmp2/0/$r2y2 -Gtmp2.grd
       gmt grdpaste $grid2 tmp2.grd -Gtmp_grid2.grd
       set rxx = `echo "0/$rtmp2"`
       set r_end = `echo $rtmp2`
@@ -199,8 +199,5 @@ echo $fs1
   if ($compute_trans == 1) then
     gmt grd2xyz --FORMAT_FLOAT_OUT=%lf dem.grd -s | SAT_llt2rat stitch_product.PRM 1 -bod  > trans.dat
   endif
-
-
-
 
 
