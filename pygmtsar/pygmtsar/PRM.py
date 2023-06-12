@@ -803,7 +803,7 @@ class PRM(datagrid, PRM_gmtsar):
         filename_gauss5x5  = os.path.join(gmtsar_sharedir, 'filters', 'gauss5x5')
         
         #!conv 1 1 /usr/local/GMTSAR/share/gmtsar/filters/fill.3x3 raw/tmp2.nc raw/corr.nc
-        fill_3x3 = np.genfromtxt(filename_fill_3x3, skip_header=1)
+        #fill_3x3 = np.genfromtxt(filename_fill_3x3, skip_header=1)
         gauss5x5 = np.genfromtxt(filename_gauss5x5, skip_header=1)
         # gauss_dec inconsistent, see https://github.com/gmtsar/gmtsar/issues/706
         gauss_dec, gauss_string = self.make_gaussian_filter(2, 1, wavelength=wavelength)
@@ -866,37 +866,13 @@ class PRM(datagrid, PRM_gmtsar):
                        psize=psize,
                        debug=debug)
 
-        # Python post-processing
-        # we need to flip vertically results from the command line tools
-        realfilt = xr.open_dataarray(fullname('realfilt.grd'), engine=self.engine, chunks=chunksize)
-        imagfilt = xr.open_dataarray(fullname('imagfilt.grd'), engine=self.engine, chunks=chunksize)
-        amp = np.sqrt(realfilt**2 + imagfilt**2)
-
+        # Define valid area mask
         amp1 = xr.open_dataarray(fullname('amp1.grd'), engine=self.engine, chunks=chunksize)
         amp2 = xr.open_dataarray(fullname('amp2.grd'), engine=self.engine, chunks=chunksize)
-
-        # use the same coordinates for all output grids
-        # use .values to remove existing attributes from the axes
-        # workaround for Google Colab when we cannot save grids with x,y coordinate names
-        coords = {'a': amp.y.values, 'r': amp.x.values}
-
-        # making correlation
-        tmp = amp1 * amp2
-        # fix for "RuntimeWarning: divide by zero encountered in true_divide"
-        tmp = xr.where(tmp==0, np.nan, tmp)
-        mask = xr.where(tmp >= thresh, 1, np.nan)
-        tmp2 = mask * (amp/np.sqrt(tmp))
-
-        #conv = signal.convolve2d(tmp2, fill_3x3/fill_3x3.sum(), mode='same', boundary='symm')
-        # use dask rolling window for the same convolution - 1 border pixel is NaN here
-        #kernel = xr.DataArray(fill_3x3, dims=['i', 'j'])/fill_3x3.sum()
-        #conv = tmp2.rolling(y=3, x=3, center={'y': True, 'x': True}).construct(lat='j', lon='i').dot(kernel)
-        # use dask_image package
-        kernel = xr.DataArray(fill_3x3, dims=['y', 'x'])/fill_3x3.sum()
-        conv = dask_image.ndfilters.convolve(tmp2.data, kernel.data, mode='reflect')
+        mask = xr.where(amp1*amp2 >= thresh, 1, np.nan)
         
-        # wrap dask or numpy array to dataarray
-        corr_da = xr.DataArray(dask.array.flipud(conv.astype(np.float32)), coords, name='z')
+        corr = xr.open_dataarray(fullname('phasefilt_corr.grd'), engine=self.engine, chunks=chunksize)
+        corr_da = xr.DataArray(dask.array.flipud((corr * mask).astype(np.float32)), corr.coords, name='z')
         if func is not None:
             corr_da = func(corr_da)
         if os.path.exists(fullname('corr.grd')):
@@ -905,8 +881,7 @@ class PRM(datagrid, PRM_gmtsar):
 
         # make the Werner/Goldstein filtered phase
         phasefilt_phase = xr.open_dataarray(fullname('phasefilt_phase.grd'), engine=self.engine, chunks=chunksize)
-        phasefilt_phase_masked = phasefilt_phase * mask
-        phasefilt_da = xr.DataArray(dask.array.flipud(phasefilt_phase_masked.astype(np.float32)), coords, name='z')
+        phasefilt_da = xr.DataArray(dask.array.flipud((phasefilt_phase * mask).astype(np.float32)), phasefilt_phase.coords, name='z')
         if func is not None:
             phasefilt_da = func(phasefilt_da)
         if os.path.exists(fullname('phasefilt.grd')):
