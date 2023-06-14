@@ -569,3 +569,43 @@ class datagrid:
 
         # return callback function
         return lambda da: decimator(da)
+
+#     # anti-aliasing filter and downscaling, double filter (potentially faster)
+#     def antialiasing_downscale(self, da, wavelength, truncate=3, coarsen=(1,4)):
+#         import xarray as xr
+#         import numpy as np
+#         import dask
+#         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+#         # coarse grid to square cells
+#         if coarsen is not None:
+#             conv = dask_gaussian_filter(da.data, coarsen, mode='reflect', truncate=2)
+#             da_square = xr.DataArray(conv, coords=da.coords, name=da.name).coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean()
+#         # antialiasing (multi-looking) filter
+#         if wavelength is None:
+#             return da_square
+#         dy, dx = self.pixel_size()
+#         print ('DEBUG dy, dx', dy, dx)
+#         sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx/coarsen[1]))
+#         print ('DEBUG sigmas', sigmas)
+#         conv = dask_gaussian_filter(da_square.data, sigmas, mode='reflect', truncate=2)
+#         return xr.DataArray(conv, coords=da_square.coords, name=da.name)
+    # anti-aliasing filter and downscaling, single filter (potentially more accurate)x
+    def antialiasing_downscale(self, da, wavelength=None, truncate=3, coarsen=(1,4)):
+        import xarray as xr
+        import numpy as np
+        import dask
+        from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+        # antialiasing (multi-looking) filter
+        if wavelength is None:
+            sigmas = coarsen
+        else:
+            dy, dx = self.pixel_size()
+            print ('DEBUG dy, dx', dy, dx)
+            sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
+        print ('DEBUG sigmas', sigmas)
+        conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
+        da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
+        if coarsen is not None:
+            # coarse grid to square cells
+            return da_conv.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean()
+        return da_conv
