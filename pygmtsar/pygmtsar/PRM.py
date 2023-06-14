@@ -907,7 +907,7 @@ class PRM(datagrid, PRM_gmtsar):
 
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
-    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, \
+    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=60, psize=32, \
             func=None, chunksize=None, debug=False):
         """
         Perform interferometric processing on the input SAR data.
@@ -979,9 +979,6 @@ class PRM(datagrid, PRM_gmtsar):
                        real_tofile=fullname('real.grd'),
                        debug=debug)
 
-        # TEST
-        wavelength = 90
-        
         # original SLC (do not flip vertically)
         amp1 = self.read_SLC_int(amplitude=True)
         amp2 = other.read_SLC_int(amplitude=True)
@@ -990,7 +987,8 @@ class PRM(datagrid, PRM_gmtsar):
         imag.data = dask.array.flipud(imag)
         real = xr.open_dataarray(fullname('real.grd'), engine=self.engine, chunks=chunksize)
         real.data = dask.array.flipud(real)
-        print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
+        #real.shape, imag.shape (5484, 21572) (5484, 21572)
+        #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
         
         # anti-aliasing filter for multi-looking, wavelength can be None
         imag = self.antialiasing_downscale(imag, wavelength=wavelength)
@@ -1002,16 +1000,16 @@ class PRM(datagrid, PRM_gmtsar):
         amp = np.sqrt(real**2 + imag**2)
         # calculate masked correlation
         corr = self.correlation(amp1, amp2, amp)
-        #chunksize=(364, 128)
-        print ('DEBUG X2 corr', corr)
+        #chunksize=(512, 5393)
+        #print ('DEBUG X2 corr', corr)
         
         # Apply Goldstein filter function after multi-looking
         if psize is not None:
             phase = self.goldstein_filter_parallel((real + 1j * imag), corr, psize=psize)
         else:
             phase = np.arctan2(imag, real)
-        #chunksize=(364, 128)
-        print ('DEBUG X3 phase', phase)
+        #chunksize=(512, 5393)
+        #print ('DEBUG X3 phase', phase)
         
         if func is not None:
             corr = func(corr)

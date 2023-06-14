@@ -600,9 +600,9 @@ class datagrid:
             sigmas = coarsen
         else:
             dy, dx = self.pixel_size()
-            print ('DEBUG dy, dx', dy, dx)
+            #print ('DEBUG dy, dx', dy, dx)
             sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
-        print ('DEBUG sigmas', sigmas)
+        #print ('DEBUG sigmas', sigmas)
         conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
         da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
         if coarsen is not None:
