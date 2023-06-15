@@ -731,6 +731,7 @@ class PRM(datagrid, PRM_gmtsar):
 
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
+    # note: only one dimension chunked due to sequential file reading 
     def read_SLC_int(self, amplitude=False, chunksize=None):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
@@ -769,7 +770,7 @@ class PRM(datagrid, PRM_gmtsar):
             chunksize = self.chunksize
 
         @dask.delayed
-        def read_SLC_chunk(slc_filename, start, stop, amplitude):
+        def read_SLC_block(slc_filename, start, stop, amplitude):
             # from GMTSAR code
             DFACT = 2.5e-07
             # Read a chunk of the SLC file
@@ -793,19 +794,19 @@ class PRM(datagrid, PRM_gmtsar):
         slc_filename = os.path.join(dirname, slc_filename)
         #print (slc_filename, ydim, xdim)
 
-        chunksize = chunksize*xdim
-        chunks = int(np.ceil(ydim * xdim / chunksize))
+        blocksize = chunksize*xdim
+        blocks = int(np.ceil(ydim * xdim / blocksize))
         #print ('chunks', chunks, 'chunksize', chunksize)
         # Create a lazy Dask array that reads chunks of the SLC file
         lazy_arrays = []
-        for i in range(chunks):
-            start = i * chunksize
-            stop = min((i+1) * chunksize, ydim * xdim)
+        for i in range(blocks):
+            start = i * blocksize
+            stop = min((i+1) * blocksize, ydim * xdim)
             #print ('start, stop, shape', start, stop, (stop-start))
             # use proper output data type for complex data and power amplitude
-            chunk = dask.array.from_delayed(read_SLC_chunk(slc_filename, start, stop, amplitude), shape=((stop-start),),
+            block = dask.array.from_delayed(read_SLC_block(slc_filename, start, stop, amplitude), shape=((stop-start),),
                 dtype=np.float32 if amplitude else np.complex64)
-            lazy_arrays.append(chunk)
+            lazy_arrays.append(block)
         # Concatenate the chunks together
         # Data file can include additional data outside of the specified dimensions
         data = dask.array.concatenate(lazy_arrays).reshape((-1, xdim))[:ydim,:]
