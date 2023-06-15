@@ -907,8 +907,8 @@ class PRM(datagrid, PRM_gmtsar):
 
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
-    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=60, psize=32, \
-            func=None, chunksize=None, debug=False):
+    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, \
+            coarsen=(1,4), func=None, chunksize=None, debug=False):
         """
         Perform interferometric processing on the input SAR data.
 
@@ -951,6 +951,9 @@ class PRM(datagrid, PRM_gmtsar):
         if not isinstance(other, PRM):
             raise Exception('Argument "other" should be PRM class instance')
 
+        if coarsen is None and psize is not None:
+            raise Exception('Argument "coarsen" can be None only when "psize" is None too')
+
         # define lost class variables due to joblib
         if chunksize is None:
             chunksize = self.chunksize
@@ -991,10 +994,10 @@ class PRM(datagrid, PRM_gmtsar):
         #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
         
         # anti-aliasing filter for multi-looking, wavelength can be None
-        imag = self.antialiasing_downscale(imag, wavelength=wavelength)
-        real = self.antialiasing_downscale(real, wavelength=wavelength)
-        amp1 = self.antialiasing_downscale(amp1, wavelength=wavelength)
-        amp2 = self.antialiasing_downscale(amp2, wavelength=wavelength)
+        imag = self.antialiasing_downscale(imag, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        real = self.antialiasing_downscale(real, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        amp1 = self.antialiasing_downscale(amp1, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        amp2 = self.antialiasing_downscale(amp2, wavelength=wavelength, coarsen=coarsen, debug=debug)
         
         # calculate amplitude of interferogram
         amp = np.sqrt(real**2 + imag**2)
@@ -1004,6 +1007,8 @@ class PRM(datagrid, PRM_gmtsar):
         #print ('DEBUG X2 corr', corr)
         
         # Apply Goldstein filter function after multi-looking
+        if debug:
+            print ('DEBUG: intf apply Goldstein filter with size', psize is not None, psize)
         if psize is not None:
             phase = self.goldstein_filter_parallel((real + 1j * imag), corr, psize=psize)
         else:

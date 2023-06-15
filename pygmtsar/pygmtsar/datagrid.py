@@ -590,19 +590,29 @@ class datagrid:
 #         conv = dask_gaussian_filter(da_square.data, sigmas, mode='reflect', truncate=2)
 #         return xr.DataArray(conv, coords=da_square.coords, name=da.name)
     # anti-aliasing filter and downscaling, single filter (potentially more accurate)x
-    def antialiasing_downscale(self, da, wavelength=None, truncate=3, coarsen=(1,4)):
+    def antialiasing_downscale(self, da, wavelength=None, coarsen=(1,4), debug=False):
         import xarray as xr
         import numpy as np
         import dask
         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+        # GMTSAR constant 5.3 defines half-gain at filter_wavelength
+        # https://github.com/gmtsar/gmtsar/issues/411
+        cutoff = 5.3
+        
+        # allow this case to save the original grid resolution
+        if wavelength is None and coarsen is None:
+            return da
+
         # antialiasing (multi-looking) filter
         if wavelength is None:
-            sigmas = coarsen
+            sigmas = np.round([coarsen[0]/cutoff, coarsen[1]/cutoff], 2)
         else:
             dy, dx = self.pixel_size()
             #print ('DEBUG dy, dx', dy, dx)
-            sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
-        #print ('DEBUG sigmas', sigmas)
+            #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
+            sigmas = np.round([wavelength/cutoff/dy, wavelength/cutoff/dx], 2)
+        if debug:
+            print ('DEBUG: antialiasing_downscale sigmas', sigmas, 'for specified wavelength', wavelength)
         conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
         da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
         if coarsen is not None:

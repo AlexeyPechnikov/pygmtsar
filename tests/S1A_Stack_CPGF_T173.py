@@ -47,9 +47,9 @@ if __name__ == '__main__':
     #decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
     decimator = sbas.pixel_decimator(resolution_meters=90, debug=True)
     # run for a single interferogram processing with debug output
-    sbas.intf(sbas.get_subswath(), pairs.values[0], func=decimator, debug=True)
+    sbas.intf(sbas.get_subswath(), pairs.values[0], wavelength=400, func=decimator, debug=True)
     # run for all interferograms
-    sbas.intf_parallel(pairs, func=decimator)
+    sbas.intf_parallel(pairs, wavelength=400, func=decimator)
     # geocode matrices
     sbas.geocode_parallel(pairs)
     # output
