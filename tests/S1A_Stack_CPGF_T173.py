@@ -25,7 +25,8 @@ CORRLIMIT    = 0.075
 
 if __name__ == '__main__':
     # Run Local Dask Cluster
-    client = Client()
+    # limit memory consumption to 2GB per process and 1GB per thread
+    client = Client(memory_limit='2GB')
     print (client)
     # Init SBAS
     sbas = SBAS(DATADIR, DEMFILE, WORKDIR).set_master(MASTER)
