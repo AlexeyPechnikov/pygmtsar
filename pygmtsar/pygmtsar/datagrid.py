@@ -615,7 +615,10 @@ class datagrid:
             print ('DEBUG: antialiasing_downscale sigmas', sigmas, 'for specified wavelength', wavelength)
         conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
         da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
+        # calculate the initial dataarray chunk sizes per dimensions to restore them
+        # it works faster when we prevent small chunks usage
+        chunksizes = (np.max(da.chunksizes['y']), np.max(da.chunksizes['x']))
         if coarsen is not None:
             # coarse grid to square cells
-            return da_conv.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean()
-        return da_conv
+            return da_conv.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(chunksizes)
+        return da_conv.chunk(chunksizes)
