@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_stl import SBAS_stl
+from .SBAS_ps import SBAS_ps
 from .PRM import PRM
 
-class SBAS(SBAS_stl):
+class SBAS(SBAS_ps):
 
     #text2date('V20171110T225942'), text2date('20171117t145927')
     @staticmethod
