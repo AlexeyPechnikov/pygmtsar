@@ -909,7 +909,7 @@ class PRM(datagrid, PRM_gmtsar):
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
     def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, \
-            coarsen=(1,4), func=None, chunksize=None, debug=False):
+            coarsen=(1,4), func=None, mask=None, chunksize=None, debug=False):
         """
         Perform interferometric processing on the input SAR data.
 
@@ -993,20 +993,29 @@ class PRM(datagrid, PRM_gmtsar):
         real.data = dask.array.flipud(real)
         #real.shape, imag.shape (5484, 21572) (5484, 21572)
         #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
-        
+
+        # apply mask if needed
+        if mask is not None:
+            #if mask.dims == ('y', 'x'):
+            #    mask = mask.rename({'y': 'a', 'x': 'r'})
+            imag = mask.data * imag
+            real = mask.data * real
+            amp1 = mask.data * amp1
+            amp2 = mask.data * amp2
+
         # anti-aliasing filter for multi-looking, wavelength can be None
         imag = self.antialiasing_downscale(imag, wavelength=wavelength, coarsen=coarsen, debug=debug)
         real = self.antialiasing_downscale(real, wavelength=wavelength, coarsen=coarsen, debug=debug)
         amp1 = self.antialiasing_downscale(amp1, wavelength=wavelength, coarsen=coarsen, debug=debug)
         amp2 = self.antialiasing_downscale(amp2, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        
+
         # calculate amplitude of interferogram
         amp = np.sqrt(real**2 + imag**2)
         # calculate masked correlation
         corr = self.correlation(amp1, amp2, amp)
         #chunksize=(512, 5393)
         #print ('DEBUG X2 corr', corr)
-        
+
         # Apply Goldstein filter function after multi-looking
         if debug:
             print ('DEBUG: intf apply Goldstein filter with size', psize is not None, psize)
@@ -1016,7 +1025,7 @@ class PRM(datagrid, PRM_gmtsar):
             phase = np.arctan2(imag, real)
         #chunksize=(512, 5393)
         #print ('DEBUG X3 phase', phase)
-        
+
         if func is not None:
             corr = func(corr)
         if os.path.exists(fullname('corr.grd')):
