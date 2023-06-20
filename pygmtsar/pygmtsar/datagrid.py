@@ -521,7 +521,7 @@ class datagrid:
     def pixel_decimator(self, resolution_meters=60, grid=(1, 4), debug=False):
         """
         Return function for pixel decimation to the specified output resolution.
-    
+
         Parameters
         ----------
         resolution_meters : int, optional
@@ -530,12 +530,12 @@ class datagrid:
             Grid size for pixel decimation in the format (vertical, horizontal).
         debug : bool, optional
             Boolean flag to print debug information.
-    
+
         Returns
         -------
         callable
             Post-processing function for SBAS.ints() and SBAS.intf_parallel().
-    
+
         Examples
         --------
         Decimate computed interferograms to default DEM resolution 60 meters:
@@ -545,16 +545,29 @@ class datagrid:
         import numpy as np
         import dask
 
+        # special cases: scale factor should be 4*N or 2*N to prevent rounding issues
+        # grid can be defined as [] or () or xarray dataarray
+        grid_as_coeffs = isinstance(grid,(list, tuple))
+        if   (grid_as_coeffs and grid==(1, 1)) or (not grid_as_coeffs and grid.x.diff('x')[0].item()) == 1:
+            xscale0 = 4
+        elif (grid_as_coeffs and grid==(1, 2)) or (not grid_as_coeffs and grid.x.diff('x')[0].item()) == 2:
+            xscale0 = 2
+        else:
+            xscale0 = 1
+        if debug:
+            print (f'DEBUG: scale to square grid: xscale0={xscale0}')
+
         dy, dx = self.pixel_size(grid)
-        yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
+        yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
         if debug:
             print (f'DEBUG: average per subswaths ground pixel size in meters: y={dy}, x={dx}')
         if yscale <= 1 and xscale <= 1:
             if debug:
-                print (f"DEBUG: decimator = lambda da: da")
+                print (f'DEBUG: decimator = lambda da: da')
             return lambda da: da
         if debug:
-            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yscale}, 'x': {xscale}}}, boundary='trim').mean()")
+            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yscale}, 'x': {xscale0*xscale}}}, boundary='trim').mean()")
+
         # decimate function
         def decimator(da):
             # workaround for Google Colab when we cannot save grids with x,y coordinate names
@@ -565,7 +578,7 @@ class datagrid:
             #    print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
             # avoid creating the large chunks
             with dask.config.set(**{'array.slicing.split_large_chunks': True}):
-                return da.coarsen({yname: yscale, xname: xscale}, boundary='trim').mean()
+                return da.coarsen({yname: yscale, xname: xscale0*xscale}, boundary='trim').mean()
 
         # return callback function
         return lambda da: decimator(da)
