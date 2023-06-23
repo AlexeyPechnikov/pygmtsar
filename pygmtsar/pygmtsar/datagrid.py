@@ -518,7 +518,7 @@ class datagrid:
             return outs[0] if len(outs) == 1 else outs
 
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
-    def pixel_decimator(self, resolution_meters=60, grid=(1, 4), debug=False):
+    def pixel_decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
         """
         Return function for pixel decimation to the specified output resolution.
 
@@ -561,12 +561,13 @@ class datagrid:
         yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
         if debug:
             print (f'DEBUG: average per subswaths ground pixel size in meters: y={dy}, x={dx}')
-        if yscale <= 1 and xscale <= 1:
+        if yscale <= 1 and xscale <= 1 and xscale0==1:
+            # decimation impossible
             if debug:
                 print (f'DEBUG: decimator = lambda da: da')
             return lambda da: da
         if debug:
-            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yscale}, 'x': {xscale0*xscale}}}, boundary='trim').mean()")
+            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yscale}, 'x': {xscale0*xscale}}}, boundary='trim').{func}()")
 
         # decimate function
         def decimator(da):
@@ -574,11 +575,23 @@ class datagrid:
             # also supports geographic coordinates
             yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
             xname = [varname for varname in ['x', 'lon', 'r'] if varname in da.dims][0]
+            coarsen_args = {yname: yscale, xname: xscale0*xscale}
             #if debug:
             #    print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
             # avoid creating the large chunks
             with dask.config.set(**{'array.slicing.split_large_chunks': True}):
-                return da.coarsen({yname: yscale, xname: xscale0*xscale}, boundary='trim').mean()
+                if func == 'mean':
+                    return da.coarsen(coarsen_args, boundary='trim').mean()
+                elif func == 'min':
+                    return da.coarsen(coarsen_args, boundary='trim').min()
+                elif func == 'max':
+                    return da.coarsen(coarsen_args, boundary='trim').max()
+                elif func == 'count':
+                    return da.coarsen(coarsen_args, boundary='trim').count()
+                elif func == 'sum':
+                    return da.coarsen(coarsen_args, boundary='trim').sum()
+                else:
+                    raise ValueError(f"Unsupported function {func}. Should be 'mean','min','max','count', or 'sum'")
 
         # return callback function
         return lambda da: decimator(da)
@@ -603,7 +616,7 @@ class datagrid:
 #         conv = dask_gaussian_filter(da_square.data, sigmas, mode='reflect', truncate=2)
 #         return xr.DataArray(conv, coords=da_square.coords, name=da.name)
     # anti-aliasing filter and downscaling, single filter (potentially more accurate)x
-    def antialiasing_downscale(self, da, wavelength=None, coarsen=(1,4), debug=False):
+    def antialiasing_downscale(self, da, weight=None, wavelength=None, coarsen=(1,4), debug=False):
         import xarray as xr
         import numpy as np
         import dask
@@ -613,7 +626,7 @@ class datagrid:
         cutoff = 5.3
         
         # allow this case to save the original grid resolution
-        if wavelength is None and coarsen is None:
+        if wavelength is None and (coarsen is None or coarsen==(1,1)):
             return da
 
         # antialiasing (multi-looking) filter
@@ -626,7 +639,20 @@ class datagrid:
             sigmas = np.round([wavelength/cutoff/dy, wavelength/cutoff/dx], 2)
         if debug:
             print ('DEBUG: antialiasing_downscale sigmas', sigmas, 'for specified wavelength', wavelength)
-        conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
+
+        # weighted and not weighted convolution
+        if weight is None:
+            if debug:
+                print ('DEBUG: antialiasing_downscale not weighted filtering')
+            conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
+        else:
+            assert da.shape == weight.shape, f'Different shapes for raster {da.shape} and weight {weight.shape}'
+            assert da.dims == weight.dims, f'Different dimension names for raster {da.dims} and weight {weight.dims}'
+            if debug:
+                print ('DEBUG: antialiasing_downscale weighted filtering')
+            conv = dask_gaussian_filter(((1j + da)*weight).data, sigmas, mode='reflect', truncate=2)
+            conv = conv.real/conv.imag
+
         da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
         # calculate the initial dataarray chunk sizes per dimensions to restore them
         # it works faster when we prevent small chunks usage

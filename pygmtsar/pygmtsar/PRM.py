@@ -909,7 +909,7 @@ class PRM(datagrid, PRM_gmtsar):
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
     def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, \
-            coarsen=(1,4), func=None, mask=None, chunksize=None, debug=False):
+            coarsen=(1,4), func=None, weight=None, chunksize=None, debug=False):
         """
         Perform interferometric processing on the input SAR data.
 
@@ -960,16 +960,25 @@ class PRM(datagrid, PRM_gmtsar):
             chunksize = self.chunksize
 
         # define basename from two PRM names
+        subswath = os.path.basename(self.filename)[16:18]
         if basename is None:
             # S1_20171111_ALL_F3.PRM -> F3
-            subswath = os.path.basename(self.filename)[16:18]
             date1    = os.path.basename(self.filename)[3:11]
             date2    = os.path.basename(other.filename)[3:11]
             basename = f'{subswath}_{date1}_{date2}_'
             #print ('basename', basename)
 
-        # make full file name
-        fullname = lambda name: os.path.join(basedir, basename + name)
+        # make full file name, use workaround for 'weight' argument name defined without extension
+        fullname = lambda name: os.path.join(basedir, basename + name if name[-4:]=='.grd' else f'{subswath}_{name}.grd')
+
+        # weight can be None, xarray dataarray, NetCDF file name
+        if weight is not None and isinstance(weight, str):
+            if debug:
+                print (f'DEBUG: intf weight from file {weight}')
+            weight = xr.open_dataarray(fullname(weight), engine=self.engine, chunks=chunksize)
+            # revert fake dimension names 
+            if weight.dims == ('a', 'r'):
+                weight = weight.rename({'a': 'y', 'r': 'x'})
 
         # prepare PRMs for the calculation below
         other.set(self.SAT_baseline(other, tail=9))
@@ -978,6 +987,10 @@ class PRM(datagrid, PRM_gmtsar):
         # for topo_ra use relative path from PRM files directory
         # use imag.grd=bf for GMT native, C-binary format
         # os.path.join(basedir, f'{subswath}_topo_ra.grd')
+        if os.path.exists(fullname('real.grd')):
+            os.remove(fullname('real.grd'))
+        if os.path.exists(fullname('imag.grd')):
+            os.remove(fullname('imag.grd'))
         self.phasediff(other, topo_ra_fromfile=topo_ra_fromfile,
                        imag_tofile=fullname('imag.grd'),
                        real_tofile=fullname('real.grd'),
@@ -994,20 +1007,11 @@ class PRM(datagrid, PRM_gmtsar):
         #real.shape, imag.shape (5484, 21572) (5484, 21572)
         #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
 
-        # apply mask if needed
-        if mask is not None:
-            #if mask.dims == ('y', 'x'):
-            #    mask = mask.rename({'y': 'a', 'x': 'r'})
-            imag = mask.data * imag
-            real = mask.data * real
-            amp1 = mask.data * amp1
-            amp2 = mask.data * amp2
-
         # anti-aliasing filter for multi-looking, wavelength can be None
-        imag = self.antialiasing_downscale(imag, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        real = self.antialiasing_downscale(real, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        amp1 = self.antialiasing_downscale(amp1, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        amp2 = self.antialiasing_downscale(amp2, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        imag = self.antialiasing_downscale(imag, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        real = self.antialiasing_downscale(real, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        amp1 = self.antialiasing_downscale(amp1, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        amp2 = self.antialiasing_downscale(amp2, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
 
         # calculate amplitude of interferogram
         amp = np.sqrt(real**2 + imag**2)
@@ -1041,14 +1045,13 @@ class PRM(datagrid, PRM_gmtsar):
         encoding = {'phase': self.compression(phase.shape, chunksize=chunksize)}
         #print ('DEBUG X3', phase_da)
         # mask phase using masked correlation
-        phase.where(~np.isnan(corr)).rename('phase').to_netcdf(fullname('phasefilt.grd'), encoding=encoding, engine=self.engine)
+        phase.rename('phase').to_netcdf(fullname('phasefilt.grd'), encoding=encoding, engine=self.engine)
 
         # cleanup
         for name in ['real.grd', 'imag.grd']:
             filename = fullname(name)
-            if not os.path.exists(filename):
-                continue
-            os.remove(filename)
+            if os.path.exists(filename):
+                os.remove(filename)
 
         #print ('DEBUG X4')
         return

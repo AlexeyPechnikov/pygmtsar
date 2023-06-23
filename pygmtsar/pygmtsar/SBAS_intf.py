@@ -35,10 +35,19 @@ class SBAS_intf(SBAS_topo_ra):
         ------
         This method generates an interferogram by first creating PRM objects for the reference (ref) and repeat (rep) images. It then calls the intf() method of the PRM object for the reference image, passing the PRM object for the repeat image and any additional keyword arguments. The output is an interferogram stored as a grid file.
         """
+        import pandas as pd
+        import numpy as np
         import os
 
+        # convert to 2D single-element array
+        if isinstance(pair, pd.DataFrame):
+            assert len(pair) == 1, 'Only single-record DataFrame or 1 D or 2D pair of dates allowed'
+            pair = self.pairs(pair)[['ref','rep']].astype(str).values
+        else:
+            pair = [pair] if np.asarray(pair).ndim == 1 else pair
+
         # extract dates from pair
-        date1, date2 = pair
+        date1, date2 = pair[0]
 
         prm_ref = self.PRM(subswath, date1)
         prm_rep = self.PRM(subswath, date2)
@@ -50,7 +59,7 @@ class SBAS_intf(SBAS_topo_ra):
                      topo_ra_fromfile = topo_ra_file,
                      **kwargs)
 
-    def intf_parallel(self, pairs, n_jobs=-1, **kwargs):
+    def intf_parallel(self, pairs, weight=None, n_jobs=-1, chunksize=None, **kwargs):
         """
         Build interferograms for all the subswaths in parallel.
 
@@ -78,6 +87,7 @@ class SBAS_intf(SBAS_topo_ra):
         decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
         sbas.intf_parallel(pairs, func=decimator)
         """
+        import xarray as xr
         import pandas as pd
         import numpy as np
         from tqdm.auto import tqdm
@@ -90,28 +100,38 @@ class SBAS_intf(SBAS_topo_ra):
         subswaths = self.get_subswaths()
 
         # for now (Python 3.10.10 on MacOS) joblib loads the code from disk instead of copying it
-        kwargs['chunksize'] = self.chunksize
-        
+        kwargs['chunksize'] = chunksize
+
+        # materialize lazy weights
+        if weight is not None and isinstance(weight, xr.DataArray):
+            weight_filename = self.get_filenames(None, None, 'intfweight')
+            if os.path.exists(weight_filename):
+                os.remove(weight_filename)
+            # workaround to save NetCDF file correct
+            weight.rename('weight').rename({'y':'a','x':'r'}).\
+                to_netcdf(weight_filename, encoding={'weight': self.compression(weight.shape, chunksize=chunksize)}, engine=self.engine)
+            kwargs['weight'] = 'intfweight'
+
         # this way does not work properly for long interferogram series on MacOS
         # see https://github.com/mobigroup/gmtsar/commit/3eea6a52ddc608639e5e06306bce2f973a184fd6
-        #with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs)*len(subswaths))) as progress_bar:
-        #    joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
-        #        for subswath in subswaths for pair in pairs)
+        with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
+                for subswath in subswaths for pair in pairs)
 
-        # workaround: start a set of jobs together but not more than available cpu cores at once
-        from joblib.externals import loky
-        if n_jobs == -1:
-            n_jobs = joblib.cpu_count()
-        # create list of arrays [subswath, date1, date2] where all the items are strings
-        subpairs = [[subswath, pair[0], pair[1]] for subswath in subswaths for pair in pairs]
-        n_chunks = int(np.ceil(len(subpairs)/n_jobs))
-        chunks = np.array_split(subpairs, n_chunks)
-        #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
-        with tqdm(desc='Interferograms', total=len(subpairs)) as pbar:
-            for chunk in chunks:
-                loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
-                with joblib.parallel_backend('loky', n_jobs=n_jobs):
-                    # convert string subswath to integer value
-                    joblib.Parallel()(joblib.delayed(self.intf)(int(subswath), [date1, date2], **kwargs) \
-                        for (subswath,date1,date2) in chunk)
-                    pbar.update(len(chunk))
+#         # workaround: start a set of jobs together but not more than available cpu cores at once
+#         from joblib.externals import loky
+#         if n_jobs == -1:
+#             n_jobs = joblib.cpu_count()
+#         # create list of arrays [subswath, date1, date2] where all the items are strings
+#         subpairs = [[subswath, pair[0], pair[1]] for subswath in subswaths for pair in pairs]
+#         n_chunks = int(np.ceil(len(subpairs)/n_jobs))
+#         chunks = np.array_split(subpairs, n_chunks)
+#         #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
+#         with tqdm(desc='Interferograms', total=len(subpairs)) as pbar:
+#             for chunk in chunks:
+#                 loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
+#                 with joblib.parallel_backend('loky', n_jobs=n_jobs):
+#                     # convert string subswath to integer value
+#                     joblib.Parallel()(joblib.delayed(self.intf)(int(subswath), [date1, date2], **kwargs) \
+#                         for (subswath,date1,date2) in chunk)
+#                     pbar.update(len(chunk))
