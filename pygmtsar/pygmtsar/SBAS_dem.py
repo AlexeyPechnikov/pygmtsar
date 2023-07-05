@@ -125,7 +125,7 @@ class SBAS_dem(SBAS_reframe):
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
     # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, backend=None, product='SRTM1', resolution_meters=60, method=None, buffer_degrees=0.02, debug=False):
+    def download_dem(self, backend=None, product='SRTM1', resolution_meters=None, method=None, buffer_degrees=0.02, debug=False):
         """
         Download and preprocess digital elevation model (DEM) data.
 
@@ -165,6 +165,7 @@ class SBAS_dem(SBAS_reframe):
         by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid. The DEM is regridded to the specified
         approximate resolution using bicubic interpolation.
         """
+        import xarray as xr
         import numpy as np
         import pygmt
         import os
@@ -176,12 +177,14 @@ class SBAS_dem(SBAS_reframe):
             return
 
         if backend is not None:
-            print ('Note: backend argument is deprecated, just omit it')
+            print ('Note: "backend" argument is deprecated, just omit it')
         if method is not None:
-            print ('Note: method argument is deprecated, just omit it')
+            print ('Note: "method" argument is deprecated, just omit it')
+        if resolution_meters is not None:
+            print ('Note: "resolution_meters" argument is deprecated, just omit it')
 
         if product == 'SRTM1':
-            resolution = '03s'
+            resolution = '01s'
         elif product == 'SRTM3':
             resolution = '03s'
         elif product in ['01s', '03s']:
@@ -193,15 +196,9 @@ class SBAS_dem(SBAS_reframe):
         #print ('err, warn', err, warn)
         assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
 
-        # define approximate resolution in arc seconds
-        spacing = np.round(resolution_meters / 30, 3)
-        # convert to string
-        spacing = f'{spacing}s'
-        #print ('spacing', spacing)
-        # generate DEM for the full area using GMT extent as W E S N
+        # generate DEM for the area using GMT extent as W E S N
         # round the coordinates up to 1 mm
         minx, miny, maxx, maxy = self.df.dissolve().envelope.buffer(buffer_degrees).bounds.round(8).values[0]
-
         # Set the region for the grdcut and grdsample operations
         region = [minx, maxx, miny, maxy]
 
@@ -209,14 +206,15 @@ class SBAS_dem(SBAS_reframe):
         geoid_filename = os.path.join(gmtsar_sharedir, 'geoid_egm96_icgem.grd')
         dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
 
-        # use GMT commands pipeline to download and preprocess the DEM
         with tqdm(desc='DEM Downloading', total=1) as pbar:
             ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=region)
-            ortho_resamp = pygmt.grdsample(ortho, region=region, spacing=spacing)
-            geoid_resamp = pygmt.grdsample(geoid_filename, region=region, spacing=spacing)
+            #print ('ortho', ortho)
+            geoid = xr.open_dataarray(geoid_filename).rename({'y': 'lat', 'x': 'lon'}).interp_like(ortho, method='cubic')
+            #print ('geoid', geoid)
             if os.path.exists(dem_filename):
                 os.remove(dem_filename)
-            (ortho_resamp + geoid_resamp).to_netcdf(dem_filename)
+            #print ('(ortho + geoid_resamp)', (ortho + geoid))
+            (ortho + geoid).rename('dem').to_netcdf(dem_filename)
             pbar.update(1)
 
         self.dem_filename = dem_filename
