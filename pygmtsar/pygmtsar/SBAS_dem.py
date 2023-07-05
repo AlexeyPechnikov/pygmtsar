@@ -181,7 +181,7 @@ class SBAS_dem(SBAS_reframe):
             print ('Note: method argument is deprecated, just omit it')
 
         if product == 'SRTM1':
-            resolution = '03s'
+            resolution = '01s'
         elif product == 'SRTM3':
             resolution = '03s'
         elif product in ['01s', '03s']:
