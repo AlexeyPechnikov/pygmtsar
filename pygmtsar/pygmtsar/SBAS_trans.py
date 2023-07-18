@@ -3,7 +3,7 @@
 # 
 # This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
 # 
-# Copyright (c) 2021, Alexey Pechnikov
+# Copyright (c) 2023, Alexey Pechnikov
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
@@ -17,7 +17,7 @@ class SBAS_trans(SBAS_stack):
         Retrieve the transform data for a specific or all subswaths.
 
         This function opens a NetCDF dataset, which contains data mapping from geographical
-        coordinates to radar coordinates (azimuth-range domain).
+        coordinates to radar coordinates (from latitude-longitude domain to azimuth-range).
 
         Parameters
         ----------
@@ -60,7 +60,8 @@ class SBAS_trans(SBAS_stack):
         subswath : int, optional
             Subswath number to retrieve. If not specified, the function will retrieve the transform
             data for all available subswaths.
-
+        coarsen(jdec, idec) : (int, int) , optional
+            The decimation factor in the azimuth and range direction. Default is 2.
         interactive : bool, optional
             If True, the function returns the transform data without saving it. If False, the function
             saves the transform data as a NetCDF file. Default is False.
