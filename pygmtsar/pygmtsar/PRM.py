@@ -1036,7 +1036,8 @@ class PRM(datagrid, PRM_gmtsar):
             os.remove(fullname('corr.grd'))
         encoding = {'corr': self.compression(corr.shape, chunksize=chunksize)}
         #print ('DEBUG X2', corr_da)
-        corr.rename('corr').to_netcdf(fullname('corr.grd'), encoding=encoding, engine=self.engine)
+        # rename to save lazy NetCDF preventing broken coordinates (y,y) 
+        corr.rename('corr').rename({'y': 'a', 'x': 'r'}).to_netcdf(fullname('corr.grd'), encoding=encoding, engine=self.engine)
 
         if func is not None:
             phase = func(phase)
@@ -1045,7 +1046,8 @@ class PRM(datagrid, PRM_gmtsar):
         encoding = {'phase': self.compression(phase.shape, chunksize=chunksize)}
         #print ('DEBUG X3', phase_da)
         # mask phase using masked correlation
-        phase.rename('phase').to_netcdf(fullname('phasefilt.grd'), encoding=encoding, engine=self.engine)
+        # rename to save lazy NetCDF preventing broken coordinates (y,y)
+        phase.rename('phase').rename({'y': 'a', 'x': 'r'}).to_netcdf(fullname('phasefilt.grd'), encoding=encoding, engine=self.engine)
 
         # cleanup
         for name in ['real.grd', 'imag.grd']:
