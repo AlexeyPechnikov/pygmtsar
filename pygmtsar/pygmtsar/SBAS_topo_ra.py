@@ -44,9 +44,38 @@ class SBAS_topo_ra(SBAS_trans):
         import numpy as np
         import os
 
-        # for materialized indices
+#         # extract and process a single trans_dat subset
+#         @dask.delayed
+#         def topo_ra_block_prepare(azis, rngs, chunksize=None):
+#             dazi = np.diff(azis)[0]
+#             drng = np.diff(rngs)[0]
+#             azis_min = azis.min() - dazi
+#             azis_max = azis.max() + dazi
+#             rngs_min = rngs.min() - drng
+#             rngs_max = rngs.max() + drng
+#             #print ('azis_min', azis_min, 'azis_max', azis_max)
+# 
+#             lats = trans_dat.lat[((trans_dat.azi_min<=azis_max)&(trans_dat.azi_max>=azis_min))]
+#             lons = trans_dat.lon[((trans_dat.rng_min<=rngs_max)&(trans_dat.rng_max>=rngs_min))]
+#             #print ('lats.shape', lats.shape, 'lons.shape', lons.shape)
+# 
+#             # extract and materialize required subset
+#             trans_subset = trans_dat.sel(lat=lats, lon=lons)
+#             block_ele = trans_subset.ele.compute(n_workers=1).data.ravel()
+#             block_azi = trans_subset.azi.compute(n_workers=1).data.ravel()
+#             block_rng = trans_subset.rng.compute(n_workers=1).data.ravel()
+#             mask = (block_azi>=azis_min)&(block_azi<=azis_max)&(block_rng>=rngs_min)&(block_rng<=rngs_max)
+#             block_ele_masked = block_ele[mask]
+#             block_azi_masked = block_azi[mask]
+#             block_rng_masked = block_rng[mask]
+# 
+#             del lats, lons, trans_subset, mask
+#             return (block_azi, block_rng, block_ele)
+        
+        # extract and process multiple chunked trans_dat subsets
+        # it can be some times slow and requires much less memory
         @dask.delayed
-        def topo_ra_block_prepare(azis, rngs):
+        def topo_ra_block_prepare(azis, rngs, chunksize):
             dazi = np.diff(azis)[0]
             drng = np.diff(rngs)[0]
             azis_min = azis.min() - dazi
@@ -59,36 +88,63 @@ class SBAS_topo_ra(SBAS_trans):
             lons = trans_dat.lon[((trans_dat.rng_min<=rngs_max)&(trans_dat.rng_max>=rngs_min))]
             #print ('lats.shape', lats.shape, 'lons.shape', lons.shape)
 
-            # extract and materialize required subset
-            trans_subset = trans_dat.sel(lat=lats, lon=lons)
-            block_ele = trans_subset.ele.data.reshape(-1).compute(n_workers=1)
-            block_azi = trans_subset.azi.data.reshape(-1).compute(n_workers=1)
-            block_rng = trans_subset.rng.data.reshape(-1).compute(n_workers=1)
-            mask = (block_azi>=azis_min)&(block_azi<=azis_max)&(block_rng>=rngs_min)&(block_rng<=rngs_max)
-            block_ele = block_ele[mask]
-            block_azi = block_azi[mask]
-            block_rng = block_rng[mask]
+            # split to equal chunks and rest
+            blocks = int(np.ceil(lats.size*lons.size / chunksize**2))
+            lats_blocks = np.array_split(lats, np.arange(0, lats.size, chunksize**2 // lons.size)[1:])
+            # process chunks
+            block_azis = []
+            block_rngs = []
+            block_eles = []
+            for lats_block in lats_blocks:
+                # extract and materialize required subset
+                trans_subset = trans_dat.sel(lat=lats_block, lon=lons)
+                block_ele = trans_subset.ele.compute(n_workers=1).data.ravel()
+                block_azi = trans_subset.azi.compute(n_workers=1).data.ravel()
+                block_rng = trans_subset.rng.compute(n_workers=1).data.ravel()
+                mask = (block_azi>=azis_min)&(block_azi<=azis_max)&(block_rng>=rngs_min)&(block_rng<=rngs_max)
+                block_eles.append(block_ele[mask])
+                block_azis.append(block_azi[mask])
+                block_rngs.append(block_rng[mask])
+                # cleanup
+                del trans_subset, block_ele, block_azi, block_rng, mask
+            # merge extracted results
+            block_azi = np.concatenate(block_azis)
+            block_rng = np.concatenate(block_rngs)
+            block_ele = np.concatenate(block_eles)
 
-            del lats, lons, trans_subset, mask
+            del block_azis, block_rngs, block_eles
             return (block_azi, block_rng, block_ele)
 
+#         # cKDTree interpolations allows to get the distances to nearest pixels
+#         @dask.delayed
+#         def topo_ra_block(data, azis, rngs):
+#             from scipy.spatial import cKDTree
+# 
+#             block_azi, block_rng, block_ele = data
+# 
+#             # interpolate topo_ra on trans_dat
+#             grid_azi, grid_rng = np.meshgrid(azis, rngs)
+#             tree = cKDTree(np.column_stack([block_azi, block_rng]), compact_nodes=False, balanced_tree=False)
+#             d, inds = tree.query(np.column_stack([grid_azi.ravel(), grid_rng.ravel()]), k = 1, workers=1)
+#             grid = block_ele[inds]
+#             #print ('distance range', d.min().round(2), d.max().round(2))
+# 
+#             del block_ele, block_azi, block_rng, tree
+#             return grid.reshape((rngs.size, azis.size)).T
+
+        # griddata interpolation is easy and provides multiple methods
         @dask.delayed
         def topo_ra_block(data, azis, rngs):
-            from scipy.spatial import cKDTree
+            from scipy.interpolate import griddata
 
             block_azi, block_rng, block_ele = data
+            points = np.column_stack([block_azi, block_rng])
 
             # interpolate topo_ra on trans_dat
-            grid_azi, grid_rng = np.meshgrid(azis, rngs)
-            tree = cKDTree(np.column_stack([block_azi, block_rng]), compact_nodes=False, balanced_tree=False)
-            d, inds = tree.query(np.column_stack([grid_azi.ravel(), grid_rng.ravel()]), k = 1, workers=1)
-            grid = block_ele[inds].reshape((rngs.size, azis.size)).T
-            #print ('distance range', d.min().round(2), d.max().round(2))
+            grid = griddata(points, block_ele, (azis[None, :], rngs[:, None]), method='nearest')
+            del block_ele, block_azi, block_rng, points
+            return grid.reshape((rngs.size, azis.size)).T
 
-            del block_ele, block_azi, block_rng, tree
-            return grid
-
-    
         if chunksize is None:
             chunksize = self.chunksize
 
@@ -135,7 +191,7 @@ class SBAS_topo_ra(SBAS_trans):
                 # extract multiple outputs
                 #blockset = dask.delayed(trans_block)(...)
                 #block = dask.array.from_delayed(blockset[0], shape=(...), dtype=np.float32)
-                data = topo_ra_block_prepare(azis_block, rngs_block)
+                data = topo_ra_block_prepare(azis_block, rngs_block, chunksize)
                 block = dask.array.from_delayed(topo_ra_block(data, azis_block, rngs_block),
                                                 shape=(azis_block.size, rngs_block.size), dtype=np.float32)
                 blocks.append(block.transpose(1,0))
@@ -161,7 +217,7 @@ class SBAS_topo_ra(SBAS_trans):
                                     compute=False)
         return handler
 
-    def topo_ra_parallel(self, interactive=False):
+    def topo_ra_parallel(self, interactive=False, **kwargs):
         """
         Build topography in radar coordinates from WGS84 DEM using parallel computation.
 
@@ -189,13 +245,13 @@ class SBAS_topo_ra(SBAS_trans):
         import dask
 
         # auto generate the trans.dat file
-        self.trans_dat_parallel()
+        self.trans_dat_parallel(**kwargs)
 
         # process all the subswaths
         subswaths = self.get_subswaths()
         delayeds = []
         for subswath in subswaths:
-            delayed = self.topo_ra(subswath=subswath, interactive=interactive)
+            delayed = self.topo_ra(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 tqdm_dask(dask.persist(delayed), desc=f'Radar Topography Computing sw{subswath}')
             else:
