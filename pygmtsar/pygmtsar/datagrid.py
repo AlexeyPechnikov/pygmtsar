@@ -26,7 +26,7 @@ class datagrid:
     import numpy as np
 
     # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
-    chunksize = 512
+    chunksize = 1024
     engine = 'h5netcdf'
     complevel = 3
     # NODATA index value for transform matrices
