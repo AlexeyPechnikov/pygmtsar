@@ -314,6 +314,7 @@ class SBAS_trans_inv(SBAS_trans):
             delayed = self.trans_dat_inv(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 tqdm_dask(dask.persist(delayed), desc=f'Radar Inverse Transform Computing sw{subswath}')
+                delayed.close()
             else:
                 delayeds.append(delayed)
 

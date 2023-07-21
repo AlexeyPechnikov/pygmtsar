@@ -269,6 +269,7 @@ class SBAS_trans(SBAS_stack):
             delayed = self.trans_dat(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 tqdm_dask(dask.persist(delayed), desc=f'Radar Transform Computing sw{subswath}')
+                delayed.close()
             else:
                 delayeds.append(delayed)
 

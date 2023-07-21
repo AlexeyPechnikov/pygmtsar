@@ -91,6 +91,7 @@ class SBAS_topo_ra(SBAS_trans_inv):
             delayed = self.topo_ra(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 tqdm_dask(dask.persist(delayed), desc=f'Radar Topography Computing sw{subswath}')
+                delayed.close()
             else:
                 delayeds.append(delayed)
 
