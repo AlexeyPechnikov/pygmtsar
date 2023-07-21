@@ -31,7 +31,8 @@ class SBAS_topo_ra(SBAS_trans_inv):
         import numpy as np
         import os
 
-        topo_ra = self.get_trans_dat_inv(subswath).ele.rename('topo_ra')
+        # GMTSAR phasediff tool requires "The dimension SLC must be multiplication factor of the topo_ra"
+        topo_ra = self.get_trans_dat_inv(subswath).ele[1:,1:].rename('topo_ra')
     
         if interactive:
             # do not flip vertically because it's returned as is without SBAS.get_topo_ra() function

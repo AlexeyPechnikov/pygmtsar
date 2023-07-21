@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_trans(SBAS_stack):
     
-    def get_trans_dat(self, subswath=None):
+    def get_trans_dat(self, subswath=None, chunksize=None):
         """
         Retrieve the transform data for a specific or all subswaths.
 
@@ -42,7 +42,7 @@ class SBAS_trans(SBAS_stack):
 
         subswath = self.get_subswath(subswath)
         filename = self.get_filenames(subswath, None, 'trans')
-        trans = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
+        trans = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
         #.rename({'yy': 'lat', 'xx': 'lon'})
         return trans
 
@@ -162,11 +162,13 @@ class SBAS_trans(SBAS_stack):
         rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
         azi_max = yvalid * num_patch
         #print ('azi_max', azi_max, 'rng_max', rng_max)
+        azis = np.arange(0, azi_max+2, coarsen[0], dtype=np.int32)
+        rngs = np.arange(0, rng_max+2, coarsen[1], dtype=np.int32)
         # allow 2 points around for linear and cubic interpolations
         extent= {'amin': -2*azi_size/azi_steps, 'amax': azi_max+2*azi_size/azi_steps,
                  'rmin': -2*rng_size/rng_steps, 'rmax': rng_max+2*rng_size/rng_steps}
         #print ('extent', extent)
-    
+
         ################################################################################
         # process the area
         ################################################################################
@@ -208,6 +210,9 @@ class SBAS_trans(SBAS_stack):
         trans['azi_max'] = trans.azi.max('lon')
         trans['rng_min'] = trans.rng.min('lat')
         trans['rng_max'] = trans.rng.max('lat')
+        # add corresponding radar grid coordinates
+        trans['y'] = azis
+        trans['x'] = rngs
 
         if interactive:
             return trans
