@@ -96,7 +96,7 @@ class SBAS_geocode(SBAS_sbas):
         # to resolve NetCDF rewriting error
         if os.path.exists(filename):
             os.remove(filename)
-        encoding = {var: self.compression(chunksize=chunksize) for var in trans.data_vars}
+        encoding = {var: self.compression(trans[var].shape, chunksize=chunksize) for var in trans.data_vars}
         handler = trans.to_netcdf(filename,
                                   encoding=encoding,
                                   engine=self.engine,
@@ -296,7 +296,7 @@ class SBAS_geocode(SBAS_sbas):
         # to resolve NetCDF rewriting error
         if os.path.exists(filename):
             os.remove(filename)
-        encoding = {var: self.compression(chunksize=chunksize) for var in trans.data_vars}
+        encoding = {var: self.compression(trans[var].shape, chunksize=chunksize) for var in trans.data_vars}
         handler = trans.to_netcdf(filename,
                                   encoding=encoding,
                                   engine=self.engine,

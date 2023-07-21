@@ -47,7 +47,7 @@ class SBAS_topo_ra(SBAS_trans_inv):
         # rename to save lazy NetCDF preventing broken coordinates (y,y) 
         topo_ra = topo_ra.rename({'y': 'a', 'x': 'r'})
         handler = topo_ra.to_netcdf(filename,
-                                    encoding={'topo_ra': self.compression(chunksize=chunksize)},
+                                    encoding={'topo_ra': self.compression(topo_ra.shape, chunksize=chunksize)},
                                     engine=self.engine,
                                     compute=False)
         return handler

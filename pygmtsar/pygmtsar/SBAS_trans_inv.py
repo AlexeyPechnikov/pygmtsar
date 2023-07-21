@@ -266,7 +266,7 @@ class SBAS_trans_inv(SBAS_trans):
             os.remove(filename)
         # rename to save lazy NetCDF preventing broken coordinates (y,y) 
         trans_inv = trans_inv.rename({'y': 'a', 'x': 'r'})
-        encoding = {key: self.compression(chunksize=chunksize) for key in trans_inv.data_vars if len(trans_inv[key].dims)==2}
+        encoding = {key: self.compression(trans_inv[key].shape, chunksize=chunksize) for key in trans_inv.data_vars if len(trans_inv[key].dims)==2}
         handler = trans_inv.to_netcdf(filename,
                                     encoding=encoding,
                                     engine=self.engine,
