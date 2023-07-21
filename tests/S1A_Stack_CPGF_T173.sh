@@ -16,4 +16,8 @@ df -h
 
 echo "Running Python test script..."
 rm -fr *.jpg
+# prevent error
+# Exception: "OSError(24, 'Too many open files')"
+# default limit on MacOS is small (256)
+ulimit -n 10000
 python3 ./S1A_Stack_CPGF_T173.py && echo SUCCESS
