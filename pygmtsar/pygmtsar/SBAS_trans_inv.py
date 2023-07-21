@@ -71,7 +71,7 @@ class SBAS_trans_inv(SBAS_trans):
 
     #         # extract and process a single trans_dat subset
     #         @dask.delayed
-    #         def topo_ra_block_prepare(azis, rngs, chunksize=None):
+    #         def trans_dat_inv_block_prepare(azis, rngs, chunksize=None):
     #             dazi = np.diff(azis)[0]
     #             drng = np.diff(rngs)[0]
     #             azis_min = azis.min() - dazi
@@ -100,7 +100,7 @@ class SBAS_trans_inv(SBAS_trans):
         # extract and process multiple chunked trans_dat subsets
         # it can be some times slow and requires much less memory
         @dask.delayed
-        def topo_ra_block_prepare(azis, rngs, chunksize):
+        def trans_dat_inv_block_prepare(azis, rngs, chunksize):
             # required one delta around for nearest interpolation and two for linear
             dazi = np.diff(azis)[0]
             drng = np.diff(rngs)[0]
@@ -152,7 +152,7 @@ class SBAS_trans_inv(SBAS_trans):
 
     #         # cKDTree interpolations allows to get the distances to nearest pixels
     #         @dask.delayed
-    #         def topo_ra_block(data, azis, rngs):
+    #         def trans_dat_inv_block(data, azis, rngs):
     #             from scipy.spatial import cKDTree
     # 
     #             block_azi, block_rng, block_ele = data
@@ -169,7 +169,7 @@ class SBAS_trans_inv(SBAS_trans):
 
         # griddata interpolation is easy and provides multiple methods
         @dask.delayed
-        def topo_ra_block(data, azis, rngs):
+        def trans_dat_inv_block(data, azis, rngs):
             from scipy.interpolate import griddata
 
             block_azi, block_rng, block_lt, block_ll, block_ele = data
@@ -199,9 +199,9 @@ class SBAS_trans_inv(SBAS_trans):
         rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
         azi_max = yvalid * num_patch
         #print ('DEBUG: rng_max', rng_max, 'azi_max', azi_max)
-        # use center pixel GMT registration mode
-        azis = np.arange(1, azi_max+1, coarsen[0], dtype=np.int32)
-        rngs = np.arange(1, rng_max+1, coarsen[1], dtype=np.int32)
+        # produce the same grid as coarsed interferogram
+        azis = np.arange(0, azi_max+2, coarsen[0], dtype=np.int32)
+        rngs = np.arange(0, rng_max+2, coarsen[1], dtype=np.int32)
 
         # build topo_ra grid by chunks
 
@@ -234,8 +234,8 @@ class SBAS_trans_inv(SBAS_trans):
                 # extract multiple outputs
                 #blockset = dask.delayed(trans_block)(...)
                 #block = dask.array.from_delayed(blockset[0], shape=(...), dtype=np.float32)
-                data = topo_ra_block_prepare(azis_block, rngs_block, chunksize)
-                block_lt, block_ll, block_ele = dask.array.from_delayed(topo_ra_block(data, azis_block, rngs_block),
+                data = trans_dat_inv_block_prepare(azis_block, rngs_block, chunksize)
+                block_lt, block_ll, block_ele = dask.array.from_delayed(trans_dat_inv_block(data, azis_block, rngs_block),
                                                 shape=(3, azis_block.size, rngs_block.size), dtype=np.float32)
                 block_lts.append(block_lt.transpose(1,0))
                 block_lls.append(block_ll.transpose(1,0))
@@ -247,14 +247,15 @@ class SBAS_trans_inv(SBAS_trans):
             del block_lts, block_lls, block_eles
 
         lt = dask.array.block(block_lts_total).transpose(1,0)
-        lt = xr.DataArray(lt, coords={'y': azis, 'x': rngs}).rename('topo_ra')
+        lt = xr.DataArray(lt, coords={'y': azis, 'x': rngs})
         ll = dask.array.block(block_lls_total).transpose(1,0)
-        ll = xr.DataArray(ll, coords={'y': azis, 'x': rngs}).rename('topo_ra')
+        ll = xr.DataArray(ll, coords={'y': azis, 'x': rngs})
         ele = dask.array.block(block_eles_total).transpose(1,0)
-        ele = xr.DataArray(ele, coords={'y': azis, 'x': rngs}).rename('topo_ra')
+        ele = xr.DataArray(ele, coords={'y': azis, 'x': rngs})
         del block_lts_total, block_lls_total, block_eles_total
 
         trans_inv = xr.Dataset({'lt': lt, 'll': ll, 'ele': ele})
+        del lt, ll, ele
     
         if interactive:
             return trans_inv
