@@ -238,7 +238,7 @@ class SBAS_geocode(SBAS_sbas):
         for (k,v) in grids.coords.items():
             if k not in ['y','x']:
                 out[k] = v
-        return out
+        return out.chunk(chunksize)
 
 ##########################################################################################
 # ll2ra
@@ -437,4 +437,4 @@ class SBAS_geocode(SBAS_sbas):
         for (k,v) in grids.coords.items():
             if k not in ['lat','lon']:
                 out[k] = v
-        return out
+        return out.chunk(chunksize)
