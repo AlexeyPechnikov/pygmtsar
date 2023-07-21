@@ -4,6 +4,9 @@
 #tar xvzf S1A_Stack_CPGF_T173.tar.gz -C .
 
 from pygmtsar import SBAS
+# tune for low-memory test
+from pygmtsar import datagrid
+datagrid.chunksize = 512
 import numpy as np
 import xarray as xr
 import pandas as pd
