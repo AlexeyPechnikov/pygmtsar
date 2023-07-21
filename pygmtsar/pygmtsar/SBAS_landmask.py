@@ -38,7 +38,7 @@ class SBAS_landmask(SBAS_merge):
             self.landmask_filename = None
         return self
 
-    def get_landmask(self, inverse_geocode=False, crop_valid=True):
+    def get_landmask(self, inverse_geocode=False):
         """
         Get the landmask grid in geographic or radar coordinates.
 
@@ -47,8 +47,6 @@ class SBAS_landmask(SBAS_merge):
         inverse_geocode : bool, optional
             Whether to perform inverse geocoding on the landmask grid. If True, the grid will be transformed from geographic
             coordinates to radar coordinates. Default is False.
-        crop_valid : bool, optional
-            Whether to crop the landmask to the valid area only based on the interferogram DEM. Default is True.
 
         Returns
         -------
@@ -87,15 +85,15 @@ class SBAS_landmask(SBAS_merge):
         landmask['lat'] = landmask.lat.round(8)
         landmask['lon'] = landmask.lon.round(8)
 
-        if crop_valid:
-            # select valid area only
-            trans_dat = self.get_trans_dat()
-            return landmask.reindex_like(trans_dat, method='nearest')
-
+        # double conversion to unify landmask to interferogram grid in radar coordinates
+        # inverse geocode to radar coordinates grid
+        landmask_ra = self.intf_ll2ra(landmask)
         if inverse_geocode:
-            return self.intf_ll2ra(landmask)
+            return landmask_ra
 
-        return landmask
+        # geocode to the exact geographical coordinates grid as interferogram
+        landmask_ll = self.intf_ra2ll(landmask_ra)
+        return landmask_ll
 
     def download_landmask(self, backend=None, debug=False):
         """
@@ -132,7 +130,8 @@ class SBAS_landmask(SBAS_merge):
         # generate the same as DEM grid
         landmask_filename = os.path.join(self.basedir, 'landmask.nc')
 
-        dem = self.get_dem()
+        # geographical grid for interferogram area only
+        dem = self.get_intf_ra2ll()[['lat','lon']]
         scale = dem.lon.diff('lon')[0].item()
         llmin = dem.lon.min().item()
         llmax = dem.lon.max().item()
