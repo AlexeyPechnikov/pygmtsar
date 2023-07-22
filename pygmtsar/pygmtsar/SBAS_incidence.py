@@ -275,5 +275,6 @@ class SBAS_incidence(SBAS_geocode):
 
         if not interactive:
             tqdm_dask(dask.persist(delayed), desc='Satellite Look Vector Computing')
+            delayed.close()
         else:
             return delayed
