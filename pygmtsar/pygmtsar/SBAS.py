@@ -176,9 +176,21 @@ class SBAS(SBAS_ps):
         df['polarization'] = [filename.split('-')[3].upper() for filename in datanames]
     
         # read approximate locations
-        geolocs = [shapely.geometry.MultiPoint(self.geoloc(path).geometry).minimum_rotated_rectangle for path in metapaths]
+        #geolocs = [shapely.geometry.MultiPoint(self.geoloc(path).geometry).minimum_rotated_rectangle for path in metapaths]
         #print ('geolocs', geolocs)
-        df = gpd.GeoDataFrame(df, geometry=geolocs)
+        #df = gpd.GeoDataFrame(df, geometry=geolocs)
+        def geoloc2bursts(metapath):
+            """
+            Read approximate bursts locations
+            """
+            from shapely.geometry import LineString, Polygon, MultiPolygon
+
+            df = self.geoloc(metapath)
+            lines = df.groupby('line')['geometry'].apply(lambda x: LineString(x.tolist()))
+            bursts = [Polygon([*line1.coords, *line2.coords[::-1]]) for line1, line2 in zip(lines[:-1], lines[1:])]
+            return MultiPolygon(bursts)
+        bursts = [geoloc2bursts(path) for path in metapaths]
+        df = gpd.GeoDataFrame(df, geometry=bursts)
 
         # define orbit directions
         orbits = [self.annotation(path)['product']['generalAnnotation']['productInformation']['pass'][:1] for path in metapaths]
