@@ -5,6 +5,7 @@
 from pygmtsar import SBAS
 import numpy as np
 import xarray as xr
+from shapely.geometry import Point, LineString
 from dask.distributed import Client
 import matplotlib.pyplot as plt
 
@@ -25,9 +26,8 @@ if __name__ == '__main__':
     sbas.download_orbits()
     print (sbas.to_dataframe())
     # Reframe scenes
-    sbas.set_pins([25.3, 35.0, None, None])
-    sbas.reframe_parallel()
-    print (sbas.get_pins())
+    AOI = LineString([Point(25.3, 35.0), Point(25, 35.2)])
+    sbas.reframe_parallel(geometry=AOI)
     sbas.to_dataframe()
     # Download DEM
     #sbas.download_dem(backend='GMT', product='SRTM3')
