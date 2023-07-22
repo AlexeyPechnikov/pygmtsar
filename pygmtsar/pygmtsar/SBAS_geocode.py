@@ -101,8 +101,8 @@ class SBAS_geocode(SBAS_sbas):
                                   encoding=encoding,
                                   engine=self.engine,
                                   compute=False)
-        tqdm_dask(dask.persist(handler), desc='Build ra2ll Transform')
-        handler.close()
+        pbar = tqdm_dask(dask.persist(handler), desc='Build ra2ll Transform')
+        dask.compute(pbar)
 
     def get_intf_ra2ll(self, subswath=None, chunksize=None):
         """
@@ -301,8 +301,8 @@ class SBAS_geocode(SBAS_sbas):
                                   encoding=encoding,
                                   engine=self.engine,
                                   compute=False)
-        tqdm_dask(dask.persist(handler), desc='Build ll2ra Transform')
-        handler.close()
+        pbar = tqdm_dask(dask.persist(handler), desc='Build ll2ra Transform')
+        dask.compute(pbar)
 
     def get_intf_ll2ra(self, subswath=None, chunksize=None):
         """

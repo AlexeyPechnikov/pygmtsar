@@ -274,7 +274,7 @@ class SBAS_incidence(SBAS_geocode):
         delayed = self.sat_look(interactive=interactive)
 
         if not interactive:
-            tqdm_dask(dask.persist(delayed), desc='Satellite Look Vector Computing')
-            delayed.close()
+            pbar = tqdm_dask(dask.persist(delayed), desc='Satellite Look Vector Computing')
+            dask.compute(pbar)
         else:
             return delayed

@@ -136,7 +136,8 @@ class SBAS_detrend(SBAS_unwrap):
             # prepare pipeline for processing and saving
             delayed = self.save_grids([out], 'detrend', chunksize=chunksize, interactive=False)
             # perform the pipeline
-            dask.persist(delayed)
+            handler = dask.persist(delayed)
+            dask.compute(handler)
 
         label = 'Detrending and Saving' if not interactive else 'Detrending'
         with self.tqdm_joblib(tqdm(desc=label, total=len(pairs))) as progress_bar:
