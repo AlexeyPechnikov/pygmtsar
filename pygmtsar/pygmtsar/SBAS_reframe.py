@@ -13,191 +13,16 @@ from .PRM import PRM
 class SBAS_reframe(SBAS_reframe_gmtsar):
 
     def get_pins(self, subswath=None):
-        """
-        Return pins list.
+        print ('The function is obsolete, and it does nothing. Use SBAS.reframe_parallel(geometry=...) to crop bursts.')
+        return
 
-        Pins are lon/lat points to crop extra bursts, minimizing the processing area.
-
-        Parameters
-        ----------
-        subswath : int, optional
-            Optional subswath number.
-
-        Returns
-        -------
-        list
-            Python list of pairs of lon/lat coordinate points.
-
-        Examples
-        --------
-        Get pins for a single subswath IW1:
-        >>> sbas.get_pins(1)
-        [47.5, 37.8, 47.5, 38.3]
-
-        Get pins for a single subswath IW2:
-        >>> sbas.get_pins(2)
-        [48.5, 38, 48.5, 38.5]
-
-        Get pins for all the subswaths for a single subswath IW1 processing:
-        >>> sbas.get_pins()
-        [47.5, 37.8, 47.5, 38.3]
-
-        Get pins for all the subswaths for a single subswath IW2 processing:
-        >>> sbas.get_pins()
-        [48.5, 38, 48.5, 38.5]
-
-        Get pins for all the subswaths for two subswaths IW1 and IW2 processing:
-        >>> sbas.get_pins()
-        [47.5, 37.8, 47.5, 38.3, 48.5, 38, 48.5, 38.5]
-
-        Get pins for all the subswaths for three subswaths IW1, IW2, IW3 processing:
-        >>> sbas.get_pins()
-        [47.5, 37.8, 47.5, 38.8, 48.5, 38, 48.5, 39, 49.5, 38.2, 49.5, 39.2]
-        """
-        if subswath is None:
-            # that's ok when pins are not defined here
-            # all the pins useful for plotting only
-            return self.pins
-        else:
-            # detect all the subswaths
-            subswaths = self.get_subswaths()
-            # check pins defined for all the subswaths
-            assert len(self.pins)/4. == len(subswaths), f'ERROR: Pins are not defined for all the subswaths. \
-                Found {len(self.pins)} pins for {subswaths} subswathss'
-            assert subswath in subswaths, f'Subswath {subswath} not found'
-            idx = subswaths.tolist().index(subswath)
-            pins = self.pins[4*idx:4*(idx+1)]
-            assert len(pins) == 4, f'ERROR: wrong number of pins detected. Found {len(pins)} for subswath {subswath}'
-            return pins
-     
     def set_pins(self, *args):
+        print ('The function is obsolete, and it does nothing. Use SBAS.reframe_parallel(geometry=...) to crop bursts.')
+        return
+    
+    def reframe(self, subswath, date, geometry=None, debug=False):
         """
-        Define pins for scene framing.
-
-        Pins are lon/lat points to crop extra bursts, minimizing the processing area.
-
-        Parameters
-        ----------
-        *args : list of pairs of lon/lat coordinate points
-            List of pin coordinates for each subswath.
-
-        Returns
-        -------
-        None
-
-        Examples
-        --------
-        sbas.set_pins([47.5, 37.8, None, None])
-        sbas.set_pins([48.5, 38, 48.5, 38.5])
-        sbas.set_pins([47.5, 37.8, 47.5, 38.3], [48.5, 38, 48.5, 38.5])
-        sbas.set_pins([47.5, 38-0.2, 47.5, 39-0.2], [48.5, 38, 48.5, 39], [49.5, 38+0.2, 49.5, 39+0.2])
-
-        Notes
-        -----
-        For each defined subswath, the pins should be defined using the following formats:
-        - [x1, y1, x2, y2]
-        - [[x1, y1], [x2, y2]]
-        - [[x1, y1], None]
-        - [None, [x2, y2]]
-        - [None, None]
-
-        The pins are automatically ordered based on the ascending or descending orbit.
-        """
-        import numpy as np
-        from shapely.geometry import Point
-        # project pin location to boundary geometry
-        def pip2pin(geom, lon, lat):
-            pin = geom.boundary.interpolate(geom.boundary.project(Point(lon, lat)))
-            return np.round(pin.x, 3), np.round(pin.y, 3)
-
-        # detect all the subswaths
-        subswaths = self.get_subswaths()
-        if len(args) == 0:
-            args = len(subswaths)*[None]
-        # check input data to have a single argument for the each subswath
-        assert len(args) == len(subswaths), f'Define pair of pins for the each subswath \
-            {",".join(map(str,subswaths))} ({2*len(subswaths)} pins and {4*len(subswaths)} coordinates in total)'
-
-        # reverse pins order for descending orbit
-        orbit = self.df['orbit'][0]
-        args = args[::-1] if orbit == 'D' else args
-        
-        # iterate 1 to 3 subswaths
-        allpins = []
-        for (subswath, pins) in zip(subswaths, args):
-            #print ('subswath, pins', subswath, pins)
-
-            error = False
-            warning = False
-
-            if pins is None:
-                pins = [None, None]
-            if len(pins) == 4:
-                pins = np.array(pins).reshape(2,2)
-            assert len(pins) == 2, 'Define two pins as two pairs of lat,lon coordinates where pin2 is upper pin1 or use None'
-            #print ('pins', pins)
-            pin1 = pins[0]
-            pin2 = pins[1]
-
-            df = self.get_master(subswath)
-            # for 7+ stitched scenes SAT_llt2rat requires pins a bit inside the boundary geometry
-            # because the boundaries are not exact and cover some area outside
-            geom = df['geometry'].unary_union
-            orbit = df['orbit'][0]
-
-            # check the pins validity
-            llmin, ltmin, llmax, ltmax = geom.envelope.bounds
-            if not np.all(pin1) is None and not geom.intersects(Point(pin1[0], pin1[1])):
-                print (f'ERROR subswath {subswath}: pin1 lays outside of master frame. Move the pin or set it to None and try again.')
-                error = True
-            if not np.all(pin2) is None and not geom.intersects(Point(pin2[0], pin2[1])):
-                print (f'ERROR subswath {subswath}: pin2 lays outside of master frame. Move the pin or set it to None and try again.')
-                error = True
-
-            # check pin1
-            if np.all(pin1) is None and orbit == 'A':
-                # use right bottom corner
-                print (f'NOTE subswath {subswath}: pin1 is not defined, master image corner coordinate will be used')
-                warning = True
-                #pin1 = [llmax, ltmin]
-                pin1 = pip2pin(geom, llmax, ltmin)
-            elif np.all(pin1) is None and orbit == 'D':
-                # use right top corner
-                print (f'NOTE subswath {subswath}: pin1 is not defined, master image corner coordinate will be used')
-                warning = True
-                #pin1 = [llmin, ltmin]
-                pin1 = pip2pin(geom, llmin, ltmin)
-            # check pin2
-            if np.all(pin2) is None and orbit == 'A':
-                # use left top corner
-                print (f'NOTE subswath {subswath}: pin2 is not defined, master image corner coordinate will be used')
-                warning = True
-                #pin2 = [llmin, ltmax]
-                pin2 = pip2pin(geom, llmin, ltmax)
-            elif np.all(pin2) is None and orbit == 'D':
-                # use left bottom corner
-                print (f'NOTE subswath {subswath}: pin2 is not defined, master image corner coordinate will be used')
-                warning = True
-                #pin2 = [llmax, ltmax]
-                pin2 = pip2pin(geom, llmax, ltmax)
-
-            # check pins order
-            if pin1[1] >= pin2[1]:
-                print (f'ERROR subswath {subswath}: pin1 is upper than pin2. Fix to set pin1 at bottom and pin2 at top.')
-                error = True
-            # swap pins for Descending orbit
-            if orbit == 'A':
-                allpins += [pin1[0], pin1[1], pin2[0], pin2[1]]
-            else:
-                allpins += [pin2[0], pin2[1], pin1[0], pin1[1]]
-
-        self.pins = allpins
-        # pins are defined even is case of errors to have ability to plot them
-        assert not error, 'ERROR: Please fix all the issues listed above to continue. Note: you are able to plot the pins.'
-
-    def reframe(self, subswath, date, debug=False):
-        """
-        Estimate framed area using two pins using Sentinel-1 GCPs approximation.
+        Estimate framed area using Sentinel-1 GCPs approximation.
 
         Parameters
         ----------
@@ -205,6 +30,8 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
             The subswath number.
         date : str
             The date of the scene.
+        geometry: shapely.geometry of geopandas.GeoSeries or geopandas.GeoDataFrame
+            Optional geometry covering required bursts to crop the area.
         debug : bool, optional
             Enable debug mode. Default is False.
 
@@ -217,12 +44,33 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         --------
         df = sbas.reframe(1, '2023-05-20')
         """
+        import geopandas as gpd
         import numpy as np
-        import shapely
+        #import shapely
+        from shapely.geometry import Point, LineString, Polygon, MultiPolygon
         import os
 
-        pins = self.get_pins(subswath)
-
+        # define line covering some bursts to crop them
+        if isinstance(geometry, (gpd.GeoDataFrame, gpd.GeoSeries)):
+            geometry = geometry.unary_union
+        # convert to polygon when possible
+        geometry = geometry.minimum_rotated_rectangle
+        # it can be point or line or polygon
+        if isinstance(geometry, Point):
+            # create ~100m buffer around
+            geometry = geometry.buffer(1e-3)
+        if isinstance(geometry, Polygon):
+            rect = geometry.minimum_rotated_rectangle.exterior
+            # define diagonal line
+            diag1 = LineString([rect.coords[0], rect.coords[2]])
+            diag2 = LineString([rect.coords[1], rect.coords[3]])
+            if diag1.length <= diag2.length:
+                geometry = diag1
+            else:
+                geometry = diag2
+        if debug:
+            print ('DEBUG: geometry', geometry)
+    
         df = self.get_aligned(subswath, date)
         stem = self.multistem_stem(subswath, df['datetime'][0])[1]
         #print ('stem', stem)
@@ -233,12 +81,17 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         self.make_s1a_tops(subswath, date, debug=debug)
 
         prm = PRM.from_file(old_filename+'.PRM')
-        tmpazi = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1, debug=debug)[1]
+        tmpazi_a = prm.SAT_llt2rat([geometry.coords[0][0],  geometry.coords[0][1],  0], precise=1, debug=debug)[1]
+        tmpazi_b = prm.SAT_llt2rat([geometry.coords[-1][0], geometry.coords[-1][1], 0], precise=1, debug=debug)[1]
+        tmpazi = min(tmpazi_a, tmpazi_b)
         if debug:
             print ('DEBUG: ','tmpazi', tmpazi)
         prm.shift_atime(tmpazi, inplace=True).update()
-        azi1 = prm.SAT_llt2rat([pins[0], pins[1], 0], precise=1, debug=debug)[1] + tmpazi
-        azi2 = prm.SAT_llt2rat([pins[2], pins[3], 0], precise=1, debug=debug)[1] + tmpazi
+        azi_a = prm.SAT_llt2rat([geometry.coords[0][0], geometry.coords[0][1], 0], precise=1, debug=debug)[1] + tmpazi
+        azi_b = prm.SAT_llt2rat([geometry.coords[-1][0], geometry.coords[-1][1], 0], precise=1, debug=debug)[1] + tmpazi
+        # reorder boundaries for orbit
+        azi1 = min(azi_a, azi_b)
+        azi2 = max(azi_a, azi_b)
         if debug:
                 print ('DEBUG: ','azi1', azi1, 'azi2', azi2)
 
@@ -279,34 +132,48 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         df['metapath'] = new_filename + '.xml'
         df['datapath'] = new_filename + '.tiff'
         # update approximate location
-        gcps = self.geoloc(new_filename + '.xml').geometry
-        df['geometry'] = shapely.geometry.MultiPoint(gcps).minimum_rotated_rectangle
+        df['geometry'] = MultiPolygon([geom for geom in df['geometry'][0].geoms if geom.intersects(geometry)])
 
         return df
 
-    def reframe_parallel(self, dates=None, n_jobs=-1, **kwargs):
+    def reframe_parallel(self, dates=None, geometry=None, n_jobs=-1, **kwargs):
         """
-        Reorder bursts from sequential scenes to cover the full orbit area between pins only.
+        Reorder bursts from sequential scenes to cover the full orbit area or some bursts only.
 
-        Args:
-            dates : list, optional
-                Optional list of dates. All the scenes are processed when the argument is not defined.
-            n_jobs : int, optional
-                Number of parallel processing jobs. n_jobs=-1 means all the processor cores are used.
+        Parameters
+        ----------
+        dates : list, optional
+            Optional list of dates. All the scenes are processed when the argument is not defined.
+        geometry: shapely.geometry of geopandas.GeoSeries or geopandas.GeoDataFrame
+            Optional geometry covering required bursts to crop the area.
+        n_jobs : int, optional
+            Number of parallel processing jobs. n_jobs=-1 means all the processor cores are used.
 
-        Returns:
-            None
+        Returns
+        -------
+        None
 
-        Examples:
-            sbas.reframe_parallel()
+        Examples
+        --------
+        Without defined geometry the command is silently skipped:
+        sbas.reframe_parallel()
+        
+        Define a line partially covering two bursts:
+        sbas.reframe_parallel(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
+        
+        Define a line (partially) covering two bursts:
+        sbas.reframe_parallel(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
+        
+        Define a point on a selected burst (TODO: this option is unstable):
+        sbas.reframe_parallel(geometry=Point(25.3, 35))
         """
         from tqdm.auto import tqdm
         import joblib
         import pandas as pd
 
-        if len(self.pins) == 0:
-            # set auto-pins when the list is empty
-            self.set_pins()
+        if geometry is None:
+            print ('Reframing is skipped because the geometry argument is not defined.')
+            return
 
         if dates is None:
             dates = self.df.index.unique().values
@@ -315,7 +182,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
 
         # process all the scenes
         with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
-            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe)(subswath, date, **kwargs) \
+            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe)(subswath, date, geometry, **kwargs) \
                                                      for date in dates for subswath in subswaths)
 
         self.df = pd.concat(records)
