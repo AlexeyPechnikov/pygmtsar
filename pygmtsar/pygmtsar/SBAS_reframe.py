@@ -58,7 +58,8 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         # it can be point or line or polygon
         if isinstance(geometry, Point):
             # create ~100m buffer around
-            geometry = geometry.buffer(1e-3)
+            #geometry = geometry.buffer(1e-3)
+            raise ValueError(f"Unsupported Point geometry. Unfortunately, GMTSAR tools cannot crop a scene to a single burst.")
         if isinstance(geometry, Polygon):
             rect = geometry.minimum_rotated_rectangle.exterior
             # define diagonal line
@@ -161,10 +162,11 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         Define a line partially covering two bursts:
         sbas.reframe_parallel(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
         
-        Define a line (partially) covering two bursts:
-        sbas.reframe_parallel(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
+        Read the geometry from GeoJSON file and convert to WGS84 coordinates:
+        AOI = gpd.GeoDataFrame().from_file('AOI.json').to_crs(4326)
+        sbas.reframe_parallel(geometry=AOI)
         
-        Define a point on a selected burst (TODO: this option is unstable):
+        TODO: Define a point on a selected burst (this option is not available now):
         sbas.reframe_parallel(geometry=Point(25.3, 35))
         """
         from tqdm.auto import tqdm
