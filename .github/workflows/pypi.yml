@@ -5,9 +5,9 @@ name: PyPI tests
 
 on:
   push:
-    branches: [ "pygmtsar" ]
+    branches: [ "-pygmtsar" ]
   pull_request:
-    branches: [ "pygmtsar" ]
+    branches: [ "-pygmtsar" ]
 
 permissions:
   contents: read
