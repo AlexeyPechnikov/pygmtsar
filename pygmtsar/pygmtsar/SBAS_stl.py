@@ -179,3 +179,4 @@ class SBAS_stl(SBAS_incidence):
                      encoding={varname: netcdf_compression for varname in model.data_vars},
                      compute=False)
         tqdm_dask(dask.persist(delayed), desc='Seasonal-Trend decomposition using LOESS')
+        delayed.close()
