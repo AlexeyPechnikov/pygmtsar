@@ -13,7 +13,7 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_topo_ra(SBAS_trans_inv):
 
-    def topo_ra(self, subswath=None, chunksize=None, interactive=False):
+    def topo_ra(self, subswath=None, coarsen=None, chunksize=None, interactive=False):
         """
         Compute the topography in radar coordinates (topo_ra).
 
@@ -22,6 +22,8 @@ class SBAS_topo_ra(SBAS_trans_inv):
         subswath : int or None, optional
             The subswath number to compute the topographic radar coordinates for. If None, the computation
             will be performed for all subswaths. Default is None.
+        coarsen: None
+            The argument is not used and added for compatibility reasons.
         interactive : bool, optional
             If True, the computation will be performed interactively and the result will be returned as a delayed object.
             Default is False.
@@ -91,12 +93,15 @@ class SBAS_topo_ra(SBAS_trans_inv):
             delayed = self.topo_ra(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Topography Computing sw{subswath}')
-                dask.compute(pbar)
+                delayed.compute()
             else:
                 delayeds.append(delayed)
 
         if interactive:
             return delayeds[0] if len(delayeds)==1 else delayeds
+
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
 
     def get_topo_ra(self):
         """

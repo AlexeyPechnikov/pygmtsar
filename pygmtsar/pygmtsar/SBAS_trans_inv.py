@@ -69,6 +69,10 @@ class SBAS_trans_inv(SBAS_trans):
         import numpy as np
         import os
 
+        # expand simplified definition
+        if np.issubdtype(type(coarsen), np.integer):
+            coarsen = (coarsen, coarsen)
+
     #         # extract and process a single trans_dat subset
     #         @dask.delayed
     #         def trans_dat_inv_block_prepare(azis, rngs, chunksize=None):
@@ -314,10 +318,12 @@ class SBAS_trans_inv(SBAS_trans):
             delayed = self.trans_dat_inv(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Inverse Transform Computing sw{subswath}')
-                dask.compute(pbar)
+                delayed.compute()
             else:
                 delayeds.append(delayed)
 
         if interactive:
             return delayeds[0] if len(delayeds)==1 else delayeds
 
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()

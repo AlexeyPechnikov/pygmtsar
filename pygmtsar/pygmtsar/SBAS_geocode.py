@@ -102,7 +102,9 @@ class SBAS_geocode(SBAS_sbas):
                                   engine=self.engine,
                                   compute=False)
         pbar = tqdm_dask(dask.persist(handler), desc='Build ra2ll Transform')
-        dask.compute(pbar)
+        handler.compute()
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
 
     def get_intf_ra2ll(self, subswath=None, chunksize=None):
         """
@@ -302,7 +304,9 @@ class SBAS_geocode(SBAS_sbas):
                                   engine=self.engine,
                                   compute=False)
         pbar = tqdm_dask(dask.persist(handler), desc='Build ll2ra Transform')
-        dask.compute(pbar)
+        handler.compute()
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
 
     def get_intf_ll2ra(self, subswath=None, chunksize=None):
         """

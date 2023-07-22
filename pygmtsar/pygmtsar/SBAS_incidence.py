@@ -275,6 +275,8 @@ class SBAS_incidence(SBAS_geocode):
 
         if not interactive:
             pbar = tqdm_dask(dask.persist(delayed), desc='Satellite Look Vector Computing')
-            dask.compute(pbar)
+            delayed.compute()
+            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+            import gc; gc.collect()
         else:
             return delayed

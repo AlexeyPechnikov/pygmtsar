@@ -136,8 +136,8 @@ class SBAS_detrend(SBAS_unwrap):
             # prepare pipeline for processing and saving
             delayed = self.save_grids([out], 'detrend', chunksize=chunksize, interactive=False)
             # perform the pipeline
-            handler = dask.persist(delayed)
-            dask.compute(handler)
+            dask.persist(delayed)
+            delayed.compute()
 
         label = 'Detrending and Saving' if not interactive else 'Detrending'
         with self.tqdm_joblib(tqdm(desc=label, total=len(pairs))) as progress_bar:
@@ -145,6 +145,9 @@ class SBAS_detrend(SBAS_unwrap):
         
         if interactive:
             return results
+
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
 
     def _detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
                 resolution_meters=90, debug=False):

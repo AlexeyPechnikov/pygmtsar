@@ -46,7 +46,7 @@ class SBAS_trans(SBAS_stack):
         #.rename({'yy': 'lat', 'xx': 'lon'})
         return trans
 
-    def trans_dat(self, subswath=None, coarsen=(2,2), chunksize=None, interactive=False):
+    def trans_dat(self, subswath=None, coarsen=2, chunksize=None, interactive=False):
         """
         Retrieve or calculate the transform data for a specific or all subswaths. This transform data is then saved as
         a NetCDF file for future use.
@@ -99,6 +99,10 @@ class SBAS_trans(SBAS_stack):
 
         if chunksize is None:
             chunksize = self.chunksize
+
+        # expand simplified definition
+        if np.issubdtype(type(coarsen), np.integer):
+            coarsen = (coarsen, coarsen)
     
         # build trans.dat
         def SAT_llt2rat(z, lat, lon, subswath, amin=0, amax=None, rmin=0, rmax=None):
@@ -269,9 +273,12 @@ class SBAS_trans(SBAS_stack):
             delayed = self.trans_dat(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Transform Computing sw{subswath}')
-                dask.compute(pbar)
+                delayed.compute()
             else:
                 delayeds.append(delayed)
 
         if interactive:
             return delayeds[0] if len(delayeds)==1 else delayeds
+
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
