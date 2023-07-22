@@ -91,8 +91,8 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
             if os.path.exists(mask_filename):
                 os.remove(mask_filename)
             # workaround to save NetCDF file correct
-            if 'y' in mask.dims and 'x' in mask.dims:
-                mask = mask.rename({'y':'a', 'x':'r'})
+            #if 'y' in mask.dims and 'x' in mask.dims:
+            #    mask = mask.rename({'y':'a', 'x':'r'})
             mask.rename('mask').to_netcdf(mask_filename, encoding={'mask': self.compression(mask.shape, chunksize=chunksize)}, engine=self.engine)
             kwargs['mask'] = 'unwrapmask'
 
