@@ -14,7 +14,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
 
     def get_pins(self, subswath=None):
         print ('The function is obsolete, and it does nothing. Use SBAS.reframe_parallel(geometry=...) to crop bursts.')
-        return
+        return []
 
     def set_pins(self, *args):
         print ('The function is obsolete, and it does nothing. Use SBAS.reframe_parallel(geometry=...) to crop bursts.')
@@ -137,14 +137,12 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
 
         return df
 
-    def reframe_parallel(self, dates=None, geometry=None, n_jobs=-1, **kwargs):
+    def reframe_parallel(self, geometry=None, n_jobs=-1, **kwargs):
         """
         Reorder bursts from sequential scenes to cover the full orbit area or some bursts only.
 
         Parameters
         ----------
-        dates : list, optional
-            Optional list of dates. All the scenes are processed when the argument is not defined.
         geometry: shapely.geometry of geopandas.GeoSeries or geopandas.GeoDataFrame
             Optional geometry covering required bursts to crop the area.
         n_jobs : int, optional
@@ -177,8 +175,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
             print ('Reframing is skipped because the geometry argument is not defined.')
             return
 
-        if dates is None:
-            dates = self.df.index.unique().values
+        dates = self.df.index.unique().values
 
         subswaths = self.get_subswaths()
 
