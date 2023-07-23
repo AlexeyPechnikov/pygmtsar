@@ -1017,6 +1017,8 @@ class PRM(datagrid, PRM_gmtsar):
         amp = np.sqrt(real**2 + imag**2)
         # calculate masked correlation
         corr = self.correlation(amp1, amp2, amp)
+        # cleanup
+        del amp1, amp2, amp
         #chunksize=(512, 5393)
         #print ('DEBUG X2 corr', corr)
 
@@ -1027,6 +1029,8 @@ class PRM(datagrid, PRM_gmtsar):
             phase = self.goldstein_filter_parallel((real + 1j * imag), corr, psize=psize)
         else:
             phase = np.arctan2(imag, real)
+        # cleanup
+        del real, imag
         #chunksize=(512, 5393)
         #print ('DEBUG X3 phase', phase)
 
@@ -1050,6 +1054,7 @@ class PRM(datagrid, PRM_gmtsar):
         phase.rename('phase').rename({'y': 'a', 'x': 'r'}).to_netcdf(fullname('phasefilt.grd'), encoding=encoding, engine=self.engine)
 
         # cleanup
+        del corr, phase
         for name in ['real.grd', 'imag.grd']:
             filename = fullname(name)
             if os.path.exists(filename):
