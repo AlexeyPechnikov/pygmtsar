@@ -100,7 +100,7 @@ class SBAS_merge(SBAS_merge_gmtsar):
                 print ('DEBUG: remove', filename)
             os.remove(filename)
 
-    def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=-1, **kwargs):
+    def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=1, **kwargs):
         """
         Perform parallel merging of interferograms.
 
@@ -136,6 +136,10 @@ class SBAS_merge(SBAS_merge_gmtsar):
         if len(subswaths) == 1:
             return
         
+        if n_jobs != 1:
+            print ('Note: merging uses GMTSAR tool which is not robust in multi-threading mode and n_jobs should be always equal to 1')
+            n_jobs = 1
+
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
 
