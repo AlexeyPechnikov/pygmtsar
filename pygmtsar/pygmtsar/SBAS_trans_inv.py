@@ -200,13 +200,14 @@ class SBAS_trans_inv(SBAS_trans):
         trans_dat['rng_max'] = trans_dat.rng_max.compute()
 
         # define topo_ra grid
-        rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
-        azi_max = yvalid * num_patch
+        #rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
+        #azi_max = yvalid * num_patch
         #print ('DEBUG: rng_max', rng_max, 'azi_max', azi_max)
         # produce the same grid as coarsed interferogram
-        azis = np.arange(0, azi_max+2, coarsen[0], dtype=np.int32)
-        rngs = np.arange(0, rng_max+2, coarsen[1], dtype=np.int32)
-
+        #azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
+        #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+        azis, rngs = self.define_trans_grid(subswath, coarsen)
+        
         # build topo_ra grid by chunks
 
         # split to equal chunks and rest
@@ -250,12 +251,13 @@ class SBAS_trans_inv(SBAS_trans):
             block_eles_total.append(block_eles)
             del block_lts, block_lls, block_eles
 
+        coords = {'y': azis, 'x': rngs}
         lt = dask.array.block(block_lts_total).transpose(1,0)
-        lt = xr.DataArray(lt, coords={'y': azis, 'x': rngs})
+        lt = xr.DataArray(lt, coords=coords)
         ll = dask.array.block(block_lls_total).transpose(1,0)
-        ll = xr.DataArray(ll, coords={'y': azis, 'x': rngs})
+        ll = xr.DataArray(ll, coords=coords)
         ele = dask.array.block(block_eles_total).transpose(1,0)
-        ele = xr.DataArray(ele, coords={'y': azis, 'x': rngs})
+        ele = xr.DataArray(ele, coords=coords)
         del block_lts_total, block_lls_total, block_eles_total
 
         trans_inv = xr.Dataset({'lt': lt, 'll': ll, 'ele': ele})
@@ -318,7 +320,6 @@ class SBAS_trans_inv(SBAS_trans):
             delayed = self.trans_dat_inv(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Inverse Transform Computing sw{subswath}')
-                delayed.compute()
             else:
                 delayeds.append(delayed)
 

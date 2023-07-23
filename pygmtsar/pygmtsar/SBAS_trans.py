@@ -12,6 +12,20 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_trans(SBAS_stack):
     
+    def define_trans_grid(self, subswath, coarsen):
+        import numpy as np
+        # select radar coordinates extent
+        rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
+        azi_max = yvalid * num_patch
+        #print ('azi_max', azi_max, 'rng_max', rng_max)
+        # this grid covers the full interferogram area
+        azis = np.arange(0, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
+        rngs = np.arange(0, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+        # this grid is better suitable for multilooking interferogram coordinates
+        #azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
+        #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+        return (azis, rngs)
+        
     def get_trans_dat(self, subswath=None, chunksize=None):
         """
         Retrieve the transform data for a specific or all subswaths.
@@ -163,11 +177,14 @@ class SBAS_trans(SBAS_stack):
         #print ('azi_steps', azi_steps, 'rng_steps',rng_steps)
     
         # select radar coordinates extent
-        rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
-        azi_max = yvalid * num_patch
+        #rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
+        #azi_max = yvalid * num_patch
         #print ('azi_max', azi_max, 'rng_max', rng_max)
-        azis = np.arange(0, azi_max+2, coarsen[0], dtype=np.int32)
-        rngs = np.arange(0, rng_max+2, coarsen[1], dtype=np.int32)
+        #azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
+        #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+        azis, rngs = self.define_trans_grid(subswath, coarsen)
+        azi_max = np.max(azis)
+        rng_max = np.max(rngs)
         # allow 2 points around for linear and cubic interpolations
         extent= {'amin': -2*azi_size/azi_steps, 'amax': azi_max+2*azi_size/azi_steps,
                  'rmin': -2*rng_size/rng_steps, 'rmax': rng_max+2*rng_size/rng_steps}
@@ -273,7 +290,6 @@ class SBAS_trans(SBAS_stack):
             delayed = self.trans_dat(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
                 pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Transform Computing sw{subswath}')
-                delayed.compute()
             else:
                 delayeds.append(delayed)
 

@@ -102,7 +102,6 @@ class SBAS_geocode(SBAS_sbas):
                                   engine=self.engine,
                                   compute=False)
         pbar = tqdm_dask(dask.persist(handler), desc='Build ra2ll Transform')
-        handler.compute()
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
@@ -266,28 +265,67 @@ class SBAS_geocode(SBAS_sbas):
 
         pairs = self.pairs(pairs)
 
+        @dask.delayed
+        def intf_block_inv(intf_block):
+            from scipy.interpolate import RegularGridInterpolator
+
+            # define input grid subset
+            trans_inv_dy = np.diff(trans_inv.y)[0]
+            trans_inv_dx = np.diff(trans_inv.x)[0]
+            ymin, ymax = np.min(intf_block.y)-trans_inv_dy, np.max(intf_block.y)+trans_inv_dy
+            xmin, xmax = np.min(intf_block.x)-trans_inv_dx, np.max(intf_block.x)+trans_inv_dx
+            trans_block = trans_inv.sel(y=slice(ymin, ymax), x=slice(xmin,xmax))
+            #print ('trans_block', trans_block)
+
+            # for cropped interferogram we can have no valid pixels for the processing
+            if trans_block.y.size == 0 or trans_block.x.size == 0:
+                fake_block = np.nan * np.zeros((intf.y.size, intf.x.size), dtype=np.float32)
+                return np.asarray([fake_block, fake_block])
+
+            # define input grid
+            trans_grid = (trans_block.y, trans_block.x)
+
+            # define output grid
+            ys, xs = np.meshgrid(intf_block.y, intf_block.x)
+            points = np.column_stack([ys.ravel(), xs.ravel()])
+
+            grids = []
+            for var in ['lt', 'll']:
+                # np.float64 required for the interpolator
+                block = trans_block[var].compute(n_workers=1).data.astype(np.float64)
+                # perform interpolation
+                interp = RegularGridInterpolator(trans_grid, block, method='linear', bounds_error=False)
+                grid = interp(points).reshape((intf_block.y.size, intf_block.x.size))
+                grids.append(grid)
+                del block, interp, grid
+
+            del trans_block, trans_grid, ys, xs, points
+            return np.asarray(grids)
+
         # find any one interferogram to define the grid
         intf = self.open_grids(pairs[:1], 'phasefilt')[0].astype(bool)
-        dy = np.diff(intf.y)[0]
-        dx = np.diff(intf.x)[0]
-        #print ('dy, dx', dy, dx)
+        #print ('intf', intf)
+        blocks = chunksize**2 // intf.y.size
+        xs_blocks = np.array_split(intf.x, np.arange(0, intf.x.size, blocks if blocks>=1 else 1)[1:])
+        #print ('xs_blocks', xs_blocks)
 
         # get transform table
-        trans_inv = self.get_trans_dat_inv()
-        trans_inv_dy = np.diff(trans_inv.y)[0]
-        trans_inv_dx = np.diff(trans_inv.x)[0]
+        trans_inv = self.get_trans_dat_inv()[['lt', 'll']]
+        #print ('trans_inv', trans_inv)
 
-        # define transform spacing in radar coordinates
-        step_y = int(np.round(dy / trans_inv_dy))
-        step_x = int(np.round(dx / trans_inv_dx))
-        #print ('step_y', step_y, 'step_x', step_x)
-
-        # define the equally spacing geographic coordinates grid
-        ys = trans_inv.y[step_y//2::step_y]
-        xs = trans_inv.x[step_x//2::step_x]
-
-        # decimate the full inverse trans grid to the required spacing
-        trans = trans_inv.sel(y=ys, x=xs)[['lt', 'll']]
+        # per-block processing
+        block_lts  = []
+        block_lls  = []
+        for xs_block in xs_blocks:
+            block_lt, block_ll = dask.array.from_delayed(intf_block_inv(intf.sel(x=xs_block)),
+                                            shape=(2, intf.y.size, xs_block.size), dtype=np.float32)
+            block_lts.append(block_lt)
+            block_lls.append(block_ll)
+            del block_lt, block_ll
+        # set the output grid and drop the fake dimension if needed
+        lt = xr.DataArray(dask.array.block(block_lts), coords=intf.coords)
+        ll = xr.DataArray(dask.array.block(block_lls), coords=intf.coords)
+        trans = xr.Dataset({'lt': lt, 'll': ll})
     
         if interactive:
             return trans
@@ -304,7 +342,6 @@ class SBAS_geocode(SBAS_sbas):
                                   engine=self.engine,
                                   compute=False)
         pbar = tqdm_dask(dask.persist(handler), desc='Build ll2ra Transform')
-        handler.compute()
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
