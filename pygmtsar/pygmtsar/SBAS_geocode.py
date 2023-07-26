@@ -132,13 +132,13 @@ class SBAS_geocode(SBAS_sbas):
         trans = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
         return trans
 
-    def intf_ra2ll(self, grids, chunksize=None):
+    def intf_ra2ll(self, grid, chunksize=None):
         """
         Perform geocoding from radar to geographic coordinates.
 
         Parameters
         ----------
-        grids : xarray.DataArray
+        grid : xarray.DataArray
             Grid(s) representing the interferogram(s) in radar coordinates.
         chunksize : int or dict, optional
             Chunk size for dask arrays. If not provided, the default chunk size is used.
@@ -150,7 +150,7 @@ class SBAS_geocode(SBAS_sbas):
 
         Examples
         --------
-        Geocode 3D unwrapped phase grids stack:
+        Geocode 3D unwrapped phase grid stack:
         unwraps_ll = sbas.intf_ra2ll(sbas.open_grids(pairs, 'unwrap'))
         # or use "geocode" option for open_grids() instead:
         unwraps_ll = sbas.open_grids(pairs, 'unwrap', geocode=True)
@@ -160,20 +160,21 @@ class SBAS_geocode(SBAS_sbas):
         import numpy as np
 
         # helper check
-        if not 'y' in grids.dims or not 'x' in grids.dims:
+        if not 'y' in grid.dims or not 'x' in grid.dims:
             print ('NOTE: the input grid is not in radar coordinates, miss geocoding')
-            return grids
+            return grid
 
         if chunksize is None:
             chunksize = self.chunksize
 
         @dask.delayed
-        def intf_block(trans, grid_ra):
+        def intf_block(lats_block, lons_block, grid_ra):
             from scipy.interpolate import RegularGridInterpolator
 
+            trans_block = trans.sel(lat=lats_block, lon=lons_block)
             # use trans table subset
-            y = trans.azi.values.ravel()
-            x = trans.rng.values.ravel()
+            y = trans_block.azi.values.ravel()
+            x = trans_block.rng.values.ravel()
             points = np.column_stack([y, x])
 
             # get interferogram full grid
@@ -190,16 +191,16 @@ class SBAS_geocode(SBAS_sbas):
             # select required interferogram grid subset
             ys = ys[(ys>ymin-dy)&(ys<ymax+dy)]
             xs = xs[(xs>xmin-dx)&(xs<xmax+dx)]
-        
+
             # for cropped interferogram we can have no valid pixels for the processing
             if ys.size == 0 or xs.size == 0:
                 return np.nan * np.zeros((trans.lat.size, trans.lon.size), dtype=np.float32)
-        
+
             values = grid_ra.sel(y=ys, x=xs).values.astype(np.float64)
 
             # perform interpolation
             interp = RegularGridInterpolator((ys, xs), values, method='nearest', bounds_error=False)
-            grid_ll = interp(points).reshape(trans.lat.size, trans.lon.size).astype(np.float32)
+            grid_ll = interp(points).reshape(lats_block.size, lons_block.size).astype(np.float32)
 
             return grid_ll
 
@@ -207,39 +208,45 @@ class SBAS_geocode(SBAS_sbas):
         trans = self.get_intf_ra2ll()[['azi', 'rng']]
         lats = trans.lat
         lons = trans.lon
-        # define processing blocks
-        chunks = lats.size / chunksize
+        # split to equal chunks and rest
+        lats_blocks = np.array_split(lats, np.arange(0, lats.size, chunksize)[1:])
         lons_blocks = np.array_split(lons, np.arange(0, lons.size, chunksize)[1:])
 
-        grids_ll = []
-        # unify input grid(s) to stack
-        for grid_ra in grids if len(grids.dims) == 3 else [grids]:
+        # find stack dim
+        stackvar = grid.dims[0] if len(grid.dims) == 3 else 'stack'
+        #print ('stackvar', stackvar)
+    
+        stack = []
+        for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
+            block_grid = grid.sel({stackvar: stackval}) if stackval is not None else grid
             # per-block processing
-            blocks  = []
-            for lons_block in lons_blocks:
-                block = dask.array.from_delayed(intf_block(trans.sel(lon=lons_block), grid_ra),
-                                                shape=(lats.size, lons_block.size), dtype=np.float32)
-                blocks.append(block)
-            #grid_ll = dask.array.block(blocks)
-            # set the output grid and drop the fake dimension if needed
-            grid_ll = xr.DataArray(dask.array.block(blocks), coords=trans.coords).rename(grids.name)
-            grids_ll.append(grid_ll)
+            blocks_total  = []
+            for lats_block in lats_blocks:
+                blocks = []
+                for lons_block in lons_blocks:
+                    block = dask.array.from_delayed(intf_block(lats_block, lons_block, block_grid),
+                                                    shape=(lats_block.size, lons_block.size), dtype=np.float32)
+                    blocks.append(block)
+                    del block
+                blocks_total.append(blocks)
+                del blocks
+            coords = {stackvar: [stackval], 'lat': trans.coords['lat'], 'lon': trans.coords['lon']}
+            da = xr.DataArray(dask.array.block(blocks_total)[None, :], coords=coords)
+            stack.append(da)
+            del blocks_total
 
-        if len(grids.dims) == 2:
-            # drop the fake dimension
-            coords = trans.coords
-            out = xr.DataArray(grids_ll[0], coords=coords).rename(grids.name)
+        # wrap lazy Dask array to Xarray dataarray
+        if len(grid.dims) == 2:
+            out = stack[0][0]
         else:
-            # find stack dim
-            stack_dim = grids.dims[0]
-            coords = {stack_dim: grids[stack_dim], 'lat': trans.lat, 'lon': trans.lon}
-            out = xr.DataArray(dask.array.stack(grids_ll), coords=coords).rename(grids.name)
+            out = xr.concat(stack, dim='date')
+        del stack
 
         # append source grid coordinates excluding removed y, x ones
-        for (k,v) in grids.coords.items():
+        for (k,v) in grid.coords.items():
             if k not in ['y','x']:
                 out[k] = v
-        return out.chunk(chunksize)
+        return out.rename(grid.name)
 
 ##########################################################################################
 # ll2ra
