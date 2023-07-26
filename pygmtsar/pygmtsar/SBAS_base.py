@@ -8,6 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .tqdm_joblib import tqdm_joblib
+from .tqdm_dask import tqdm_dask
 from .datagrid import datagrid
 
 class SBAS_base(tqdm_joblib, datagrid):
@@ -779,20 +780,37 @@ class SBAS_base(tqdm_joblib, datagrid):
 
         """
         import xarray as xr
+        import pandas as pd
+        import os
 
         if chunksize is None:
             chunksize = self.chunksize
 
-        model_filename = self.get_filenames(None, None, name)
+        model_filename = self.get_filenames(None, None, name, add_subswath=False)
+        assert os.path.exists(model_filename), f'ERROR: The NetCDF file is missed: {model_filename}'
+
         # Open the dataset without chunking
         model = xr.open_dataset(model_filename, engine=self.engine)
         chunks = {dim: 1 if dim == 'date' else chunksize for dim in model.dims}
         # Re-chunk the dataset using the chunks dictionary
         model = model.chunk(chunks)
 
+        # convert string dates to dates
+        if 'date' in model.dims:
+            model['date'] = pd.to_datetime(model['date'].values)
+    
+        if 'yy' in model.dims and 'xx' in model.dims:
+            model = model.rename({'yy': 'lat', 'xx': 'lon'})
+
+        if 'a' in model.dims and 'r' in model.dims:
+            model = model.rename({'a': 'y', 'r': 'x'})
+
+        # in case of a single variable return DataArray
+        if len(model.data_vars) == 1:
+            return model[list(model.data_vars)[0]]
         return model
 
-    def save_model(self, model, caption='Saving 3D datacube', chunksize=None):
+    def save_model(self, model, name=None, caption='Saving 3D datacube', chunksize=None, debug=False):
         """
         Save an xarray 3D Dataset to a NetCDF file and re-chunks it based on the specified chunksize.
 
@@ -807,33 +825,44 @@ class SBAS_base(tqdm_joblib, datagrid):
             chunk size from the 'sbas' object will be used.
         caption: str
             The text caption for the saving progress bar.
-    
+
         Returns
         -------
         None
         """
         import xarray as xr
+        import dask
+        import os
 
         if chunksize is None:
             chunksize = self.chunksize
 
+        if name is None and isinstance(model, xr.DataArray):
+            name = model.name
+        elif name is None:
+            raise ValueError('Specify name for the output NetCDF file')
+        
         # save to NetCDF file
-        model_filename = self.get_filenames(None, None, model.name, add_subswath=False)
-        if os.path.exists(filename):
-            os.remove(filename)
-        # split for date dimension
-        #encoding = self.compression(model.shape, chunksize=chunksize)
-        #encoding['chunksizes'] = (1, *encoding['chunksizes'][1:])
-        netcdf_compression = self.compression(model.shape, chunksize=(1, chunksize, chunksize))
+        model_filename = self.get_filenames(None, None, name, add_subswath=False)
+        if os.path.exists(model_filename):
+            os.remove(model_filename)
         if isinstance(model, xr.DataArray):
+            if debug:
+                print ('DEBUG: DataArray')
+            netcdf_compression = self.compression(model.shape, chunksize=(1, chunksize, chunksize))
             encoding = {model.name: netcdf_compression}
-        elif isinstance(model, xr.DataArray):
-            encoding = {varname: netcdf_compression for varname in model.data_vars}
+        elif isinstance(model, xr.Dataset):
+            if debug:
+                print ('DEBUG: Dataset')
+            if len(model.dims) == 3:
+                encoding = {varname: self.compression(model[varname].shape, chunksize=(1, chunksize, chunksize)) for varname in model.data_vars}
+            else:
+                encoding = {varname: self.compression(model[varname].shape, chunksize=chunksize) for varname in model.data_vars}
         delayed = model.to_netcdf(model_filename,
                          engine=self.engine,
                          encoding=encoding,
                          compute=False)
         tqdm_dask(dask.persist(delayed), desc=caption)
-    
+
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
