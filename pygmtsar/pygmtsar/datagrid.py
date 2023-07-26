@@ -79,9 +79,12 @@ class datagrid:
             else:
                 chunksizes = chunksize
         else:
-            # suppose 2D grid
             if shape is not None:
-                chunksizes=(chunksize if chunksize<shape[0] else shape[0], chunksize if chunksize<shape[1] else shape[1])
+                # 2D or 3D grid
+                chunksizes = []
+                for idim in range(len(shape)):
+                    chunksizes.append(chunksize if chunksize<shape[idim] else shape[idim])
+                chunksizes = tuple(chunksizes)
             else:
                 chunksizes=(chunksize, chunksize)
         return dict(zlib=True, complevel=complevel, chunksizes=chunksizes)
