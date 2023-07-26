@@ -791,3 +791,49 @@ class SBAS_base(tqdm_joblib, datagrid):
         model = model.chunk(chunks)
 
         return model
+
+    def save_model(self, model, caption='Saving 3D datacube', chunksize=None):
+        """
+        Save an xarray 3D Dataset to a NetCDF file and re-chunks it based on the specified chunksize.
+
+        The 'date' dimension is always chunked with a size of 1.
+
+        Parameters
+        ----------
+        model : xarray.Dataset
+            The model to be saved.
+        chunksize : int, optional
+            The chunk size to be used for dimensions other than 'date'. If not provided, the default
+            chunk size from the 'sbas' object will be used.
+        caption: str
+            The text caption for the saving progress bar.
+    
+        Returns
+        -------
+        None
+        """
+        import xarray as xr
+
+        if chunksize is None:
+            chunksize = self.chunksize
+
+        # save to NetCDF file
+        model_filename = self.get_filenames(None, None, model.name, add_subswath=False)
+        if os.path.exists(filename):
+            os.remove(filename)
+        # split for date dimension
+        #encoding = self.compression(model.shape, chunksize=chunksize)
+        #encoding['chunksizes'] = (1, *encoding['chunksizes'][1:])
+        netcdf_compression = self.compression(model.shape, chunksize=(1, chunksize, chunksize))
+        if isinstance(model, xr.DataArray):
+            encoding = {model.name: netcdf_compression}
+        elif isinstance(model, xr.DataArray):
+            encoding = {varname: netcdf_compression for varname in model.data_vars}
+        delayed = model.to_netcdf(model_filename,
+                         engine=self.engine,
+                         encoding=encoding,
+                         compute=False)
+        tqdm_dask(dask.persist(delayed), desc=caption)
+    
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
