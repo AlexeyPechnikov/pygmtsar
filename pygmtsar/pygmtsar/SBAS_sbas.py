@@ -7,11 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_sbas_gmtsar import SBAS_sbas_gmtsar
+from .SBAS_detrend import SBAS_detrend
 from .PRM import PRM
-from .tqdm_dask import tqdm_dask
 
-class SBAS_sbas(SBAS_sbas_gmtsar):
+class SBAS_sbas(SBAS_detrend):
 
     @staticmethod
     def lstsq(x, w, matrix):
@@ -76,8 +75,9 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             print ('SBAS.lstsq notice:', str(e))
             return np.nan * np.zeros(matrix.shape[1])
         #print ('model', model)
-        return model[0]
-
+        # mask produced cumsum zeroes by NaNs where model[0] is the timeseries values
+        return np.where(~np.isnan(model[0]), np.nancumsum(model[0], axis=0), np.nan)
+        
     def lstsq_matrix(self, pairs):
         """
         Create a matrix for use in the least squares computation based on interferogram date pairs.
@@ -115,75 +115,8 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def sbas_parallel(self, pairs=None, mask=None, data='detrend', corr='corr', weight='corr',
-                      chunks=None, chunksize=None, n_jobs=-1, interactive=False):
-        """
-        An alias for the lstsq_parallel function, performing parallel least squares computation on input data.
-
-        This function is an alias for the lstsq_parallel function, which computes the least squares (weighted
-        or unweighted) on the input data, considering interferogram date pairs and processing it in parallel
-        using Dask and Joblib.
-
-        Parameters
-        ----------
-        pairs : array-like or pandas.DataFrame, optional
-            Interferogram date pairs.
-        mask : array-like, optional
-            Deprecated. Use "data" and "weight" arguments to call with custom data arrays.
-        data : str or xarray.DataArray, optional
-            Input data to compute least squares on.
-        corr : str, optional
-            Deprecated. Use "weight" argument instead.
-        weight : str, xarray.DataArray, pd.Series, or np.ndarray, optional
-            Weights for the least squares computation.
-        chunks : int, optional
-            Deprecated. Use "chunksize" argument instead.
-        chunksize : int, optional
-            Size of the chunks for processing the data.
-        n_jobs : int, optional
-            Number of CPU cores to use for parallel processing (default is -1, which means using all available cores).
-        interactive : bool, optional
-            If True, returns the result as an xarray DataArray (default is False).
-
-        Returns
-        -------
-        xarray.DataArray
-            The computed least squares model as an xarray DataArray.
-
-        Examples
-        --------
-        Process detrended unwrapped phase:
-        sbas.sbas_parallel(pairs, data='detrended', weight='corr')
-
-        Process unwrapped phase without detrending:
-        sbas.sbas_parallel(pairs, data='unwrap', weight='corr')
-
-        Process defined data stack only:
-        unwraps = sbas.open_grids(pairs, 'unwrap')
-        sbas.sbas_parallel(pairs, data=unwraps)
-
-        Notes
-        -----
-        This function processes large stacks by splitting them into chunks, performing the computation,
-        and then rebuilding and saving the results in a user-friendly format. It is an alias for the
-        lstsq_parallel function.
-        """
-        print ('NOTE: sbas_parallel() is alias for [Weighted] Least Squares lstsq_parallel() function')
-
-        if corr != 'corr':
-            print ('NOTE: use "weight" argument instead of "corr"')
-
-        if mask is not None:
-            print ('NOTE: "mask" argument support is removed. Use "data" and "weight" arguments to call with custom data arrays')
-
-        if chunks is not None:
-            print ('NOTE: use "chunksize" argument instead of "chunks"')
-            
-        return self.lstsq_parallel(pairs=pairs, data=data, weight=weight,
-                                   chunksize=chunksize, n_jobs=n_jobs, interactive=interactive)
-          
-    def lstsq_parallel(self, pairs=None, data='detrend', weight='corr',
-                       chunksize=None, n_jobs=-1, interactive=False):
+    def lstsq_parallel(self, pairs=None, data=None, weight=None,
+                       chunksize=None, interactive=False, debug=False):
         """
         Perform least squares (weighted or unweighted) computation on the input data in parallel.
 
@@ -200,8 +133,6 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
             Weights for the least squares computation.
         chunksize : int, optional
             Size of the chunks for processing the data.
-        n_jobs : int, optional
-            Number of CPU cores to use for parallel processing (default is -1, which means using all available cores).
         interactive : bool, optional
             If True, returns the result as an xarray DataArray (default is False).
 
@@ -220,112 +151,104 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
         import numpy as np
         import pandas as pd
         import dask
-        from tqdm.auto import tqdm
-        import joblib
-        import os
 
         if chunksize is None:
-            # smaller chunks are better for large 3D grids processing
-            chunksize = self.chunksize
-        #print ('chunksize', chunksize)
+            # 3D grids processing chunks
+            # note: pair/date coordinate is not chunked
+            # for base chunksize=1000 64 is slow with garbage collector notices,
+            # 128 ok, 256 is faster, 512 is a bit slowly and requires more RAM
+            # to have good chunks for base chunksize=512 and 1024 divider 4 looks the best   
+            chunksize = self.chunksize // 4
+        if debug:
+            print ('DEBUG: chunksize', chunksize)
 
         # also define image capture dates from interferogram date pairs 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.pairs(pairs, dates=True)
         pairs = pairs[['ref', 'rep']].astype(str).values
-        
-        # split large stacks to chunks about chunksize ^ 3
-        minichunksize = chunksize**2 / len(pairs)
-        # round to 2**deg (32,  64, 128,..., 2048)
-        chunkdegrees = np.array([2**deg for deg in range(5,12) if 2**deg <= chunksize])
-        minichunksize = int(chunkdegrees[np.abs(chunkdegrees-minichunksize).argmin()])
-        #print ('minichunksize', minichunksize)
+        # define pairs and dates matrix for LSQ calculation
+        matrix = self.lstsq_matrix(pairs)
 
         # source grids lazy loading
-        if isinstance(data, str):
-            data = self.open_grids(pairs, data, chunksize=minichunksize, interactive=True)
+        #if isinstance(data, str):
+        #    data = self.open_grids(pairs, data, interactive=True)
+        if data is not None and isinstance(data, xr.DataArray) and len(data.dims) == 3:
+            # this case should be processed inside lstq_block function
+            pass
+        else:
+            raise ValueError(f"Argument data should be 3D Xarray object")
+        if debug:
+            print ('DEBUG: data', data)
 
-        if isinstance(weight, str):
-            weight = self.open_grids(pairs, weight, chunksize=minichunksize, interactive=True)
-        elif isinstance(weight, (pd.Series, np.ndarray)):
+        if weight is None:
+            # this case should be processed inside lstq_block function
+            pass
+        elif isinstance(weight, np.ndarray):
+            # this case should be processed inside lstq_block function
+            pass
+        #elif isinstance(weight, str):
+        #    weight = self.open_grids(pairs, weight, interactive=True)
+        elif isinstance(weight, pd.Series):
             # vector weight like to average correlation
-            weight = xr.DataArray(weight, dims=['pair'], coords={'pair': data.pair})
+            weight = weight.values
+        elif isinstance(weight, (list, tuple)):
+            weight = np.asarray(weight)
+        elif isinstance(weight, xr.DataArray) and len(weight.dims) == 1:
+            # 1D array
+            weight = weight.values
+        elif isinstance(weight, xr.DataArray) and len(weight.dims) == 3:
+            # this case should be processed inside lstq_block function
+            assert weight.shape == data.shape, 'ERROR: data and weight dataarrays should have the same dimensions'
+        else:
+            raise ValueError(f"Argument weight can be 1D or 3D Xarray object or Pandas Series or Numpy array or Python list")
+        if debug:
+            print ('DEBUG: weight', weight)
 
-        # xarray wrapper
-        model = xr.apply_ufunc(
-            self.lstsq,
-            data.chunk(dict(pair=-1)),
-            weight.chunk(dict(pair=-1)) if weight is not None else None,
-            input_core_dims=[['pair'], ['pair'] if weight is not None else []],
-            exclude_dims=set(('pair',)),
-            dask='parallelized',
-            vectorize=True,
-            output_dtypes=[np.float32],
-            output_core_dims=[['date']],
-            dask_gufunc_kwargs={'output_sizes': {'date': len(dates)}},
-            kwargs={'matrix': self.lstsq_matrix(pairs)}
-        ).rename('displacement')
-        # define dates axis
-        model['date'] = dates
-        # set the stack index to be first
-        model = model.transpose('date',...)
+        def lstq_block(ys, xs):
+            # 3D array
+            data_block = data.sel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            # weights can be defined by multiple ways or be set to None
+            if isinstance(weight, xr.DataArray):
+                # 3D array
+                weight_block = weight.sel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+                # Vectorize vec_lstsq
+                vec_lstsq = np.vectorize(lambda data, weight: self.lstsq(data, weight, matrix), signature='(n),(n)->(m)')
+                # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
+                block = vec_lstsq(data_block, weight_block).transpose(2,0,1)
+                del weight_block, vec_lstsq
+            else:
+                # Vectorize vec_lstsq
+                vec_lstsq = np.vectorize(lambda data: self.lstsq(data, weight, matrix), signature='(n)->(m)')
+                # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
+                block = vec_lstsq(data_block).transpose(2,0,1)
+                del vec_lstsq
+            del data_block
+            return block
 
+        # split to square chunks
+        ys_blocks = np.array_split(data.y, np.arange(0, data.y.size, chunksize)[1:])
+        xs_blocks = np.array_split(data.x, np.arange(0, data.x.size, chunksize)[1:])
+
+        blocks_total = []
+        for ys_block in ys_blocks:
+            blocks = []
+            for xs_block in xs_blocks:
+                block = dask.array.from_delayed(dask.delayed(lstq_block)(ys_block, xs_block),
+                                                shape=(len(dates), ys_block.size, xs_block.size),
+                                                dtype=np.float32)
+                blocks.append(block)
+                del block
+            blocks_total.append(blocks)
+            del blocks
+        model = dask.array.block(blocks_total)
+        del blocks_total
+        coords = {'date': dates, 'y': data.y.values, 'x': data.x.values}
+        model = xr.DataArray(model, coords=coords).rename('displacement')
+    
         if interactive:
             return model
 
-        # use this trick to save large model using limited RAM and all CPU cores
-        ts, ys, xs = model.data.blocks.shape
-        assert ts == 1, 'Date chunks count should be equal to 1'
-        tchunks, ychunks, xchunks = model.chunks
-        coordt = model.date
-        coordy = np.array_split(model.y, np.cumsum(ychunks))
-        coordx = np.array_split(model.x, np.cumsum(xchunks))
-
-        def func(iy, ix):
-            chunk_filename = self.get_filenames(None, None, f'disp_chunk_{iy}_{ix}')
-            if os.path.exists(chunk_filename):
-                os.remove(chunk_filename)
-            # lazy dask array
-            data = model.data.blocks[0,iy,ix]
-            # wrap the array
-            da = xr.DataArray(data,
-                              dims=['date','y','x'],
-                              coords={'date': coordt, 'y':coordy[iy], 'x':coordx[ix]})\
-                 .rename('displacement')
-            # compute and save to NetCDF using chunks of original coordinates
-            da.to_netcdf(chunk_filename,
-                         unlimited_dims=['y','x'],
-                         encoding={'displacement': self.compression(chunksize=(1, minichunksize, minichunksize))},
-                         engine=self.engine,
-                         compute=True)
-            return chunk_filename
-
-        # process the chunks as separate tasks on all available CPU cores
-        with self.tqdm_joblib(tqdm(desc='[Correlation-Weighted] Least Squares Computing', total=ys*xs)) as progress_bar:
-            filenames = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(iy, ix) \
-                                                     for iy in range(ys) for ix in range(xs))
-
-        # rebuild the datasets to user-friendly format
-        das = [xr.open_dataarray(f, engine=self.engine, chunks=chunksize) for f in filenames]
-        das = xr.combine_by_coords(das)
-
-        def output(dt):
-            filename = self.get_filenames(None, None, f'disp_{dt}'.replace('-',''))
-            if os.path.exists(filename):
-                os.remove(filename)
-            da = das.sel(date=dt)
-            da.to_netcdf(filename,
-                        encoding={'displacement': self.compression(da.displacement.shape, chunksize=chunksize)},
-                        engine=self.engine)
-
-        # saving all the grids
-        with self.tqdm_joblib(tqdm(desc='Saving', total=len(das.date))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(output)(dt) for dt in das.date.values)
-
-        # cleanup
-        for filename in filenames:
-            if os.path.exists(filename):
-                os.remove(filename)
+        self.save_model(model, caption='[Correlation-Weighted] Least Squares Computing', chunksize=chunksize)
 
     def baseline_table(self, n_jobs=-1, debug=False):
         """
@@ -455,83 +378,3 @@ class SBAS_sbas(SBAS_sbas_gmtsar):
                                  'rep_timeline': np.round(line1.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line1.BPR, 2)})
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
-
-    @staticmethod
-    def triplets2pairs(triplets, pairs):
-        """
-        Generates a DataFrame of pairs based on the provided triplets and pairs DataFrames.
-
-        This function takes a DataFrame of baseline triplets and a DataFrame of baseline pairs,
-        and generates a DataFrame containing pairs that correspond to the provided triplets.
-
-        Parameters
-        ----------
-        triplets : pandas.DataFrame
-            A DataFrame containing the sorted list of baseline triplets with columns 'A', 'B', and 'C'.
-
-        pairs : pandas.DataFrame
-            A DataFrame containing the sorted list of baseline pairs with reference and repeat dates.
-
-        Returns
-        -------
-        pandas.DataFrame
-            A DataFrame containing the sorted baseline pairs corresponding to the provided triplets,
-            with columns 'ref_date' and 'rep_date'.
-
-        """
-        import pandas as pd
-    
-        data = []
-        for triplet in triplets.itertuples():
-            data.append({'ref_date': triplet.A, 'rep_date': triplet.B})
-            data.append({'ref_date': triplet.B, 'rep_date': triplet.C})
-            data.append({'ref_date': triplet.A, 'rep_date': triplet.C})
-        tripairs = pd.DataFrame(data).sort_values(['ref_date', 'rep_date']).drop_duplicates()
-        idx = tripairs.set_index(['ref_date', 'rep_date']).index
-        return pairs.set_index(['ref_date', 'rep_date']).loc[idx].reset_index()
-
-    @staticmethod
-    def pairs2triplets(pairs, invert=False):
-        """
-        Generates a DataFrame containing sorted baseline triplets based on the provided pairs.
-
-        This function takes a DataFrame of baseline pairs and generates a DataFrame containing
-        sorted baseline triplets. The resulting triplets have the following relationship:
-        A -> B -> C, where A, B, and C are dates.
-
-        Parameters
-        ----------
-        pairs : pandas.DataFrame
-            A DataFrame containing the sorted list of baseline pairs with reference and repeat dates.
-
-        invert : bool, optional
-            If set to True, the resulting triplets will have the dates inverted.
-            Default is False.
-
-        Returns
-        -------
-        pandas.DataFrame
-            A DataFrame containing the sorted baseline triplets with columns 'A', 'B', and 'C'.
-
-        """
-        import pandas as pd
-
-        data = []
-        pairs_a = pairs
-        for line_a in pairs_a.itertuples():
-            #print (line_a)
-            date_a_ref = line_a.ref_date
-            date_a_rep = line_a.rep_date
-            pairs_b = pairs[pairs.ref_date==date_a_rep]
-            for line_b in pairs_b.itertuples():
-                #print (line_b)
-                date_b_ref = line_b.ref_date
-                date_b_rep = line_b.rep_date
-                pairs_c = pairs[(pairs.rep_date==date_b_rep)&(pairs.ref_date==date_a_ref)]
-                for line_c in pairs_c.itertuples():
-                    #print (line_c)
-                    date_c_ref = line_c.ref_date
-                    date_c_rep = line_c.rep_date
-                    #print (date_a_ref, date_a_rep, date_b_rep)
-                    data.append({'A': date_a_ref, 'B': date_a_rep, 'C': date_b_rep})
-        return pd.DataFrame(data).sort_values(['A', 'B', 'C'])
