@@ -13,17 +13,16 @@ from .tqdm_dask import tqdm_dask
 class SBAS_stl(SBAS_incidence):
 
     @staticmethod
-    def stl(ts, dt, dt_periodic, periods, incremental=True, robust=False):
+    def stl(ts, dt, dt_periodic, periods, robust=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data.
 
         The function performs the following steps:
         1. Check for NaN values in the input time series and return arrays filled with NaNs if found.
-        2. If the input time series data is incremental, calculate the real values first.
-        3. Create an interpolation function using the input time series and corresponding time values.
-        4. Interpolate the time series data for the periodic time values.
-        5. Perform STL decomposition using the interpolated time series data.
-        6. Return the trend, seasonal, and residual components of the decomposed time series.
+        2. Create an interpolation function using the input time series and corresponding time values.
+        3. Interpolate the time series data for the periodic time values.
+        4. Perform STL decomposition using the interpolated time series data.
+        5. Return the trend, seasonal, and residual components of the decomposed time series.
 
         Parameters
         ----------
@@ -35,8 +34,6 @@ class SBAS_stl(SBAS_incidence):
             Periodic time values for interpolation.
         periods : int
             Number of periods for seasonal decomposition.
-        incremental : bool, optional
-            Whether the input time series data is incremental (default is True).
         robust : bool, optional
             Whether to use a robust fitting procedure for the STL decomposition (default is False).
 
@@ -59,10 +56,6 @@ class SBAS_stl(SBAS_incidence):
             nodata = np.nan * np.zeros(dt_periodic.size)
             return nodata, nodata, nodata
 
-        # Calculate the real values from the incremental input time series
-        if incremental:
-            ts = np.cumsum(ts)
-
         # Create an interpolation function for the input time series and time values
         interp_func = interp1d(dt, ts, kind='nearest', fill_value='extrapolate', assume_sorted=True)
         # Interpolate the time series data for the periodic time values
@@ -76,8 +69,7 @@ class SBAS_stl(SBAS_incidence):
 
     # Aggregate data for varying frequencies (e.g., 12+ days for 6 days S1AB images interval)
     # Use frequency strings like '1W' for 1 week, '2W' for 2 weeks, '10d' for 10 days, '1M' for 1 month, etc.
-    # Calculate cumulative sum along the date dimension when incremental=True
-    def stl_parallel(self, dates, data='disp', freq='W', periods=52, incremental=True, robust=False, chunksize=None, interactive=False):
+    def stl_parallel(self, dates, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data in parallel.
 
@@ -94,14 +86,12 @@ class SBAS_stl(SBAS_incidence):
             Instance of the SBAS class.
         dates : numpy.ndarray
             Array of datetime64 values corresponding to the input time series data.
-        data : str or xarray.DataArray, optional
-            Input time series data as an xarray DataArray or the name of the grid (default is 'disp').
+        data : xarray.DataArray
+            Input time series data as an xarray DataArray.
         freq : str, optional
             Frequency string for unifying date intervals (default is 'W' for weekly).
         periods : int, optional
             Number of periods for seasonal decomposition (default is 52).
-        incremental : bool, optional
-            Whether to calculate data cumsum for the date dimension when True (default is True).
         robust : bool, optional
             Whether to use a slower robust fitting procedure for the STL decomposition (default is False).
         chunksize : int, optional
@@ -127,56 +117,66 @@ class SBAS_stl(SBAS_incidence):
         import os
 
         if chunksize is None:
-            # smaller chunks are better for large 3D grids processing
-            chunksize = self.chunksize
+            # see lstsq_parallel() for details
+            chunksize = self.chunksize // 4
 
-        if isinstance(data, str):
-            data = self.open_grids(dates, data, func=[self.vertical_displacement_mm], geocode=True, chunksize=chunksize)
-        elif isinstance(data, xr.DataArray):
+        if isinstance(data, xr.DataArray):
             pass
         else:
-            raise Exception('Invalid input: The "data" parameter should be of type xarray.DataArray or a string representing a grid name.')
-        
-        # convert coordinate to valid dates
-        data['date'] = pd.to_datetime(data.date)
-    
+            raise Exception('Invalid input: The "data" parameter should be of type xarray.DataArray.')
+
+        # convert coordinate to valid dates - already performed in open_model()
+        #data['date'] = pd.to_datetime(data.date)
+
+        # original dates
+        dt = data.date.astype(np.int64)
         # Unify date intervals; using weekly intervals should be suitable for a mix of 6 and 12 days intervals
         dates_weekly = pd.date_range(dates[0], dates[-1], freq=freq)
         dt_weekly = xr.DataArray(dates_weekly, dims=['date'])
+        dt_periodic = dt_weekly.astype(np.int64)
         # The following line of code is not efficient because the "date" dimension is changed
         # Note: The bottleneck library should be installed for this line of code to work
-        # cumdisp_weekly = data.cumsum('date').interp(date=dates_weekly, method='nearest', assume_sorted=True)
+        # disp_weekly = data.interp(date=dates_weekly, method='nearest', assume_sorted=True)
 
-        # Output "date" is different from the input "date" dimension
-        trend, seasonal, resid = xr.apply_ufunc(
-            self.stl,
-            data.chunk(dict(date=-1)),
-            data.date.astype(np.int64),
-            input_core_dims=[['date'],['date']],
-            output_core_dims=[['date2'], ['date2'], ['date2']],
-            dask='parallelized',
-            vectorize=True,
-            output_dtypes=[np.float32, np.float32, np.float32],
-            output_sizes={'date2': len(dates_weekly)},
-            kwargs={'dt_periodic': dt_weekly.astype(np.int64),
-                    'periods': periods,
-                    'incremental': incremental,
-                    'robust': robust}
-        )
-        # rename regular date dimension to "date" as original irregular date
-        model = xr.Dataset({'trend': trend, 'seasonal': seasonal, 'resid': resid},
-                           coords={'date2': dt_weekly.values}).rename({'date2': 'date'})
+        def stl_block(lats, lons):
+            # use external variables dt, dt_periodic, periods, robust
+            # 3D array
+            data_block = data.sel(lat=lats, lon=lons).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            # Vectorize vec_lstsq
+            #vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(3,m)')
+            vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(m),(m),(m)')
+            # Apply vec_lstsq to data_block and revert the original dimensions order
+            block = vec_stl(data_block)
+            del vec_stl, data_block
+            return np.asarray(block).transpose(0,3,1,2)
+
+        # split to square chunks
+        lats_blocks = np.array_split(data.lat, np.arange(0, data.lat.size, chunksize)[1:])
+        lons_blocks = np.array_split(data.lon, np.arange(0, data.lon.size, chunksize)[1:])
+
+        blocks_total = []
+        for lats_block in lats_blocks:
+            blocks = []
+            for lons_block in lons_blocks:
+                block = dask.array.from_delayed(dask.delayed(stl_block)(lats_block, lons_block),
+                                                shape=(3, len(dates_weekly), lats_block.size, lons_block.size),
+                                                dtype=np.float32)
+                blocks.append(block)
+                del block
+            blocks_total.append(blocks)
+            del blocks
+        models = dask.array.block(blocks_total)
+        del blocks_total
+    
+        # transform to separate variables
+        coords = {'date': dt_weekly.values, 'lat': data.lat, 'lon': data.lon}
+        # transform to separate variables variables returned from SBAS.stl() function
+        varnames = ['trend', 'seasonal', 'resid']
+        keys_vars = {varname: xr.DataArray(models[varidx], coords=coords) for (varidx, varname) in enumerate(varnames)}
+        model = xr.Dataset({**keys_vars})
+        del models
+
         if interactive:
             return model
 
-        # Define the encoding and choose the appropriate storage scheme
-        model_filename = self.get_filenames(None, None, f'stl')
-        if os.path.exists(model_filename):
-            os.remove(model_filename)
-        netcdf_compression = self.compression(chunksize=(1, chunksize, chunksize))
-        delayed = model.to_netcdf(model_filename,
-                     engine=self.engine,
-                     encoding={varname: netcdf_compression for varname in model.data_vars},
-                     compute=False)
-        tqdm_dask(dask.persist(delayed), desc='Seasonal-Trend decomposition using LOESS')
-        delayed.close()
+        self.save_model(model, name='stl', caption='Seasonal-Trend decomposition using LOESS', chunksize=chunksize)
