@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_incidence(SBAS_geocode):
 
-    def get_sat_look(self):
+    def get_sat_look(self, chunksize=None):
         """
         Return satellite look vectors in geographic coordinates as Xarray Dataset.
 
@@ -31,14 +31,7 @@ class SBAS_incidence(SBAS_geocode):
         This function returns the satellite look vectors in geographic coordinates as Xarray Dataset. The satellite look vectors
         should be computed and saved prior to calling this function using the `sat_look_parallel` method.
         """
-        import xarray as xr
-        import os
-
-        sat_look_file = self.get_filenames(None, None, 'sat_look')
-        assert os.path.exists(sat_look_file), 'ERROR: satellite looks grid missed. Build it first using SBAS.sat_look_parallel()'
-        sat_look = xr.open_dataset(sat_look_file, engine=self.engine, chunks=self.chunksize).rename({'yy': 'lat', 'xx': 'lon'})
-
-        return sat_look
+        return self.open_model('sat_look', chunksize=chunksize)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, unwraps):
@@ -170,12 +163,12 @@ class SBAS_incidence(SBAS_geocode):
         incidence_ll = self.incidence_angle()
         return sign * los_disp/np.sin(incidence_ll)
 
-    def sat_look(self, interactive=False):
-        import dask
+    def sat_look_parallel(self, chunksize=None, interactive=False):
+        #import dask
         import xarray as xr
         import numpy as np
-        import os
-        import sys
+        #import os
+        #import sys
 
         # ..., look_E, look_N, look_U
         satlook_map = {0: 'look_E', 1: 'look_N', 2: 'look_U'}
@@ -188,11 +181,11 @@ class SBAS_incidence(SBAS_geocode):
                                      .reshape(z.shape[0], z.shape[1], 6)[...,3:]
             return look
 
-        ################################################################################
-        # define valid area checking every 10th pixel per the both dimensions
-        ################################################################################
+        if chunksize is None:
+            chunksize = self.chunksize
+
         # reference grid
-        grid_ll = self.get_intf_ra2ll()
+        grid_ll = self.get_intf_ra2ll(chunksize=chunksize)
         # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
         dem = self.get_dem().interp_like(grid_ll).rename({'lat': 'yy', 'lon': 'xx'})
         # prepare lazy coordinate grids
@@ -223,59 +216,4 @@ class SBAS_incidence(SBAS_geocode):
         if interactive:
             return sat_look
 
-        # save to NetCDF file
-        filename = self.get_filenames(None, None, 'sat_look')
-        if os.path.exists(filename):
-            os.remove(filename)
-        encoding = {val: self.compression() for (key, val) in satlook_map.items()}
-        handler = sat_look.to_netcdf(filename,
-                                        encoding=encoding,
-                                        engine=self.engine,
-                                        compute=False)
-        return handler
-
-
-    def sat_look_parallel(self, interactive=False):
-        """
-        Build and save satellite look vectors in geographic coordinates.
-
-        Parameters
-        ----------
-        n_jobs : int, optional
-            Number of parallel processing jobs. n_jobs=-1 means using all available processor cores.
-        interactive : bool, optional
-            If True, returns the delayed computation object for further processing (default is False).
-
-        Returns
-        -------
-        None or dask.delayed object
-            If interactive is False, the function executes the computation and returns None. If interactive is True,
-            it returns the delayed computation object for further processing.
-
-        Examples
-        --------
-        Build and save satellite look vectors:
-        sbas.sat_look_parallel()
-
-        Returns
-        -------
-        None or dask.delayed object
-            If interactive is False, the function executes the computation and returns None. If interactive is True,
-            it returns the delayed computation object for further processing.
-
-        Notes
-        -----
-        This function builds and saves satellite look vectors in geographic coordinates. It leverages parallel processing
-        using Dask. If interactive is True, it returns the delayed computation object for further processing. Otherwise,
-        it executes the computation and returns None.
-        """
-        import dask
-
-        delayed = self.sat_look(interactive=interactive)
-
-        if not interactive:
-            pbar = tqdm_dask(dask.persist(delayed), desc='Satellite Look Vector Computing')
-            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-            import gc; gc.collect()
-        else:
-            return delayed
+        self.save_model(sat_look, name='sat_look', caption='Satellite Look Vector Computing', chunksize=chunksize)
