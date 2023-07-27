@@ -172,6 +172,10 @@ class SBAS_geocode(SBAS_sbas):
             from scipy.interpolate import RegularGridInterpolator
 
             trans_block = trans.sel(lat=lats_block, lon=lons_block)
+            # check if the data block exists
+            if not (trans_block.lat.size>0 and trans_block.lon.size>0):
+                return np.nan * np.zeros((lats_block.size, lons_block.size), dtype=np.float32)
+
             # use trans table subset
             y = trans_block.azi.values.ravel()
             x = trans_block.rng.values.ravel()
@@ -194,7 +198,7 @@ class SBAS_geocode(SBAS_sbas):
 
             # for cropped interferogram we can have no valid pixels for the processing
             if ys.size == 0 or xs.size == 0:
-                return np.nan * np.zeros((trans.lat.size, trans.lon.size), dtype=np.float32)
+                return np.nan * np.zeros((lats_block.size, lons_block.size), dtype=np.float32)
 
             values = grid_ra.sel(y=ys, x=xs).values.astype(np.float64)
 
@@ -230,16 +234,21 @@ class SBAS_geocode(SBAS_sbas):
                     del block
                 blocks_total.append(blocks)
                 del blocks
-            coords = {stackvar: [stackval], 'lat': trans.coords['lat'], 'lon': trans.coords['lon']}
-            da = xr.DataArray(dask.array.block(blocks_total)[None, :], coords=coords)
+            dask_block = dask.array.block(blocks_total)
+            if len(grid.dims) == 3:
+                coords = {stackvar: [stackval], 'lat': trans.coords['lat'], 'lon': trans.coords['lon']}
+                da = xr.DataArray(dask_block[None, :], coords=coords)
+            else:
+                coords = {'lat': trans.coords['lat'], 'lon': trans.coords['lon']}
+                da = xr.DataArray(dask_block, coords=coords)
             stack.append(da)
-            del blocks_total
+            del blocks_total, dask_block
 
         # wrap lazy Dask array to Xarray dataarray
         if len(grid.dims) == 2:
-            out = stack[0][0]
+            out = stack[0]
         else:
-            out = xr.concat(stack, dim='date')
+            out = xr.concat(stack, dim=stackvar)
         del stack
 
         # append source grid coordinates excluding removed y, x ones
@@ -247,7 +256,7 @@ class SBAS_geocode(SBAS_sbas):
             if k not in ['y','x']:
                 out[k] = v
         return out.rename(grid.name)
-
+    
 ##########################################################################################
 # ll2ra
 ##########################################################################################
