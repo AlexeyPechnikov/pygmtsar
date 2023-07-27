@@ -256,7 +256,10 @@ class datagrid:
         dims = [dim for dim in das.dims if dim != 'pair' and dim != 'date']
         dim0 = [dim for dim in das.dims if dim in ['pair', 'date']]
         assert len(dims) == 2, 'ERROR: the input should be 3D array with "pair" or "date" coordinate'
-        da = das.min(dim0)
+        # slow check using all the grids in the stack
+        #da = das.min(dim0)
+        # fast check using the only first grid in the stack
+        da = das.isel({dim0[0]: 0})
         indexer = {}
         for dim in dims:
             da = da.dropna(dim=dim, how='all')
