@@ -71,32 +71,30 @@ if __name__ == '__main__':
     print (sbas.open_grids(pairs, 'unwrap'))
     print (sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm))
     print (sbas.open_grids(pairs, 'unwrap', geocode=True, func=sbas.los_displacement_mm))
-    # GMTSAR SBAS Displacement and Velocity
-    sbas.sbas(baseline_pairs, smooth=1)
+#     # GMTSAR SBAS Displacement and Velocity
     # output
-    phasefilts = sbas.open_grids(pairs, 'phasefilt')
-    # only small lazy grid stack can be used without .compute()
-    validmask = phasefilts.min('pair')
-    print (sbas.open_grids(sbas.df.index, 'disp', func=sbas.nearest_grid, mask=validmask, add_subswath=False))
-    phasefilts_ll = sbas.open_grids(pairs, 'phasefilt', geocode=True)
-    print (sbas.open_grids(sbas.df.index, 'disp', func=[sbas.nearest_grid, sbas.intf_ra2ll], mask=validmask, add_subswath=False))
-    print (sbas.open_grids(None, 'vel', add_subswath=False))
-    print (sbas.open_grids(None, 'vel', geocode=True, add_subswath=False))
-    print (sbas.open_grids(None, 'vel', func=sbas.nearest_grid, mask=validmask, add_subswath=False))
-    print (sbas.open_grids(None, 'vel', func=[sbas.nearest_grid, sbas.intf_ra2ll], mask=validmask, add_subswath=False))
+#     phasefilts = sbas.open_grids(pairs, 'phasefilt')
+#     # only small lazy grid stack can be used without .compute()
+#     validmask = phasefilts.min('pair')
+#     phasefilts_ll = sbas.open_grids(pairs, 'phasefilt', geocode=True)
     # Detrending
     sbas.detrend_parallel(pairs, wavelength=12000)
     # output
     print (sbas.open_grids(pairs, 'detrend'))
     # PyGMTSAR SBAS Displacement
-    sbas.sbas_parallel(pairs)
+    detrend = sbas.open_grids(pairs, 'detrend')
+    corr = sbas.open_grids(pairs, 'corr')
+    sbas.lstsq_parallel(pairs, data=detrend, weight=corr)
 
     # output
+#    pairs, dates = sbas.pairs(dates=True)
+    validmask = sbas.open_grids(pairs, 'phasefilt').min('pair')
     def interp(da):
-        return sbas.nearest_grid(da).where(~np.isnan(validmask))
-    dates = sbas.find_dates()
-    disps = sbas.open_grids(dates, 'disp', func=[sbas.los_displacement_mm, interp])
-    print (sbas.cropna(sbas.intf_ra2ll(disps.cumsum('date').sel(x=slice(9000,12000), y=slice(1800,2700)))))
+        # TODO
+        return da.where(~np.isnan(validmask))
+#        return sbas.nearest_grid(da).where(~np.isnan(validmask))
+    disps = interp(sbas.los_displacement_mm(sbas.open_model('displacement')))
+    print (sbas.cropna(sbas.intf_ra2ll(disps.sel(x=slice(9000,12000), y=slice(1800,2700)))))
 
     # test results
     # https://github.com/mobigroup/gmtsar/issues/2
@@ -107,10 +105,6 @@ if __name__ == '__main__':
     xr.testing.assert_allclose(
         sbas.open_grids(pairs, 'unwrap', geocode=True, func=sbas.los_displacement_mm),
         sbas.intf_ra2ll(sbas.los_displacement_mm(sbas.open_grids(pairs, 'unwrap')))
-    )
-    xr.testing.assert_allclose(
-        sbas.open_grids(None, 'vel', geocode=True, add_subswath=False),
-        sbas.intf_ra2ll(sbas.open_grids(None, 'vel', add_subswath=False))
     )
 
     # dump and restore current state
@@ -238,64 +232,6 @@ if __name__ == '__main__':
     fg.fig.suptitle('LOS Displacement in Geographic Coordinates, [mm]', y=1.05, fontsize=24)
     fg.fig.savefig('LOS Displacement in Geographic Coordinates, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
-    # GMTSAR SBAS Displacement and Velocity
-    disps = sbas.open_grids(sbas.df.index, 'disp', func=sbas.nearest_grid, mask=phasefilts.min('pair'), add_subswath=False)
-    zmin, zmax = np.nanquantile(disps, [0.01, 0.99])
-    fg = disps.plot.imshow(
-        col="date",
-        col_wrap=3, size=4, aspect=1.2,
-        vmin=zmin, vmax=zmax, cmap='jet'
-    )
-    fg.set_axis_labels('Range', 'Azimuth')
-    fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-    fg.fig.suptitle('SBAS LOS Displacement, [mm]', y=1.1, fontsize=24)
-    fg.fig.savefig('SBAS LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
-
-    disps_subset = disps.sel(x=slice(9000,12000), y=slice(1800,2700))
-    zmin, zmax = np.nanquantile(disps_subset, [0.01, 0.99])
-    fg = disps_subset.plot.imshow(
-        col="date",
-        col_wrap=3, size=4, aspect=1.2,
-        vmin=zmin, vmax=zmax, cmap='jet'
-    )
-    fg.set_axis_labels('Range', 'Azimuth')
-    fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-    fg.fig.suptitle('SBAS LOS Displacement AOI, [mm]', y=1.1, fontsize=24)
-    fg.fig.savefig('SBAS LOS Displacement AOI, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
-
-    disps_ll = sbas.open_grids(sbas.df.index, 'disp', geocode=True,
-                               func=sbas.nearest_grid, mask=phasefilts_ll.min('pair'), add_subswath=False)
-    zmin, zmax = np.nanquantile(disps_ll, [0.01, 0.99])
-    fg = disps_ll.plot.imshow(
-        col="date",
-        col_wrap=3, size=4, aspect=1.2,
-        vmin=zmin, vmax=zmax, cmap='jet'
-    )
-    fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-    fg.fig.suptitle('SBAS LOS Displacement in Geographic Coordinates, [mm]', y=1.1, fontsize=24)
-    fg.fig.savefig('SBAS LOS Displacement in Geographic Coordinates, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
-
-    vel = sbas.open_grids(None, 'vel', add_subswath=False)
-    vel_ll = sbas.open_grids(None, 'vel', geocode=True, add_subswath=False)
-    # interpolate low-coherency areas and mask not valid pixels
-    vel_filled = sbas.open_grids(None, 'vel', func=sbas.nearest_grid, mask=phasefilts.min('pair'), add_subswath=False)
-    vel_filled_ll = sbas.open_grids(None, 'vel', geocode=True,
-                                   func=sbas.nearest_grid, mask=phasefilts_ll.min('pair'), add_subswath=False)
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
-    zmin, zmax = np.nanquantile(vel, [0.01, 0.995])
-    vel.plot(vmin=zmin, vmax=zmax, cmap='jet', ax=ax1)
-    zmin, zmax = np.nanquantile(vel_ll, [0.01, 0.995])
-    vel_ll.plot(vmin=zmin, vmax=zmax, cmap='jet', ax=ax2)
-    zmin, zmax = np.nanquantile(vel_filled, [0.01, 0.995])
-    vel_filled.plot(vmin=zmin, vmax=zmax, cmap='jet', ax=ax3)
-    zmin, zmax = np.nanquantile(vel_filled_ll, [0.01, 0.995])
-    vel_filled_ll.plot(vmin=zmin, vmax=zmax, cmap='jet', ax=ax4)
-    ax1.set_title('Radar Coordinates', fontsize=16)
-    ax2.set_title('Geographic Coordinates', fontsize=16)
-    plt.suptitle('SBAS Velocity, [mm/year]', fontsize=18)
-    # escape slash
-    fig.savefig('SBAS Velocity, [mm/year].jpg'.replace('/', u'\u2215'), dpi=300, pil_kwargs={"quality": 95})
-
     # PyGMTSAR SBAS Displacement
     detrend = sbas.open_grids(pairs, 'detrend')
     zmin, zmax = np.nanquantile(detrend, [0.01, 0.99])
@@ -325,18 +261,13 @@ if __name__ == '__main__':
     # interpolate for valid coherence area only
     valid_area = corrs.min('pair')
     def interp(da):
-        return sbas.nearest_grid(da).where(~np.isnan(valid_area))
+        # TODO
+        return da.where(~np.isnan(valid_area))
+#        return sbas.nearest_grid(da).where(~np.isnan(valid_area))
     # use wrapper "interp"  instead of "sbas.nearest_grid" for post-processing functions list below
-    disps = sbas.open_grids(dates, 'disp', func=[sbas.los_displacement_mm, interp])
-    # prepare the results for better visualization
-    # filter outliers
-    #disps = disps.where(abs(disps)<1e3)
+    disps = interp(sbas.los_displacement_mm(sbas.open_model('displacement')))
     # clean 1st zero-filled displacement map for better visualization
     disps[0] = np.nan
-    # calculate cumulative displacement like to GMTSAR SBAS
-    disps_cum = disps.cumsum('date')
-    # clean 1st zero-filled displacement map for better visualization
-    disps_cum[0] = np.nan
     
     zmin, zmax = np.nanquantile(disps, [0.01, 0.99])
     fg = disps.plot.imshow(
@@ -349,37 +280,38 @@ if __name__ == '__main__':
     fg.fig.suptitle('Model LOS Displacement, [mm]', y=1.05, fontsize=24)
     fg.fig.savefig('Model LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
-    zmin, zmax = np.nanquantile(disps_cum, [0.01, 0.99])
-    fg = disps_cum.plot.imshow(
+    zmin, zmax = np.nanquantile(disps, [0.01, 0.99])
+    fg = disps.plot.imshow(
         col="date",
         col_wrap=3, size=4, aspect=1.2,
         vmin=zmin, vmax=zmax, cmap='jet'
     )
     fg.set_axis_labels('Range', 'Azimuth')
     fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-    fg.fig.suptitle('Cumulative Model LOS Displacement, [mm]', y=1.05, fontsize=24)
-    fg.fig.savefig('Cumulative Model LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
+    fg.fig.suptitle('Model LOS Displacement, [mm]', y=1.05, fontsize=24)
+    fg.fig.savefig('Model LOS Displacement, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
-    disps_cum_subset = disps_cum.sel(x=slice(9000,12000), y=slice(1800,2700))
-    zmin, zmax = np.nanquantile(disps_cum_subset, [0.01, 0.99])
-    fg = disps_cum_subset.plot.imshow(
+    disps_subset = disps.sel(x=slice(9000,12000), y=slice(1800,2700))
+    zmin, zmax = np.nanquantile(disps_subset, [0.01, 0.99])
+    fg = disps_subset.plot.imshow(
         col='date',
         col_wrap=3, size=4, aspect=1.2,
         vmin=zmin, vmax=zmax, cmap='jet'
     )
     fg.set_axis_labels('Range', 'Azimuth')
     fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-    fg.fig.suptitle('Cumulative Model LOS Displacement AOI, [mm]', y=1.05, fontsize=24)
-    fg.fig.savefig('Cumulative Model LOS Displacement AOI, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
+    fg.fig.suptitle('Model LOS Displacement AOI, [mm]', y=1.05, fontsize=24)
+    fg.fig.savefig('Model LOS Displacement AOI, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
     # geocode the subsets on the full interferogram grid and crop a valid area only
-    disps_cum_subset_ll = sbas.cropna(sbas.intf_ra2ll(disps_cum_subset))
-    zmin, zmax = np.nanquantile(disps_cum_subset_ll, [0.01, 0.99])
-    fg = disps_cum_subset_ll.plot.imshow(
+    # first raster is empty (nan) so we re-oreder the stack to crop it properly
+    disps_subset_ll = sbas.cropna(sbas.intf_ra2ll(disps_subset)[::-1])[::-1]
+    zmin, zmax = np.nanquantile(disps_subset_ll, [0.01, 0.99])
+    fg = disps_subset_ll.plot.imshow(
         col='date',
         col_wrap=3, size=4, aspect=1.2,
         vmin=zmin, vmax=zmax, cmap='jet'
     )
     fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-    fg.fig.suptitle('Cumulative Model LOS Displacement in Geographic Coordinates AOI, [mm]', y=1.05, fontsize=24)
-    fg.fig.savefig('Cumulative Model LOS Displacement in Geographic Coordinates AOI, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
+    fg.fig.suptitle('Model LOS Displacement in Geographic Coordinates AOI, [mm]', y=1.05, fontsize=24)
+    fg.fig.savefig('Model LOS Displacement in Geographic Coordinates AOI, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
