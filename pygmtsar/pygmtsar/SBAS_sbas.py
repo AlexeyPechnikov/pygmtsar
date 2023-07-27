@@ -50,6 +50,8 @@ class SBAS_sbas(SBAS_detrend):
             # ignore pixels where correlation is not defined
             return np.nan * np.zeros(matrix.shape[1])
 
+        assert x.shape == w.shape, f'Arrays x and w need to have equal shape, x.shape={x.shape}, w.shape={w.shape}'
+
         # fill nans as zeroes and set corresponding weight to 0
         nanmask = np.where(np.isnan(x))
         if nanmask[0].size > 0:
@@ -206,19 +208,19 @@ class SBAS_sbas(SBAS_detrend):
 
         def lstq_block(ys, xs):
             # 3D array
-            data_block = data.sel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            data_block = data.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
             # weights can be defined by multiple ways or be set to None
             if isinstance(weight, xr.DataArray):
                 # 3D array
-                weight_block = weight.sel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+                weight_block = weight.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
                 # Vectorize vec_lstsq
-                vec_lstsq = np.vectorize(lambda data, weight: self.lstsq(data, weight, matrix), signature='(n),(n)->(m)')
+                vec_lstsq = np.vectorize(lambda x, w: self.lstsq(x, w, matrix), signature='(n),(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
                 block = vec_lstsq(data_block, weight_block).transpose(2,0,1)
                 del weight_block, vec_lstsq
             else:
                 # Vectorize vec_lstsq
-                vec_lstsq = np.vectorize(lambda data: self.lstsq(data, weight, matrix), signature='(n)->(m)')
+                vec_lstsq = np.vectorize(lambda x: self.lstsq(x, weight, matrix), signature='(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
                 block = vec_lstsq(data_block).transpose(2,0,1)
                 del vec_lstsq
@@ -226,8 +228,10 @@ class SBAS_sbas(SBAS_detrend):
             return block
 
         # split to square chunks
-        ys_blocks = np.array_split(data.y, np.arange(0, data.y.size, chunksize)[1:])
-        xs_blocks = np.array_split(data.x, np.arange(0, data.x.size, chunksize)[1:])
+        # use indices instead of the coordinate values to prevent the weird error raising occasionally:
+        # "Reindexing only valid with uniquely valued Index objects"
+        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, chunksize)[1:])
+        xs_blocks = np.array_split(np.arange(data.x.size), np.arange(0, data.x.size, chunksize)[1:])
 
         blocks_total = []
         for ys_block in ys_blocks:

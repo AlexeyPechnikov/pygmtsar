@@ -141,7 +141,7 @@ class SBAS_stl(SBAS_incidence):
         def stl_block(lats, lons):
             # use external variables dt, dt_periodic, periods, robust
             # 3D array
-            data_block = data.sel(lat=lats, lon=lons).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            data_block = data.isel(lat=lats, lon=lons).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
             # Vectorize vec_lstsq
             #vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(3,m)')
             vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(m),(m),(m)')
@@ -151,8 +151,10 @@ class SBAS_stl(SBAS_incidence):
             return np.asarray(block).transpose(0,3,1,2)
 
         # split to square chunks
-        lats_blocks = np.array_split(data.lat, np.arange(0, data.lat.size, chunksize)[1:])
-        lons_blocks = np.array_split(data.lon, np.arange(0, data.lon.size, chunksize)[1:])
+        # use indices instead of the coordinate values to prevent the weird error raising occasionally:
+        # "Reindexing only valid with uniquely valued Index objects"
+        lats_blocks = np.array_split(np.arange(data.lat.size), np.arange(0, data.lat.size, chunksize)[1:])
+        lons_blocks = np.array_split(np.arange(data.lon.size), np.arange(0, data.lon.size, chunksize)[1:])
 
         blocks_total = []
         for lats_block in lats_blocks:
