@@ -8,6 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .SBAS_topo_ra import SBAS_topo_ra
+from .tqdm_dask import tqdm_dask
 
 class SBAS_intf(SBAS_topo_ra):
 
@@ -90,6 +91,7 @@ class SBAS_intf(SBAS_topo_ra):
         import xarray as xr
         import pandas as pd
         import numpy as np
+        import dask
         from tqdm.auto import tqdm
         import joblib
         import os
@@ -104,12 +106,24 @@ class SBAS_intf(SBAS_topo_ra):
 
         # materialize lazy weights
         if weight is not None and isinstance(weight, xr.DataArray):
-            weight_filename = self.get_filenames(None, None, 'intfweight')
-            if os.path.exists(weight_filename):
-                os.remove(weight_filename)
-            # workaround to save NetCDF file correct
-            weight.rename('weight').rename({'y':'a','x':'r'}).\
-                to_netcdf(weight_filename, encoding={'weight': self.compression(weight.shape, chunksize=chunksize)}, engine=self.engine)
+            if len(subswaths) == 1:
+                weight = [weight]
+            else:
+                raise ValueError(f"Argument weight should be a list or a tuple of DataArray corresponding to subswaths")
+
+        if weight is not None and isinstance(weight, (list, tuple)):
+            for idx, subswath in enumerate(subswaths):
+                weight_filename = self.get_filenames(subswath, None, 'intfweight')
+                if os.path.exists(weight_filename):
+                    os.remove(weight_filename)
+                # workaround to save NetCDF file correct
+                handler = weight[idx].rename('weight').rename({'y':'a','x':'r'}).\
+                    to_netcdf(weight_filename,
+                              encoding={'weight': self.compression(weight[idx].shape, chunksize=chunksize)},
+                              engine=self.engine,
+                              compute=False)
+                tqdm_dask(dask.persist(handler), desc=f'Materialize weight sw{subswath}')
+            # set base name for all subswaths
             kwargs['weight'] = 'intfweight'
 
         # this way does not work properly for long interferogram series on MacOS
