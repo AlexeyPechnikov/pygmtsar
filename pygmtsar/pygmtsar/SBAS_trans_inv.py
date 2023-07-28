@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_trans_inv(SBAS_trans):
     
-    def get_trans_dat_inv(self, subswath=None):
+    def get_trans_dat_inv(self, subswath=None, chunksize=None):
         """
         Retrieve the inverse transform data for a specific or all subswaths.
 
@@ -40,10 +40,20 @@ class SBAS_trans_inv(SBAS_trans):
         """
         import xarray as xr
 
-        subswath = self.get_subswath(subswath)
-        filename = self.get_filenames(subswath, None, 'trans_inv')
-        trans_inv = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize).rename({'a': 'y', 'r': 'x'})
-        return trans_inv
+        if subswath is None:
+            subswaths = self.get_subswaths()
+        else:
+            subswaths = [subswath]
+
+        trans_invs = []
+        for subswath in subswaths:
+            filename = self.get_filenames(subswath, None, 'trans_inv')
+            trans_inv = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
+            if 'a' in trans_inv and 'r' in trans_inv:
+                trans_invs.append(trans_inv.rename({'a': 'y', 'r': 'x'}))
+            else:
+                trans_invs.append(trans_inv)
+        return trans_invs[0] if len(trans_invs)==1 else trans_invs
 
     def trans_dat_inv(self, subswath=None, coarsen=(2,2), chunksize=None, interactive=False):
         """
@@ -319,7 +329,7 @@ class SBAS_trans_inv(SBAS_trans):
         for subswath in subswaths:
             delayed = self.trans_dat_inv(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
-                pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Inverse Transform Computing sw{subswath}')
+                tqdm_dask(dask.persist(delayed), desc=f'Radar Inverse Transform Computing sw{subswath}')
             else:
                 delayeds.append(delayed)
 
