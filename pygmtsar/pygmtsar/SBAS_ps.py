@@ -12,12 +12,12 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_ps(SBAS_stl):
 
-    def get_adi(self, subswath=None, threshold=None, chunksize=None, debug=False):
+    def get_adi(self, subswath=None, threshold=None, chunksize=None):
         """
         TODO: threshold
         """
     
-        adis = self.open_grids(None, 'adi')
+        adis = self.open_grids(None, 'adi', chunksize=chunksize)
         return adis[0] if len(adis)==1 else adis
     
     #from pygmtsar import tqdm_dask
