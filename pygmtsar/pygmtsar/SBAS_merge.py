@@ -29,7 +29,7 @@ class SBAS_merge(SBAS_merge_gmtsar):
         configuration files, PRM files, and performs the merge using the merge_swath command-line tool.
 
         """
-        import numpy
+        import numpy as np
         import os
 
         fullname = lambda filename: os.path.join(self.basedir, filename)
