@@ -225,6 +225,7 @@ class datagrid:
         """
         return self.PRM().snaphu_config(defomax, **kwargs)
  
+    # da.dropna(dim=dim, how='all') is not fast at all
     @staticmethod
     def cropna(das):
         """
@@ -255,11 +256,12 @@ class datagrid:
         # crop NaNs
         dims = [dim for dim in das.dims if dim != 'pair' and dim != 'date']
         dim0 = [dim for dim in das.dims if dim in ['pair', 'date']]
+        #print ('dims', dims, 'dim0', dim0)
         assert len(dims) == 2, 'ERROR: the input should be 3D array with "pair" or "date" coordinate'
         # slow check using all the grids in the stack
         #da = das.min(dim0)
         # fast check using the only first grid in the stack
-        da = das.isel({dim0[0]: 0})
+        da = das.isel({dim0[0]: 0}) if dim0 != [] else das
         indexer = {}
         for dim in dims:
             da = da.dropna(dim=dim, how='all')
