@@ -53,12 +53,21 @@ class SBAS_trans(SBAS_stack):
         get_trans_dat()
         """
         import xarray as xr
+    
+        if subswath is None:
+            subswaths = self.get_subswaths()
+        else:
+            subswaths = [subswath]
 
-        subswath = self.get_subswath(subswath)
-        filename = self.get_filenames(subswath, None, 'trans')
-        trans = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
-        #.rename({'yy': 'lat', 'xx': 'lon'})
-        return trans
+        transs = []
+        for subswath in subswaths:
+            filename = self.get_filenames(subswath, None, 'trans')
+            trans = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
+            if 'yy' in trans and 'xx' in trans:
+                transs.append(trans.rename({'yy': 'lat', 'xx': 'lon'}))
+            else:
+                transs.append(trans)
+        return transs[0] if len(transs)==1 else transs
 
     def trans_dat(self, subswath=None, coarsen=2, chunksize=None, interactive=False):
         """
@@ -289,7 +298,7 @@ class SBAS_trans(SBAS_stack):
         for subswath in subswaths:
             delayed = self.trans_dat(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
-                pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Transform Computing sw{subswath}')
+                tqdm_dask(dask.persist(delayed), desc=f'Radar Transform Computing sw{subswath}')
             else:
                 delayeds.append(delayed)
 
