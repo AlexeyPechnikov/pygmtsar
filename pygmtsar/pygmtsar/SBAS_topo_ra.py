@@ -100,7 +100,7 @@ class SBAS_topo_ra(SBAS_trans_inv):
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
-    def get_topo_ra(self):
+    def get_topo_ra(self, chunksize=None):
         """
         Get the radar topography grid.
 
@@ -123,6 +123,9 @@ class SBAS_topo_ra(SBAS_trans_inv):
         import xarray as xr
         import dask.array
 
+        if chunksize is None:
+            chunksize = self.chunksize
+
         def func(topo):
             # flip vertically for GMTSAR compatibility reasons
             topo = xr.DataArray(dask.array.flipud(topo), coords=topo.coords, attrs=topo.attrs, name=topo.name)
@@ -131,6 +134,6 @@ class SBAS_topo_ra(SBAS_trans_inv):
                 return topo.rename({'a': 'y', 'r': 'x'})
             return topo
 
-        topos = self.open_grids(None, 'topo_ra', func=func)
+        topos = self.open_grids(None, 'topo_ra', chunksize=chunksize, func=func)
 
         return topos[0] if len(topos)==1 else topos

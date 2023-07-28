@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_geocode(SBAS_sbas):
 
-    def geocode_parallel(self, pairs=None, chunksize=None):
+    def geocode_parallel(self, pairs=None, coarsen=4, chunksize=None):
         """
         Perform parallel geocoding of the interferograms.
 
@@ -31,7 +31,7 @@ class SBAS_geocode(SBAS_sbas):
         # build trans_dat, trans_ dat_inv and topo_ra grids for merged subswaths
         # for single-digit subswath the grids already created for interferogram processing
         if len(str(self.get_subswath())) > 1:
-            self.topo_ra_parallel()
+            self.topo_ra_parallel(coarsen=coarsen)
 
         # build geographic coordinates transformation matrix for landmask and other grids
         self.intf_ll2ra_matrix_parallel(pairs=pairs, chunksize=chunksize)
