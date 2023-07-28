@@ -90,7 +90,7 @@ class SBAS_topo_ra(SBAS_trans_inv):
         for subswath in subswaths:
             delayed = self.topo_ra(subswath=subswath, interactive=interactive, **kwargs)
             if not interactive:
-                pbar = tqdm_dask(dask.persist(delayed), desc=f'Radar Topography Computing sw{subswath}')
+                tqdm_dask(dask.persist(delayed), desc=f'Radar Topography Computing sw{subswath}')
             else:
                 delayeds.append(delayed)
 

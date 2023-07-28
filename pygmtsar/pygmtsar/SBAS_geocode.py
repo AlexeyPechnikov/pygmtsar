@@ -101,7 +101,7 @@ class SBAS_geocode(SBAS_sbas):
                                   encoding=encoding,
                                   engine=self.engine,
                                   compute=False)
-        pbar = tqdm_dask(dask.persist(handler), desc='Build ra2ll Transform')
+        tqdm_dask(dask.persist(handler), desc='Build ra2ll Transform')
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
@@ -357,7 +357,7 @@ class SBAS_geocode(SBAS_sbas):
                                   encoding=encoding,
                                   engine=self.engine,
                                   compute=False)
-        pbar = tqdm_dask(dask.persist(handler), desc='Build ll2ra Transform')
+        tqdm_dask(dask.persist(handler), desc='Build ll2ra Transform')
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
