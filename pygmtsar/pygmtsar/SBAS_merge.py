@@ -12,7 +12,58 @@ from .PRM import PRM
 
 class SBAS_merge(SBAS_merge_gmtsar):
 
-    def merge(self, pair, grid, debug=False):
+    def merge(self, grid, debug=False):
+        """
+        Merge the radar grids.
+
+        Parameters
+        ----------
+        grid : str
+            The type of grid to merge, such as 'adi'.
+        debug : bool, optional
+            If True, debug information will be printed. Default is False.
+
+        Notes
+        -----
+        This method merges the radar coordinate grids for a given grid name. It generates the necessary
+        configuration files, PRM files, and performs the merge using the merge_swath command-line tool.
+
+        """
+        import numpy
+        import os
+
+        fullname = lambda filename: os.path.join(self.basedir, filename)
+        def format_string(row):
+            dt = row.name.replace("-","")
+            subswath = row["subswath"]
+            return fullname(f'S1_{dt}_ALL_F{subswath}.PRM') + ':' + fullname(f'F{subswath}_{grid}.grd')
+
+        subswaths = self.get_subswaths()    
+        if len(subswaths) == 1:
+            # only one subswath found, merging is not possible
+            return
+
+        filenames = [fullname(f'F{subswath}_{grid}.grd') for subswath in subswaths]
+        if not np.all([os.path.exists(filename) for filename in filenames]):
+            print (f'Subswath grids missed, skip merging: {grid}')
+            return
+        #print ('filenames', filenames)
+
+        subswaths_str = int(''.join(map(str, subswaths)))
+        grid_tofile = fullname(f'F{subswaths_str}_adi.grd')
+        tmp_stem_tofile  = fullname(f'F{subswaths_str}_adi')
+
+        config = '\n'.join(self.get_master().apply(format_string, axis=1).tolist())
+        #print ('merge_swath', config, grid_tofile, tmp_stem_tofile)
+        self.merge_swath(config, grid_tofile, tmp_stem_tofile, debug=debug)
+    
+        # cleanup - files should exists as these are processed above
+        for filename in filenames:
+            if debug:
+                print ('DEBUG: remove', filename)
+            os.remove(filename)
+
+    def merge_intf(self, pair, grid, debug=False):
         """
         Merge the interferograms.
 
@@ -100,7 +151,7 @@ class SBAS_merge(SBAS_merge_gmtsar):
                 print ('DEBUG: remove', filename)
             os.remove(filename)
 
-    def merge_parallel(self, pairs, grids = ['phasefilt', 'corr'], n_jobs=1, **kwargs):
+    def merge_parallel(self, pairs, intfs = ['phasefilt', 'corr'], grids=['adi'], n_jobs=1, **kwargs):
         """
         Perform parallel merging of interferograms.
 
@@ -108,7 +159,7 @@ class SBAS_merge(SBAS_merge_gmtsar):
         ----------
         pairs : list or None
             List of interferogram date pairs to merge. If None, all available pairs will be merged.
-        grids : list, optional
+        intfs : list, optional
             List of grid names to merge, such as 'phasefilt' or 'corr'. Default is ['phasefilt', 'corr'].
         n_jobs : int, optional
             The number of parallel jobs to run. Default is -1, which uses all available CPU cores.
@@ -143,9 +194,12 @@ class SBAS_merge(SBAS_merge_gmtsar):
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
 
-        with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(pairs)*len(grids))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(pair, grid, **kwargs) \
-                                           for pair in pairs for grid in grids)
+        with self.tqdm_joblib(tqdm(desc=f'Merging Interferograms', total=len(pairs)*len(intfs))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge_intf)(pair, grid, **kwargs) \
+                                           for pair in pairs for grid in intfs)
+
+        with self.tqdm_joblib(tqdm(desc=f'Merging ADI', total=len(pairs)*len(grids))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge)(grid, **kwargs) for grid in grids)
 
         df = self.df.groupby(self.df.index).agg({'datetime': min, 'orbit': min, 'mission': min, 'polarization':min,
                                             'subswath': lambda s: int(''.join(map(str,list(s)))),
