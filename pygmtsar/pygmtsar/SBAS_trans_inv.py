@@ -45,6 +45,9 @@ class SBAS_trans_inv(SBAS_trans):
         else:
             subswaths = [subswath]
 
+        if chunksize is None:
+            chunksize = self.chunksize
+
         trans_invs = []
         for subswath in subswaths:
             filename = self.get_filenames(subswath, None, 'trans_inv')
