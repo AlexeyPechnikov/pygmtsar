@@ -52,7 +52,7 @@ class SBAS_topo_ra(SBAS_trans_inv):
                                     compute=False)
         return handler
 
-    def topo_ra_parallel(self, coarsen=4, interactive=False, **kwargs):
+    def topo_ra_parallel(self, coarsen=None, interactive=False, **kwargs):
         """
         Build topography in radar coordinates from WGS84 DEM using parallel computation.
 
@@ -78,6 +78,11 @@ class SBAS_topo_ra(SBAS_trans_inv):
         computation handlers will be returned. Otherwise, the progress will be displayed using tqdm_dask.
         """
         import dask
+
+        # default argument value None is required to call it from geocode_parallel function
+        if coarsen is None:
+            coarsen = 4
+            print (f'Note: use default transform grid spacing {coarsen}')
 
         # generate the coordinates transform
         self.trans_dat_parallel(coarsen=coarsen, **kwargs)
