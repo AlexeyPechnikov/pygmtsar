@@ -732,11 +732,11 @@ class PRM(datagrid, PRM_gmtsar):
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
     # note: only one dimension chunked due to sequential file reading 
-    def read_SLC_int(self, amplitude=False, chunksize=None):
+    def read_SLC_int(self, intensity=False, chunksize=None):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
         The method reads binary SLC data file, which contains alternating sequences of real and imaginary parts.
-        It calculates the amplitude of the signal and return it as a 2D numpy array.
+        It calculates the intensity of the signal and return it as a 2D numpy array.
 
         Returns
         -------
@@ -746,8 +746,8 @@ class PRM(datagrid, PRM_gmtsar):
         Notes
         -----
         This function uses a data factor (DFACT = 2.5e-07) from the GMTSAR code.
-        The GMTSAR note indicates that the square of the amplitude is used to match gips ihconv.
-        The returned amplitude data is flipped up-down ("shift data up if necessary") following the GMTSAR convention.
+        The GMTSAR note indicates that the square of the intensity is used to match gips ihconv.
+        The returned intensity data is flipped up-down ("shift data up if necessary") following the GMTSAR convention.
 
         Raises
         ------
@@ -770,7 +770,7 @@ class PRM(datagrid, PRM_gmtsar):
             chunksize = self.chunksize
 
         @dask.delayed
-        def read_SLC_block(slc_filename, start, stop, amplitude):
+        def read_SLC_block(slc_filename, start, stop, intensity):
             # from GMTSAR code
             DFACT = 2.5e-07
             # Read a chunk of the SLC file
@@ -779,14 +779,14 @@ class PRM(datagrid, PRM_gmtsar):
             # offset is measured in bytes
             data = np.memmap(slc_filename, dtype=np.int16, mode='r', offset=start*4, shape=(2*(stop-start),))
             #print ('        size', data.size)
-            real_part = data[::2].astype(np.float32)
-            imag_part = data[1::2].astype(np.float32)
-            del data
-            if not amplitude:
+            real_part = data[::2]
+            imag_part = data[1::2]
+            if not intensity:
                 # return original complex data
-                return DFACT * (real_part + 1j * imag_part)
-            # Calculate power amplitude for this chunk in GMTSAR compatible way
-            return DFACT**2 * (real_part**2 + imag_part**2)
+                return (DFACT*(real_part + 1j * imag_part)).astype(np.complex64)
+            # Calculate intensity (GMTSAR compatible while it names intensity as amplitude)
+            #return (DFACT*np.abs(real_part + 1j * imag_part))**2
+            return ((DFACT*real_part)**2 + (DFACT*imag_part)**2).astype(np.float32)
 
         prm = PRM.from_file(self.filename)
         # num_patches multiplier is omitted
@@ -804,9 +804,9 @@ class PRM(datagrid, PRM_gmtsar):
             start = i * blocksize
             stop = min((i+1) * blocksize, ydim * xdim)
             #print ('start, stop, shape', start, stop, (stop-start))
-            # use proper output data type for complex data and power amplitude
-            block = dask.array.from_delayed(read_SLC_block(slc_filename, start, stop, amplitude), shape=((stop-start),),
-                dtype=np.float32 if amplitude else np.complex64)
+            # use proper output data type for complex data and intensity
+            block = dask.array.from_delayed(read_SLC_block(slc_filename, start, stop, intensity), shape=((stop-start),),
+                dtype=np.float32 if intensity else np.complex64)
             lazy_arrays.append(block)
             del block
         # Concatenate the chunks together
@@ -1000,8 +1000,8 @@ class PRM(datagrid, PRM_gmtsar):
                        debug=debug)
 
         # original SLC (do not flip vertically)
-        amp1 = self.read_SLC_int(amplitude=True)
-        amp2 = other.read_SLC_int(amplitude=True)
+        amp1 = self.read_SLC_int(intensity=True)
+        amp2 = other.read_SLC_int(intensity=True)
         # phasediff tool output files (flip vertically)
         imag = xr.open_dataarray(fullname('imag.grd'), engine=self.engine, chunks=chunksize)
         imag.data = dask.array.flipud(imag)
