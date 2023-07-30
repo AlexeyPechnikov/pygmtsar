@@ -12,7 +12,48 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_geocode(SBAS_sbas):
 
-    def geocode_parallel(self, pairs=None, coarsen=4, chunksize=None):
+
+    # coarsen=1:
+    # nearest: coords [array([596.97436523]), array([16976.93164062])]
+    # linear:  coords [array([597.10408125]), array([16977.41447869])]
+    # coarsen=2:
+    # nearest: coords [array([596.4810791]), array([16977.52734375])]
+    # linear:  coords [array([597.10471665]), array([16977.3737493])]
+    # coarsen=4:
+    # nearest: coords [array([596.42352295]), array([16978.65625])]
+    # linear:  coords [array([597.1080563]), array([16977.35608873])]
+    def ll2ra(self, data):
+        """
+        Inverse geocode input geodataframe with points. 
+        """
+        import numpy as np
+        import geopandas as gpd
+        from shapely import Point
+        from scipy.interpolate import RegularGridInterpolator
+
+        trans = self.get_trans_dat()[['azi', 'rng']]
+        dy = trans.lat.diff('lat')[0]
+        dx = trans.lon.diff('lon')[0]
+        points = []
+        for geom in data.geometry:
+            subset = trans.sel(lat=slice(geom.y-2*dy, geom.y+2*dy),lon=slice(geom.x-2*dx, geom.x+2*dx)).compute(n_process=1)
+            # perform interpolation
+            lats, lons = subset.lat.values, subset.lon.values
+            coords = []
+            for dim in ['azi', 'rng']:
+                interp = RegularGridInterpolator((lats, lons),
+                                                 subset[dim].values.astype(np.float64),
+                                                 method='nearest',
+                                                 bounds_error=False)
+                #print ([geom.y, geom.x])
+                azi = interp([geom.y, geom.x])
+                coords.append(azi)
+                del interp
+            points.append(Point(coords[::-1]))
+        # set fake CRS to differ from WGS84 coordinates
+        return gpd.GeoDataFrame(data, geometry=points, crs=3857)
+
+    def geocode_parallel(self, pairs=None, coarsen=None, chunksize=None):
         """
         Perform parallel geocoding of the interferograms.
 
@@ -30,7 +71,7 @@ class SBAS_geocode(SBAS_sbas):
 
         # build trans_dat, trans_ dat_inv and topo_ra grids for merged subswaths
         # for single-digit subswath the grids already created for interferogram processing
-        if len(str(self.get_subswath())) > 1:
+        if len(str(self.get_subswath())) > 1 or coarsen is not None:
             self.topo_ra_parallel(coarsen=coarsen)
 
         # build geographic coordinates transformation matrix for landmask and other grids
@@ -76,6 +117,9 @@ class SBAS_geocode(SBAS_sbas):
         step_y = int(np.round(dy / trans_dy))
         step_x = int(np.round(dx / trans_dx))
         #print ('step_y', step_y, 'step_x', step_x)
+
+        assert step_y>=1 and step_x>=1, 'Interferogram grid spacing is smaller than tran transform grid spacing; \
+                                          call SBAS.geocode_parallel() with less coarsing'
 
         # define the equally spacing geographic coordinates grid
         lats = trans.lat[::step_y]
@@ -341,7 +385,7 @@ class SBAS_geocode(SBAS_sbas):
         # set the output grid and drop the fake dimension if needed
         lt = xr.DataArray(dask.array.block(block_lts), coords=intf.coords)
         ll = xr.DataArray(dask.array.block(block_lls), coords=intf.coords)
-        trans = xr.Dataset({'lt': lt, 'll': ll})
+        trans = xr.Dataset({'lt': lt, 'll': ll}).rename({'y': 'a', 'x': 'r'})
     
         if interactive:
             return trans
@@ -386,7 +430,10 @@ class SBAS_geocode(SBAS_sbas):
         subswath = self.get_subswath(subswath)
         filename = self.get_filenames(subswath, None, 'intf_ll2ra')
         trans_inv = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
-        return trans_inv
+        if 'a' in trans_inv.dims and 'r' in trans_inv.dims:
+            return trans_inv.rename({'a': 'y', 'r': 'x'})
+        else:
+            return trans_inv
 
     def intf_ll2ra(self, grids, chunksize=None):
         """
