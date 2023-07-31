@@ -314,44 +314,6 @@ class SBAS_base(tqdm_joblib, datagrid):
         # define subswath
         return subswaths[0]
 
-    # function is obsolete
-    def find_pairs(self, name='phasefilt'):
-        """
-        Find pairs. This function is obsolete. Use SBAS.pairs() function instead.
-
-        Parameters
-        ----------
-        name : str, optional
-            The name of the phase filter. Default is 'phasefilt'.
-
-        Returns
-        -------
-        np.ndarray
-            An array of pairs.
-        """
-        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')        
-        pairs = self.pairs(name=name)
-        return pairs
-
-    # function is obsolete
-    def find_dates(self, pairs=None):
-        """
-        Find dates. This function is obsolete. Use SBAS.pairs() function instead.
-
-        Parameters
-        ----------
-        pairs : np.ndarray, optional
-            An array of pairs. If None, all pairs are considered. Default is None.
-
-        Returns
-        -------
-        np.ndarray
-            An array of dates.
-        """
-        print ('NOTE: use SBAS.pairs() wrapper function to get pairs as DataFrame and optionally dates array')
-        dates = self.pairs(pairs, dates=True)[1]
-        return dates
-
     def pairs(self, pairs=None, dates=False, name='phasefilt'):
         """
         Get pairs as DataFrame and optionally dates array.
