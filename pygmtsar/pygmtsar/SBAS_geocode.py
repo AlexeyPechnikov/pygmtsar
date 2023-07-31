@@ -24,34 +24,36 @@ class SBAS_geocode(SBAS_sbas):
     # linear:  coords [array([597.1080563]), array([16977.35608873])]
     def ll2ra(self, data):
         """
-        Inverse geocode input geodataframe with points. 
+        Inverse geocode input geodataframe with 2D or 3D points. 
         """
         import numpy as np
         import geopandas as gpd
         from shapely import Point
         from scipy.interpolate import RegularGridInterpolator
 
-        trans = self.get_trans_dat()[['azi', 'rng']]
-        dy = trans.lat.diff('lat')[0]
-        dx = trans.lon.diff('lon')[0]
-        points = []
+        dem = self.get_dem()
+        prm = self.PRM()
+
+        dy = dem.lat.diff('lat')[0]
+        dx = dem.lon.diff('lon')[0]
+        points_ll = []
         for geom in data.geometry:
-            subset = trans.sel(lat=slice(geom.y-2*dy, geom.y+2*dy),lon=slice(geom.x-2*dx, geom.x+2*dx)).compute(n_process=1)
+            subset = dem.sel(lat=slice(geom.y-2*dy, geom.y+2*dy),lon=slice(geom.x-2*dx, geom.x+2*dx)).compute(n_process=1)
+            #print (subset.shape)
             # perform interpolation
             lats, lons = subset.lat.values, subset.lon.values
-            coords = []
-            for dim in ['azi', 'rng']:
-                interp = RegularGridInterpolator((lats, lons),
-                                                 subset[dim].values.astype(np.float64),
-                                                 method='nearest',
-                                                 bounds_error=False)
-                #print ([geom.y, geom.x])
-                azi = interp([geom.y, geom.x])
-                coords.append(azi)
-                del interp
-            points.append(Point(coords[::-1]))
+            interp = RegularGridInterpolator((lats, lons),
+                                             subset.values.astype(np.float64),
+                                             method='cubic',
+                                             bounds_error=False)
+            # interpolate specified point elevation on DEM adding 3D point vertical coordinate when exists
+            ele = interp([geom.y, geom.x])[0] + (geo.z if geom.has_z else 0)
+            points_ll.append([geom.x, geom.y, ele])
+            del interp
+        points_ra = prm.SAT_llt2rat(points_ll)[:,:2]
+        #print ('points_ra', points_ra)
         # set fake CRS to differ from WGS84 coordinates
-        return gpd.GeoDataFrame(data, geometry=points, crs=3857)
+        return gpd.GeoDataFrame(data, geometry=[Point(point_ra) for point_ra in points_ra], crs=3857)
 
     def geocode_parallel(self, pairs=None, coarsen=None, chunksize=None):
         """
