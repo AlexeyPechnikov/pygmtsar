@@ -117,8 +117,7 @@ class SBAS_sbas(SBAS_detrend):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def lstsq_parallel(self, pairs=None, data=None, weight=None,
-                       chunksize=None, interactive=False, debug=False):
+    def lstsq_parallel(self, data=None, weight=None, chunksize=None, interactive=False, debug=False):
         """
         Perform least squares (weighted or unweighted) computation on the input data in parallel.
 
@@ -143,11 +142,19 @@ class SBAS_sbas(SBAS_detrend):
         xarray.DataArray
             The computed least squares model as an xarray DataArray.
 
+        Examples:
+        -----
+        sbas.lstsq_parallel(unwraps_detrend, interactive=False)
+        sbas.lstsq_parallel(unwraps_detrend, corrs, interactive=False)
+        sbas.lstsq_parallel([unwraps_detrend, corrs], interactive=False)
+        sbas.lstsq_parallel((unwraps_detrend, corrs), interactive=False)
+        sbas.lstsq_parallel((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
+
         Notes
         -----
         This function processes large stacks by splitting them into chunks, performing the computation,
         and then rebuilding and saving the results in a user-friendly format.
-
+    
         """
         import xarray as xr
         import numpy as np
@@ -164,21 +171,21 @@ class SBAS_sbas(SBAS_detrend):
         if debug:
             print ('DEBUG: chunksize', chunksize)
 
-        # also define image capture dates from interferogram date pairs 
-        # convert pairs (list, array, dataframe) to 2D numpy array
-        pairs, dates = self.pairs(pairs, dates=True)
-        pairs = pairs[['ref', 'rep']].astype(str).values
-        # define pairs and dates matrix for LSQ calculation
-        matrix = self.lstsq_matrix(pairs)
-
         # source grids lazy loading
         #if isinstance(data, str):
         #    data = self.open_grids(pairs, data, interactive=True)
-        if data is not None and isinstance(data, xr.DataArray) and len(data.dims) == 3:
+        if data is None:
+            raise ValueError('Argument data should be 3D Xarray object')
+        elif weight is not None and isinstance(data, (list, tuple)):
+            raise ValueErrorlueError('Weight defined twice using weight argument and as the second part in data argument')
+        elif weight is None and isinstance(data, (list, tuple)):
+            assert len(data) == 2, 'Argument data can be a list or a tuple of data and weight arguments'
+            # this case should be processed inside lstq_block function
+            data, weight   = data
+            assert len(data.dims) == 3, 'Argument data should be 3D Xarray object'
+        elif isinstance(data, xr.DataArray) and len(data.dims) == 3:
             # this case should be processed inside lstq_block function
             pass
-        else:
-            raise ValueError(f"Argument data should be 3D Xarray object")
         if debug:
             print ('DEBUG: data', data)
 
@@ -205,6 +212,13 @@ class SBAS_sbas(SBAS_detrend):
             raise ValueError(f"Argument weight can be 1D or 3D Xarray object or Pandas Series or Numpy array or Python list")
         if debug:
             print ('DEBUG: weight', weight)
+
+        # also define image capture dates from interferogram date pairs 
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs, dates = self.pairs(data, dates=True)
+        pairs = pairs[['ref', 'rep']].astype(str).values
+        # define pairs and dates matrix for LSQ calculation
+        matrix = self.lstsq_matrix(pairs)
 
         def lstq_block(ys, xs):
             # 3D array
@@ -248,7 +262,7 @@ class SBAS_sbas(SBAS_detrend):
         del blocks_total
         coords = {'date': dates, 'y': data.y.values, 'x': data.x.values}
         model = xr.DataArray(model, coords=coords).rename('displacement')
-    
+
         if interactive:
             return model
 

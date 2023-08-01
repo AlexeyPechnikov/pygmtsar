@@ -69,7 +69,7 @@ class SBAS_stl(SBAS_incidence):
 
     # Aggregate data for varying frequencies (e.g., 12+ days for 6 days S1AB images interval)
     # Use frequency strings like '1W' for 1 week, '2W' for 2 weeks, '10d' for 10 days, '1M' for 1 month, etc.
-    def stl_parallel(self, dates, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
+    def stl_parallel(self, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data in parallel.
 
@@ -105,6 +105,12 @@ class SBAS_stl(SBAS_incidence):
             An xarray Dataset containing the trend, seasonal, and residual components of the decomposed time series,
             or None if the results are saved to a file.
 
+        Examples
+        --------
+        Use on (date,lat,lon) and (date,y,x) grids to return the results or store them on disk:
+        sbas.stl_parallel(disp, interactive=True)
+        sbas.stl_parallel(disp)
+
         See Also
         --------
         statsmodels.tsa.seasonal.STL : Seasonal-Trend decomposition using LOESS
@@ -124,12 +130,15 @@ class SBAS_stl(SBAS_incidence):
             pass
         else:
             raise Exception('Invalid input: The "data" parameter should be of type xarray.DataArray.')
+    
+        # convert coordinate to valid dates
+        dates = pd.to_datetime(data.date)
 
-        # convert coordinate to valid dates - already performed in open_model()
-        #data['date'] = pd.to_datetime(data.date)
-
+        dim0, dim1, dim2 = data.dims
+        assert dim0 == 'date', 'The first data dimension should be date'
+    
         # original dates
-        dt = data.date.astype(np.int64)
+        dt = pd.to_datetime(data.date).astype(np.int64)
         # Unify date intervals; using weekly intervals should be suitable for a mix of 6 and 12 days intervals
         dates_weekly = pd.date_range(dates[0], dates[-1], freq=freq)
         dt_weekly = xr.DataArray(dates_weekly, dims=['date'])
@@ -141,7 +150,7 @@ class SBAS_stl(SBAS_incidence):
         def stl_block(lats, lons):
             # use external variables dt, dt_periodic, periods, robust
             # 3D array
-            data_block = data.isel(lat=lats, lon=lons).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            data_block = data.isel({dim1: lats, dim2: lons}).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
             # Vectorize vec_lstsq
             #vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(3,m)')
             vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(m),(m),(m)')
@@ -153,8 +162,8 @@ class SBAS_stl(SBAS_incidence):
         # split to square chunks
         # use indices instead of the coordinate values to prevent the weird error raising occasionally:
         # "Reindexing only valid with uniquely valued Index objects"
-        lats_blocks = np.array_split(np.arange(data.lat.size), np.arange(0, data.lat.size, chunksize)[1:])
-        lons_blocks = np.array_split(np.arange(data.lon.size), np.arange(0, data.lon.size, chunksize)[1:])
+        lats_blocks = np.array_split(np.arange(data[dim1].size), np.arange(0, data[dim1].size, chunksize)[1:])
+        lons_blocks = np.array_split(np.arange(data[dim2].size), np.arange(0, data[dim2].size, chunksize)[1:])
 
         blocks_total = []
         for lats_block in lats_blocks:
@@ -169,9 +178,9 @@ class SBAS_stl(SBAS_incidence):
             del blocks
         models = dask.array.block(blocks_total)
         del blocks_total
-    
+
         # transform to separate variables
-        coords = {'date': dt_weekly.values, 'lat': data.lat, 'lon': data.lon}
+        coords = {'date': dt_weekly.values, dim1: data[dim1], dim2: data[dim2]}
         # transform to separate variables variables returned from SBAS.stl() function
         varnames = ['trend', 'seasonal', 'resid']
         keys_vars = {varname: xr.DataArray(models[varidx], coords=coords) for (varidx, varname) in enumerate(varnames)}

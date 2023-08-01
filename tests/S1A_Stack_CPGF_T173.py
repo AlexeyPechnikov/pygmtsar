@@ -84,7 +84,7 @@ if __name__ == '__main__':
     # PyGMTSAR SBAS Displacement
     detrend = sbas.open_grids(pairs, 'detrend')
     corr = sbas.open_grids(pairs, 'corr')
-    sbas.lstsq_parallel(pairs, data=detrend, weight=corr)
+    sbas.lstsq_parallel(data=detrend, weight=corr)
 
     # output
 #    pairs, dates = sbas.pairs(dates=True)

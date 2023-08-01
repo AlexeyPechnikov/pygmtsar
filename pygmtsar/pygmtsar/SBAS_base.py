@@ -332,6 +332,7 @@ class SBAS_base(tqdm_joblib, datagrid):
         pd.DataFrame or tuple
             A DataFrame of pairs. If dates is True, also returns an array of dates.
         """
+        import xarray as xr
         import pandas as pd
         import numpy as np
         from glob import glob
@@ -348,17 +349,23 @@ class SBAS_base(tqdm_joblib, datagrid):
             #invalid = [pair for pair in pairs.flatten() if pair not in dates]
             #assert len(invalid) == 0, 'ERROR: found grids for pairs not in the SBAS scenes. Define valid pairs manually.'
 
-        if not isinstance(pairs, pd.DataFrame):
-            # Convert numpy array to DataFrame
-            pairs = pd.DataFrame(pairs, columns=['ref', 'rep'])
-            # Convert ref and rep columns to datetime format
-            pairs['ref'] = pd.to_datetime(pairs['ref'])
-            pairs['rep'] = pd.to_datetime(pairs['rep'])
-            # Calculate the duration in days and add it as a new column
-            pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
-        else:
+        if isinstance(pairs, pd.DataFrame):
             # workaround for baseline_pairs() output
             pairs = pairs.rename(columns={'ref_date': 'ref', 'rep_date': 'rep'})
+        elif isinstance(pairs, (xr.DataArray, xr.Dataset)):
+            pairs = pd.DataFrame({
+                'ref': pairs.coords['ref'].values,
+                'rep': pairs.coords['rep'].values
+            })
+        else:
+            # Convert numpy array to DataFrame
+            pairs = pd.DataFrame(pairs, columns=['ref', 'rep'])
+
+        # Convert ref and rep columns to datetime format
+        pairs['ref'] = pd.to_datetime(pairs['ref'])
+        pairs['rep'] = pd.to_datetime(pairs['rep'])
+        # Calculate the duration in days and add it as a new column
+        pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
 
         if dates:
             # pairs is DataFrame
