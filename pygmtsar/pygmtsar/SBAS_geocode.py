@@ -47,7 +47,7 @@ class SBAS_geocode(SBAS_sbas):
                                              method='cubic',
                                              bounds_error=False)
             # interpolate specified point elevation on DEM adding 3D point vertical coordinate when exists
-            ele = interp([geom.y, geom.x])[0] + (geo.z if geom.has_z else 0)
+            ele = interp([geom.y, geom.x])[0] + (geom.z if geom.has_z else 0)
             points_ll.append([geom.x, geom.y, ele])
             del interp
         points_ra = prm.SAT_llt2rat(points_ll)[:,:2]
