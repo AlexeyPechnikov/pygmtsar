@@ -28,7 +28,7 @@ class SBAS_orbits(SBAS_base):
         from eof.download import download_eofs
 
 	# For each date get a single product with missing orbit
-        sbas_df_missingorb = sbas.df[sbas.df.orbitpath.isna()]
+        sbas_df_missingorb = self.df[self.df.orbitpath.isna()]
         sbas_df_missingorb = sbas_df_missingorb[~sbas_df_missingorb.index.duplicated(keep="first")]
 
         # Apply orbit to products of same date
