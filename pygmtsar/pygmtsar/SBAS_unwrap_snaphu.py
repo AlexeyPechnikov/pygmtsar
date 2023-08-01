@@ -15,7 +15,7 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
     def unwrap(self, pair, threshold=1e-3, conf=None, func=None, mask=None, conncomp=False,
-               phase='phasefilt', corr='corr', interactive=True, chunksize=None, debug=False):
+               phase='phasefilt', corr='corr', tiledir=None, interactive=True, chunksize=None, debug=False):
         """
         Unwraps phase using SNAPHU with the given phase and correlation data.
 
@@ -85,6 +85,8 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
 
         if conf is None:
             conf = self.PRM().snaphu_config()
+        if tiledir is not None:
+            conf += f'    TILEDIR {tiledir}'
 
         # open input data grids if needed
         if isinstance(phase, str):

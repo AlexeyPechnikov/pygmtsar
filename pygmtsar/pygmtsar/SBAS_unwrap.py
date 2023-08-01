@@ -75,13 +75,6 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
         # for now (Python 3.10.10 on MacOS) joblib loads the code from disk instead of copying it
         kwargs['chunksize'] = chunksize
 
-        def unwrap_tiledir(pair, **kwargs):
-            # define unique tiledir name for parallel processing
-            if 'conf' in kwargs:
-                dirpath = self.get_filenames(None, [pair], 'snaphu_tiledir')[0][:-4]
-                kwargs['conf'] += f'    TILEDIR {dirpath}'
-            return self.unwrap(pair, **kwargs)
-
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
         
@@ -100,7 +93,7 @@ class SBAS_unwrap(SBAS_unwrap_snaphu):
         kwargs['interactive'] = False
 
         with self.tqdm_joblib(tqdm(desc='Unwrapping', total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(unwrap_tiledir)(pair, **kwargs) for pair in pairs)
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.unwrap)(pair, tiledir=f'snaphu_tiledir_{pair[0]}_{pair[1]}', **kwargs) for pair in pairs)
 
     def get_unwrapmask(self, geocode=False):
         """
