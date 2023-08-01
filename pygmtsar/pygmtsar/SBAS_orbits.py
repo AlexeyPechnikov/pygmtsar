@@ -27,11 +27,11 @@ class SBAS_orbits(SBAS_base):
         """
         from eof.download import download_eofs
 
-        df = self.df[self.df['orbitpath'].isna()]
-    
-        # download all the misssed orbit files
-        for record in df.itertuples():
-            #print (date, mission)
+	# For each date get a single product with missing orbit
+        sbas_df_missingorb = self.df.where(self.df.orbitpath.isna())
+        sbas_df_missingorb = sbas_df_missingorb[~sbas_df_missingorb.index.duplicated(keep="first")]
+
+        # Apply orbit to products of same date
+        for record in sbas_df_missingorb.itertuples():
             orbitpath = download_eofs([record.datetime], [record.mission], save_dir=self.basedir)[0]
-            #print ('orbitpath', orbitpath)
-            self.df.loc[self.df.datetime == record.datetime,'orbitpath'] = orbitpath
+            self.df.at[record.Index, "orbitpath"] = orbitpath
