@@ -119,6 +119,16 @@ The notebooks processing more than a single subswath or scene. It's possible on 
 
 <img width="50%" src="https://user-images.githubusercontent.com/7342379/223333303-91f81035-8ba9-4637-b257-ccbeb3502e95.png">
 
+### Preview Notebooks for Development PyGMTSAR Version
+
+One of the most awaited features in PyGMTSAR (Python InSAR) is the combined analysis of Persistent Scatterers (PS or PSI) and the Small Baseline Subset (SBAS).
+
+Each of the PS and SBAS techniques has unique advantages and drawbacks — with SBAS performing better in rural areas and PS in urban ones. My vision involves merging the benefits of both methods and mitigating their shortcomings in a unified PS-SBAS process. In the development version, PyGMTSAR offers persistent scatterer analysis and weighted interferogram processing. This emphasizes stable pixels, enhancing phase and coherence. This not only improves the accuracy of results but also simplifies SBAS analysis by maintaining high coherence, even in rural areas.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/18KGGO9jy_EE8RejgYhKgqyxryhrQdmbS?usp=sharing) The updated SBAS notebook provides an illustration of the PS-SBAS analysis.
+
+<img width="50%" src="https://raw.githubusercontent.com/mobigroup/articles/main/avg_corr_15m_adi.40%25.png">
+
 ### Long Timeseries Analysis is not available on Google Colab 
 
 For long timeseries analysis, you can explore the separate GitHub repository for the Yamchi Dam area dynamic model, [YamchiDam](https://github.com/mobigroup/YamchiDam). This repository combines the software tools [PyGMTSAR](https://github.com/mobigroup/gmtsar) and the [N-Cube ParaView plugin for 3D/4D GIS Data Visualization](https://github.com/mobigroup/ParaView-plugins) to provide comprehensive 4D analysis and visualization capabilities. By exploring these repositories, you can learn more about the tools and methods used in the Yamchi Dam area dynamic model.
