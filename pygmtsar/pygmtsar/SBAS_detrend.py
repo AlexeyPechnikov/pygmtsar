@@ -11,74 +11,6 @@ from .SBAS_unwrap import SBAS_unwrap
 
 class SBAS_detrend(SBAS_unwrap):
 
-    def detrend(self, dataarray, fit=None, fit_intercept=True, fit_dem=True, fit_coords=True,
-            resolution_meters=90, wavelength=None, truncate=3.0, debug=False):
-        """
-        Detrend the input data array by combining optional topography and linear components removal and Gaussian filtering.
-
-        Parameters
-        ----------
-        dataarray : xarray.DataArray
-            The input data array.
-        fit : bool, optional
-            Whether to apply the same detrend options to all components (fit_intercept, fit_dem, fit_coords).
-        fit_intercept : bool, optional
-            Whether to remove the mean value (plane).
-        fit_dem : bool, optional
-            Whether to detrend the topography.
-        fit_coords : bool, optional
-            Whether to detrend the linear coordinate components.
-        resolution_meters : float, optional
-            The processing resolution in meters to prevent overfitting and reduce grid size.
-        wavelength : float, tuple, list, or ndarray, optional
-            The cut-off wavelength(s) for the Gaussian filter in meters.
-            If a tuple, list, or ndarray is provided, the output is obtained by subtracting the
-            filtered data arrays corresponding to the minimum and maximum wavelength values.
-            If None, no filtering is performed.
-        truncate : float, optional
-            The filter window size in sigmas.
-        debug : bool, optional
-            Whether to print debug information.
-
-        Returns
-        -------
-        xarray.DataArray
-            The detrended data array.
-
-        Examples
-        --------
-        Simplest detrending:
-        sbas.detrend(pair)
-
-        Detrend the unwrapped interferogram in radar coordinates.
-        See the following GitHub issues for more details:
-        - https://github.com/gmtsar/gmtsar/issues/98
-        - https://github.com/gmtsar/gmtsar/issues/411
-        """
-        import numpy as np
-
-        if fit is not None:
-            # set all fir options the same
-            fit_intercept = fit_dem = fit_coords = fit
-
-        if wavelength is None:
-            out1 = dataarray
-        elif isinstance(wavelength, (tuple, list, np.ndarray)):
-            # range-pass
-            assert len(wavelength) == 2, 'ERROR: wavelength argument should be a list of two elements or scalar on None (omitted)'
-            out1 = self._gaussian(dataarray, wavelength=np.min(wavelength), truncate=truncate,
-                                    resolution_meters=resolution_meters, debug=debug) \
-                 - self._gaussian(dataarray, wavelength=np.max(wavelength), truncate=truncate,
-                                    resolution_meters=resolution_meters, debug=debug)
-        else:
-            # high-pass
-            out1 = dataarray - self._gaussian(dataarray, wavelength=wavelength, truncate=truncate,
-                     resolution_meters=resolution_meters, debug=debug)
-        out2 = self._detrend(out1, fit_intercept=fit_intercept, fit_dem=fit_dem, fit_coords=fit_coords,
-                resolution_meters=resolution_meters, debug=debug)
-
-        return out2
-
     def detrend_parallel(self, pairs=None, chunksize=None, n_jobs=-1, interactive=False, **kwargs):
         """
         Detrend and save to files a set of unwrapped interferograms combining optional topography and linear components removal
@@ -148,7 +80,7 @@ class SBAS_detrend(SBAS_unwrap):
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
-    def _detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
+    def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
                 resolution_meters=90, debug=False):
         """
         Detrend and return output for a single unwrapped interferogram combining optional topography and linear components removal.
