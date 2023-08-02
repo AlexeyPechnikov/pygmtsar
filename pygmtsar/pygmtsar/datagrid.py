@@ -194,36 +194,6 @@ class datagrid:
         if 'y' in dims1 and 'x' in dims1 and 'y' in dims2 and 'x' in dims2:
             return True
         return False
-
-    def snaphu_config(self, defomax=0, **kwargs):
-        """
-        Generate a Snaphu configuration file.
-
-        Parameters
-        ----------
-        defomax : int, optional
-            Maximum deformation value. Default is 0.
-        **kwargs : dict, optional
-            Additional parameters to include in the configuration file.
-
-        Returns
-        -------
-        str
-            The Snaphu configuration file content.
-
-        Notes
-        -----
-        This method uses the `snaphu_config` method of the PRM object.
-
-        Examples
-        --------
-        Generate a Snaphu configuration file with defomax=10:
-        snaphu_config(defomax=10)
-
-        Generate a Snaphu configuration file with defomax=5 and additional parameters:
-        snaphu_config(defomax=5, param1=10, param2=20)
-        """
-        return self.PRM().snaphu_config(defomax, **kwargs)
  
     # da.dropna(dim=dim, how='all') is not fast at all
     @staticmethod
@@ -514,14 +484,15 @@ class datagrid:
         outs = []
         for subswath in self.get_subswaths():
             # pixel size in meters
-            azi_px_size, rng_px_size = self.PRM(subswath).pixel_size()
+            azi_px_size, rng_px_size = self.PRM(subswath).pixel_size(grid)
             # raster pixels decimation
-            if isinstance(grid, xr.DataArray):
-                dy = grid.y.diff('y')[0].item()
-                dx = grid.x.diff('x')[0].item()
-            else:
-                dy, dx = grid
-            outs.append((np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1)))
+            #if isinstance(grid, xr.DataArray):
+            #    dy = grid.y.diff('y')[0].item()
+            #    dx = grid.x.diff('x')[0].item()
+            #else:
+            #    dy, dx = grid
+            #outs.append((np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1)))
+            outs.append((np.round(azi_px_size,1), np.round(rng_px_size,1)))
         if average:
             pxs = np.asarray(outs)
             return (np.round(pxs[:,0].mean(), 1), np.round(pxs[:,1].mean(), 1))
