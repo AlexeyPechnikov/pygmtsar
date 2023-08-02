@@ -807,6 +807,7 @@ class SBAS_base(tqdm_joblib, datagrid):
             chunksize = self.chunksize
 
         if name is None and isinstance(model, xr.DataArray):
+            assert model.name is not None, 'Define the grid name or use name argument for the NetCDF filename'
             name = model.name
         elif name is None:
             raise ValueError('Specify name for the output NetCDF file')

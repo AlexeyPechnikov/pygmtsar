@@ -194,3 +194,34 @@ class SBAS_unwrap_snaphu(SBAS_landmask):
             conn.to_netcdf(conncomp_filename, encoding={'conncomp': self.compression(conn.shape, chunksize=chunksize)}, engine=self.engine)
         # save to NetCDF file
         unwrap.to_netcdf(unwrap_filename, encoding={'phase': self.compression(unwrap.shape, chunksize=chunksize)}, engine=self.engine)
+
+    def snaphu_config(self, defomax=0, **kwargs):
+        """
+        Generate a Snaphu configuration file.
+
+        Parameters
+        ----------
+        defomax : int, optional
+            Maximum deformation value. Default is 0.
+        **kwargs : dict, optional
+            Additional parameters to include in the configuration file.
+
+        Returns
+        -------
+        str
+            The Snaphu configuration file content.
+
+        Notes
+        -----
+        This method uses the `snaphu_config` method of the PRM object.
+
+        Examples
+        --------
+        Generate a Snaphu configuration file with defomax=10:
+        snaphu_config(defomax=10)
+
+        Generate a Snaphu configuration file with defomax=5 and additional parameters:
+        snaphu_config(defomax=5, param1=10, param2=20)
+        """
+        return self.PRM().snaphu_config(defomax, **kwargs)
+ 
