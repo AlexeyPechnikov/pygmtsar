@@ -179,6 +179,12 @@ class SBAS_geocode(SBAS_sbas):
         return trans
 
     def intf_ra2ll(self, grid, chunksize=None):
+        # get transform table for interferogram grid
+        trans = self.get_intf_ra2ll()
+        return self.ra2ll(grid, trans=trans, chunksize=chunksize)
+
+    # intf_ra2ll
+    def ra2ll(self, grid, trans=None, chunksize=None):
         """
         Perform geocoding from radar to geographic coordinates.
 
@@ -186,6 +192,8 @@ class SBAS_geocode(SBAS_sbas):
         ----------
         grid : xarray.DataArray
             Grid(s) representing the interferogram(s) in radar coordinates.
+        trans : xarray.DataArray
+            Geocoding transform matrix in radar coordinates.
         chunksize : int or dict, optional
             Chunk size for dask arrays. If not provided, the default chunk size is used.
 
@@ -212,6 +220,10 @@ class SBAS_geocode(SBAS_sbas):
 
         if chunksize is None:
             chunksize = self.chunksize
+
+        if trans is None:
+            # get complete transform table
+            trans = self.get_trans_dat()
 
         @dask.delayed
         def intf_block(lats_block, lons_block, grid_ra):
@@ -254,8 +266,31 @@ class SBAS_geocode(SBAS_sbas):
 
             return grid_ll
 
-        # get transform table
-        trans = self.get_intf_ra2ll()[['azi', 'rng']]
+        # analyse grid and transform matrix spacing
+        grid_dy = np.diff(grid.y)[0]
+        grid_dx = np.diff(grid.x)[0]
+        trans_dy = np.diff(trans.y)[0]
+        trans_dx = np.diff(trans.x)[0]
+
+        # define transform spacing in radar coordinates
+        step_y = int(np.round(grid_dy / trans_dy))
+        step_x = int(np.round(grid_dx / trans_dx))
+        #print ('step_y', step_y, 'step_x', step_x)
+
+        assert step_y>=1 and step_x>=1, f'Transforming grid spacing (grid_dy, grid_dx) is smaller \
+                                          than transform matrix spacing (trans_dy, trans_dx), \
+                                          call SBAS.topo_ra_parallel() or SBAS.geocode_parallel() with less coarsing'
+        # decimate the full trans grid to the required spacing
+        if step_y>1 or step_x>1:
+            trans = trans.sel(lat=lats, lon=lons)
+        # select required variables only
+        trans = trans[['azi', 'rng']]
+    
+        # define the equally spacing geographic coordinates grid
+        lats = trans.lat[::step_y]
+        lons = trans.lon[::step_x]
+    
+        # specify output coordinates
         lats = trans.lat
         lons = trans.lon
         # split to equal chunks and rest
@@ -265,7 +300,7 @@ class SBAS_geocode(SBAS_sbas):
         # find stack dim
         stackvar = grid.dims[0] if len(grid.dims) == 3 else 'stack'
         #print ('stackvar', stackvar)
-    
+
         stack = []
         for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
             block_grid = grid.sel({stackvar: stackval}) if stackval is not None else grid
