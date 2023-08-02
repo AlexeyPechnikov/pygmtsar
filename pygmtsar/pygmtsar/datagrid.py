@@ -356,7 +356,10 @@ class datagrid:
         import dask
         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
 
-        da = dask.array.where(dask.array.isnan(dataarray), 0, 1j + dataarray)
+        # this command works but it is slow
+        #da = dask.array.where(dask.array.isnan(dataarray), 0, 1j + dataarray)
+        # this command is fast and it replaces nan + 1j to to 0.+0.j
+        da = (dataarray + 1j).fillna(0).data
         conv = dask_gaussian_filter(da, sigmas, mode='reflect', truncate=truncate)
         da_conv = xr.DataArray(conv.real/conv.imag, coords=dataarray.coords, name=dataarray.name)
         return da_conv
@@ -641,7 +644,7 @@ class datagrid:
         if wavelength is None:
             sigmas = np.round([coarsen[0]/cutoff, coarsen[1]/cutoff], 2)
         else:
-            dy, dx = self.pixel_size()
+            dy, dx = self.pixel_size(da)
             #print ('DEBUG dy, dx', dy, dx)
             #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
             sigmas = np.round([wavelength/cutoff/dy, wavelength/cutoff/dx], 2)
@@ -658,7 +661,10 @@ class datagrid:
             assert da.dims == weight.dims, f'Different dimension names for raster {da.dims} and weight {weight.dims}'
             if debug:
                 print ('DEBUG: antialiasing_downscale weighted filtering')
-            conv = dask_gaussian_filter(((1j + da)*weight).data, sigmas, mode='reflect', truncate=2)
+            #conv = dask_gaussian_filter(((1j + da)*weight).data, sigmas, mode='reflect', truncate=2)
+            # replace nan + 1j to to 0.+0.j
+            da  = ((1j + da) * weight).fillna()
+            conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
             conv = conv.real/conv.imag
 
         da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
