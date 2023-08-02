@@ -78,11 +78,14 @@ if __name__ == '__main__':
 #     validmask = phasefilts.min('pair')
 #     phasefilts_ll = sbas.open_grids(pairs, 'phasefilt', geocode=True)
     # Detrending
-    sbas.detrend_parallel(pairs, wavelength=12000)
+    #sbas.detrend_parallel(pairs, wavelength=12000)
+    unwrap = sbas.open_grids(pairs, 'unwrap')
+    detrend = unwrap - sbas.gaussian_parallel(unwrap, wavelength=12000, interactive=True)
+    sbas.save_model(detrend.rename('detrend'), caption='Gaussian Band-Pass filtering')
     # output
-    print (sbas.open_grids(pairs, 'detrend'))
+    print (sbas.open_model('detrend'))
     # PyGMTSAR SBAS Displacement
-    detrend = sbas.open_grids(pairs, 'detrend')
+    detrend = sbas.open_model('detrend')
     corr = sbas.open_grids(pairs, 'corr')
     sbas.lstsq_parallel(data=detrend, weight=corr)
 
@@ -233,7 +236,7 @@ if __name__ == '__main__':
     fg.fig.savefig('LOS Displacement in Geographic Coordinates, [mm].jpg', dpi=300, pil_kwargs={"quality": 95})
 
     # PyGMTSAR SBAS Displacement
-    detrend = sbas.open_grids(pairs, 'detrend')
+    detrend = sbas.open_model('detrend')
     zmin, zmax = np.nanquantile(detrend, [0.01, 0.99])
     fg = detrend.plot.imshow(
         col="pair",
