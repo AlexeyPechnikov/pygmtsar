@@ -1067,9 +1067,15 @@ class PRM(datagrid, PRM_gmtsar):
         return
 
     # see make_gaussian_filter.c for the original code
-    def pixel_size(self):
+    def pixel_size(self, grid=1):
         """
         Calculate azimuth and range pixel size in meters.
+
+        Parameters
+        ----------
+        grid : tuple or xarray.DataArray, optional
+            A pair of x, y grid decimation coefficients or a 2D or 3D Xarray DataArray representing the decimation grid.
+            The default is 1 for the input Sentinel-1 SLC grid.
 
         Returns
         -------
@@ -1082,9 +1088,20 @@ class PRM(datagrid, PRM_gmtsar):
         The azimuth pixel size is determined using the spacecraft velocity, height, and pulse repetition frequency (PRF),
         while the range pixel size is calculated based on the speed of light and the range sampling rate.
         """
+        import xarray as xr
         import numpy as np
         from scipy.constants import speed_of_light
 
+        # define grid spacing
+        if isinstance(grid, (xr.DataArray, xr.Dataset)):
+            assert self.is_ra(grid), 'Raster needs to be defined in radar coordinates'
+            dy = grid.y.diff('y')[0].item()
+            dx = grid.x.diff('x')[0].item()
+        elif isinstance(grid, (list, tuple)):
+            dy, dx = grid
+        else:
+            dy = dx = grid
+            
         # compute the range and azimuth pixel size
         RE, vel, ht, prf, fs, near_range, num_rng_bins = \
             self.get('earth_radius','SC_vel', 'SC_height', 'PRF', 'rng_samp_rate', 'near_range', 'num_rng_bins')
@@ -1101,7 +1118,7 @@ class PRM(datagrid, PRM_gmtsar):
         # compute the ground range pixel size
         rng_px_size = rng_px_size / np.sin(np.arccos(cost) + np.arccos(cosa))
         # ground spacing in meters
-        return (azi_px_size, rng_px_size)
+        return (dy * azi_px_size, dx * rng_px_size)
 
     # TODO: use PRM parameters to define config parameters
     def snaphu_config(self, defomax=0, **kwargs):
