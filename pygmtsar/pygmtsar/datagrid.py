@@ -634,7 +634,7 @@ class datagrid:
                 print ('DEBUG: antialiasing_downscale weighted filtering')
             #conv = dask_gaussian_filter(((1j + da)*weight).data, sigmas, mode='reflect', truncate=2)
             # replace nan + 1j to to 0.+0.j
-            da  = ((1j + da) * weight).fillna()
+            da  = ((1j + da) * weight).fillna(0)
             conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
             conv = conv.real/conv.imag
 
