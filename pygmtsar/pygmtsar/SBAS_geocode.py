@@ -179,7 +179,9 @@ class SBAS_geocode(SBAS_sbas):
         return trans
 
     def intf_ra2ll(self, grid, chunksize=None):
-        # get transform table for interferogram grid
+        """
+        Faster geocoding for interferogram grid. It uses usually decimated transformation table vs full table in ra2ll.
+        """
         trans = self.get_intf_ra2ll()
         return self.ra2ll(grid, trans=trans, chunksize=chunksize)
 
@@ -282,14 +284,15 @@ class SBAS_geocode(SBAS_sbas):
                                           call SBAS.topo_ra_parallel() or SBAS.geocode_parallel() with less coarsing'
         # decimate the full trans grid to the required spacing
         if step_y>1 or step_x>1:
-            trans = trans.sel(lat=lats, lon=lons)
+            # define the equally spacing geographic coordinates grid
+            trans = trans.sel(lat=trans.lat[::step_y], lon=trans.lon[::step_x])
         # select required variables only
         trans = trans[['azi', 'rng']]
-    
+
         # define the equally spacing geographic coordinates grid
         lats = trans.lat[::step_y]
         lons = trans.lon[::step_x]
-    
+
         # specify output coordinates
         lats = trans.lat
         lons = trans.lon
