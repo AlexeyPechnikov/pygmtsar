@@ -13,7 +13,6 @@ from .tqdm_dask import tqdm_dask
 class SBAS_ps(SBAS_stl):
 
     def get_adi(self, subswath=None, chunksize=None):
-        import xarray as xr
 
         if subswath is None:
             subswaths = self.get_subswaths()
@@ -25,8 +24,8 @@ class SBAS_ps(SBAS_stl):
 
         adis = []
         for subswath in subswaths:
-            filename = self.get_filenames(subswath, None, 'adi')
-            adi = xr.open_dataarray(filename, engine=self.engine, chunks=chunksize)
+            filename = f'F{subswath}_adi'
+            adi = self.open_model(filename, chunksize=chunksize)
             if 'a' in adi.dims and 'r' in adi.dims:
                 adis.append(adi.rename({'a': 'y', 'r': 'x'}))
             else:
@@ -44,7 +43,10 @@ class SBAS_ps(SBAS_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def adi_parallel(self, dates=None, chunksize=None):
+    def adi_parallel(self, dates=None, scale=1e9, chunksize=None):
+        """
+        scale amplitude to make minimum valid value about 1
+        """
         import xarray as xr
         import numpy as np
         import dask
@@ -67,33 +69,17 @@ class SBAS_ps(SBAS_stl):
             # build stack
             amps = xr.concat(amps, dim='date')
             # normalize image intensities
-            #mean = amps.mean(dim=['y','x']).compute()
             tqdm_dask(mean := dask.persist(amps.mean(dim=['y','x'])), desc=f'Amplitude Normalization sw{subswath}')
-            #print ('mean', mean)
             # dask.persist returns tuple
             norm = (mean[0]/mean[0].mean(dim='date'))
             del mean
-            #print ('norm', norm)
             # compute Amplitude Dispersion Index (ADI)
-            #adi = ((norm*amps).std(dim='date')/(norm*amps).mean(dim='date')).rename('adi')
-            #del norm, amps
             stats = (norm*amps).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
             del amps, norm
-            adi = (stats[1] / stats[0]).rename('adi')
+            ds = xr.merge([(scale*stats[0]).rename('amplitude'), (scale*stats[1]).rename('dispersion')])
             del stats
-            # Define the encoding and choose the appropriate storage scheme
-            adi_filename = self.get_filenames(subswath, None, f'adi')
-            if os.path.exists(adi_filename):
-                os.remove(adi_filename)
-            # save by fastest way using SLC-related chunks like (48, 1024)
-            delayed = adi.rename({'y': 'a', 'x': 'r'}).to_netcdf(adi_filename,
-                         engine=self.engine,
-                         encoding={'adi': self.compression(adi.shape, chunksize=(minichunksize, chunksize))},
-                         compute=False)
-            tqdm_dask(dask.persist(delayed), desc=f'Amplitude Dispersion Index (ADI) sw{subswath}')
-            del adi, delayed
-            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-            import gc; gc.collect()
+            self.save_model(ds.rename({'y': 'a', 'x': 'r'}), name=f'F{subswath}_adi', caption=f'Amplitude Dispersion Index (ADI) sw{subswath}')
+            del ds
 
     def get_adi_threshold(self, subswath, threshold, chunksize=None):
         """
@@ -222,3 +208,48 @@ class SBAS_ps(SBAS_stl):
             stack.append(amps)
 
         return stack[0] if len(stack)==1 else stack
+
+    def solid_tide(self, dates, coords, debug=False):
+        """
+        Compute the tidal correction using GMTSAR binary tool solid_tide.
+
+        solid_tide yyyyddd.fffffff < lon_lat > lon_lat_dx_dy_dz
+
+        coords = sbas.solid_tide(sbas.df.index, coords=[13.40076, 47.40143])
+        coords = sbas.solid_tide(sbas.df.index, coords=[[13.40076, 47.40143]])
+        coords = sbas.solid_tide(sbas.df.index, coords=[[13.40076, 47.40143], [13.40076, 47.40143]])
+
+        """
+        import numpy as np
+        import pandas as pd
+        from io import StringIO, BytesIO
+        import os
+        import subprocess
+    
+        coords = np.asarray(coords)
+        if len(coords.shape) == 1:
+            coords = [coords]
+        buffer = BytesIO()
+        np.savetxt(buffer, coords, delimiter=' ', fmt='%.6f')
+        stdin_data = buffer.getvalue()
+        #print ('stdin_data', stdin_data)
+
+        outs = []
+        for date in dates:
+            SC_clock_start, SC_clock_stop = sbas.PRM(None, date).get('SC_clock_start', 'SC_clock_stop')
+            dt = (SC_clock_start + SC_clock_stop)/2
+            argv = ['solid_tide', str(dt)]
+            #cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
+            cwd = self.basedir
+            p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, cwd=cwd, bufsize=10*1000*1000)
+            stdout_data, stderr_data = p.communicate(input=stdin_data)
+
+            stderr_data = stderr_data.decode('ascii')
+            if stderr_data is not None and len(stderr_data) and debug:
+                print ('DEBUG: solid_tide', stderr_data)
+                return None
+
+            out = np.fromstring(stdout_data, dtype=float, sep=' ')
+            outs.append(out)
+        return np.asarray(outs) if len(outs)>1 else outs[0]
