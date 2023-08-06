@@ -40,7 +40,7 @@ class SBAS_incidence(SBAS_geocode):
 
         Parameters
         ----------
-        unwraps : xarray.DataArray or xarray.Dataset
+        unwraps : xarray.DataArray or constant, list, tuple, Numpy array, Pandas Series
             Unwrapped phase grid(s) in radar or geographic coordinates.
 
         Returns
@@ -64,11 +64,18 @@ class SBAS_incidence(SBAS_geocode):
         los_disp_ll = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.los_displacement_mm)
         # Note: here "func" argument for open_grids() function reduces the code to a single command.
         """
+        import xarray as xr
+        import numpy as np
+
+        if isinstance(unwraps, (list, tuple)):
+            unwraps = np.asarray(unwraps)
         # constant is negative to make LOS = -1 * range change
         # constant is (1000 mm) / (4 * pi)
         scale = -79.58 * self.PRM().get('radar_wavelength')
         los_disp = scale*unwraps
-        return los_disp.rename('los')
+        if isinstance(los_disp, (xr.DataArray)):
+            return los_disp.rename('los')
+        return los_disp
 
     def incidence_angle(self):
         """
