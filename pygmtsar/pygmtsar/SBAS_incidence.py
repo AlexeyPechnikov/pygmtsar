@@ -12,6 +12,30 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_incidence(SBAS_geocode):
 
+    def los_projection(self, data, lon=None, lat=None):
+        """
+        Calculate LOS projection for vector defined by its dx, dy, dz components
+    
+        Note: the function is not optimized for delayed execution.
+        
+        Examples
+        -------
+        Calculate tidal LOS projection in millimeters for vector (dx, dy, dz) defined in meters
+        coords = sbas.solid_tide(sbas.df.index, coords=[lon, lat])[:,-3:]
+        1000*sbas.los_projection(coords.T, lon, lat)
+        """
+        sat_look = self.get_sat_look()
+    
+        if lat is not None and lon is not None:
+            sat_look = sat_look.sel(lat=lat, lon=lon, method='nearest')
+        else:
+            print ('NOTE: estimation using central point satellite look vector')
+            sat_look = sat_look.isel(lat=sat_look.lat.size//2, lon=sat_look.lon.size//2)
+
+        dx, dy, dz = data
+        return dx * sat_look.look_E.values + dy * sat_look.look_N.values + dz * sat_look.look_U.values
+
+
     def get_sat_look(self, chunksize=None):
         """
         Return satellite look vectors in geographic coordinates as Xarray Dataset.
