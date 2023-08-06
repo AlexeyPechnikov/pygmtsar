@@ -275,6 +275,12 @@ class SBAS_trans_inv(SBAS_trans):
 
         trans_inv = xr.Dataset({'lt': lt, 'll': ll, 'ele': ele})
         del lt, ll, ele
+        
+        # calculate indices
+        trans_inv['lt_min'] = trans_inv.lt.min('x')
+        trans_inv['lt_max'] = trans_inv.lt.max('x')
+        trans_inv['ll_min'] = trans_inv.ll.min('y')
+        trans_inv['ll_max'] = trans_inv.ll.max('y')
     
         if interactive:
             return trans_inv
