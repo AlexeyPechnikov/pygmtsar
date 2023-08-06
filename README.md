@@ -1,4 +1,4 @@
-## Announce: ebook "PyGMTSAR: Sentinel-1 Python InSAR: An Introduction" is now available on [Amazon, Apple, Kobo and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction).
+## Announcement: The ebook "PyGMTSAR: Sentinel-1 Python InSAR: An Introduction" is now available on [Amazon, Apple, Kobo and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). For a glimpse of the content, check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar/book/PyGMTSAR_preview.pdf) uploaded in the repository.
 
 [![MacOS tests](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml)
 [![Ubuntu tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml)
