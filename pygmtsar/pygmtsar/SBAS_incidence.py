@@ -14,27 +14,82 @@ class SBAS_incidence(SBAS_geocode):
 
     def los_projection(self, data, lon=None, lat=None):
         """
-        Calculate LOS projection for vector defined by its dx, dy, dz components
-    
-        Note: the function is not optimized for delayed execution.
-        
+        Calculate LOS projection for vector defined by its dx, dy, dz components.
+
+        Parameters
+        ----------
+        data : list, tuple, numpy.ndarray, pandas.DataFrame
+            The input data containing the displacement components dx, dy, dz.
+        lon : float, optional
+            The longitude for which the satellite look vector is to be extracted.
+        lat : float, optional
+            The latitude for which the satellite look vector is to be extracted.
+
+        Returns
+        -------
+        float, numpy.ndarray, pandas.DataFrame
+            The LOS projection. Type of return depends on the input type.
+
+        Note
+        ----
+        The function is not optimized for delayed execution.
+
         Examples
         -------
-        Calculate tidal LOS projection in millimeters for vector (dx, dy, dz) defined in meters
-        coords = sbas.solid_tide(sbas.df.index, coords=[lon, lat])[:,-3:]
-        1000*sbas.los_projection(coords.T, lon, lat)
+        Calculate tidal LOS projection:
+        los_projection_mm = 1000*sbas.los_projection(tidal)
+        # Expected input
+        #        lon       lat       dx         dy          dz
+        # date						
+        # 2022-06-16  13400.758  47401.431  -66.917528  -4.765059  16.200381
+        # ...        
+        # Expected output:
+        #        lon       lat       dx         dy          dz        los
+        # date						
+        # 2022-06-16  13400.758  47401.431  -66.917528  -4.765059  16.200381  55.340305
+        # ...
+
+        Using list or tuple as input:
+        los_projection_mm = 1000*sbas.los_projection([tidal.dx, tidal.dy, tidal.dz], lon, lat)
+        # Expected output:
+        # [55.34030452, -56.55791618, ...]
+
+        Using numpy.ndarray as input:
+        los_projection_mm = 1000*sbas.los_projection(np.column_stack([tidal.dx, tidal.dy, tidal.dz]))
+        # Expected output (with central point satellite look vector estimation):
+        # [54.72536278, -57.87347137, ...]
+
+        Note: When lat and lon are not provided, the function will estimate using a central point satellite look vector.
+
         """
+        import pandas as pd
+        import numpy as np
+
         sat_look = self.get_sat_look()
+
+        if isinstance(data, (list, tuple)):
+            data = np.column_stack(data)
     
-        if lat is not None and lon is not None:
-            sat_look = sat_look.sel(lat=lat, lon=lon, method='nearest')
-        else:
-            print ('NOTE: estimation using central point satellite look vector')
-            sat_look = sat_look.isel(lat=sat_look.lat.size//2, lon=sat_look.lon.size//2)
-
-        dx, dy, dz = data
-        return dx * sat_look.look_E.values + dy * sat_look.look_N.values + dz * sat_look.look_U.values
-
+        if isinstance(data, np.ndarray):
+            if lat is not None and lon is not None:
+                look = sat_look.sel(lat=lat, lon=lon, method='nearest')
+            else:
+                print ('NOTE: estimation using central point satellite look vector')
+                look = sat_look.isel(lat=sat_look.lat.size//2, lon=sat_look.lon.size//2)
+            # only for input scalars
+            #return data[0] * sat_look.look_E.values + data[1] * sat_look.look_N.values + data[2] * sat_look.look_U.values
+            return np.dot(data, [look.look_E, look.look_N, look.look_U])
+        elif isinstance(data, pd.DataFrame):
+            # TODO: allow to process multiple coordinates
+            if 'lat' in data.columns and 'lon' in data.columns:
+                lon = data.loc[data.index[0], 'lon']
+                lat = data.loc[data.index[0], 'lat']
+                look = sat_look.sel(lat=lat, lon=lon, method='nearest')
+            else:
+                print ('NOTE: estimation using central point satellite look vector')
+                look = sat_look.isel(lat=sat_look.lat.size//2, lon=sat_look.lon.size//2)
+            los = np.dot(np.column_stack([data.dx, data.dy, data.dz]), [look.look_E, look.look_N, look.look_U])
+            return data.assign(los=los)
 
     def get_sat_look(self, chunksize=None):
         """
