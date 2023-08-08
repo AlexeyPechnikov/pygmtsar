@@ -121,6 +121,7 @@ class SBAS_dem(SBAS_reframe):
                    .sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
                        lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
 
+
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
@@ -159,6 +160,12 @@ class SBAS_dem(SBAS_reframe):
         Download STRM3 DEM with a resolution of 90 meters and convert it to a 120-meter grid:
         sbas.download_dem(product='STRM3', resolution_meters=120)
 
+        Load and crop from local NetCDF file:
+        sbas.download_dem(product='GEBCO_2020/GEBCO_2020.nc')
+
+        Load and crop from local GeoTIF file:
+        sbas.download_dem(product='GEBCO_2019.tif')
+
         Notes
         -----
         This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then preprocessed
@@ -168,6 +175,7 @@ class SBAS_dem(SBAS_reframe):
         import xarray as xr
         import numpy as np
         import pygmt
+        import rioxarray as rio
         import os
         #import subprocess
         from tqdm.auto import tqdm
@@ -190,7 +198,9 @@ class SBAS_dem(SBAS_reframe):
         elif product in ['01s', '03s']:
             resolution = product
         else:
-            print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
+            # open from user-specified NetCDF or GeoTIF file
+            resolution = None
+            #print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
 
         err, warn = self.validate()
         #print ('err, warn', err, warn)
@@ -207,14 +217,29 @@ class SBAS_dem(SBAS_reframe):
         dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
 
         with tqdm(desc='DEM Downloading', total=1) as pbar:
-            ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=region)
+            if resolution is not None:
+                # download DEM
+                ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=region)
+            elif os.path.splitext(product)[-1] in ['.tiff', '.tif', '.TIF']:
+                ortho = rio.open_rasterio(product, chunks=self.chunksize).squeeze(drop=True)\
+                    .rename({'y': 'lat', 'x': 'lon'}).sel(lon=slice(minx, maxx))\
+                    .drop('spatial_ref')
+                if ortho.lat.diff('lat')[0].item() > 0:
+                    ortho = ortho.sel(lat=slice(miny, maxy))
+                else:
+                    ortho = ortho.sel(lat=slice(maxy, miny))
+                    ortho = ortho.reindex(lat=ortho.lat[::-1])
+            elif os.path.splitext(product)[-1] in ['.nc', '.netcdf', '.grd']:
+                ortho = xr.open_dataarray(product, engine=self.engine, chunks=self.chunksize)\
+                    .sel(lat=slice(miny, maxy), lon=slice(minx, maxx))
+
             #print ('ortho', ortho)
             geoid = xr.open_dataarray(geoid_filename).rename({'y': 'lat', 'x': 'lon'}).interp_like(ortho, method='cubic')
             #print ('geoid', geoid)
             if os.path.exists(dem_filename):
                 os.remove(dem_filename)
             #print ('(ortho + geoid_resamp)', (ortho + geoid))
-            (ortho + geoid).rename('dem').to_netcdf(dem_filename)
+            (ortho + geoid).rename('dem').to_netcdf(dem_filename, engine=self.engine)
             pbar.update(1)
 
         self.dem_filename = dem_filename
