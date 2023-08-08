@@ -339,7 +339,7 @@ class SBAS_sbas(SBAS_detrend):
             #print (date, ST0, YDAY, BPL, BPR)
         return pd.DataFrame(data).set_index('date')
 
-    def baseline_pairs(self, days=100, meters=150, limit=None, invert=False, n_jobs=-1, debug=False):
+    def baseline_pairs(self, days=100, meters=None, limit=None, invert=False, n_jobs=-1, debug=False):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
 
@@ -382,7 +382,7 @@ class SBAS_sbas(SBAS_detrend):
                     continue
                 if not (line1.YDAY < line2.YDAY and line2.YDAY - line1.YDAY < days):
                     continue
-                if not (abs(line1.BPR - line2.BPR)< meters):
+                if meters is not None and not (abs(line1.BPR - line2.BPR)< meters):
                     continue
 
                 counter += 1
