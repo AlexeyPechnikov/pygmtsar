@@ -120,7 +120,7 @@ class SBAS_geocode(SBAS_sbas):
         step_x = int(np.round(dx / trans_dx))
         #print ('step_y', step_y, 'step_x', step_x)
 
-        assert step_y>=1 and step_x>=1, 'Interferogram grid spacing is smaller than tran transform grid spacing; \
+        assert step_y>=1 and step_x>=1, 'Interferogram grid spacing is smaller than transform grid spacing; \
                                           call SBAS.geocode_parallel() with less coarsing'
 
         # define the equally spacing geographic coordinates grid
