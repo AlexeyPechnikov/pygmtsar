@@ -228,7 +228,7 @@ class SBAS_geocode(SBAS_sbas):
             trans = self.get_trans_dat()
 
         @dask.delayed
-        def intf_block(lats_block, lons_block, grid_ra):
+        def intf_block(lats_block, lons_block):
             from scipy.interpolate import RegularGridInterpolator
 
             trans_block = trans.sel(lat=lats_block, lon=lons_block)
@@ -242,9 +242,12 @@ class SBAS_geocode(SBAS_sbas):
             points = np.column_stack([y, x])
 
             # get interferogram full grid
-            ys = grid_ra.y.values
-            xs = grid_ra.x.values
+            ys = block_grid.y.values
+            xs = block_grid.x.values
 
+            # this code spends additional time for the checks to exclude warnings
+            if np.all(np.isnan(y)):
+                return np.nan * np.zeros((lats_block.size, lons_block.size), dtype=np.float32)
             # calculate trans grid subset extent
             ymin, ymax = np.nanmin(y), np.nanmax(y)
             xmin, xmax = np.nanmin(x), np.nanmax(x)
@@ -260,7 +263,7 @@ class SBAS_geocode(SBAS_sbas):
             if ys.size == 0 or xs.size == 0:
                 return np.nan * np.zeros((lats_block.size, lons_block.size), dtype=np.float32)
 
-            values = grid_ra.sel(y=ys, x=xs).values.astype(np.float64)
+            values = block_grid.sel(y=ys, x=xs).values.astype(np.float64)
 
             # perform interpolation
             interp = RegularGridInterpolator((ys, xs), values, method='nearest', bounds_error=False)
@@ -312,7 +315,7 @@ class SBAS_geocode(SBAS_sbas):
             for lats_block in lats_blocks:
                 blocks = []
                 for lons_block in lons_blocks:
-                    block = dask.array.from_delayed(intf_block(lats_block, lons_block, block_grid),
+                    block = dask.array.from_delayed(intf_block(lats_block, lons_block),
                                                     shape=(lats_block.size, lons_block.size), dtype=np.float32)
                     blocks.append(block)
                     del block
@@ -340,7 +343,7 @@ class SBAS_geocode(SBAS_sbas):
             if k not in ['y','x']:
                 out[k] = v
         return out.rename(grid.name)
-    
+
 ##########################################################################################
 # ll2ra
 ##########################################################################################
