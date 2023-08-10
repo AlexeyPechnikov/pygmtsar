@@ -58,7 +58,7 @@ class SBAS_trans_inv(SBAS_trans):
                 trans_invs.append(trans_inv)
         return trans_invs[0] if len(trans_invs)==1 else trans_invs
 
-    def trans_dat_inv(self, subswath=None, coarsen=(2,2), chunksize=None, interactive=False):
+    def trans_dat_inv(self, subswath=None, coarsen=(2,2), method='linear', chunksize=None, interactive=False):
         """
         Retrieve or calculate the transform data for a specific or all subswaths. This transform data is then saved as
             a NetCDF file for future use.
@@ -86,34 +86,6 @@ class SBAS_trans_inv(SBAS_trans):
         if np.issubdtype(type(coarsen), np.integer):
             coarsen = (coarsen, coarsen)
 
-    #         # extract and process a single trans_dat subset
-    #         @dask.delayed
-    #         def trans_dat_inv_block_prepare(azis, rngs, chunksize=None):
-    #             dazi = np.diff(azis)[0]
-    #             drng = np.diff(rngs)[0]
-    #             azis_min = azis.min() - dazi
-    #             azis_max = azis.max() + dazi
-    #             rngs_min = rngs.min() - drng
-    #             rngs_max = rngs.max() + drng
-    #             #print ('azis_min', azis_min, 'azis_max', azis_max)
-    # 
-    #             lats = trans_dat.lat[((trans_dat.azi_min<=azis_max)&(trans_dat.azi_max>=azis_min))]
-    #             lons = trans_dat.lon[((trans_dat.rng_min<=rngs_max)&(trans_dat.rng_max>=rngs_min))]
-    #             #print ('lats.shape', lats.shape, 'lons.shape', lons.shape)
-    # 
-    #             # extract and materialize required subset
-    #             trans_subset = trans_dat.sel(lat=lats, lon=lons)
-    #             block_ele = trans_subset.ele.compute(n_workers=1).data.ravel()
-    #             block_azi = trans_subset.azi.compute(n_workers=1).data.ravel()
-    #             block_rng = trans_subset.rng.compute(n_workers=1).data.ravel()
-    #             mask = (block_azi>=azis_min)&(block_azi<=azis_max)&(block_rng>=rngs_min)&(block_rng<=rngs_max)
-    #             block_ele_masked = block_ele[mask]
-    #             block_azi_masked = block_azi[mask]
-    #             block_rng_masked = block_rng[mask]
-    # 
-    #             del lats, lons, trans_subset, mask
-    #             return (block_azi, block_rng, block_ele)
-
         # extract and process multiple chunked trans_dat subsets
         # it can be some times slow and requires much less memory
         @dask.delayed
@@ -127,45 +99,51 @@ class SBAS_trans_inv(SBAS_trans):
             rngs_max = rngs.max() + 2*drng
             #print ('azis_min', azis_min, 'azis_max', azis_max)
 
-            lats = trans_dat.lat[((trans_dat.azi_min<=azis_max)&(trans_dat.azi_max>=azis_min))]
-            lons = trans_dat.lon[((trans_dat.rng_min<=rngs_max)&(trans_dat.rng_max>=rngs_min))]
-            #print ('lats.shape', lats.shape, 'lons.shape', lons.shape)
+            block_mask = ((trans_dat.amin<=azis_max)&(trans_dat.amax>=azis_min)&(trans_dat.rmin<=rngs_max)&(trans_dat.rmax>=rngs_min)).values
+            blocks_ys, blocks_xs = np.meshgrid(trans_dat.block_azi, trans_dat.block_rng, indexing='ij')
 
-            # split to equal chunks and rest
-            blocks = int(np.ceil(lats.size*lons.size / chunksize**2))
-            lats_blocks = np.array_split(lats, np.arange(0, lats.size, chunksize**2 // lons.size)[1:])
             # process chunks
             block_azis = []
             block_rngs = []
             block_lts  = []
             block_lls  = []
             block_eles = []
-            for lats_block in lats_blocks:
-                # extract and materialize required subset
-                trans_subset = trans_dat.sel(lat=lats_block, lon=lons)
-                block_lt, block_ll = xr.broadcast(trans_subset.lat, trans_subset.lon)
-                block_lt  = block_lt.data.ravel()
-                block_ll  = block_ll.data.ravel()
-                block_ele = trans_subset.ele.compute(n_workers=1).data.ravel()
-                block_azi = trans_subset.azi.compute(n_workers=1).data.ravel()
-                block_rng = trans_subset.rng.compute(n_workers=1).data.ravel()
+            for block_y, block_x in zip(blocks_ys[block_mask], blocks_xs[block_mask]):
+                # define coordinates
+                block_lt, block_ll = [block.ravel() for block in np.meshgrid(lt_blocks[block_y], ll_blocks[block_x])]
+                # extract variables
+                block_azi = trans_dat['azi'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
+                block_rng = trans_dat['rng'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
+                block_ele = trans_dat['ele'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
+                # mask valid values
                 mask = (block_azi>=azis_min)&(block_azi<=azis_max)&(block_rng>=rngs_min)&(block_rng<=rngs_max)
-                block_azis.append(block_azi[mask])
-                block_rngs.append(block_rng[mask])
                 block_lts.append(block_lt[mask])
                 block_lls.append(block_ll[mask])
+                block_azis.append(block_azi[mask])
+                block_rngs.append(block_rng[mask])
                 block_eles.append(block_ele[mask])
                 # cleanup
-                del trans_subset, block_azi, block_rng, block_lt, block_ll, block_ele, mask
+                del block_lt, block_ll, block_azi, block_rng, block_ele, mask
             # merge extracted results
-            block_azi = np.concatenate(block_azis)
-            block_rng = np.concatenate(block_rngs)
-            block_lt  = np.concatenate(block_lts)
-            block_ll  = np.concatenate(block_lls)
-            block_ele = np.concatenate(block_eles)
+            return (np.concatenate(block_azis),
+                    np.concatenate(block_rngs),
+                    np.concatenate(block_lts),
+                    np.concatenate(block_lls),
+                    np.concatenate(block_eles)
+                   )
+        
+        # griddata interpolation is easy and provides multiple methods
+        @dask.delayed
+        def trans_dat_inv_block(data, index, azis, rngs):
+            from scipy.interpolate import griddata
 
-            del block_azis, block_rngs, block_lts, block_lls, block_eles
-            return (block_azi, block_rng, block_lt, block_ll, block_ele)
+            #block_azi, block_rng, block_lt, block_ll, block_ele = data
+            # coordinates azi, rng
+            points = np.column_stack([data[0], data[1]])
+            grid = griddata(points, data[index], (azis[None, :], rngs[:, None]), method='linear').astype(np.float32)
+            output = grid.reshape((rngs.size, azis.size)).T
+            del points, grid
+            return output
 
     #         # cKDTree interpolations allows to get the distances to nearest pixels
     #         @dask.delayed
@@ -184,62 +162,49 @@ class SBAS_trans_inv(SBAS_trans):
     #             del block_ele, block_azi, block_rng, tree
     #             return grid.reshape((rngs.size, azis.size)).T
 
-        # griddata interpolation is easy and provides multiple methods
-        @dask.delayed
-        def trans_dat_inv_block(data, azis, rngs):
-            from scipy.interpolate import griddata
+    #     # griddata interpolation is easy and provides multiple methods
+    #     @dask.delayed
+    #     def trans_dat_inv_block(data, azis, rngs):
+    #         from scipy.interpolate import griddata
 
-            block_azi, block_rng, block_lt, block_ll, block_ele = data
-            points = np.column_stack([block_azi, block_rng])
+    #         block_azi, block_rng, block_lt, block_ll, block_ele = data
+    #         points = np.column_stack([block_azi, block_rng])
 
-            output = []
-            for block in [block_lt, block_ll, block_ele]:
-                grid = griddata(points, block, (azis[None, :], rngs[:, None]), method='linear').astype(np.float32)
-                output.append(grid.reshape((rngs.size, azis.size)).T)
-                del grid
+    #         output = []
+    #         for block in [block_lt, block_ll, block_ele]:
+    #             grid = griddata(points, block, (azis[None, :], rngs[:, None]), method='linear').astype(np.float32)
+    #             output.append(grid.reshape((rngs.size, azis.size)).T)
+    #             del grid
 
-            del block_ele, block_azi, block_rng, block_lt, block_ll, points
-            return np.asarray(output)
+    #         del block_ele, block_azi, block_rng, block_lt, block_ll, points
+    #         return np.asarray(output)
 
         if chunksize is None:
             chunksize = self.chunksize
 
         # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
         trans_dat = self.get_trans_dat(subswath)
+        # check that the dataset is opened with the same chunksize as it is used for creation
+        assert trans_dat.azi.data.numblocks == trans_dat.amax.shape, 'Chunksize is differ to the original for trans_dat'
         # materialize indices
-        trans_dat['azi_min'] = trans_dat.azi_min.compute()
-        trans_dat['azi_max'] = trans_dat.azi_max.compute()
-        trans_dat['rng_min'] = trans_dat.rng_min.compute()
-        trans_dat['rng_max'] = trans_dat.rng_max.compute()
+        trans_dat['amin'] = trans_dat.amin.compute()
+        trans_dat['amax'] = trans_dat.amax.compute()
+        trans_dat['rmin'] = trans_dat.rmin.compute()
+        trans_dat['rmax'] = trans_dat.rmax.compute()
+        # convert axes to Dask arrays with the same chunks
+        chunks = trans_dat.azi.data.chunks
+        lt_blocks = np.array_split(trans_dat['lat'].values, np.cumsum(chunks[0])[:-1])
+        ll_blocks = np.array_split(trans_dat['lon'].values, np.cumsum(chunks[1])[:-1])
 
         # define topo_ra grid
-        #rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
-        #azi_max = yvalid * num_patch
-        #print ('DEBUG: rng_max', rng_max, 'azi_max', azi_max)
-        # produce the same grid as coarsed interferogram
-        #azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
-        #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
         azis, rngs = self.define_trans_grid(subswath, coarsen)
-        
-        # build topo_ra grid by chunks
 
+        # build topo_ra grid by chunks
         # split to equal chunks and rest
         azis_blocks = np.array_split(azis, np.arange(0, azis.size, chunksize)[1:])
         rngs_blocks = np.array_split(rngs, np.arange(0, rngs.size, chunksize)[1:])
         #print ('azis_blocks.size', len(azis_blocks), 'rngs_blocks.size', len(rngs_blocks))
         #print ('lats_blocks[0]', lats_blocks[0])
-
-    #     # single block test
-    #     data = topo_ra_block_prepare(azis_blocks[-1], rngs_blocks[-1])
-    #     block = topo_ra_block(data, azis_blocks[-1], rngs_blocks[-1])
-    #     print (block.compute())
-
-    #     # single block test
-    #     #print ('azis_blocks[-1]', azis_blocks[-1])
-    #     #print ('rngs_blocks[5]', rngs_blocks[5])
-    #     data = topo_ra_block_prepare(azis_blocks[-1], rngs_blocks[5])
-    #     block = topo_ra_block(data, azis_blocks[-1], rngs_blocks[5])
-    #     return np.flipud(block.compute())
 
         block_lts_total  = []
         block_lls_total  = []
@@ -249,39 +214,37 @@ class SBAS_trans_inv(SBAS_trans):
             block_lls  = []
             block_eles = []
             for azis_block in azis_blocks:
-                # extract multiple outputs
-                #blockset = dask.delayed(trans_block)(...)
-                #block = dask.array.from_delayed(blockset[0], shape=(...), dtype=np.float32)
                 data = trans_dat_inv_block_prepare(azis_block, rngs_block, chunksize)
-                block_lt, block_ll, block_ele = dask.array.from_delayed(trans_dat_inv_block(data, azis_block, rngs_block),
-                                                shape=(3, azis_block.size, rngs_block.size), dtype=np.float32)
+                block_lt  = dask.array.from_delayed(trans_dat_inv_block(data, 2, azis_block, rngs_block),
+                                                shape=(azis_block.size, rngs_block.size), dtype=np.float32)
                 block_lts.append(block_lt.transpose(1,0))
+                block_ll  = dask.array.from_delayed(trans_dat_inv_block(data, 3, azis_block, rngs_block),
+                                                shape=(azis_block.size, rngs_block.size), dtype=np.float32)
                 block_lls.append(block_ll.transpose(1,0))
+                block_ele = dask.array.from_delayed(trans_dat_inv_block(data, 4, azis_block, rngs_block),
+                                                shape=(azis_block.size, rngs_block.size), dtype=np.float32)
                 block_eles.append(block_ele.transpose(1,0))
-                del data, block_lt, block_ll, block_ele
+                del block_lt, block_ll, block_ele
             block_lts_total.append(block_lts)
             block_lls_total.append(block_lls)
             block_eles_total.append(block_eles)
             del block_lts, block_lls, block_eles
 
         coords = {'y': azis, 'x': rngs}
-        lt = dask.array.block(block_lts_total).transpose(1,0)
-        lt = xr.DataArray(lt, coords=coords)
-        ll = dask.array.block(block_lls_total).transpose(1,0)
-        ll = xr.DataArray(ll, coords=coords)
-        ele = dask.array.block(block_eles_total).transpose(1,0)
-        ele = xr.DataArray(ele, coords=coords)
+        lt  = xr.DataArray(dask.array.block(block_lts_total).transpose(1,0),  coords=coords)
+        ll  = xr.DataArray(dask.array.block(block_lls_total).transpose(1,0),  coords=coords)
+        ele = xr.DataArray(dask.array.block(block_eles_total).transpose(1,0), coords=coords)
         del block_lts_total, block_lls_total, block_eles_total
 
         trans_inv = xr.Dataset({'lt': lt, 'll': ll, 'ele': ele})
         del lt, ll, ele
-        
+
         # calculate indices
         trans_inv['lt_min'] = trans_inv.lt.min('x')
         trans_inv['lt_max'] = trans_inv.lt.max('x')
         trans_inv['ll_min'] = trans_inv.ll.min('y')
         trans_inv['ll_max'] = trans_inv.ll.max('y')
-    
+
         if interactive:
             return trans_inv
 

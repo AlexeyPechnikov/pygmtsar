@@ -117,7 +117,7 @@ class SBAS_trans(SBAS_stack):
         import numpy as np
         import os
         import sys
-    
+
         # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
         #llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
         # use only 3 values from 5 available ignoring redudant lat, lon
@@ -129,7 +129,7 @@ class SBAS_trans(SBAS_stack):
         # expand simplified definition
         if np.issubdtype(type(coarsen), np.integer):
             coarsen = (coarsen, coarsen)
-    
+
         # build trans.dat
         def SAT_llt2rat(z, lat, lon, subswath, amin=0, amax=None, rmin=0, rmax=None):
             if amax is not None and rmax is not None:
@@ -147,7 +147,7 @@ class SBAS_trans(SBAS_stack):
                 #print ('mask[mask].size', mask[mask].size)
                 if mask[mask].size == 0:
                     return np.nan * np.zeros((z.shape[0], z.shape[1], 5), np.float32)
-        
+
             # compute 3D radar coordinates for all the geographical 3D points
             lons, lats = np.meshgrid(lon.astype(np.float32), lat.astype(np.float32))
             coords_ll = np.column_stack([lons.ravel(), lats.ravel(), z.ravel()])
@@ -170,16 +170,30 @@ class SBAS_trans(SBAS_stack):
             grid = topo.interp({topo.dims[0]: lats, topo.dims[1]: lons})
             #print ('grid.shape', grid.shape) 
             rae = SAT_llt2rat(grid.values, lats, lons, subswath, amin, amax, rmin, rmax)
-            # cleanup to fix unmanaged memory increasing due to external obect use
+            # define radar coordinate extent for the block
+            # this code produces a lot of warnings "RuntimeWarning: All-NaN slice encountered"
+            #rmin, rmax = np.nanmin(rae[...,0]), np.nanmax(rae[...,0])
+            #amin, amax = np.nanmin(rae[...,1]), np.nanmax(rae[...,1])
+            # this code spends additional time for the checks to exclude warnings
+            if not np.all(np.isnan(rae[...,0])):
+                rmin, rmax = np.nanmin(rae[...,0]), np.nanmax(rae[...,0])
+            else:
+                rmin = rmax = np.nan
+            if not np.all(np.isnan(rae[...,1])):
+                amin, amax = np.nanmin(rae[...,1]), np.nanmax(rae[...,1])
+            else:
+                amin = amax = np.nan
+            extent = np.asarray([amin, amax, rmin, rmax], dtype=np.float32)
+            # cleanup to fix unmanaged memory increasing due to external object use
             del topo, grid
-            return rae
+            return (rae, extent)
 
         # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
         dem = self.get_dem(geoloc=True).rename({'lat': 'yy', 'lon': 'xx'})
 
         # check DEM corners
         dem_corners = dem[::dem.yy.size-1, ::dem.xx.size-1]
-        rngs, azis, _ = trans_block(dem_corners.yy, dem_corners.xx, subswath).transpose(2,0,1)
+        rngs, azis, _ = trans_block(dem_corners.yy, dem_corners.xx, subswath)[0].transpose(2,0,1)
         azi_size = abs(np.diff(azis, axis=0).mean())
         rng_size = abs(np.diff(rngs, axis=1).mean())
         #print ('azi_size', azi_size)
@@ -187,20 +201,15 @@ class SBAS_trans(SBAS_stack):
         azi_steps = int(np.round(azi_size / coarsen[0]))
         rng_steps = int(np.round(rng_size / coarsen[1]))
         #print ('azi_steps', azi_steps, 'rng_steps',rng_steps)
-    
+
         # select radar coordinates extent
-        #rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
-        #azi_max = yvalid * num_patch
-        #print ('azi_max', azi_max, 'rng_max', rng_max)
-        #azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
-        #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
         azis, rngs = self.define_trans_grid(subswath, coarsen)
         azi_max = np.max(azis)
         rng_max = np.max(rngs)
         # allow 2 points around for linear and cubic interpolations
-        extent= {'amin': -2*azi_size/azi_steps, 'amax': azi_max+2*azi_size/azi_steps,
+        borders = {'amin': -2*azi_size/azi_steps, 'amax': azi_max+2*azi_size/azi_steps,
                  'rmin': -2*rng_size/rng_steps, 'rmax': rng_max+2*rng_size/rng_steps}
-        #print ('extent', extent)
+        #print ('borders', borders)
 
         ################################################################################
         # process the area
@@ -209,7 +218,6 @@ class SBAS_trans(SBAS_stack):
         lons = np.linspace(dem.xx[0], dem.xx[-1], rng_steps)
         #print ('lats', lats, 'lons', lons)
         #print ('lats.size', lats.size, 'lons.size', lons.size)
-        #print ('lons', lons[0], lons[-1], lons[-10:])
 
         # split to equal chunks and rest
         lats_blocks = np.array_split(lats, np.arange(0,lats.size, chunksize)[1:])
@@ -217,32 +225,35 @@ class SBAS_trans(SBAS_stack):
         #print ('lats_blocks.size', len(lats_blocks), 'lons_blocks.size', len(lons_blocks))
         #print ('lats_blocks[0]', lats_blocks[0])
 
-    #     # single block test
-    #     _ = trans_block(lats_blocks[0], lons_blocks[0], subswath, azi_max, rng_max)
-    #     print (_.shape)
-
         blocks_total = []
+        extents_total = []
         for lons_block in lons_blocks:
             blocks = []
+            extents = []
             for lats_block in lats_blocks:
                 # extract multiple outputs
-                #blockset = dask.delayed(trans_block)(...)
-                #block = dask.array.from_delayed(blockset[0], shape=(...), dtype=np.float32)
-                block = dask.array.from_delayed(dask.delayed(trans_block)(lats_block, lons_block, subswath, **extent),
-                                                shape=(lats_block.size, lons_block.size, 3), dtype=np.float32)
+                blockset = dask.delayed(trans_block)(lats_block, lons_block, subswath, **borders)
+                block = dask.array.from_delayed(blockset[0], shape=(lats_block.size, lons_block.size, 3), dtype=np.float32)
+                extent = dask.array.from_delayed(blockset[1], shape=(4,), dtype=np.float32)
+                #block = dask.array.from_delayed(dask.delayed(trans_block)(lats_block, lons_block, subswath, **extent),
+                #                                shape=(lats_block.size, lons_block.size, 3), dtype=np.float32)
                 blocks.append(block.transpose(2,1,0))
+                extents.append(extent[:, None, None])
+                del blockset, block, extent
             blocks_total.append(blocks)
+            extents_total.append(extents)
+            del blocks, extents
         rae = dask.array.block(blocks_total).transpose(2,1,0)
+        extent = dask.array.block(extents_total).transpose(2,1,0)
+        del blocks_total, extents_total
 
         # transform to separate variables
-        keys_vars = {val: xr.DataArray(rae[...,key], coords={'lat': lats,'lon': lons}) for (key, val) in llt2rat_map.items()}
-        trans = xr.Dataset({**keys_vars})
-    
-        # calculate indices for topo_ra processing
-        trans['azi_min'] = trans.azi.min('lon')
-        trans['azi_max'] = trans.azi.max('lon')
-        trans['rng_min'] = trans.rng.min('lat')
-        trans['rng_max'] = trans.rng.max('lat')
+        key_boundaries = {val: xr.DataArray(extent[...,key], dims=['block_azi', 'block_rng'])
+                          for (key, val) in enumerate(['amin', 'amax', 'rmin', 'rmax'])}
+        keys_vars = {val: xr.DataArray(rae[...,key], coords={'lat': lats,'lon': lons})
+                          for (key, val) in llt2rat_map.items()}
+        trans = xr.Dataset({**key_boundaries, **keys_vars})
+
         # add corresponding radar grid coordinates
         trans['y'] = azis
         trans['x'] = rngs
