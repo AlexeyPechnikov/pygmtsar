@@ -228,9 +228,11 @@ class SBAS_geocode(SBAS_sbas):
             trans = self.get_trans_dat()
 
         @dask.delayed
-        def intf_block(lats_block, lons_block):
+        def intf_block(lats_block, lons_block, stackval=None):
             from scipy.interpolate import RegularGridInterpolator
 
+            # use outer variables
+            block_grid = grid.sel({stackvar: stackval}) if stackval is not None else grid
             trans_block = trans.sel(lat=lats_block, lon=lons_block)
             # check if the data block exists
             if not (trans_block.lat.size>0 and trans_block.lon.size>0):
@@ -309,13 +311,12 @@ class SBAS_geocode(SBAS_sbas):
 
         stack = []
         for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
-            block_grid = grid.sel({stackvar: stackval}) if stackval is not None else grid
             # per-block processing
             blocks_total  = []
             for lats_block in lats_blocks:
                 blocks = []
                 for lons_block in lons_blocks:
-                    block = dask.array.from_delayed(intf_block(lats_block, lons_block),
+                    block = dask.array.from_delayed(intf_block(lats_block, lons_block, stackval),
                                                     shape=(lats_block.size, lons_block.size), dtype=np.float32)
                     blocks.append(block)
                     del block
