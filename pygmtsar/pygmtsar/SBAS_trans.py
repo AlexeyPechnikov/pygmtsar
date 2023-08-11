@@ -141,12 +141,18 @@ class SBAS_trans(SBAS_stack):
                 # raell
                 coords_ra = self.PRM(subswath).SAT_llt2rat(coords_ll, precise=1, binary=False)\
                     .astype(np.float32).reshape(zs.size, 5)
+                del lons, lats, coords_ll
                 #print (coords_ra.shape)
                 # check validity
                 mask = (coords_ra[:,0]>=rmin) & (coords_ra[:,0]<=rmax) & (coords_ra[:,1]>=amin) & (coords_ra[:,1]<=amax)
+                del coords_ra
                 #print ('mask[mask].size', mask[mask].size)
-                if mask[mask].size == 0:
+                valid_pixels = mask[mask].size
+                del mask
+                if valid_pixels == 0:
+                    # no valid pixels in the block, miss the processing
                     return np.nan * np.zeros((z.shape[0], z.shape[1], 5), np.float32)
+                # valid points included into the block, continue
 
             # compute 3D radar coordinates for all the geographical 3D points
             lons, lats = np.meshgrid(lon.astype(np.float32), lat.astype(np.float32))
@@ -155,10 +161,12 @@ class SBAS_trans(SBAS_stack):
             # 4th and 5th coordinates are the same as input lat, lon
             coords_ra = self.PRM(subswath).SAT_llt2rat(coords_ll, precise=1, binary=False)\
                 .astype(np.float32).reshape(z.shape[0], z.shape[1], 5)[...,:3]
+            del lons, lats, coords_ll
             if amax is not None and rmax is not None:
                 # mask values outside of radar area
                 mask = (coords_ra[...,0]>=rmin) & (coords_ra[...,0]<=rmax) & (coords_ra[...,1]>=amin) & (coords_ra[...,1]<=amax)
                 coords_ra[~mask] = np.nan
+                del mask
             return coords_ra
 
         # exclude latitude and longitude columns as redudant
@@ -166,26 +174,22 @@ class SBAS_trans(SBAS_stack):
             dlat = dem.yy.diff('yy')[0]
             dlon = dem.xx.diff('xx')[0]
             topo = dem.sel(yy=slice(lats[0]-dlat, lats[-1]+dlat), xx=slice(lons[0]-dlon, lons[-1]+dlon))
+            del dlat, dlon
             #print ('topo.shape', topo.shape, 'lats.size', lats.size, 'lons', lons.size)
             grid = topo.interp({topo.dims[0]: lats, topo.dims[1]: lons})
+            del topo
             #print ('grid.shape', grid.shape) 
             rae = SAT_llt2rat(grid.values, lats, lons, subswath, amin, amax, rmin, rmax)
+            del grid
             # define radar coordinate extent for the block
             # this code produces a lot of warnings "RuntimeWarning: All-NaN slice encountered"
             #rmin, rmax = np.nanmin(rae[...,0]), np.nanmax(rae[...,0])
             #amin, amax = np.nanmin(rae[...,1]), np.nanmax(rae[...,1])
             # this code spends additional time for the checks to exclude warnings
-            if not np.all(np.isnan(rae[...,0])):
-                rmin, rmax = np.nanmin(rae[...,0]), np.nanmax(rae[...,0])
+            if not np.all(np.isnan(rae[...,:2])):
+                extent = np.asarray([np.nanmin(rae[...,1]), np.nanmax(rae[...,1]), np.nanmin(rae[...,0]), np.nanmax(rae[...,0])], dtype=np.float32)
             else:
-                rmin = rmax = np.nan
-            if not np.all(np.isnan(rae[...,1])):
-                amin, amax = np.nanmin(rae[...,1]), np.nanmax(rae[...,1])
-            else:
-                amin = amax = np.nan
-            extent = np.asarray([amin, amax, rmin, rmax], dtype=np.float32)
-            # cleanup to fix unmanaged memory increasing due to external object use
-            del topo, grid
+                extent = np.asarray([np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
             return (rae, extent)
 
         # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
@@ -252,11 +256,14 @@ class SBAS_trans(SBAS_stack):
                           for (key, val) in enumerate(['amin', 'amax', 'rmin', 'rmax'])}
         keys_vars = {val: xr.DataArray(rae[...,key], coords={'lat': lats,'lon': lons})
                           for (key, val) in llt2rat_map.items()}
+        del extent, rae
         trans = xr.Dataset({**key_boundaries, **keys_vars})
+        del key_boundaries, keys_vars
 
         # add corresponding radar grid coordinates
         trans['y'] = azis
         trans['x'] = rngs
+        del azis, rngs
 
         if interactive:
             return trans
