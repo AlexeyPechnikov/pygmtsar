@@ -19,60 +19,46 @@ class SBAS_trans(SBAS_stack):
         azi_max = yvalid * num_patch
         #print ('azi_max', azi_max, 'rng_max', rng_max)
         # this grid covers the full interferogram area
-        azis = np.arange(0, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
-        rngs = np.arange(0, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+        # common single pixel resolution
+        #azis = np.arange(0, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
+        #rngs = np.arange(0, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+        # for subpixel resolution
+        azis = np.arange(0, azi_max+coarsen[0], coarsen[0], dtype=np.float64)
+        rngs = np.arange(0, rng_max+coarsen[1], coarsen[1], dtype=np.float64)
         # this grid is better suitable for multilooking interferogram coordinates
         #azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
         #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
         return (azis, rngs)
-        
-    def get_trans_dat(self, subswath=None, chunksize=None):
+
+    def get_trans(self, subswath=None, chunksize=None):
         """
         Retrieve the transform data for a specific or all subswaths.
 
-        This function opens a NetCDF dataset, which contains data mapping from geographical
-        coordinates to radar coordinates (from latitude-longitude domain to azimuth-range).
+        This function opens a NetCDF dataset, which contains data mapping from radar
+        coordinates to geographical coordinates (from azimuth-range to latitude-longitude domain).
 
         Parameters
         ----------
         subswath : int, optional
-            Subswath number to retrieve. If not specified, the function will retrieve the transform
-            data for all available subswaths.
+            Subswath number to retrieve. If not specified, the function will retrieve the inverse
+            transform data for all available subswaths.
 
         Returns
         -------
-        xarray.Dataset
-            An xarray dataset with the transform data.
+        xarray.Dataset or list of xarray.Dataset
+            An xarray dataset(s) with the transform data.
 
         Examples
         --------
-        Get the transform data for a specific subswath:
-        get_trans_dat(1)
+        Get the inverse transform data for a specific subswath:
+        get_trans(1)
 
-        Get the transform data for all available subswaths:
-        get_trans_dat()
+        Get the inverse transform data for all available subswaths:
+        get_trans_()
         """
-        import xarray as xr
-    
-        if subswath is None:
-            subswaths = self.get_subswaths()
-        else:
-            subswaths = [subswath]
+        return self.open_grid('trans', subswath=subswath, chunksize=chunksize)
 
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        transs = []
-        for subswath in subswaths:
-            filename = self.get_filenames(subswath, None, 'trans')
-            trans = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
-            if 'yy' in trans and 'xx' in trans:
-                transs.append(trans.rename({'yy': 'lat', 'xx': 'lon'}))
-            else:
-                transs.append(trans)
-        return transs[0] if len(transs)==1 else transs
-
-    def trans_dat(self, subswath=None, coarsen=2, chunksize=None, interactive=False):
+    def trans(self, subswath, coarsen, chunksize=None, interactive=False):
         """
         Retrieve or calculate the transform data for a specific or all subswaths. This transform data is then saved as
         a NetCDF file for future use.
@@ -115,8 +101,8 @@ class SBAS_trans(SBAS_stack):
         import dask
         import xarray as xr
         import numpy as np
-        import os
-        import sys
+        #import os
+        #import sys
 
         # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
         #llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
@@ -127,7 +113,7 @@ class SBAS_trans(SBAS_stack):
             chunksize = self.chunksize
 
         # expand simplified definition
-        if np.issubdtype(type(coarsen), np.integer):
+        if not isinstance(coarsen, (list,tuple, np.ndarray)):
             coarsen = (coarsen, coarsen)
 
         # build trans.dat
@@ -267,64 +253,4 @@ class SBAS_trans(SBAS_stack):
 
         if interactive:
             return trans
-
-        # save to NetCDF file
-        filename = self.get_filenames(subswath, None, 'trans')
-        if os.path.exists(filename):
-            os.remove(filename)
-        encoding = {val: self.compression(trans[val].shape, chunksize=chunksize) for (key, val) in llt2rat_map.items()}
-        handler = trans.to_netcdf(filename,
-                                        encoding=encoding,
-                                        engine=self.engine,
-                                        compute=False)
-        return handler
-
-    def trans_dat_parallel(self, interactive=False, **kwargs):
-        """
-        Retrieve or calculate the transform data for all subswaths in parallel. This function processes each subswath
-        concurrently using Dask.
-
-        Parameters
-        ----------
-        interactive : bool, optional
-            If True, the function returns a list of dask.delayed.Delayed objects representing the computation of
-            transform data for each subswath. If False, the function processes the transform data for each subswath
-            concurrently using Dask. Default is False.
-
-        Returns
-        -------
-        list or dask.delayed.Delayed
-            If interactive is True, it returns a list of dask.delayed.Delayed objects representing the computation
-            of transform data for each subswath.
-            If interactive is False, it returns a dask.delayed.Delayed object representing the computation of
-            transform data for all subswaths.
-
-        Examples
-        --------
-        Calculate and get the transform data for all subswaths in parallel:
-
-        >>> trans_dat_parallel()
-        <dask.delayed.Delayed at 0x7f8d13a69a90>
-
-        Calculate and get the transform data for all subswaths in parallel without saving it:
-
-        >>> trans_dat_parallel(interactive=True)
-        [<dask.delayed.Delayed at 0x7f8d13a69a90>, <dask.delayed.Delayed at 0x7f8d13a69b70>]
-        """
-        import dask
-
-        # process all the subswaths
-        subswaths = self.get_subswaths()
-        delayeds = []
-        for subswath in subswaths:
-            delayed = self.trans_dat(subswath=subswath, interactive=interactive, **kwargs)
-            if not interactive:
-                tqdm_dask(dask.persist(delayed), desc=f'Radar Transform Computing sw{subswath}')
-            else:
-                delayeds.append(delayed)
-
-        if interactive:
-            return delayeds[0] if len(delayeds)==1 else delayeds
-
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        import gc; gc.collect()
+        return self.save_grid(trans, 'trans', subswath, f'Radar Transform Computing sw{subswath}', chunksize)

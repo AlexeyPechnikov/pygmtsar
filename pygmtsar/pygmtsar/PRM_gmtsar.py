@@ -235,16 +235,16 @@ class PRM_gmtsar:
                 out = np.fromstring(stdout_data, dtype=float, sep=' ')
             return out if out.size==5 else out.reshape(-1,5)
 
-    def resamp(self, alignedPRM, alignedSLC_tofile, interp, debug=False):
+    def resamp(self, repeatPRM, repeatSLC_tofile, interp, debug=False):
         """
-        Resample the aligned image.
+        Resample the repeat image.
 
         Parameters
         ----------
-        alignedPRM : PRM
-            The PRM object for the aligned image.
-        alignedSLC_tofile : str
-            The file path to save the resampled aligned SLC image to.
+        repeatPRM : PRM
+            The PRM object for the repeat image.
+        repeatSLC_tofile : str
+            The file path to save the resampled repeat SLC image to.
         interp : int
             The interpolation method: 1 for nearest, 2 for bilinear, 3 for biquadratic, or 4 for bisinc.
         debug : bool, optional
@@ -253,29 +253,29 @@ class PRM_gmtsar:
         Returns
         -------
         PRM
-            The PRM object for the resampled aligned image.
+            The PRM object for the resampled repeat image.
 
         Notes
         -----
-        This method resamples the aligned image using the current PRM object and the PRM object for the aligned image.
-        The resampled aligned SLC image is saved to the specified file, and the resulting PRM parameters are returned.
+        This method resamples the repeat image using the current PRM object and the PRM object for the repeat image.
+        The resampled repeat SLC image is saved to the specified file, and the resulting PRM parameters are returned.
         """
         import os
         import subprocess
         from pygmtsar import PRM
 
-        if not isinstance(alignedPRM, PRM):
+        if not isinstance(repeatPRM, PRM):
             raise Exception('Argument should be PRM class instance')
 
         pipe1 = os.pipe()
-        os.write(pipe1[1], bytearray(alignedPRM.to_str(), 'ascii'))
+        os.write(pipe1[1], bytearray(repeatPRM.to_str(), 'ascii'))
         os.close(pipe1[1])
         #print ('descriptor 1', pipe1[0])
 
         pipe2 = os.pipe()
         #print ('descriptor 2', pipe2[1])
 
-        # Usage: resamp master.PRM aligned.PRM new_aligned.PRM new_aligned.SLC interp
+        # Usage: resamp master.PRM repeat.PRM new_repeat.PRM new_repeat.SLC interp
         #
         #cmd = f'resamp /dev/stdin /dev/fd/{pipe1[0]} /dev/fd/{pipe2[1]} /dev/stdout {intrp} | sponge ___'
         #cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
@@ -297,7 +297,7 @@ class PRM_gmtsar:
             print ('DEBUG: resamp', stderr_data.decode('ascii'))
 
         # save big SLC binary file
-        with open(alignedSLC_tofile, 'wb') as f:
+        with open(repeatSLC_tofile, 'wb') as f:
             f.write(stdout_data)
 
         # PRM file should be small text

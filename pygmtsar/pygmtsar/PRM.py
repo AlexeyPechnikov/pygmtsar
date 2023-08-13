@@ -732,7 +732,7 @@ class PRM(datagrid, PRM_gmtsar):
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
     # note: only one dimension chunked due to sequential file reading 
-    def read_SLC_int(self, intensity=False, chunksize=None):
+    def read_SLC_int(self, intensity=False, decibel=False, chunksize=None):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
         The method reads binary SLC data file, which contains alternating sequences of real and imaginary parts.
@@ -764,10 +764,14 @@ class PRM(datagrid, PRM_gmtsar):
         import numpy as np
         import dask, dask.array
         import os
+        import warnings
 
         # define lost class variables due to joblib
         if chunksize is None:
             chunksize = self.chunksize
+
+        if decibel:
+            intensity = True
 
         @dask.delayed
         def read_SLC_block(slc_filename, start, stop, intensity):
@@ -786,7 +790,14 @@ class PRM(datagrid, PRM_gmtsar):
                 return (DFACT*(real_part + 1j * imag_part)).astype(np.complex64)
             # Calculate intensity (GMTSAR compatible while it names intensity as amplitude)
             #return (DFACT*np.abs(real_part + 1j * imag_part))**2
-            return ((DFACT*real_part)**2 + (DFACT*imag_part)**2).astype(np.float32)
+            I = ((DFACT*real_part)**2 + (DFACT*imag_part)**2).astype(np.float32)
+            if not decibel:
+                return I
+            # calculate decibels, pay attention for -np.inf values
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                dB = 10*np.log10((I))
+            return np.where(np.isfinite(dB), dB, np.nan).astype(np.float32)
 
         prm = PRM.from_file(self.filename)
         # num_patches multiplier is omitted
@@ -911,8 +922,8 @@ class PRM(datagrid, PRM_gmtsar):
 
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
-    def intf(self, other, basedir, topo_ra_fromfile, basename=None, wavelength=200, psize=32, \
-            coarsen=(1,4), func=None, weight=None, chunksize=None, debug=False):
+    def intf(self, other, basedir, topo_fromfile, basename=None, wavelength=200, psize=32, \
+            coarsen=(1,4), func=None, weight=None, phase_tofile='phase', corr_tofile='corr', chunksize=None, debug=False):
         """
         Perform interferometric processing on the input SAR data.
 
@@ -922,8 +933,8 @@ class PRM(datagrid, PRM_gmtsar):
             Another instance of the PRM class representing the second SAR data.
         basedir : str
             Base directory for storing the processed data files.
-        topo_ra_fromfile : str
-            Path to the topo_ra file used for the calculation.
+        topo_fromfile : str
+            Path to the topo file used for the calculation.
         basename : str, optional
             Base name for the output files. If not provided, a default name will be generated.
         wavelength : int, optional
@@ -987,14 +998,14 @@ class PRM(datagrid, PRM_gmtsar):
         other.set(self.SAT_baseline(other, tail=9))
         self.set(self.SAT_baseline(self).sel('SC_height','SC_height_start','SC_height_end'))
 
-        # for topo_ra use relative path from PRM files directory
+        # for topo use relative path from PRM files directory
         # use imag.grd=bf for GMT native, C-binary format
-        # os.path.join(basedir, f'{subswath}_topo_ra.grd')
+        # os.path.join(basedir, f'{subswath}_topo.grd')
         if os.path.exists(fullname('real.grd')):
             os.remove(fullname('real.grd'))
         if os.path.exists(fullname('imag.grd')):
             os.remove(fullname('imag.grd'))
-        self.phasediff(other, topo_ra_fromfile=topo_ra_fromfile,
+        self.phasediff(other, topo_fromfile=topo_fromfile,
                        imag_tofile=fullname('imag.grd'),
                        real_tofile=fullname('real.grd'),
                        debug=debug)
@@ -1039,22 +1050,24 @@ class PRM(datagrid, PRM_gmtsar):
 
         if func is not None:
             corr = func(corr)
-        if os.path.exists(fullname('corr.grd')):
-            os.remove(fullname('corr.grd'))
+        corr_filename = fullname(f'{corr_tofile}.grd')
+        if os.path.exists(corr_filename):
+            os.remove(corr_filename)
         encoding = {'corr': self.compression(corr.shape, chunksize=chunksize)}
         #print ('DEBUG X2', corr_da)
         # rename to save lazy NetCDF preventing broken coordinates (y,y) 
-        corr.rename('corr').rename({'y': 'a', 'x': 'r'}).to_netcdf(fullname('corr.grd'), encoding=encoding, engine=self.engine)
+        corr.rename('corr').rename({'y': 'a', 'x': 'r'}).to_netcdf(corr_filename, encoding=encoding, engine=self.engine)
 
         if func is not None:
             phase = func(phase)
-        if os.path.exists(fullname('phasefilt.grd')):
-            os.remove(fullname('phasefilt.grd'))
+        phase_filename = fullname(f'{phase_tofile}.grd')
+        if os.path.exists(phase_filename):
+            os.remove(phase_filename)
         encoding = {'phase': self.compression(phase.shape, chunksize=chunksize)}
         #print ('DEBUG X3', phase_da)
         # mask phase using masked correlation
         # rename to save lazy NetCDF preventing broken coordinates (y,y)
-        phase.rename('phase').rename({'y': 'a', 'x': 'r'}).to_netcdf(fullname('phasefilt.grd'), encoding=encoding, engine=self.engine)
+        phase.rename('phase').rename({'y': 'a', 'x': 'r'}).to_netcdf(phase_filename, encoding=encoding, engine=self.engine)
 
         # cleanup
         del corr, phase

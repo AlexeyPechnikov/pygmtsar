@@ -13,25 +13,7 @@ from .tqdm_dask import tqdm_dask
 class SBAS_ps(SBAS_stl):
 
     def get_adi(self, subswath=None, chunksize=None):
-
-        if subswath is None:
-            subswaths = self.get_subswaths()
-        else:
-            subswaths = [subswath]
-
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        adis = []
-        for subswath in subswaths:
-            filename = f'F{subswath}_adi'
-            adi = self.open_model(filename, chunksize=chunksize)
-            if 'a' in adi.dims and 'r' in adi.dims:
-                adis.append(adi.rename({'a': 'y', 'r': 'x'}))
-            else:
-                adis.append(adi)
-
-        return adis[0] if len(adis)==1 else adis
+        return self.open_grid('adi', subswath, chunksize=chunksize)
 
     #from pygmtsar import tqdm_dask
     #SBAS.ps_parallel = ps_parallel    
@@ -43,7 +25,7 @@ class SBAS_ps(SBAS_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def adi_parallel(self, dates=None, scale=1e9, chunksize=None):
+    def adi_parallel(self, dates=None, chunksize=None):
         """
         scale amplitude to make minimum valid value about 1
         """
@@ -59,26 +41,18 @@ class SBAS_ps(SBAS_stl):
             if dates is None:
                 dates = self.df[self.df['subswath']==subswath].index.values
             #print ('dates', dates)
-            # select radar coordinates extent
-            rng_max = self.PRM(subswath).get('num_rng_bins')
-            #print ('azi_max', azi_max, 'rng_max', rng_max)
-            # use SLC-related chunks for faster processing
-            minichunksize = int(np.round(chunksize**2/rng_max))
-            #print (minichunksize)
-            amps = [self.PRM(subswath, date).read_SLC_int(intensity=True, chunksize=minichunksize) for date in dates]
-            # build stack
-            amps = xr.concat(amps, dim='date')
+            slcs = self.open_stack_slc(dates=dates, subswath=subswath, decibel=True)
             # normalize image intensities
-            tqdm_dask(mean := dask.persist(amps.mean(dim=['y','x'])), desc=f'Amplitude Normalization sw{subswath}')
+            tqdm_dask(mean := dask.persist(slcs.mean(dim=['y','x'])), desc=f'Amplitude Normalization sw{subswath}')
             # dask.persist returns tuple
             norm = (mean[0]/mean[0].mean(dim='date'))
             del mean
             # compute Amplitude Dispersion Index (ADI)
-            stats = (norm*amps).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
-            del amps, norm
-            ds = xr.merge([(scale*stats[0]).rename('amplitude'), (scale*stats[1]).rename('dispersion')])
+            stats = (norm*slcs).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
+            del slcs, norm
+            ds = xr.merge([(stats[0]).rename('amplitude'), (stats[1]).rename('dispersion')])
             del stats
-            self.save_model(ds.rename({'y': 'a', 'x': 'r'}), name=f'F{subswath}_adi', caption=f'Amplitude Dispersion Index (ADI) sw{subswath}')
+            self.save_grid(ds.rename({'y': 'a', 'x': 'r'}), 'adi', subswath, f'Amplitude Dispersion Index (ADI) sw{subswath}')
             del ds
 
     def get_adi_threshold(self, subswath, threshold, chunksize=None):
@@ -148,66 +122,6 @@ class SBAS_ps(SBAS_stl):
     
         adis = [self.get_adi_threshold(subswath, threshold, **kwargs) for subswath in subswaths]
         return adis[0] if len(adis)==1 else adis
-
-    def geotif_stack(self, dates=None, intensity=False, chunksize=None):
-        """
-        tiffs = sbas.geotif_stack(['2022-06-16', '2022-06-28'], intensity=True)
-        """
-        import xarray as xr
-        import rioxarray as rio
-        import pandas as pd
-        import numpy as np
-        # from GMTSAR code
-        DFACT = 2.5e-07
-    
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        stack = []
-        for subswath in self.get_subswaths():
-            if dates is None:
-                dates = self.df[self.df['subswath']==subswath].index.values
-            #print ('dates', dates)
-            tiffs = self.df[(self.df['subswath']==subswath)&(self.df.index.isin(dates))].datapath.values
-            tiffs = [rio.open_rasterio(tif, chunks=chunksize)[0] for tif in tiffs]
-            # build stack
-            tiffs = xr.concat(tiffs, dim='date')
-            tiffs['date'] = pd.to_datetime(dates)
-            # 2 and 4 multipliers to have the same values as in SLC
-            if intensity:
-                stack.append((2*DFACT*np.abs(tiffs))**2)
-            else:
-                stack.append(2*DFACT*tiffs)
-
-        return stack[0] if len(stack)==1 else stack
-
-    def slc_stack(self, dates=None, intensity=False, chunksize=None):
-        import xarray as xr
-        import pandas as pd
-        import numpy as np
-        import dask
-
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        stack = []
-        for subswath in self.get_subswaths():
-            if dates is None:
-                dates = self.df[self.df['subswath']==subswath].index.values
-            #print ('dates', dates)
-            # select radar coordinates extent
-            rng_max = self.PRM(subswath).get('num_rng_bins')
-            #print ('azi_max', azi_max, 'rng_max', rng_max)
-            # use SLC-related chunks for faster processing
-            minichunksize = int(np.round(chunksize**2/rng_max))
-            #print (minichunksize)
-            amps = [self.PRM(subswath, date).read_SLC_int(intensity=intensity, chunksize=minichunksize) for date in dates]
-            # build stack
-            amps = xr.concat(amps, dim='date')
-            amps['date'] = pd.to_datetime(dates)
-            stack.append(amps)
-
-        return stack[0] if len(stack)==1 else stack
 
     def solid_tide(self, dates, coords, debug=False):
         """

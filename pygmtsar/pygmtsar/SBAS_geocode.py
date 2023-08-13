@@ -12,6 +12,65 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_geocode(SBAS_sbas):
 
+    def geocode_parallel(self, coarsen=4, **kwargs):
+        """
+        Build topography in radar coordinates from WGS84 DEM using parallel computation.
+
+        Parameters
+        ----------
+        interactive : bool, optional
+            If True, the computation will be performed interactively and the results will be returned as delayed objects.
+            If False, the progress will be displayed using tqdm_dask. Default is False.
+
+        Returns
+        -------
+        handler or list of handlers
+            The handler(s) of the delayed computation if 'interactive' is True. Otherwise, None.
+
+        Examples
+        --------
+        sbas.topo_parallel()
+
+        Notes
+        -----
+        This method performs the parallel computation of topography in the radar coordinates for all subswaths
+        using Dask. It calls the 'topo' method for each subswath in parallel. If 'interactive' is True, the delayed
+        computation handlers will be returned. Otherwise, the progress will be displayed using tqdm_dask.
+        """
+        import dask
+
+        # process all the subswaths
+        subswaths = self.get_subswaths()
+
+        for subswath in subswaths:
+            self.trans(subswath=subswath, coarsen=coarsen, interactive=False, **kwargs)
+            self.trans_inv(subswath=subswath, coarsen=coarsen, interactive=False, **kwargs)
+            self.topo(subswath=subswath, interactive=False, **kwargs)
+
+
+    def stack_ra2ll(self, data, **kwargs):
+        if isinstance(data, (list, tuple)):
+            subswaths = self.get_subswaths()
+            stacks = []
+            for swath, data_swath in zip(subswaths, data):
+                stack = self.ra2ll(data_swath, swath, **kwargs)
+                stacks.append(stack)
+            return stacks
+
+        subswath = self.get_subswath()
+        return self.ra2ll(data, subswath, **kwargs)
+
+#     def stack_ra2ll(s# elf, data, **kwargs):
+#         if not isinstance(data, (list, tuple)):
+#             subswath = self.get_subswath()
+#             return self.ra2ll(data, subswath, **kwargs)
+#     
+#         subswaths = selt.get_subswaths()
+#         stacks = []
+#         for swath in subswaths:
+#             stack = self.ra2ll(data, swath, **kwargs)
+#             stacks.append(stack)
+#         return stacks
 
     # coarsen=1:
     # nearest: coords [array([596.97436523]), array([16976.93164062])]
@@ -55,138 +114,36 @@ class SBAS_geocode(SBAS_sbas):
         # set fake CRS to differ from WGS84 coordinates
         return gpd.GeoDataFrame(data, geometry=[Point(point_ra) for point_ra in points_ra], crs=3857)
 
-    def geocode_parallel(self, pairs=None, coarsen=None, chunksize=None):
-        """
-        Perform parallel geocoding of the interferograms.
-
-        Parameters
-        ----------
-        pairs : list or None, optional
-            List of interferogram pairs to process. If None, all available pairs will be processed.
-
-        Notes
-        -----
-        This method performs parallel geocoding of the interferograms. It builds the necessary geocoding matrices
-        to apply the geocoding transformation to the interferogram grids. The geocoding involves converting the
-        radar coordinates to geographic coordinates and vice versa.
-        """
-
-        # build trans_dat, trans_ dat_inv and topo_ra grids for merged subswaths
-        # for single-digit subswath the grids already created for interferogram processing
-        if len(str(self.get_subswath())) > 1 or coarsen is not None:
-            self.topo_ra_parallel(coarsen=coarsen)
-
-        # build geographic coordinates transformation matrix for landmask and other grids
-        self.intf_ll2ra_matrix_parallel(pairs=pairs, chunksize=chunksize)
-        # build radar coordinates transformation matrix for the interferograms grid stack        
-        self.intf_ra2ll_matrix_parallel(pairs=pairs, chunksize=chunksize)
-
+#     def geocode_parallel(self, data, coarsen=None, chunksize=None):
+#         """
+#         Perform parallel geocoding of the interferograms.
+# 
+#         Parameters
+#         ----------
+#         data : Xarray dataarray
+#             Stack of interferograms to process.
+# 
+#         Notes
+#         -----
+#         This method performs parallel geocoding of the interferograms. It builds the necessary geocoding matrices
+#         to apply the geocoding transformation to the interferogram grids. The geocoding involves converting the
+#         radar coordinates to geographic coordinates and vice versa.
+#         """
+# 
+#         # build trans_dat, trans_ dat_inv and topo_ra grids for merged subswaths
+#         # for single-digit subswath the grids already created for interferogram processing
+#         subswath = self.get_subswath()
+#         if len(str(subswath)) > 1 or coarsen is not None:
+#             self.topo_parallel(coarsen=coarsen)
+# 
+#         # build geographic coordinates transformation matrix for landmask and other grids
+#         sbas.intf_ll2ra_matrix(data, subswath, chunksize=chunksize)
+#         # build radar coordinates transformation matrix for the interferograms grid stack        
+#         self.intf_ra2ll_matrix(data, subswath, chunksize=chunksize)
 ##########################################################################################
 # ra2ll
 ##########################################################################################
-    def intf_ra2ll_matrix_parallel(self, pairs=None, chunksize=None, interactive=False):
-        """
-        Perform parallel computation of the radar-to-geographic coordinate transformation matrix.
-
-        Parameters
-        ----------
-        pairs : list or None, optional
-            List of interferogram pairs to process. If None, all available pairs will be processed.
-        interactive : bool, optional
-            Flag indicating whether to return the matrix without saving to a file.
-        """
-        import xarray as xr
-        import numpy as np
-        import dask
-        import os
-
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        pairs = self.pairs(pairs)
-
-        # find any one interferogram to define the grid
-        intf = self.open_grids(pairs[:1], 'phasefilt')[0].astype(bool)
-        dy = np.diff(intf.y)[0]
-        dx = np.diff(intf.x)[0]
-
-        # get transform table
-        trans = self.get_trans_dat()
-        trans_dy = np.diff(trans.y)[0]
-        trans_dx = np.diff(trans.x)[0]
-
-        # define transform spacing in radar coordinates
-        step_y = int(np.round(dy / trans_dy))
-        step_x = int(np.round(dx / trans_dx))
-        #print ('step_y', step_y, 'step_x', step_x)
-
-        assert step_y>=1 and step_x>=1, 'Interferogram grid spacing is smaller than transform grid spacing; \
-                                          call SBAS.geocode_parallel() with less coarsing'
-
-        # define the equally spacing geographic coordinates grid
-        lats = trans.lat[::step_y]
-        lons = trans.lon[::step_x]
-
-        # decimate the full trans grid to the required spacing
-        trans = trans.sel(lat=lats, lon=lons)[['azi', 'rng']]
-        # define interferogram radar coordinates grid
-        trans['y'] = xr.DataArray(intf.y.values, dims='y')
-        trans['x'] = xr.DataArray(intf.x.values, dims='x')
-
-        if interactive:
-            return trans
-
-        # save to NetCDF file
-        filename = self.get_filenames(None, None, 'intf_ra2ll')
-        #print ('filename', filename)
-        # to resolve NetCDF rewriting error
-        if os.path.exists(filename):
-            os.remove(filename)
-        encoding = {var: self.compression(trans[var].shape, chunksize=chunksize) for var in trans.data_vars}
-        handler = trans.to_netcdf(filename,
-                                  encoding=encoding,
-                                  engine=self.engine,
-                                  compute=False)
-        tqdm_dask(dask.persist(handler), desc='Build ra2ll Transform')
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        import gc; gc.collect()
-
-    def get_intf_ra2ll(self, subswath=None, chunksize=None):
-        """
-        Get the radar-to-geographic coordinate transformation matrix.
-
-        Parameters
-        ----------
-        chunksize : int or dict, optional
-            Chunk size for dask arrays. If not provided, the default chunk size is used.
-
-        Returns
-        -------
-        xarray.DataArray
-            The radar-to-geographic coordinate transformation matrix.
-
-        Notes
-        -----
-        This method retrieves the radar-to-geographic coordinate transformation matrix (intf_ra2ll) stored in the
-        NetCDF grid. The matrix is useful for inverse geocoding, converting interferogram grids from radar
-        coordinates to geographic coordinates.
-        """
-        import xarray as xr
-
-        subswath = self.get_subswath(subswath)
-        filename = self.get_filenames(subswath, None, 'intf_ra2ll')
-        trans = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
-        return trans
-
-    def intf_ra2ll(self, grid, chunksize=None):
-        """
-        Faster geocoding for interferogram grid. It uses usually decimated transformation table vs full table in ra2ll.
-        """
-        trans = self.get_intf_ra2ll()
-        return self.ra2ll(grid, trans=trans, chunksize=chunksize)
-
-    # intf_ra2ll
-    def ra2ll(self, grid, trans=None, chunksize=None):
+    def ra2ll(self, data, subswath, autoscale=True, chunksize=None):
         """
         Perform geocoding from radar to geographic coordinates.
 
@@ -216,23 +173,22 @@ class SBAS_geocode(SBAS_sbas):
         import numpy as np
 
         # helper check
-        if not 'y' in grid.dims or not 'x' in grid.dims:
-            print ('NOTE: the input grid is not in radar coordinates, miss geocoding')
-            return grid
+        if not 'y' in data.dims or not 'x' in data.dims:
+            print ('NOTE: the input data not in radar coordinates, miss geocoding')
+            return data
 
         if chunksize is None:
             chunksize = self.chunksize
 
-        if trans is None:
-            # get complete transform table
-            trans = self.get_trans_dat()
+        # get complete transform table
+        trans = self.get_trans(subswath)
 
         @dask.delayed
         def intf_block(lats_block, lons_block, stackval=None):
             from scipy.interpolate import RegularGridInterpolator
 
             # use outer variables
-            block_grid = grid.sel({stackvar: stackval}) if stackval is not None else grid
+            block_grid = data.sel({stackvar: stackval}) if stackval is not None else data
             trans_block = trans.sel(lat=lats_block, lon=lons_block)
             # check if the data block exists
             if not (trans_block.lat.size>0 and trans_block.lon.size>0):
@@ -274,8 +230,8 @@ class SBAS_geocode(SBAS_sbas):
             return grid_ll
 
         # analyse grid and transform matrix spacing
-        grid_dy = np.diff(grid.y)[0]
-        grid_dx = np.diff(grid.x)[0]
+        grid_dy = np.diff(data.y)[0]
+        grid_dx = np.diff(data.x)[0]
         trans_dy = np.diff(trans.y)[0]
         trans_dx = np.diff(trans.x)[0]
 
@@ -283,34 +239,30 @@ class SBAS_geocode(SBAS_sbas):
         step_y = int(np.round(grid_dy / trans_dy))
         step_x = int(np.round(grid_dx / trans_dx))
         #print ('step_y', step_y, 'step_x', step_x)
-
         assert step_y>=1 and step_x>=1, f'Transforming grid spacing (grid_dy, grid_dx) is smaller \
                                           than transform matrix spacing (trans_dy, trans_dx), \
                                           call SBAS.topo_ra_parallel() or SBAS.geocode_parallel() with less coarsing'
         # decimate the full trans grid to the required spacing
-        if step_y>1 or step_x>1:
+        if autoscale and (step_y>1 or step_x>1):
             # define the equally spacing geographic coordinates grid
             trans = trans.sel(lat=trans.lat[::step_y], lon=trans.lon[::step_x])
+         # define output geographic coordinates grid
+        lats = trans.lat
+        lons = trans.lon
+
         # select required variables only
         trans = trans[['azi', 'rng']]
 
-        # define the equally spacing geographic coordinates grid
-        lats = trans.lat[::step_y]
-        lons = trans.lon[::step_x]
-
-        # specify output coordinates
-        lats = trans.lat
-        lons = trans.lon
         # split to equal chunks and rest
         lats_blocks = np.array_split(lats, np.arange(0, lats.size, chunksize)[1:])
         lons_blocks = np.array_split(lons, np.arange(0, lons.size, chunksize)[1:])
 
         # find stack dim
-        stackvar = grid.dims[0] if len(grid.dims) == 3 else 'stack'
+        stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
         #print ('stackvar', stackvar)
 
         stack = []
-        for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
+        for stackval in data[stackvar].values if len(data.dims) == 3 else [None]:
             # per-block processing
             blocks_total  = []
             for lats_block in lats_blocks:
@@ -323,7 +275,7 @@ class SBAS_geocode(SBAS_sbas):
                 blocks_total.append(blocks)
                 del blocks
             dask_block = dask.array.block(blocks_total)
-            if len(grid.dims) == 3:
+            if len(data.dims) == 3:
                 coords = {stackvar: [stackval], 'lat': trans.coords['lat'], 'lon': trans.coords['lon']}
                 da = xr.DataArray(dask_block[None, :], coords=coords)
             else:
@@ -333,22 +285,22 @@ class SBAS_geocode(SBAS_sbas):
             del blocks_total, dask_block
 
         # wrap lazy Dask array to Xarray dataarray
-        if len(grid.dims) == 2:
+        if len(data.dims) == 2:
             out = stack[0]
         else:
             out = xr.concat(stack, dim=stackvar)
         del stack
 
         # append source grid coordinates excluding removed y, x ones
-        for (k,v) in grid.coords.items():
+        for (k,v) in data.coords.items():
             if k not in ['y','x']:
                 out[k] = v
-        return out.rename(grid.name)
+        return out.rename(data.name)
 
 ##########################################################################################
 # ll2ra
 ##########################################################################################
-    def intf_ll2ra_matrix_parallel(self, pairs=None, chunksize=None, interactive=False):
+    def intf_ll2ra_matrix(self, stack, subswath, chunksize=None, interactive=False):
         """
         Perform parallel computation of the geographic-to-radar coordinate transformation matrix.
 
@@ -364,10 +316,13 @@ class SBAS_geocode(SBAS_sbas):
         import dask
         import os
 
+        if len(stack.dims) == 3:
+            intf = stack[0].astype(bool)
+        else:
+            intf = stack.astype(bool)
+
         if chunksize is None:
             chunksize = self.chunksize
-
-        pairs = self.pairs(pairs)
 
         @dask.delayed
         def intf_block_inv(intf_block):
@@ -406,15 +361,12 @@ class SBAS_geocode(SBAS_sbas):
             del trans_block, trans_grid, ys, xs, points
             return np.asarray(grids)
 
-        # find any one interferogram to define the grid
-        intf = self.open_grids(pairs[:1], 'phasefilt')[0].astype(bool)
-        #print ('intf', intf)
         blocks = chunksize**2 // intf.y.size
         xs_blocks = np.array_split(intf.x, np.arange(0, intf.x.size, blocks if blocks>=1 else 1)[1:])
         #print ('xs_blocks', xs_blocks)
 
         # get transform table
-        trans_inv = self.get_trans_dat_inv()[['lt', 'll']]
+        trans_inv = self.get_trans_dat_inv(subswath=subswath)[['lt', 'll']]
         #print ('trans_inv', trans_inv)
 
         # per-block processing
@@ -430,24 +382,10 @@ class SBAS_geocode(SBAS_sbas):
         lt = xr.DataArray(dask.array.block(block_lts), coords=intf.coords)
         ll = xr.DataArray(dask.array.block(block_lls), coords=intf.coords)
         trans = xr.Dataset({'lt': lt, 'll': ll}).rename({'y': 'a', 'x': 'r'})
-    
+
         if interactive:
             return trans
-
-        # save to NetCDF file
-        filename = self.get_filenames(None, None, 'intf_ll2ra')
-        #print ('filename', filename)
-        # to resolve NetCDF rewriting error
-        if os.path.exists(filename):
-            os.remove(filename)
-        encoding = {var: self.compression(trans[var].shape, chunksize=chunksize) for var in trans.data_vars}
-        handler = trans.to_netcdf(filename,
-                                  encoding=encoding,
-                                  engine=self.engine,
-                                  compute=False)
-        tqdm_dask(dask.persist(handler), desc='Build ll2ra Transform')
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        import gc; gc.collect()
+        return self.save_grid(trans, 'intf_ll2ra', f'Build ll2ra Transform sw{subswath}', subswath, chunksize)
 
     def get_intf_ll2ra(self, subswath=None, chunksize=None):
         """
@@ -472,7 +410,7 @@ class SBAS_geocode(SBAS_sbas):
         import xarray as xr
 
         subswath = self.get_subswath(subswath)
-        filename = self.get_filenames(subswath, None, 'intf_ll2ra')
+        filename = self.get_filenames(None, 'intf_ll2ra', subswath)
         trans_inv = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
         if 'a' in trans_inv.dims and 'r' in trans_inv.dims:
             return trans_inv.rename({'a': 'y', 'r': 'x'})

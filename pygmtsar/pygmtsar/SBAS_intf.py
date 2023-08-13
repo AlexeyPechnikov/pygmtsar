@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_topo_ra import SBAS_topo_ra
+from .SBAS_topo import SBAS_topo
 from .tqdm_dask import tqdm_dask
 
-class SBAS_intf(SBAS_topo_ra):
+class SBAS_intf(SBAS_topo):
 
     def intf(self, subswath, pair, **kwargs):
         """
@@ -43,7 +43,7 @@ class SBAS_intf(SBAS_topo_ra):
         # convert to 2D single-element array
         if isinstance(pair, pd.DataFrame):
             assert len(pair) == 1, 'Only single-record DataFrame or 1 D or 2D pair of dates allowed'
-            pair = self.pairs(pair)[['ref','rep']].astype(str).values
+            pair = self.get_pairs(pair)[['ref','rep']].astype(str).values
         else:
             pair = [pair] if np.asarray(pair).ndim == 1 else pair
 
@@ -97,7 +97,7 @@ class SBAS_intf(SBAS_topo_ra):
         import os
 
         # convert pairs (list, array, dataframe) to 2D numpy array
-        pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
+        pairs = self.get_pairs(pairs)[['ref', 'rep']].astype(str).values
 
         subswaths = self.get_subswaths()
 
@@ -113,7 +113,7 @@ class SBAS_intf(SBAS_topo_ra):
 
         if weight is not None and isinstance(weight, (list, tuple)):
             for idx, subswath in enumerate(subswaths):
-                weight_filename = self.get_filenames(subswath, None, 'intfweight')
+                weight_filename = self.get_filenames(None, 'intfweight', subswath)
                 if os.path.exists(weight_filename):
                     os.remove(weight_filename)
                 # workaround to save NetCDF file correct

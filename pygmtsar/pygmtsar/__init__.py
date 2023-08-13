@@ -14,6 +14,7 @@ from .tqdm_dask import tqdm_dask
 from .datagrid import datagrid
 # top level module classes
 from .PRM import PRM
+from .S1 import S1
 from .SBAS import SBAS
 # export to VTK format
 from .NCubeVTK import NCubeVTK

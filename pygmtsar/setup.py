@@ -33,7 +33,6 @@ setup(
     license='BSD-3-Clause',
     packages=['pygmtsar'],
     install_requires=['xarray>=0.19.0',
-                      'importlib-metadata',
                       'numpy>=1.22.4',
                       'numba',
                       'pandas>=1.4',

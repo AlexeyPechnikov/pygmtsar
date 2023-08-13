@@ -29,10 +29,7 @@ class datagrid:
     chunksize = 1024
     engine = 'h5netcdf'
     complevel = 3
-    # NODATA index value for transform matrices
-    # TODO: use the same datatype for the matrices to allow 64 bit datatype
-    noindex = np.uint32(-1)
-
+    
     # define lost class variables due to joblib via arguments
     def compression(self, shape=None, complevel=None, chunksize=None):
         """

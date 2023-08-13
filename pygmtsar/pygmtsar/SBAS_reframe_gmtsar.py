@@ -23,8 +23,8 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
         stem : str
             Stem name used for file naming.
         date : str, optional
-            Date for which to extract the orbital data. If not provided or if date is the master, 
-            it will extract the orbital data for the master. Defaults to None.
+            Date for which to extract the orbital data. If not provided or if date is the reference, 
+            it will extract the orbital data for the reference. Defaults to None.
         debug : bool, optional
             If True, prints debug information. Defaults to False.
 
@@ -39,10 +39,10 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
         import os
         import subprocess
 
-        if date is None or date == self.master:
-            df = self.get_master(subswath)
+        if date is None or date == self.reference:
+            df = self.get_reference(subswath)
         else:
-            df = self.get_aligned(subswath, date)
+            df = self.get_repeat(subswath, date)
 
         orbit = os.path.relpath(df['orbitpath'][0], self.basedir)
 
@@ -59,7 +59,7 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
         return
 
     # produce LED and PRM in basedir
-    # when date=None work on master image
+    # when date=None work on reference scene
     def make_s1a_tops(self, subswath, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
         """
         Produces LED and PRM in the base directory by executing GMTSAR binary `make_s1a_tops`.
@@ -70,7 +70,7 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
             Subswath number to process.
         date : str, optional
             Date for which to create the Sentinel-1A TOPS products. If not provided, 
-            it processes the master image. Defaults to None.
+            it processes the reference image. Defaults to None.
         mode : int, optional
             Mode for `make_s1a_tops` script: 
             0 - no SLC; 
@@ -97,13 +97,13 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
         import os
         import subprocess
 
-        #or date == self.master
+        #or date == self.reference
         if date is None:
-            df = self.get_master(subswath)
-            # for master image mode should be 1
+            df = self.get_reference(subswath)
+            # for reference image mode should be 1
             mode = 1
         else:
-            df = self.get_aligned(subswath, date)
+            df = self.get_repeat(subswath, date)
 
         # TODO: use subswath
         xmlfile = os.path.relpath(df['metapath'][0], self.basedir)
@@ -158,7 +158,7 @@ class SBAS_reframe_gmtsar(SBAS_orbits):
         import os
         import subprocess
 
-        df = self.get_aligned(subswath, date)
+        df = self.get_repeat(subswath, date)
         #print ('scenes', len(df))
 
         # assemble_tops requires the same path to xml and tiff files

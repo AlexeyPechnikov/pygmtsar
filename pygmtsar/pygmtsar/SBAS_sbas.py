@@ -106,7 +106,7 @@ class SBAS_sbas(SBAS_detrend):
         import pandas as pd
 
         # also define image capture dates from interferogram date pairs 
-        pairs, dates = self.pairs(pairs, dates=True)
+        pairs, dates = self.get_pairs(pairs, dates=True)
         pairs = pairs[['ref', 'rep']].astype(str).values
         
         # here are one row for every interferogram and one column for every date
@@ -117,7 +117,7 @@ class SBAS_sbas(SBAS_detrend):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def lstsq_parallel(self, data=None, weight=None, chunksize=None, interactive=False, debug=False):
+    def stack_lstsq(self, data=None, weight=None, chunksize=None, interactive=False, debug=False):
         """
         Perform least squares (weighted or unweighted) computation on the input data in parallel.
 
@@ -215,7 +215,7 @@ class SBAS_sbas(SBAS_detrend):
 
         # also define image capture dates from interferogram date pairs 
         # convert pairs (list, array, dataframe) to 2D numpy array
-        pairs, dates = self.pairs(data, dates=True)
+        pairs, dates = self.get_pairs(data, dates=True)
         pairs = pairs[['ref', 'rep']].astype(str).values
         # define pairs and dates matrix for LSQ calculation
         matrix = self.lstsq_matrix(pairs)
@@ -323,8 +323,8 @@ class SBAS_sbas(SBAS_detrend):
     
         # after merging use unmerged subswath PRM files
         # calc_dop_orb() required for SAT_baseline
-        master_dt = datetimes[self.master]
-        prm_ref = PRM().from_file(get_filename(master_dt)).calc_dop_orb(inplace=True)
+        reference_dt = datetimes[self.reference]
+        prm_ref = PRM().from_file(get_filename(reference_dt)).calc_dop_orb(inplace=True)
         data = []
         for (date, dt) in datetimes.items():
             # after merging use unmerged subswath PRM files

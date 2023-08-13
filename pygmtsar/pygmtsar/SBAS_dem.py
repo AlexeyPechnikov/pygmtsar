@@ -114,7 +114,7 @@ class SBAS_dem(SBAS_reframe):
         if geoloc is False:
             return dem
 
-        bounds = self.get_master(subswath).dissolve().envelope.bounds.values[0].round(3)
+        bounds = self.get_reference(subswath).dissolve().envelope.bounds.values[0].round(3)
         #print ('xmin, xmax', xmin, xmax)
         return dem\
                    .transpose('lat','lon')\
@@ -202,9 +202,9 @@ class SBAS_dem(SBAS_reframe):
             resolution = None
             #print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
 
-        err, warn = self.validate()
+        #err, warn = self.validate()
         #print ('err, warn', err, warn)
-        assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
+        #assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
 
         # generate DEM for the area using GMT extent as W E S N
         # round the coordinates up to 1 mm

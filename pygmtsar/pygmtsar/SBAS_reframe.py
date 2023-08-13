@@ -8,6 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .SBAS_reframe_gmtsar import SBAS_reframe_gmtsar
+from .S1 import S1
 from .PRM import PRM
 
 class SBAS_reframe(SBAS_reframe_gmtsar):
@@ -48,6 +49,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         import numpy as np
         #import shapely
         from shapely.geometry import Point, LineString, Polygon, MultiPolygon
+        from datetime import datetime
         import os
 
         # define line covering some bursts to crop them
@@ -72,7 +74,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         if debug:
             print ('DEBUG: geometry', geometry)
     
-        df = self.get_aligned(subswath, date)
+        df = self.get_repeat(subswath, date)
         stem = self.multistem_stem(subswath, df['datetime'][0])[1]
         #print ('stem', stem)
 
@@ -105,7 +107,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         filename = os.path.splitext(os.path.split(df['datapath'][0])[-1])[0]
         head1 = filename[:15]
         tail1 = filename[-17:]
-        xml_header = self.annotation(old_filename+'.xml')['product']['adsHeader']
+        xml_header = S1.read_annotation(old_filename+'.xml')['product']['adsHeader']
         date_new = xml_header['startTime'][:10].replace('-','')
         t1 = xml_header['startTime'][11:19].replace(':','')
         t2 = xml_header['stopTime'][11:19].replace(':','')
@@ -129,7 +131,8 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
 
         # update and return only one record
         df = df.head(1)
-        df['datetime'] = self.text2date(f'{date_new}t{t1}', False)
+        #df['datetime'] = self.text2date(f'{date_new}t{t1}', False)
+        df['datetime'] = datetime.strptime(f'{date_new}T{t1}', '%Y%m%dT%H%M%S')
         df['metapath'] = new_filename + '.xml'
         df['datapath'] = new_filename + '.tiff'
         # update approximate location

@@ -82,10 +82,10 @@ class SBAS_stack(SBAS_dem):
         topo_llt = np.column_stack([lons.values.ravel(), lats.values.ravel(), z.values.ravel()])
         return topo_llt
 
-    # aligning for master image
+    # aligning for reference image
     def stack_ref(self, subswath, debug=False):
         """
-        Align and stack the master image.
+        Align and stack the reference scene.
 
         Parameters
         ----------
@@ -106,11 +106,11 @@ class SBAS_stack(SBAS_dem):
         import numpy as np
         import os
 
-        master_line = list(self.get_master(subswath).itertuples())[0]
-        #print (master_line)
+        reference_line = list(self.get_reference(subswath).itertuples())[0]
+        #print (reference_line)
 
-        # for master image
-        multistem, stem = self.multistem_stem(subswath, master_line.datetime)
+        # for reference scene
+        multistem, stem = self.multistem_stem(subswath, reference_line.datetime)
         path_stem = os.path.join(self.basedir, stem)
         path_multistem = os.path.join(self.basedir, multistem)
 
@@ -158,27 +158,27 @@ class SBAS_stack(SBAS_dem):
         # temporary filenames to be removed
         cleanup = []
 
-        master_line = list(self.get_master(subswath).itertuples())[0]
-        multistem, stem = self.multistem_stem(subswath, master_line.datetime)
-        #print (master_line)
+        reference_line = list(self.get_reference(subswath).itertuples())[0]
+        multistem, stem = self.multistem_stem(subswath, reference_line.datetime)
+        #print (reference_line)
 
-        # define master image parameters
-        master = self.PRM(subswath).sel('earth_radius').set(stem=stem, multistem=multistem)
+        # define reference image parameters
+        reference = self.PRM(subswath).sel('earth_radius').set(stem=stem, multistem=multistem)
 
         # prepare coarse DEM for alignment
         # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
         topo_llt = self.get_topo_llt(subswath, degrees=degrees)
         #topo_llt.shape
 
-        line = list(self.get_aligned(subswath, date).itertuples())[0]
+        line = list(self.get_repeat(subswath, date).itertuples())[0]
         multistem, stem = self.multistem_stem(subswath, line.datetime)
         #print (line)
 
         # define relative filenames for PRM
         stem_prm    = os.path.join(self.basedir, stem + '.PRM')
         mstem_prm   = os.path.join(self.basedir, multistem + '.PRM')
-        master_prm  = os.path.join(self.basedir, master.get("stem") + '.PRM')
-        mmaster_prm = os.path.join(self.basedir, master.get("multistem") + '.PRM')
+        reference_prm  = os.path.join(self.basedir, reference.get("stem") + '.PRM')
+        mreference_prm = os.path.join(self.basedir, reference.get("multistem") + '.PRM')
 
         # TODO: define 1st image for line, in the example we have no more
         tmp_da = 0
@@ -190,19 +190,19 @@ class SBAS_stack(SBAS_dem):
         t1, prf = PRM.from_file(stem_prm).get('clock_start', 'PRF')
         t2      = PRM.from_file(stem_prm).get('clock_start')
         nl = int((t2 - t1)*prf*86400.0+0.2)
-        #echo "Shifting the master PRM by $nl lines..."
+        #echo "Shifting the reference PRM by $nl lines..."
 
-        # Shifting the master PRM by $nl lines...
-        # shift the super-masters PRM based on $nl so SAT_llt2rat gives precise estimate
-        prm1 = PRM.from_file(master_prm)
+        # Shifting the reference PRM by $nl lines...
+        # shift the super-references PRM based on $nl so SAT_llt2rat gives precise estimate
+        prm1 = PRM.from_file(reference_prm)
         prm1.set(prm1.sel('clock_start' ,'clock_stop', 'SC_clock_start', 'SC_clock_stop') + nl/prf/86400.0)
         tmp_prm = prm1
 
         # compute whether there are any image offset
         #if tmp_da == 0:
-        # tmp_prm defined above from {master}.PRM
-        prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
-        prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug).update()
+        # tmp_prm defined above from {reference}.PRM
+        prm1 = tmp_prm.calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug)
+        prm2 = PRM.from_file(stem_prm).calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug).update()
         lontie,lattie = prm1.SAT_baseline(prm2, debug=debug).get('lon_tie_point', 'lat_tie_point')
         tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
         tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
@@ -210,17 +210,17 @@ class SBAS_stack(SBAS_dem):
         tmp_da = int(tmp_as - tmp_am)
         #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
 
-        # in case the images are offset by more than a burst, shift the super-master's PRM again
+        # in case the images are offset by more than a burst, shift the super-reference's PRM again
         # so SAT_llt2rat gives precise estimate
         if abs(tmp_da) >= 1000:
             prf = tmp_prm.get('PRF')
             tmp_prm.set(tmp_prm.sel('clock_start' ,'clock_stop', 'SC_clock_start', 'SC_clock_stop') - tmp_da/prf/86400.0)
-            #raise Exception('TODO: Modifying master PRM by $tmp_da lines...')
+            #raise Exception('TODO: Modifying reference PRM by $tmp_da lines...')
 
-        # tmp.PRM defined above from {master}.PRM
-        prm1 = tmp_prm.calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+        # tmp.PRM defined above from {reference}.PRM
+        prm1 = tmp_prm.calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug)
         tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
-        prm2 = PRM.from_file(stem_prm).calc_dop_orb(master.get('earth_radius'), inplace=True, debug=debug)
+        prm2 = PRM.from_file(stem_prm).calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug)
         tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
 
         # get r, dr, a, da, SNR table to be used by fitoffset.csh
@@ -282,15 +282,15 @@ class SBAS_stack(SBAS_dem):
         PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
 
         # that is safe to rewrite source files
-        prm1 = PRM.from_file(mmaster_prm)
+        prm1 = PRM.from_file(mreference_prm)
         prm1.resamp(PRM.from_file(mstem_prm),
-                    alignedSLC_tofile=mstem_prm[:-4]+'.SLC',
+                    repeatSLC_tofile=mstem_prm[:-4]+'.SLC',
                     interp=1, debug=debug
         ).to_file(mstem_prm)
 
         PRM.from_file(mstem_prm).set(PRM.fitoffset(3, 3, par_tmp)).update()
 
-        PRM.from_file(mstem_prm).calc_dop_orb(master.get('earth_radius'), 0, inplace=True, debug=debug).update()
+        PRM.from_file(mstem_prm).calc_dop_orb(reference.get('earth_radius'), 0, inplace=True, debug=debug).update()
         
         # cleanup
         for filename in cleanup:
@@ -320,11 +320,11 @@ class SBAS_stack(SBAS_dem):
         import joblib
 
         if dates is None:
-            dates = list(self.get_aligned().index.unique())
+            dates = list(self.get_repeat().index.unique())
 
         subswaths = self.get_subswaths()
 
-        # prepare master image
+        # prepare reference scene
         #self.stack_ref()
         with self.tqdm_joblib(tqdm(desc='Reference', total=len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.stack_ref)(subswath, **kwargs) for subswath in subswaths)

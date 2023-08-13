@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_base import SBAS_base
+from .SBAS_prm import SBAS_prm
 
-class SBAS_orbits(SBAS_base):
+class SBAS_orbits(SBAS_prm):
     # for precision orbit there is only single orbit per day
     # for approximate orbit 2 and maybe more orbits per day are possible
     # so check orbit file for for each subswath
@@ -20,6 +20,7 @@ class SBAS_orbits(SBAS_base):
         Returns
         -------
         None
+        
 
         Examples
         --------

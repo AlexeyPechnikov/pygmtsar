@@ -53,7 +53,7 @@ class SBAS_merge(SBAS_merge_gmtsar):
         grid_tofile = fullname(f'F{subswaths_str}_adi.grd')
         tmp_stem_tofile  = fullname(f'F{subswaths_str}_adi')
 
-        config = '\n'.join(self.get_master().apply(format_string, axis=1).tolist())
+        config = '\n'.join(self.get_reference().apply(format_string, axis=1).tolist())
         #print ('merge_swath', config, grid_tofile, tmp_stem_tofile)
         self.merge_swath(config, grid_tofile, tmp_stem_tofile, debug=debug)
     
@@ -92,8 +92,8 @@ class SBAS_merge(SBAS_merge_gmtsar):
         #print (date1, date2)
 
         # records should be sorted by datetime that's equal to sorting by date and subswath
-        multistems1 = self.get_aligned(None, date1).apply(record2multistem, axis=1)
-        multistems2 = self.get_aligned(None, date2).apply(record2multistem, axis=1)
+        multistems1 = self.get_repeat(None, date1).apply(record2multistem, axis=1)
+        multistems2 = self.get_repeat(None, date2).apply(record2multistem, axis=1)
         if len(multistems1) == 1:
             # only one subswath found, merging is not possible
             return
@@ -111,11 +111,11 @@ class SBAS_merge(SBAS_merge_gmtsar):
             prm2 = PRM.from_file(prm2_filename)
             rshift = prm2.get('rshift')
             #print ('rshift', rshift)
-            #assert rshift == 0, 'rshift is not equal to zero for master PRM'
+            #assert rshift == 0, 'rshift is not equal to zero for reference PRM'
             fs1 = prm1.get('first_sample')
             fs2 = prm2.get('first_sample')
             #print ('fs1, fs2', fs1, fs2)
-            #assert fs1 == fs2, 'first_sample is not equal for master and repeat PRM'
+            #assert fs1 == fs2, 'first_sample is not equal for reference and repeat PRM'
             prm = prm1.set(rshift=rshift, first_sample=fs2 if fs2 > fs1 else fs1).to_file(prm_filename)
 
             subswath = int(multistem1[-1:])
@@ -192,7 +192,7 @@ class SBAS_merge(SBAS_merge_gmtsar):
             n_jobs = 1
 
         # convert pairs (list, array, dataframe) to 2D numpy array
-        pairs = self.pairs(pairs)[['ref', 'rep']].astype(str).values
+        pairs = self.get_pairs(pairs)[['ref', 'rep']].astype(str).values
 
         with self.tqdm_joblib(tqdm(desc=f'Merging Interferograms', total=len(pairs)*len(intfs))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge_intf)(pair, grid, **kwargs) \
