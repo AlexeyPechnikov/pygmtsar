@@ -12,8 +12,8 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_ps(SBAS_stl):
 
-    def get_adi(self, subswath=None, chunksize=None):
-        return self.open_grid('adi', subswath, chunksize=chunksize)
+    def get_ps(self, subswath=None, chunksize=None):
+        return self.open_grid('ps', subswath, chunksize=chunksize)
 
     #from pygmtsar import tqdm_dask
     #SBAS.ps_parallel = ps_parallel    
@@ -25,10 +25,7 @@ class SBAS_ps(SBAS_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def adi_parallel(self, dates=None, chunksize=None):
-        """
-        scale amplitude to make minimum valid value about 1
-        """
+    def ps_parallel(self, dates=None, intensity=True, dfact=2.5e-07, chunksize=None):
         import xarray as xr
         import numpy as np
         import dask
@@ -41,18 +38,22 @@ class SBAS_ps(SBAS_stl):
             if dates is None:
                 dates = self.df[self.df['subswath']==subswath].index.values
             #print ('dates', dates)
-            slcs = self.open_stack_slc(dates=dates, subswath=subswath, decibel=True)
+            # intensity=False means complex data
+            slcs = self.open_stack_slc(dates=dates, subswath=subswath, intensity=True, dfact=dfact)
+            # convert to amplitude for GMTSAR compatible calculations
+            if not intensity:
+                slcs = np.sqrt(slcs)
             # normalize image intensities
             tqdm_dask(mean := dask.persist(slcs.mean(dim=['y','x'])), desc=f'Amplitude Normalization sw{subswath}')
             # dask.persist returns tuple
-            norm = (mean[0]/mean[0].mean(dim='date'))
+            norm = mean[0].mean(dim='date') / mean[0]
             del mean
-            # compute Amplitude Dispersion Index (ADI)
-            stats = (norm*slcs).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
-            del slcs, norm
-            ds = xr.merge([(stats[0]).rename('amplitude'), (stats[1]).rename('dispersion')])
-            del stats
-            self.save_grid(ds.rename({'y': 'a', 'x': 'r'}), 'adi', subswath, f'Amplitude Dispersion Index (ADI) sw{subswath}')
+            # compute average and std.dev.
+            stats = (norm * slcs).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
+            del slcs
+            ds = xr.merge([stats[0].rename('average'), stats[1].rename('deviation'), norm.rename('norm_multiplier')])
+            del stats, norm
+            self.save_grid(ds.rename({'y': 'a', 'x': 'r'}), 'ps', subswath, f'Persistent Scatterers sw{subswath}')
             del ds
 
     def get_adi_threshold(self, subswath, threshold, chunksize=None):

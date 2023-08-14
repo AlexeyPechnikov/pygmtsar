@@ -397,7 +397,7 @@ class IO(datagrid):
 
         return das if subswath is None else das[0]
 
-    def open_stack_slc(self, dates=None, subswath=None, intensity=False, decibel=False, chunksize=None):
+    def open_stack_slc(self, dates=None, subswath=None, intensity=False, dfact=2.5e-07, chunksize=None):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -422,7 +422,7 @@ class IO(datagrid):
             # use SLC-related chunks for faster processing
             minichunksize = int(np.round(chunksize**2/rng_max))
             #print (minichunksize)
-            slcs = [self.PRM(swath, date).read_SLC_int(intensity=intensity, decibel=decibel, chunksize=minichunksize) for date in dates]
+            slcs = [self.PRM(swath, date).read_SLC_int(intensity=intensity, dfact=dfact, chunksize=minichunksize) for date in dates]
             # build stack
             slcs = xr.concat(slcs, dim='date')
             slcs['date'] = pd.to_datetime(dates)

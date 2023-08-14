@@ -47,7 +47,6 @@ class SBAS_geocode(SBAS_sbas):
             self.trans_inv(subswath=subswath, coarsen=coarsen, interactive=False, **kwargs)
             self.topo(subswath=subswath, interactive=False, **kwargs)
 
-
     def stack_ra2ll(self, data, **kwargs):
         if isinstance(data, (list, tuple)):
             subswaths = self.get_subswaths()

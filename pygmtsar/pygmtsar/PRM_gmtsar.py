@@ -307,7 +307,7 @@ class PRM_gmtsar:
     # TODO: add topo_ra argument processing
     # two binary files real.grd and imag.grd will be created
     # TBD: update phasediff tool to allow output files basename argument
-    def phasediff(self, other, topo_ra_fromfile, imag_tofile, real_tofile, debug=False):
+    def phasediff(self, other, topo_fromfile, imag_tofile, real_tofile, debug=False):
         """
         Compute the phase difference of two images.
 
@@ -315,7 +315,7 @@ class PRM_gmtsar:
         ----------
         other : PRM
             The PRM object for the other image.
-        topo_ra_fromfile : str or None, optional
+        topo_fromfile : str or None, optional
             The file path to the topo_ra grid. If provided, the topo_ra grid will be used in the phase difference computation. Default is None.
         imag_tofile : str
             The file path to save the imaginary component of the phase difference to.
@@ -354,9 +354,9 @@ class PRM_gmtsar:
         argv = ['phasediff', f'/dev/fd/{pipe1[0]}', f'/dev/fd/{pipe2[0]}',
                 '-imag', os.path.relpath(imag_tofile, cwd),
                 '-real', os.path.relpath(real_tofile, cwd)]
-        if topo_ra_fromfile is not None:
+        if topo_fromfile is not None:
             argv.append('-topo')
-            argv.append(os.path.relpath(topo_ra_fromfile,cwd))
+            argv.append(os.path.relpath(topo_fromfile,cwd))
         if debug:
             print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,

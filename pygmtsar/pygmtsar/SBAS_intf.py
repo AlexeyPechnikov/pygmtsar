@@ -38,7 +38,6 @@ class SBAS_intf(SBAS_topo):
         """
         import pandas as pd
         import numpy as np
-        import os
 
         # convert to 2D single-element array
         if isinstance(pair, pd.DataFrame):
@@ -53,11 +52,11 @@ class SBAS_intf(SBAS_topo):
         prm_ref = self.PRM(subswath, date1)
         prm_rep = self.PRM(subswath, date2)
 
-        topo_ra_file = os.path.join(self.basedir, f'F{subswath}_topo_ra.grd')
+        topo_file = self.get_filename('topo', subswath)
         #print ('SBAS intf kwargs', kwargs)
         prm_ref.intf(prm_rep,
                      basedir=self.basedir,
-                     topo_ra_fromfile = topo_ra_file,
+                     topo_fromfile = topo_file,
                      **kwargs)
 
     def intf_parallel(self, pairs, weight=None, n_jobs=-1, chunksize=None, **kwargs):
@@ -107,30 +106,35 @@ class SBAS_intf(SBAS_topo):
         # materialize lazy weights
         if weight is not None and isinstance(weight, xr.DataArray):
             if len(subswaths) == 1:
-                weight = [weight]
+                weights = [weight]
             else:
                 raise ValueError(f"Argument weight should be a list or a tuple of DataArray corresponding to subswaths")
-
-        if weight is not None and isinstance(weight, (list, tuple)):
-            for idx, subswath in enumerate(subswaths):
-                weight_filename = self.get_filenames(None, 'intfweight', subswath)
-                if os.path.exists(weight_filename):
-                    os.remove(weight_filename)
-                # workaround to save NetCDF file correct
-                handler = weight[idx].rename('weight').rename({'y':'a','x':'r'}).\
-                    to_netcdf(weight_filename,
-                              encoding={'weight': self.compression(weight[idx].shape, chunksize=chunksize)},
-                              engine=self.engine,
-                              compute=False)
-                tqdm_dask(dask.persist(handler), desc=f'Materialize weight sw{subswath}')
-            # set base name for all subswaths
-            kwargs['weight'] = 'intfweight'
+        elif weight is not None and isinstance(weight, (list, tuple)):
+            weights = weight
+        else:
+            # form list of None
+            weights = [None for swath in subswaths]
+        
+    #     if weight is not None and isinstance(weight, (list, tuple)):
+    #         for idx, subswath in enumerate(subswaths):
+    #             weight_filename = self.get_filename('intfweight', subswath)
+    #             if os.path.exists(weight_filename):
+    #                 os.remove(weight_filename)
+    #             # workaround to save NetCDF file correct
+    #             handler = weight[idx].rename('weight').rename({'y':'a','x':'r'}).\
+    #                 to_netcdf(weight_filename,
+    #                           encoding={'weight': self.compression(weight[idx].shape, chunksize=chunksize)},
+    #                           engine=self.engine,
+    #                           compute=False)
+    #             tqdm_dask(dask.persist(handler), desc=f'Materialize weight sw{subswath}')
+    #         # set base name for all subswaths
+    #         kwargs['weight'] = 'intfweight'
 
         # this way does not work properly for long interferogram series on MacOS
         # see https://github.com/mobigroup/gmtsar/commit/3eea6a52ddc608639e5e06306bce2f973a184fd6
         with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, **kwargs) \
-                for subswath in subswaths for pair in pairs)
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, weight=weight, **kwargs) \
+                for (subswath, weight) in zip(subswaths, weights) for pair in pairs)
 
 #         # workaround: start a set of jobs together but not more than available cpu cores at once
 #         from joblib.externals import loky

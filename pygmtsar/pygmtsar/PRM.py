@@ -732,7 +732,7 @@ class PRM(datagrid, PRM_gmtsar):
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
     # note: only one dimension chunked due to sequential file reading 
-    def read_SLC_int(self, intensity=False, decibel=False, chunksize=None):
+    def read_SLC_int(self, intensity=False, dfact=2.5e-07, chunksize=None):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
         The method reads binary SLC data file, which contains alternating sequences of real and imaginary parts.
@@ -770,13 +770,8 @@ class PRM(datagrid, PRM_gmtsar):
         if chunksize is None:
             chunksize = self.chunksize
 
-        if decibel:
-            intensity = True
-
         @dask.delayed
         def read_SLC_block(slc_filename, start, stop, intensity):
-            # from GMTSAR code
-            DFACT = 2.5e-07
             # Read a chunk of the SLC file
             # [real_0, imag_0, real_1, imag_1, real_2, imag_2, ...]
             #print ('    offset, shape', start*2, 2*(stop-start))
@@ -787,17 +782,17 @@ class PRM(datagrid, PRM_gmtsar):
             imag_part = data[1::2]
             if not intensity:
                 # return original complex data
-                return (DFACT*(real_part + 1j * imag_part)).astype(np.complex64)
+                return (dfact*(real_part + 1j * imag_part)).astype(np.complex64)
             # Calculate intensity (GMTSAR compatible while it names intensity as amplitude)
-            #return (DFACT*np.abs(real_part + 1j * imag_part))**2
-            I = ((DFACT*real_part)**2 + (DFACT*imag_part)**2).astype(np.float32)
-            if not decibel:
-                return I
+            #return (dfact*np.abs(real_part + 1j * imag_part))**2
+            return ((dfact*real_part)**2 + (dfact*imag_part)**2).astype(np.float32)
+            #    if not decibel:
+            #return I
             # calculate decibels, pay attention for -np.inf values
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=RuntimeWarning)
-                dB = 10*np.log10((I))
-            return np.where(np.isfinite(dB), dB, np.nan).astype(np.float32)
+            #with warnings.catch_warnings():
+            #    warnings.simplefilter("ignore", category=RuntimeWarning)
+            #    dB = 10*np.log10((I))
+            #return np.where(np.isfinite(dB), dB, np.nan).astype(np.float32)
 
         prm = PRM.from_file(self.filename)
         # num_patches multiplier is omitted
@@ -985,14 +980,14 @@ class PRM(datagrid, PRM_gmtsar):
         # make full file name, use workaround for 'weight' argument name defined without extension
         fullname = lambda name: os.path.join(basedir, basename + name if name[-4:]=='.grd' else f'{subswath}_{name}.grd')
 
-        # weight can be None, xarray dataarray, NetCDF file name
-        if weight is not None and isinstance(weight, str):
-            if debug:
-                print (f'DEBUG: intf weight from file {weight}')
-            weight = xr.open_dataarray(fullname(weight), engine=self.engine, chunks=chunksize)
-            # revert fake dimension names 
-            if weight.dims == ('a', 'r'):
-                weight = weight.rename({'a': 'y', 'r': 'x'})
+#         # weight can be None, xarray dataarray, NetCDF file name
+#         if weight is not None and isinstance(weight, str):
+#             if debug:
+#                 print (f'DEBUG: intf weight from file {weight}')
+#             weight = xr.open_dataarray(fullname(weight), engine=self.engine, chunks=chunksize)
+#             # revert fake dimension names 
+#             if weight.dims == ('a', 'r'):
+#                 weight = weight.rename({'a': 'y', 'r': 'x'})
 
         # prepare PRMs for the calculation below
         other.set(self.SAT_baseline(other, tail=9))
