@@ -47,11 +47,10 @@ class SBAS_ps(SBAS_stl):
             tqdm_dask(mean := dask.persist(slcs.mean(dim=['y','x'])), desc=f'Amplitude Normalization sw{subswath}')
             # dask.persist returns tuple
             norm = mean[0].mean(dim='date') / mean[0]
-            del mean
             # compute average and std.dev.
             stats = (norm * slcs).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
             del slcs
-            ds = xr.merge([stats[0].rename('average'), stats[1].rename('deviation'), norm.rename('norm_multiplier')])
+            ds = xr.merge([stats[0].rename('average'), stats[1].rename('deviation'), mean[0].rename('stack_average')])
             del stats, norm
             self.save_grid(ds.rename({'y': 'a', 'x': 'r'}), 'ps', subswath, f'Persistent Scatterers sw{subswath}')
             del ds
