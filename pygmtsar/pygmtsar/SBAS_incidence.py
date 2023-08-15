@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class SBAS_incidence(SBAS_geocode):
 
-    def los_projection(self, data, lon=None, lat=None):
+    def los_projection(self, data, x=None, y=None):
         """
         Calculate LOS projection for vector defined by its dx, dy, dz components.
 
@@ -69,25 +69,25 @@ class SBAS_incidence(SBAS_geocode):
 
         if isinstance(data, (list, tuple)):
             data = np.column_stack(data)
-    
+
         if isinstance(data, np.ndarray):
-            if lat is not None and lon is not None:
-                look = sat_look.sel(lat=lat, lon=lon, method='nearest')
+            if y is not None and x is not None:
+                look = sat_look.sel(y=y, x=x, method='nearest')
             else:
                 print ('NOTE: estimation using central point satellite look vector')
-                look = sat_look.isel(lat=sat_look.lat.size//2, lon=sat_look.lon.size//2)
+                look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
             # only for input scalars
             #return data[0] * sat_look.look_E.values + data[1] * sat_look.look_N.values + data[2] * sat_look.look_U.values
             return np.dot(data, [look.look_E, look.look_N, look.look_U])
         elif isinstance(data, pd.DataFrame):
             # TODO: allow to process multiple coordinates
-            if 'lat' in data.columns and 'lon' in data.columns:
-                lon = data.loc[data.index[0], 'lon']
-                lat = data.loc[data.index[0], 'lat']
-                look = sat_look.sel(lat=lat, lon=lon, method='nearest')
+            if 'y' in data.columns and 'x' in data.columns:
+                x = data.loc[data.index[0], 'x']
+                y = data.loc[data.index[0], 'y']
+                look = sat_look.sel(y=y, x=x, method='nearest')
             else:
                 print ('NOTE: estimation using central point satellite look vector')
-                look = sat_look.isel(lat=sat_look.lat.size//2, lon=sat_look.lon.size//2)
+                look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
             los = np.dot(np.column_stack([data.dx, data.dy, data.dz]), [look.look_E, look.look_N, look.look_U])
             return data.assign(los=los)
 
@@ -110,7 +110,8 @@ class SBAS_incidence(SBAS_geocode):
         This function returns the satellite look vectors in geographic coordinates as Xarray Dataset. The satellite look vectors
         should be computed and saved prior to calling this function using the `sat_look_parallel` method.
         """
-        return self.open_model('sat_look', chunksize=chunksize)
+        subswath = self.get_subswath()    
+        return self.open_grid('sat_look', subswath=subswath, chunksize=chunksize)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, unwraps):
@@ -253,8 +254,8 @@ class SBAS_incidence(SBAS_geocode):
         #import dask
         import xarray as xr
         import numpy as np
-        #import os
-        #import sys
+
+        subswath = self.get_subswath()
 
         # ..., look_E, look_N, look_U
         satlook_map = {0: 'look_E', 1: 'look_N', 2: 'look_U'}
@@ -271,23 +272,14 @@ class SBAS_incidence(SBAS_geocode):
             chunksize = self.chunksize
 
         # reference grid
-        grid_ll = self.get_intf_ra2ll(chunksize=chunksize)
-        # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
-        dem = self.get_dem().interp_like(grid_ll).rename({'lat': 'yy', 'lon': 'xx'})
-        # prepare lazy coordinate grids
-        lat = xr.DataArray(dem.yy.astype(np.float32).chunk(-1))
-        lon = xr.DataArray(dem.xx.astype(np.float32).chunk(-1))
-        lats, lons = xr.broadcast(lat, lon)
-        # unify chunks
-        lats = lats.chunk(dem.chunks)
-        lons = lons.chunk(dem.chunks)
+        trans_inv = self.get_trans_inv(subswath, chunksize=chunksize)[['lt', 'll', 'ele']]
 
         # xarray wrapper for the valid area only
         enu = xr.apply_ufunc(
             SAT_look,
-            dem,
-            lats,
-            lons,
+            trans_inv.ele,
+            trans_inv.lt,
+            trans_inv.ll,
             dask='parallelized',
             vectorize=False,
             output_dtypes=[np.float32],
@@ -302,4 +294,5 @@ class SBAS_incidence(SBAS_geocode):
         if interactive:
             return sat_look
 
-        self.save_model(sat_look, name='sat_look', caption='Satellite Look Vector Computing', chunksize=chunksize)
+        return self.save_grid(sat_look, 'sat_look', subswath,
+                              f'Satellite Look Vector Computing sw{subswath}', chunksize)

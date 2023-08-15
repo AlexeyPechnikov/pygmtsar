@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_incidence import SBAS_incidence
+from .SBAS_tidal import SBAS_tidal
 from .tqdm_dask import tqdm_dask
 
-class SBAS_stl(SBAS_incidence):
+class SBAS_stl(SBAS_tidal):
 
     @staticmethod
     def stl(ts, dt, dt_periodic, periods, robust=False):
