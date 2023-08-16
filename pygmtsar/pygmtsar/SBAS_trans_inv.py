@@ -95,7 +95,7 @@ class SBAS_trans_inv(SBAS_trans):
             block_eles = []
             for block_y, block_x in zip(blocks_ys[block_mask], blocks_xs[block_mask]):
                 # define coordinates
-                block_lt, block_ll = [block.ravel() for block in np.meshgrid(lt_blocks[block_y], ll_blocks[block_x])]
+                block_lt, block_ll = [block.ravel() for block in np.meshgrid(lt_blocks[block_y], ll_blocks[block_x], indexing='ij')]
                 # extract variables
                 block_azi = trans_dat['azi'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
                 block_rng = trans_dat['rng'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
