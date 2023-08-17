@@ -14,7 +14,7 @@ class SBAS_tidal(SBAS_incidence):
     def get_tidal(self, subswath=None, chunksize=None):
         return self.open_grid('tidal', subswath=subswath, chunksize=chunksize)
 
-    def tidal_parallel(self, dates=None, coarsen=(64, 256), chunksize=None, interactive=False):
+    def tidal_parallel(self, dates=None, coarsen=32, chunksize=None, interactive=False):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -24,6 +24,10 @@ class SBAS_tidal(SBAS_incidence):
 
         if dates is None:
             dates = self.df.index
+
+        # expand simplified definition
+        if not isinstance(coarsen, (list,tuple, np.ndarray)):
+            coarsen = (coarsen, coarsen)
 
         subswath = self.get_subswath()
         trans_inv = self.get_trans_inv(subswath)
