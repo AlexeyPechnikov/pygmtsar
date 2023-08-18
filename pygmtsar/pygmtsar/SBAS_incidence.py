@@ -84,6 +84,9 @@ class SBAS_incidence(SBAS_geocode):
                 x = data.loc[data.index[0], 'x']
                 y = data.loc[data.index[0], 'y']
                 look = sat_look.sel(y=y, x=x, method='nearest')
+            else:
+                print ('NOTE: estimation using central point satellite look vector')
+                look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
         elif isinstance(data, xr.Dataset):
             # TODO: allow to process multiple coordinates
             if 'y' in data and 'x' in data:
