@@ -957,6 +957,9 @@ class PRM(datagrid, PRM_gmtsar):
         import numpy as np
         import xarray as xr
         import dask.array
+        import warnings
+        # suppress Dask warning "RuntimeWarning: divide by zero encountered in divide"
+        warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
 
         if not isinstance(other, PRM):
             raise Exception('Argument "other" should be PRM class instance')
@@ -979,15 +982,6 @@ class PRM(datagrid, PRM_gmtsar):
 
         # make full file name, use workaround for 'weight' argument name defined without extension
         fullname = lambda name: os.path.join(basedir, basename + name if name[-4:]=='.grd' else f'{subswath}_{name}.grd')
-
-#         # weight can be None, xarray dataarray, NetCDF file name
-#         if weight is not None and isinstance(weight, str):
-#             if debug:
-#                 print (f'DEBUG: intf weight from file {weight}')
-#             weight = xr.open_dataarray(fullname(weight), engine=self.engine, chunks=chunksize)
-#             # revert fake dimension names 
-#             if weight.dims == ('a', 'r'):
-#                 weight = weight.rename({'a': 'y', 'r': 'x'})
 
         # prepare PRMs for the calculation below
         other.set(self.SAT_baseline(other, tail=9))
