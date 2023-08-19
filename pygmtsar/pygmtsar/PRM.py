@@ -967,6 +967,10 @@ class PRM(datagrid, PRM_gmtsar):
         if coarsen is None and psize is not None:
             raise Exception('Argument "coarsen" can be None only when "psize" is None too')
 
+        # expand simplified definition
+        if not isinstance(coarsen, (list,tuple, np.ndarray)):
+            coarsen = (coarsen, coarsen)
+
         # define lost class variables due to joblib
         if chunksize is None:
             chunksize = self.chunksize
