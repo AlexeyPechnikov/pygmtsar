@@ -52,7 +52,11 @@ class SBAS_intf(SBAS_topo):
         prm_ref = self.PRM(subswath, date1)
         prm_rep = self.PRM(subswath, date2)
 
-        topo_file = self.get_filename('topo', subswath)
+        if 'topo_file' in kwargs:
+            topo_file = kwargs['topo_file']
+            del kwargs['topo_file']
+        else:
+            topo_file = self.get_filename('topo', subswath)
         #print ('SBAS intf kwargs', kwargs)
         prm_ref.intf(prm_rep,
                      basedir=self.basedir,
