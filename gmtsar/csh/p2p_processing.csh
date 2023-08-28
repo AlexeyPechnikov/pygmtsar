@@ -283,6 +283,23 @@
         echo " no file  raw/"$aligned".tiff"
         exit
       endif
+    else if ($SAT == "LT1") then
+      if(! -f raw/$master.xml ) then
+        echo " no file  raw/"$master".xml"
+        exit
+      endif
+      if(! -f raw/$aligned.xml ) then
+        echo " no file  raw/"$aligned".xml"
+        exit 
+      endif
+      if(! -f raw/$master.tiff ) then
+        echo " no file  raw/"$master".tiff"
+        exit 
+      endif
+      if(! -f raw/$aligned.tiff ) then
+        echo " no file  raw/"$aligned".tiff"
+        exit
+      endif
     endif
 
 #
