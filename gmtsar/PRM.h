@@ -36,9 +36,9 @@ struct PRM {
 	int rec_start;
 	int rec_stop;
 	int SC_identity;  /* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS
-	                     (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A (11)-GF3 */
+	                     (6)-Envisat_SLC  (7)-TSX (8)-CSK (9)-RS2 (10)-S1A (11)-GF3 (12)-LT1 */
 	int ref_identity; /* (1)-ERS1 (2)-ERS2 (3)-Radarsat (4)-Envisat (5)-ALOS (6)-
-	                     (7)-TSX (8)-CSK (9)-RS2 (10)-S1A (11)-GF3*/
+	                     (7)-TSX (8)-CSK (9)-RS2 (10)-S1A (11)-GF3 (12)-LT1 */
 	int nrows;
 	int num_lines;
 	int SLC_format; /* 1 => complex ints (2 bytes)	2 => complex floats (4
