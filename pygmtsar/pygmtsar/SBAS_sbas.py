@@ -80,7 +80,7 @@ class SBAS_sbas(SBAS_detrend):
         # mask produced cumsum zeroes by NaNs where model[0] is the timeseries values
         return np.where(~np.isnan(model[0]), np.nancumsum(model[0], axis=0), np.nan)
         
-    def lstsq_matrix(self, pairs):
+    def lstsq_matrix(self, pairs, dates=None):
         """
         Create a matrix for use in the least squares computation based on interferogram date pairs.
 
@@ -100,15 +100,18 @@ class SBAS_sbas(SBAS_detrend):
         Notes
         -----
         This function also calculates image capture dates from the interferogram date pairs.
-    
+
         """
         import numpy as np
         import pandas as pd
 
-        # also define image capture dates from interferogram date pairs 
-        pairs, dates = self.get_pairs(pairs, dates=True)
+        # also define image capture dates from interferogram date pairs
+        if dates is None:
+            pairs, dates = self.get_pairs(pairs, dates=True)
+        else:
+            pairs = self.get_pairs(pairs, dates=False)
         pairs = pairs[['ref', 'rep']].astype(str).values
-        
+
         # here are one row for every interferogram and one column for every date
         matrix = []
         for pair in pairs:
@@ -117,7 +120,7 @@ class SBAS_sbas(SBAS_detrend):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def stack_lstsq(self, data=None, weight=None, chunksize=None, interactive=False, debug=False):
+    def stack_lstsq(self, data=None, weight=None, dates=None, chunksize=None, interactive=False, debug=False):
         """
         Perform least squares (weighted or unweighted) computation on the input data in parallel.
 
@@ -215,10 +218,13 @@ class SBAS_sbas(SBAS_detrend):
 
         # also define image capture dates from interferogram date pairs 
         # convert pairs (list, array, dataframe) to 2D numpy array
-        pairs, dates = self.get_pairs(data, dates=True)
+        if dates is None:
+            pairs, dates = self.get_pairs(data, dates=True)
+        else:
+            pairs = self.get_pairs(data, dates=False)
         pairs = pairs[['ref', 'rep']].astype(str).values
         # define pairs and dates matrix for LSQ calculation
-        matrix = self.lstsq_matrix(pairs)
+        matrix = self.lstsq_matrix(pairs, dates)
 
         def lstq_block(ys, xs):
             # 3D array
@@ -260,7 +266,7 @@ class SBAS_sbas(SBAS_detrend):
             del blocks
         model = dask.array.block(blocks_total)
         del blocks_total
-        coords = {'date': dates, 'y': data.y.values, 'x': data.x.values}
+        coords = {'date': pd.to_datetime(dates), 'y': data.y.values, 'x': data.x.values}
         model = xr.DataArray(model, coords=coords).rename('displacement')
 
         if interactive:
