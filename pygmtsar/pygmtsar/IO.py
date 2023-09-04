@@ -192,8 +192,9 @@ class IO(datagrid):
             prefix = f'F{swath}_' if add_subswath == True else ''
             filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
             filenames.append(filename)
-    
-        return filenames if subswath is None else filenames[0]
+
+        # only one filename when only one subswath
+        return filenames[0] if subswath is not None or add_subswath is False else filenames
 
     def get_filenames(self, pairs, name, subswath=None, add_subswath=True):
         """
@@ -496,7 +497,7 @@ class IO(datagrid):
         if chunksize is None:
             chunksize = self.chunksize
 
-        model_filename = self.get_filenames(None, name, add_subswath=False)
+        model_filename = self.get_filename(name, add_subswath=False)
         assert os.path.exists(model_filename), f'ERROR: The NetCDF file is missed: {model_filename}'
 
         # Open the dataset without chunking
