@@ -555,7 +555,7 @@ class IO(datagrid):
             raise ValueError('Specify name for the output NetCDF file')
         
         # save to NetCDF file
-        model_filename = self.get_filenames(None, name, add_subswath=False)
+        model_filename = self.get_filename(name, add_subswath=False)
         if os.path.exists(model_filename):
             os.remove(model_filename)
         if isinstance(model, xr.DataArray):
