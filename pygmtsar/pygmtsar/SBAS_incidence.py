@@ -18,87 +18,148 @@ class SBAS_incidence(SBAS_geocode):
 
         Parameters
         ----------
-        data : list, tuple, numpy.ndarray, pandas.DataFrame
+        data : xarray dataset
             The input data containing the displacement components dx, dy, dz.
-        scale : float, optional
-            Scale factor to convert input displacements in meter to output LOS displacement in millimeter.
 
         Returns
         -------
         float, numpy.ndarray, pandas.DataFrame
             The LOS projection. Type of return depends on the input type.
 
-        Note
-        ----
-        The function is not optimized for delayed execution.
-
         Examples
         -------
-        Calculate tidal LOS projection:
-        los_projection_mm = 1000*sbas.los_projection(tidal)
+        Calculate tidal LOS projection measured in meter [m]:
+        los_projection_mm = sbas.los_projection(tidal)
         # Expected input
-        #        lon       lat       dx         dy          dz
-        # date						
-        # 2022-06-16  13400.758  47401.431  -66.917528  -4.765059  16.200381
+        # xarray.Dataset
+        # Dimensions:
+        # date: 31 y: 1 x: 1
+        # Data variables:
+        # dx (date, y, x) float64 -0.06692 -0.03357 ... 0.005664
+        # dy (date, y, x) float64 -0.004765 0.01228 ... -0.04304
+        # dz (date, y, x) float64 0.0162 -0.0999 ... 0.005759
         # ...        
         # Expected output:
-        #        lon       lat       dx         dy          dz        los
-        # date						
-        # 2022-06-16  13400.758  47401.431  -66.917528  -4.765059  16.200381  55.340305
+        # xarray.DataArray date: 31 y: 1 x: 1
+        # array([ 0.05532877, -0.05658128, -0.11400223, -0.06658935, -0.0071757 ,
+        #    -0.02071992, -0.07211125, -0.12153598, -0.09518547, -0.10037747,
+        #    -0.0914933 , -0.12743347, -0.11006747, -0.0643307 , -0.04372583,
+        #    -0.07117568, -0.13215618, -0.10467723, -0.01379629,  0.03088265,
+        #     0.02786578, -0.01465195, -0.12157386, -0.11801581, -0.001239  ,
+        #     0.11614589,  0.07466661, -0.05334002, -0.10686331, -0.06112201,
+        #     0.00554765])
         # ...
-
-        Using list or tuple as input:
-        los_projection_mm = 1000*sbas.los_projection([tidal.dx, tidal.dy, tidal.dz], lon, lat)
+    
+        Calculate plate velocity LOS projection in millimeter [mm]:
+        sbas.los_projection([22.67, 13.36, 0])
         # Expected output:
-        # [55.34030452, -56.55791618, ...]
-
-        Using numpy.ndarray as input:
-        los_projection_mm = 1000*sbas.los_projection(np.column_stack([tidal.dx, tidal.dy, tidal.dz]))
-        # Expected output (with central point satellite look vector estimation):
-        # [54.72536278, -57.87347137, ...]
-
-        Note: When lat and lon are not provided, the function will estimate using a central point satellite look vector.
-
+        # NOTE: estimation using central point satellite look vector
+        # array([-15.57419278])
         """
         import xarray as xr
-        import pandas as pd
         import numpy as np
 
         sat_look = self.get_sat_look()
 
-        if isinstance(data, (list, tuple)):
-            data = np.column_stack(data)
-
-        if isinstance(data, np.ndarray):
-            #if y is not None and x is not None:
-            #    look = sat_look.sel(y=y, x=x, method='nearest')
-            #else:
+        if isinstance(data, xr.Dataset):
+            look = sat_look.interp_like(data, method='linear', assume_sorted=True)
+            los = xr.dot(xr.concat([look.look_E, look.look_N, look.look_U], dim='dim'),
+                   xr.concat([data.dx, data.dy, data.dz], dim='dim'),
+                  dims=['dim'])
+            return los.transpose('date',...)
+        elif isinstance(data, (list, tuple)):
             print ('NOTE: estimation using central point satellite look vector')
             look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
-            # only for input scalars
-            #return data[0] * sat_look.look_E.values + data[1] * sat_look.look_N.values + data[2] * sat_look.look_U.values
+            data = np.column_stack(data)
             return np.dot(data, [look.look_E, look.look_N, look.look_U])
-        elif isinstance(data, pd.DataFrame):
-            # TODO: allow to process multiple coordinates
-            if 'y' in data.columns and 'x' in data.columns:
-                x = data.loc[data.index[0], 'x']
-                y = data.loc[data.index[0], 'y']
-                look = sat_look.sel(y=y, x=x, method='nearest')
-            else:
-                print ('NOTE: estimation using central point satellite look vector')
-                look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
-        elif isinstance(data, xr.Dataset):
-            # TODO: allow to process multiple coordinates
-            if 'y' in data and 'x' in data:
-                x = data.x.values
-                y = data.y.values
-                #print ('y, x', y, x)
-                look = sat_look.sel(y=y, x=x, method='nearest')
-            else:
-                print ('NOTE: estimation using central point satellite look vector')
-                look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
-        los = np.dot(np.column_stack([data.dx, data.dy, data.dz]), [look.look_E, look.look_N, look.look_U])
-        return los
+
+#     def los_projection(self, data):
+#         """
+#         Calculate LOS projection for vector defined by its dx, dy, dz components.
+# 
+#         Parameters
+#         ----------
+#         data : list, tuple, numpy.ndarray, pandas.DataFrame
+#             The input data containing the displacement components dx, dy, dz.
+#         scale : float, optional
+#             Scale factor to convert input displacements in meter to output LOS displacement in millimeter.
+# 
+#         Returns
+#         -------
+#         float, numpy.ndarray, pandas.DataFrame
+#             The LOS projection. Type of return depends on the input type.
+# 
+#         Note
+#         ----
+#         The function is not optimized for delayed execution.
+# 
+#         Examples
+#         -------
+#         Calculate tidal LOS projection:
+#         los_projection_mm = 1000*sbas.los_projection(tidal)
+#         # Expected input
+#         #        lon       lat       dx         dy          dz
+#         # date						
+#         # 2022-06-16  13400.758  47401.431  -66.917528  -4.765059  16.200381
+#         # ...        
+#         # Expected output:
+#         #        lon       lat       dx         dy          dz        los
+#         # date						
+#         # 2022-06-16  13400.758  47401.431  -66.917528  -4.765059  16.200381  55.340305
+#         # ...
+# 
+#         Using list or tuple as input:
+#         los_projection_mm = 1000*sbas.los_projection([tidal.dx, tidal.dy, tidal.dz], lon, lat)
+#         # Expected output:
+#         # [55.34030452, -56.55791618, ...]
+# 
+#         Using numpy.ndarray as input:
+#         los_projection_mm = 1000*sbas.los_projection(np.column_stack([tidal.dx, tidal.dy, tidal.dz]))
+#         # Expected output (with central point satellite look vector estimation):
+#         # [54.72536278, -57.87347137, ...]
+# 
+#         Note: When lat and lon are not provided, the function will estimate using a central point satellite look vector.
+# 
+#         """
+#         import xarray as xr
+#         import pandas as pd
+#         import numpy as np
+# 
+#         sat_look = self.get_sat_look()
+# 
+#         if isinstance(data, (list, tuple)):
+#             data = np.column_stack(data)
+# 
+#         if isinstance(data, np.ndarray):
+#             #if y is not None and x is not None:
+#             #    look = sat_look.sel(y=y, x=x, method='nearest')
+#             #else:
+#             print ('NOTE: estimation using central point satellite look vector')
+#             look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
+#             # only for input scalars
+#             #return data[0] * sat_look.look_E.values + data[1] * sat_look.look_N.values + data[2] * sat_look.look_U.values
+#             return np.dot(data, [look.look_E, look.look_N, look.look_U])
+#         elif isinstance(data, pd.DataFrame):
+#             # TODO: allow to process multiple coordinates
+#             if 'y' in data.columns and 'x' in data.columns:
+#                 x = data.loc[data.index[0], 'x']
+#                 y = data.loc[data.index[0], 'y']
+#                 look = sat_look.sel(y=y, x=x, method='nearest')
+#             else:
+#                 print ('NOTE: estimation using central point satellite look vector')
+#                 look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
+#         elif isinstance(data, xr.Dataset):
+#             # TODO: allow to process multiple coordinates
+#             if 'y' in data and 'x' in data:
+#                 x = data.x.values
+#                 y = data.y.values
+#                 #print ('y, x', y, x)
+#                 look = sat_look.sel(y=y, x=x, method='nearest')
+#             else:
+#                 print ('NOTE: estimation using central point satellite look vector')
+#                 look = sat_look.isel(y=sat_look.y.size//2, x=sat_look.x.size//2)
+#         los = np.dot(np.column_stack([data.dx, data.dy, data.dz]), [look.look_E, look.look_N, look.look_U])
+#         return los
 
 #     def los_projection(self, data, scale=1):
 #         """
@@ -201,13 +262,13 @@ class SBAS_incidence(SBAS_geocode):
         return self.open_grid('sat_look', subswath=subswath, chunksize=chunksize)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
-    def los_displacement_mm(self, unwraps):
+    def los_displacement_mm(self, data):
         """
         Compute line-of-sight (LOS) displacement in millimeters.
 
         Parameters
         ----------
-        unwraps : xarray.DataArray or constant, list, tuple, Numpy array, Pandas Series
+        data : xarray.DataArray or constant, list, tuple, Numpy array, Pandas Series
             Unwrapped phase grid(s) in radar or geographic coordinates.
 
         Returns
@@ -234,15 +295,18 @@ class SBAS_incidence(SBAS_geocode):
         import xarray as xr
         import numpy as np
 
-        if isinstance(unwraps, (list, tuple)):
-            unwraps = np.asarray(unwraps)
         # constant is negative to make LOS = -1 * range change
         # constant is (1000 mm) / (4 * pi)
         scale = -79.58 * self.PRM().get('radar_wavelength')
-        los_disp = scale*unwraps
-        if isinstance(los_disp, (xr.DataArray)):
-            return los_disp.rename('los')
-        return los_disp
+
+        if isinstance(data, (list, tuple)):
+            print ('X')
+            return scale*np.asarray(data)
+        elif isinstance(data, (xr.DataArray)):
+            print ('Y')
+            return (scale*data).rename('los')
+        else:
+            return scale*data
 
     def incidence_angle(self):
         """
