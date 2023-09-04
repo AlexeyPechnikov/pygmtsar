@@ -390,6 +390,10 @@ class IO(datagrid):
                 combine='nested',
                 preprocess=set_pair
             )
+            if 'ref' in ds:
+                ds['ref'].values = pd.to_datetime(ds.ref)
+            if 'rep' in ds:
+                ds['rep'].values = pd.to_datetime(ds.rep)
 
             if len(ds.data_vars) == 1:
                 das.append(ds[list(ds.data_vars)[0]])
