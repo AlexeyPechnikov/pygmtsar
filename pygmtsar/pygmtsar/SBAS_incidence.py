@@ -300,10 +300,8 @@ class SBAS_incidence(SBAS_geocode):
         scale = -79.58 * self.PRM().get('radar_wavelength')
 
         if isinstance(data, (list, tuple)):
-            print ('X')
             return scale*np.asarray(data)
         elif isinstance(data, (xr.DataArray)):
-            print ('Y')
             return (scale*data).rename('los')
         else:
             return scale*data
