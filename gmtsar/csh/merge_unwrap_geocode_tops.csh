@@ -84,6 +84,9 @@
     set nl = `wc -l $1 | awk '{print $1}'`
     if ($nl == 2) then
       set pth2 = `head -1 $1 | awk -F: '{print $1}'`
+      set near1 = `grep near $pth2"tmp.PRM" | awk '{print $3}'`
+      set rng1 = `grep num_rng_bins $pth2"tmp.PRM" | awk '{print $3}'`
+      set fs = `grep rng_samp_rate $pth2"tmp.PRM" | tail -1 | awk '{print $3}'`
       gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
       set xm1 = `gmt grdinfo $pth2"phasefilt.grd" -C | awk '{print $3}'`
       set xc1 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
@@ -91,20 +94,26 @@
       set n12 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
  
       set pth2 = `tail -1 $1 | awk -F: '{print $1}'`
+      set near2 = `grep near $pth2"tmp.PRM" | awk '{print $3}'`
       gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
       set x01 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
       set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
       set n21 = `echo $x01 $incx | awk '{printf("%d",$1/$2)}'`
-      set n1 = `echo $n12 $n21 | awk '{printf("%d",($1+$2)/2)}'`
-      if ($n1 == 0) then
-              echo "WARNING: Stitching position estimated to be zero"
-              echo "Check merged grids carefully"
-              set n1 = ""
-      endif
+      set ovl12 = `echo $near1 $near2 $fs $rng1 $incx | awk '{printf("%d",($4-($2-$1)/(299792458.0/$3/2))/$5)}'`
+      set n1 = `echo $n12 $n21 $ovl12 | awk '{printf("%d",($3-$1-$2)/2+$2)}'`
       set n2 = 0
+      if ($n1 <= 0) then
+          echo "WARNING: Stitching position estimated to be zero"
+          echo "Check merged grids carefully"
+          set n1 = ""
+          set n2 = ""
+      endif
       rm tmp.grd
     else if ($nl == 3) then
       set pth2 = `head -1 $1 | awk -F: '{print $1}'`
+      set near1 = `grep near $pth2"tmp.PRM" | awk '{print $3}'`
+      set rng1 = `grep num_rng_bins $pth2"tmp.PRM" | awk '{print $3}'`
+      set fs = `grep rng_samp_rate $pth2"tmp.PRM" | tail -1 | awk '{print $3}'`
       gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
       set xm1 = `gmt grdinfo $pth2/phasefilt.grd -C | awk '{print $3}'`
       set xc1 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
@@ -112,26 +121,31 @@
       set n12 = `echo $xm1 $xc1 $incx | awk '{printf("%d",($1-$2)/$3)}'`
 
       set pth2 = `head -2 $1 | tail -1 | awk -F: '{print $1}'`
+      set near2 = `grep near $pth2"tmp.PRM" | awk '{print $3}'`
+      set rng2 = `grep num_rng_bins $pth2"tmp.PRM" | awk '{print $3}'`
       gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
       set x02 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
       set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
       set n21 = `echo $x02 $incx | awk '{printf("%d",$1/$2)}'`
-      set n1 = `echo $n12 $n21 | awk '{printf("%d",($1+$2)/2)}'`
+      set ovl12 = `echo $near1 $near2 $fs $rng1 $incx | awk '{printf("%d",($4-($2-$1)/(299792458.0/$3/2))/$5)}'`
+      set n1 = `echo $n12 $n21 $ovl12 | awk '{printf("%d",($3-$1-$2)/2+$2)}'`
       set xm2 = `gmt grdinfo $pth2/phasefilt.grd -C | awk '{print $3}'`
       set xc2 = `gmt grdinfo tmp.grd -C | awk '{print $3}'`
       set n22 = `echo $xm2 $xc2 $incx | awk '{printf("%d",($1-$2)/$3)}'`
 
       set pth2 = `tail -1 $1 | awk -F: '{print $1}'`
+      set near3 = `grep near $pth2"tmp.PRM" | awk '{print $3}'`
       gmt grdcut $pth2"phasefilt.grd" -Z+N -Gtmp.grd
       set x03 = `gmt grdinfo tmp.grd -C | awk '{print $2}'`
       set incx = `gmt grdinfo tmp.grd -C | awk '{print $8}'`
       set n31 = `echo $x03 $incx | awk '{printf("%d",$1/$2)}'`
-      set n2 = `echo $n22 $n31 | awk '{printf("%d",($1+$2)/2)}'`
+      set ovl23 = `echo $near2 $near3 $fs $rng2 $incx | awk '{printf("%d",($4-($2-$1)/(299792458.0/$3/2))/$5)}'`
+      set n2 = `echo $n22 $n31 $ovl23 | awk '{printf("%d",($3-$1-$2)/2+$2)}'`
       if ($n2 == 0) then
-              echo "WARNING: Stitching positions estimated to be zero"
-              echo "Check merged grids carefully"
-              set n1 = ""
-              set n2 = ""
+          echo "WARNING: Stitching positions estimated to be zero"
+          echo "Check merged grids carefully"
+          set n1 = ""
+          set n2 = ""
       endif
       rm tmp.grd
     else
