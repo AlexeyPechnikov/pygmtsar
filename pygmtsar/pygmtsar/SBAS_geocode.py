@@ -108,7 +108,8 @@ class SBAS_geocode(SBAS_sbas):
             ele = interp([geom.y, geom.x])[0] + (geom.z if geom.has_z else 0)
             points_ll.append([geom.x, geom.y, ele])
             del interp
-        points_ra = prm.SAT_llt2rat(points_ll)[:,:2]
+        points_ra = prm.SAT_llt2rat(points_ll)
+        points_ra = points_ra[:,:2] if len(points_ll)>1 else [points_ra[:2]]
         #print ('points_ra', points_ra)
         # set fake CRS to differ from WGS84 coordinates
         return gpd.GeoDataFrame(data, geometry=[Point(point_ra) for point_ra in points_ra], crs=3857)
