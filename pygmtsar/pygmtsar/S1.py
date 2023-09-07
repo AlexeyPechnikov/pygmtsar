@@ -132,7 +132,8 @@ class S1():
         #print ('filedates', ds)
 
         df = pd.DataFrame({'date':[str(d) for d in ds], 'datetime': dts, 'datapath': datapaths, 'metapath': metapaths})
-        #print ('self.df', self.df)
+        #print ('df', df)
+        assert len(df), f'Scenes not found'
 
         # filter mission and always ignore approximate RESORB orbits to download precise POEORB when possible
         if mission is not None:
@@ -193,6 +194,8 @@ class S1():
         # filter orbits
         if orbit is not None:
             df = df[df.orbit == orbit]
+        #print ('df', df)
+        assert len(df), f'Scenes not found for the defined orbit {orbit}'
 
         # see https://github.com/mobigroup/gmtsar/issues/8
         df = df.sort_values(by=['date', 'subswath']).set_index('date')\
