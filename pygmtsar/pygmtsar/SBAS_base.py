@@ -64,6 +64,9 @@ class SBAS_base(tqdm_joblib, IO):
         Set the reference scene to '2022-01-20':
         sbas.set_reference('2022-01-20')
         """
+        if reference is None:
+            print ('NOTE: reference scene is None, SBAS.set_reference() command is ignored')
+            return self
         if not reference in self.df.index:
             raise Exception('Reference scene not found')
         self.reference = reference
