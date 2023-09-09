@@ -15,6 +15,6 @@ from .datagrid import datagrid
 # top level module classes
 from .PRM import PRM
 from .S1 import S1
-from .SBAS import SBAS
+from .Stack import Stack
 # export to VTK format
 from .NCubeVTK import NCubeVTK

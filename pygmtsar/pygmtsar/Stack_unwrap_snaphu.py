@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_landmask import SBAS_landmask
+from .Stack_landmask import Stack_landmask
 
-class SBAS_unwrap_snaphu(SBAS_landmask):
+class Stack_unwrap_snaphu(Stack_landmask):
 
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)

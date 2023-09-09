@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_base import SBAS_base
+from .Stack_base import Stack_base
 from .PRM import PRM
 
-class SBAS_prm(SBAS_base):
+class Stack_prm(Stack_base):
 
     def PRM(self, subswath=None, date=None, multi=True, singleswath=False):
         """

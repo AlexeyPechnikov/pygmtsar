@@ -143,7 +143,7 @@ class datagrid:
         Examples
         --------
         Convert a raster to geospatial and mask it using a Shapely vector geometry:
-        sbas.as_geo(grid).rio.clip([geometry])
+        stack.as_geo(grid).rio.clip([geometry])
 
         Notes
         -----
@@ -211,7 +211,7 @@ class datagrid:
         Examples
         --------
         Crop the valid extent of a raster:
-        sbas.cropna(grid)
+        stack.cropna(grid)
 
         Notes
         -----
@@ -340,7 +340,7 @@ class datagrid:
         in_grid : xarray.DataArray
             The input 2D grid to be interpolated.
         search_radius_pixels : int, optional
-            The interpolation distance in pixels. If not provided, the default is set to the chunksize of the SBAS object.
+            The interpolation distance in pixels. If not provided, the default is set to the chunksize of the Stack object.
 
         Returns
         -------
@@ -350,13 +350,13 @@ class datagrid:
         Examples
         --------
         Fill gaps in the specified grid using nearest neighbor interpolation:
-        sbas.nearest_grid(grid)
+        stack.nearest_grid(grid)
 
         Notes
         -----
         This method performs nearest neighbor interpolation on a 2D grid. It replaces the NaN values in the input grid with
         the nearest non-NaN values. The interpolation is performed within a specified search radius in pixels.
-        If a search radius is not provided, the default search radius is set to the chunksize of the SBAS object.
+        If a search radius is not provided, the default search radius is set to the chunksize of the Stack object.
         """
         from scipy.spatial import cKDTree
         import xarray as xr
@@ -456,15 +456,15 @@ class datagrid:
         Examples
         --------
         Get the default average ground pixel size:
-        sbas.pixel_size()
+        stack.pixel_size()
         >>> (14.0, 15.7)
 
         Get the default ground pixel size per subswath:
-        sbas.pixel_size(average=False)
+        stack.pixel_size(average=False)
         >>> [(14.0, 16.7), (14.0, 14.7)]
 
         Get the ground pixel size for an unwrapped phase grid with a decimation of {'y': 2, 'x': 2}:
-        sbas.pixel_size(unwraps)
+        stack.pixel_size(unwraps)
         >>> (27.9, 29.5)
 
         Notes
@@ -513,13 +513,13 @@ class datagrid:
         Returns
         -------
         callable
-            Post-processing function for SBAS.ints() and SBAS.intf_parallel().
+            Post-processing function for Stack.ints() and Stack.intf_parallel().
 
         Examples
         --------
         Decimate computed interferograms to default DEM resolution 60 meters:
-        decimator = sbas.pixel_decimator()
-        sbas.intf_parallel(pairs, func=decimator)
+        decimator = stack.pixel_decimator()
+        stack.intf_parallel(pairs, func=decimator)
         """
         import numpy as np
         import dask

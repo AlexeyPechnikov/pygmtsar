@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_merge import SBAS_merge
+from .Stack_merge import Stack_merge
 
-class SBAS_landmask(SBAS_merge):
+class Stack_landmask(Stack_merge):
 
     def set_landmask(self, landmask_filename):
         """
@@ -22,14 +22,12 @@ class SBAS_landmask(SBAS_merge):
 
         Examples
         --------
-        sbas = sbas.set_landmask('data/landmask.nc')
-        Also, the same result is possible on SBAS initialization:
-        sbas = SBAS(..., landmask_filename='data/landmask.nc')
+        stack = stack.set_landmask('data/landmask.nc')
 
         Returns
         -------
-        self : SBAS
-            The SBAS object with the updated landmask file path.
+        self : Stack
+            The Stack object with the updated landmask file path.
         """
         import os
         if landmask_filename is not None:
@@ -56,10 +54,10 @@ class SBAS_landmask(SBAS_merge):
         Examples
         --------
         Get land mask in geographic coordinates:
-        landmask_ll = sbas.get_landmask()
+        landmask_ll = stack.get_landmask()
 
         Get land mask in radar coordinates:
-        landmask_ra = sbas.get_landmask(inverse_geocode=True)
+        landmask_ra = stack.get_landmask(inverse_geocode=True)
 
         Notes
         -----
@@ -108,7 +106,7 @@ class SBAS_landmask(SBAS_merge):
 
         Examples
         --------
-        sbas = sbas.download_landmask()
+        stack.download_landmask()
 
         Notes
         -----
@@ -121,7 +119,7 @@ class SBAS_landmask(SBAS_merge):
         arcsec_degree = 0.000833333333333/3
 
         if self.landmask_filename is not None:
-            print ('NOTE: landmask exists, ignore the command. Use SBAS.set_landmask(None) to allow new landmask downloading')
+            print ('NOTE: landmask exists, ignore the command. Use Stack.set_landmask(None) to allow new landmask downloading')
             return
 
         if backend is not None:

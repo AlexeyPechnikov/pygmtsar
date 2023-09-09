@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_reframe import SBAS_reframe
+from .Stack_reframe import Stack_reframe
 from .PRM import PRM
 
-class SBAS_dem(SBAS_reframe):
+class Stack_dem(Stack_reframe):
 
     def set_dem(self, dem_filename):
         """
@@ -29,10 +29,7 @@ class SBAS_dem(SBAS_reframe):
         Examples
         --------
         Set the DEM filename:
-        sbas = sbas.set_dem('data/DEM_WGS84.nc')
-
-        Alternatively, the same result can be achieved during SBAS initialization:
-        sbas = SBAS(..., dem_filename='data/DEM_WGS84.nc')
+        stack = stack.set_dem('data/DEM_WGS84.nc')
 
         Notes
         -----
@@ -79,10 +76,10 @@ class SBAS_dem(SBAS_reframe):
         Examples
         --------
         Get DEM for all the processed subswaths:
-        topo_ll = sbas.get_dem()
+        topo_ll = stack.get_dem()
 
         Get DEM for a single subswath IW1:
-        topo_ll = sbas.get_dem(1)
+        topo_ll = stack.get_dem(1)
 
         Notes
         -----
@@ -152,19 +149,19 @@ class SBAS_dem(SBAS_reframe):
         Examples
         --------
         Download STRM1 DEM with a resolution of 30 meters and convert it to the default 60-meter grid:
-        sbas.download_dem()
+        stack.download_dem()
 
         Download STRM1 DEM with a resolution of 30 meters and convert it to a 60-meter grid:
-        sbas.download_dem(resolution_meters=60)
+        stack.download_dem(resolution_meters=60)
 
         Download STRM3 DEM with a resolution of 90 meters and convert it to a 120-meter grid:
-        sbas.download_dem(product='STRM3', resolution_meters=120)
+        stack.download_dem(product='STRM3', resolution_meters=120)
 
         Load and crop from local NetCDF file:
-        sbas.download_dem(product='GEBCO_2020/GEBCO_2020.nc')
+        stack.download_dem(product='GEBCO_2020/GEBCO_2020.nc')
 
         Load and crop from local GeoTIF file:
-        sbas.download_dem(product='GEBCO_2019.tif')
+        stack.download_dem(product='GEBCO_2019.tif')
 
         Notes
         -----
@@ -181,7 +178,7 @@ class SBAS_dem(SBAS_reframe):
         from tqdm.auto import tqdm
 
         if self.dem_filename is not None:
-            print ('NOTE: DEM exists, ignore the command. Use SBAS.set_dem(None) to allow new DEM downloading')
+            print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
             return
 
         if backend is not None:

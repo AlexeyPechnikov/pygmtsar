@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_dem import SBAS_dem
+from .Stack_dem import Stack_dem
 from .PRM import PRM
 
-class SBAS_stack(SBAS_dem):
+class Stack_stack(Stack_dem):
 
     def offset2shift(self, xyz, rmax, amax, method='linear'):
         """
@@ -100,7 +100,7 @@ class SBAS_stack(SBAS_dem):
 
         Examples
         --------
-        sbas.stack_ref(subswath=2, debug=True)
+        stack.stack_ref(subswath=2, debug=True)
         """
         import xarray as xr
         import numpy as np
@@ -149,7 +149,7 @@ class SBAS_stack(SBAS_dem):
 
         Examples
         --------
-        sbas.stack_rep(subswath=2, date='2023-05-01', degrees=15.0/3600, debug=True)
+        stack.stack_rep(subswath=2, date='2023-05-01', degrees=15.0/3600, debug=True)
         """
         import xarray as xr
         import numpy as np
@@ -314,7 +314,7 @@ class SBAS_stack(SBAS_dem):
 
         Examples
         --------
-        sbas.stack_parallel()
+        stack.stack_parallel()
         """
         from tqdm.auto import tqdm
         import joblib

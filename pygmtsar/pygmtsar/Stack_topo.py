@@ -7,11 +7,11 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_trans_inv import SBAS_trans_inv
+from .Stack_trans_inv import Stack_trans_inv
 from .PRM import PRM
 from .tqdm_dask import tqdm_dask
 
-class SBAS_topo(SBAS_trans_inv):
+class Stack_topo(Stack_trans_inv):
 
     def topo(self, subswath, chunksize=None, interactive=False):
         """
@@ -35,7 +35,7 @@ class SBAS_topo(SBAS_trans_inv):
         topo = self.get_trans_inv(subswath).ele[1:,1:].rename('topo')
     
         if interactive:
-            # do not flip vertically because it's returned as is without SBAS.get_topo() function
+            # do not flip vertically because it's returned as is without Stack.get_topo() function
             return topo
         # flip vertically for GMTSAR compatibility reasons
         topo = xr.DataArray(dask.array.flipud(topo), coords=topo.coords, name=topo.name)
@@ -56,7 +56,7 @@ class SBAS_topo(SBAS_trans_inv):
         Examples
         --------
         Get DEM for all the processed subswaths:
-        topo = sbas.get_topo()
+        topo = stack.get_topo()
 
         Notes
         -----

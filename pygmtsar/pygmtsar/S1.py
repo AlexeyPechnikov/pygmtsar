@@ -13,7 +13,7 @@ class S1():
     @staticmethod
     def scan_slc(datadir, orbit=None, mission=None, subswath=None, polarization=None):
         """
-        Initialize an instance of the SBAS class.
+        Initialize an instance of the Stack class.
 
         Parameters
         ----------
@@ -34,11 +34,11 @@ class S1():
 
         Examples
         --------
-        Initialize an SBAS object with the data directory 'data' and the base directory 'raw':
-        sbas = S1('data', basedir='raw')
+        Initialize an Stack object with the data directory 'data' and the base directory 'raw':
+        stack = S1('data', basedir='raw')
 
-        Initialize an SBAS object with the data directory 'data', DEM filename 'data/DEM_WGS84.nc', and the base directory 'raw':
-        sbas = SBAS('data', 'data/DEM_WGS84.nc', 'raw')
+        Initialize an Stack object with the data directory 'data', DEM filename 'data/DEM_WGS84.nc', and the base directory 'raw':
+        stack = Stack('data', 'data/DEM_WGS84.nc', 'raw')
         """
         import os
         import shutil
@@ -217,7 +217,7 @@ class S1():
             raise ValueError('ERROR: Two or more scenes required')
         daily_scenes = df.groupby(['date', 'subswath'])['datetime'].count().values.max()
         if daily_scenes > 1:
-            print ('NOTE: Found multiple scenes for a single day, use function SBAS.reframe() to stitch the scenes')
+            print ('NOTE: Found multiple scenes for a single day, use function Stack.reframe() to stitch the scenes')
 
         return df
 

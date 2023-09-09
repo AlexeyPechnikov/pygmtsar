@@ -7,21 +7,21 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_stl import SBAS_stl
+from .Stack_stl import Stack_stl
 from .tqdm_dask import tqdm_dask
 
-class SBAS_ps(SBAS_stl):
+class Stack_ps(Stack_stl):
 
     def get_ps(self, subswath=None, chunksize=None):
         return self.open_grid('ps', subswath, chunksize=chunksize)
 
     #from pygmtsar import tqdm_dask
-    #SBAS.ps_parallel = ps_parallel    
-    #sbas.ps_parallel(interactive=True)
-    #sbas.ps_parallel()
-    #adi = sbas.open_grids(None, 'ps')
+    #Stack.ps_parallel = ps_parallel    
+    #stack.ps_parallel(interactive=True)
+    #stack.ps_parallel()
+    #adi = stack.open_grids(None, 'ps')
     #adi
-    #ps_decimator = sbas.pixel_decimator(resolution_meters=60, grid=adi, debug=True)
+    #ps_decimator = stack.pixel_decimator(resolution_meters=60, grid=adi, debug=True)
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)

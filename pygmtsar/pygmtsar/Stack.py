@@ -7,15 +7,21 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_ps import SBAS_ps
+from .Stack_ps import Stack_ps
 from .S1 import S1
 from .PRM import PRM
 
-class SBAS(SBAS_ps):
+class Stack(Stack_ps):
 
-    def __init__(self, basedir, scenes, reference=None, dem_filename=None, landmask_filename=None, drop_if_exists=False):
+    df = None
+    basedir = None
+    reference = None
+    dem_filename = None
+    landmask_filename = None
+    
+    def __init__(self, basedir, drop_if_exists=False):
         """
-        Initialize an instance of the SBAS class.
+        Initialize an instance of the Stack class.
 
         Parameters
         ----------
@@ -30,11 +36,11 @@ class SBAS(SBAS_ps):
 
         Examples
         --------
-        Initialize an SBAS object with the data directory 'data' and the base directory 'raw':
-        sbas = SBAS('data', basedir='raw')
+        Initialize an Stack object with the data directory 'data' and the base directory 'raw':
+        stack = Stack('data', basedir='raw')
 
-        Initialize an SBAS object with the data directory 'data', DEM filename 'data/DEM_WGS84.nc', and the base directory 'raw':
-        sbas = SBAS('data', 'data/DEM_WGS84.nc', 'raw')
+        Initialize an Stack object with the data directory 'data', DEM filename 'data/DEM_WGS84.nc', and the base directory 'raw':
+        stack = Stack('data', 'data/DEM_WGS84.nc', 'raw')
         """
         import os
         import shutil
@@ -48,12 +54,12 @@ class SBAS(SBAS_ps):
         os.makedirs(basedir)
         self.basedir = basedir
 
+    def set_scenes(self, scenes):
         self.df = scenes
-        if reference is None:
-            print (f'NOTE: reference scene is not defined, use {scenes.index[0]}. You can change it like SBAS.set_reference("2022-01-20")')
+        if self.reference is None:
+            print (f'NOTE: auto set reference scene {scenes.index[0]}. You can change it like Stack.set_reference("2022-01-20")')
             self.reference = self.df.index[0]
-        self.set_dem(dem_filename)
-        self.set_landmask(landmask_filename)
+        return self
 
 #    def make_gaussian_filter(self, range_dec, azi_dec, wavelength, debug=False):
 #        """

@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_trans import SBAS_trans
+from .Stack_trans import Stack_trans
 from .tqdm_dask import tqdm_dask
 
-class SBAS_trans_inv(SBAS_trans):
+class Stack_trans_inv(Stack_trans):
 
     def get_trans_inv(self, subswath=None, chunksize=None):
         """

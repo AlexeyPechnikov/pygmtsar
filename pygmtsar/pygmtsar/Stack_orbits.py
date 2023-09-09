@@ -7,15 +7,15 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_prm import SBAS_prm
+from .Stack_prm import Stack_prm
 
-class SBAS_orbits(SBAS_prm):
+class Stack_orbits(Stack_prm):
     # for precision orbit there is only single orbit per day
     # for approximate orbit 2 and maybe more orbits per day are possible
     # so check orbit file for for each subswath
     def download_orbits(self):
         """
-        Download missed orbits for all the SBAS scenes.
+        Download missed orbits for all the Stack scenes.
 
         Returns
         -------
@@ -24,7 +24,7 @@ class SBAS_orbits(SBAS_prm):
 
         Examples
         --------
-        sbas.download_orbits()
+        stack.download_orbits()
         """
         from eof.download import download_eofs
 

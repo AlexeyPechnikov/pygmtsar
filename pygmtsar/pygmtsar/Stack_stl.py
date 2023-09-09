@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_tidal import SBAS_tidal
+from .Stack_tidal import Stack_tidal
 from .tqdm_dask import tqdm_dask
 
-class SBAS_stl(SBAS_tidal):
+class Stack_stl(Stack_tidal):
 
     @staticmethod
     def stl(ts, dt, dt_periodic, periods, robust=False):
@@ -76,14 +76,14 @@ class SBAS_stl(SBAS_tidal):
         The function performs the following steps:
         1. Convert the 'date' coordinate to valid dates.
         2. Unify date intervals to a specified frequency (e.g., weekly) for a mix of time intervals.
-        3. Apply the sbas_stl function in parallel using xarray's apply_ufunc and Dask.
+        3. Apply the Stack.stl function in parallel using xarray's apply_ufunc and Dask.
         4. Rename the output date dimension to match the original irregular date dimension.
         5. Return the STL decomposition results as an xarray Dataset.
 
         Parameters
         ----------
-        self : SBAS
-            Instance of the SBAS class.
+        self : Stack
+            Instance of the Stack class.
         dates : numpy.ndarray
             Array of datetime64 values corresponding to the input time series data.
         data : xarray.DataArray
@@ -108,8 +108,8 @@ class SBAS_stl(SBAS_tidal):
         Examples
         --------
         Use on (date,lat,lon) and (date,y,x) grids to return the results or store them on disk:
-        sbas.stl_parallel(disp, interactive=True)
-        sbas.stl_parallel(disp)
+        stack.stl_parallel(disp, interactive=True)
+        stack.stl_parallel(disp)
 
         See Also
         --------
@@ -181,7 +181,7 @@ class SBAS_stl(SBAS_tidal):
 
         # transform to separate variables
         coords = {'date': dt_weekly.values, dim1: data[dim1], dim2: data[dim2]}
-        # transform to separate variables variables returned from SBAS.stl() function
+        # transform to separate variables variables returned from Stack.stl() function
         varnames = ['trend', 'seasonal', 'resid']
         keys_vars = {varname: xr.DataArray(models[varidx], coords=coords) for (varidx, varname) in enumerate(varnames)}
         model = xr.Dataset({**keys_vars})

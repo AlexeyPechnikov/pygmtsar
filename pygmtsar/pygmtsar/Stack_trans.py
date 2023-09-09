@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_stack import SBAS_stack
+from .Stack_stack import Stack_stack
 from .tqdm_dask import tqdm_dask
 
-class SBAS_trans(SBAS_stack):
+class Stack_trans(Stack_stack):
     
     def define_trans_grid(self, subswath, coarsen):
         import numpy as np

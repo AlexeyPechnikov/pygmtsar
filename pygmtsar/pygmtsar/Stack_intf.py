@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_topo import SBAS_topo
+from .Stack_topo import Stack_topo
 from .tqdm_dask import tqdm_dask
 
-class SBAS_intf(SBAS_topo):
+class Stack_intf(Stack_topo):
 
     def intf(self, subswath, pair, **kwargs):
         """
@@ -57,7 +57,7 @@ class SBAS_intf(SBAS_topo):
             del kwargs['topo_file']
         else:
             topo_file = self.get_filename('topo', subswath)
-        #print ('SBAS intf kwargs', kwargs)
+        #print ('Stack intf kwargs', kwargs)
         prm_ref.intf(prm_rep,
                      basedir=self.basedir,
                      topo_fromfile = topo_file,
@@ -87,9 +87,9 @@ class SBAS_intf(SBAS_topo):
         Examples
         --------
         For default 60m DEM resolution and other default parameters use command below:
-        pairs = [sbas.to_dataframe().index.unique()]
+        pairs = [stack.to_dataframe().index.unique()]
         decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
-        sbas.intf_parallel(pairs, func=decimator)
+        stack.intf_parallel(pairs, func=decimator)
         """
         import xarray as xr
         import pandas as pd

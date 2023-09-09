@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_merge_gmtsar import SBAS_merge_gmtsar
+from .Stack_merge_gmtsar import Stack_merge_gmtsar
 from .PRM import PRM
 
-class SBAS_merge(SBAS_merge_gmtsar):
+class Stack_merge(Stack_merge_gmtsar):
 
     def merge(self, grid, debug=False):
         """
@@ -168,13 +168,13 @@ class SBAS_merge(SBAS_merge_gmtsar):
 
         Examples
         --------
-        sbas.merge_parallel(pairs)
+        stack.merge_parallel(pairs)
 
         Notes
         -----
         This method performs parallel merging of the interferograms for the specified pairs and grids. It utilizes
         joblib.Parallel for efficient parallel processing. The merged interferograms are stored in the 'df' attribute
-        of the SBAS object, which is a GeoDataFrame containing information about the original or merged interferograms.
+        of the Stack object, which is a GeoDataFrame containing information about the original or merged interferograms.
         """
         from tqdm.auto import tqdm
         import joblib
@@ -182,7 +182,7 @@ class SBAS_merge(SBAS_merge_gmtsar):
         import geopandas as gpd
 
         # merging is not applicable to a single subswath
-        # for this case coordinate transformation matrices already built in SBAS.intf_parallel()
+        # for this case coordinate transformation matrices already built in Stack.intf_parallel()
         subswaths = self.get_subswaths()
         if len(subswaths) == 1:
             return

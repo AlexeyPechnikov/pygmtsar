@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_orbits import SBAS_orbits
+from .Stack_orbits import Stack_orbits
 from .PRM import PRM
 
-class SBAS_reframe_gmtsar(SBAS_orbits):
+class Stack_reframe_gmtsar(Stack_orbits):
 
     def ext_orb_s1a(self, subswath, stem, date=None, debug=False):
         """

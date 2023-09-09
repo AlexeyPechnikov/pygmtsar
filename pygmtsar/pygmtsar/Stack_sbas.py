@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_detrend import SBAS_detrend
+from .Stack_detrend import Stack_detrend
 from .PRM import PRM
 
-class SBAS_sbas(SBAS_detrend):
+class Stack_sbas(Stack_detrend):
 
     @staticmethod
     def lstsq(x, w, matrix):
@@ -74,7 +74,7 @@ class SBAS_sbas(SBAS_detrend):
         except Exception as e:
             # typically, this error handled:
             # LinAlgError: SVD did not converge in Linear Least Squares
-            print ('SBAS.lstsq notice:', str(e))
+            print ('Stack.lstsq notice:', str(e))
             return np.nan * np.zeros(matrix.shape[1])
         #print ('model', model)
         # mask produced cumsum zeroes by NaNs where model[0] is the timeseries values
@@ -144,11 +144,11 @@ class SBAS_sbas(SBAS_detrend):
 
         Examples:
         -----
-        sbas.lstsq_parallel(unwraps_detrend, interactive=False)
-        sbas.lstsq_parallel(unwraps_detrend, corrs, interactive=False)
-        sbas.lstsq_parallel([unwraps_detrend, corrs], interactive=False)
-        sbas.lstsq_parallel((unwraps_detrend, corrs), interactive=False)
-        sbas.lstsq_parallel((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
+        stack.lstsq_parallel(unwraps_detrend, interactive=False)
+        stack.lstsq_parallel(unwraps_detrend, corrs, interactive=False)
+        stack.lstsq_parallel([unwraps_detrend, corrs], interactive=False)
+        stack.lstsq_parallel((unwraps_detrend, corrs), interactive=False)
+        stack.lstsq_parallel((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
 
         Notes
         -----

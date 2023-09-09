@@ -7,18 +7,18 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_reframe_gmtsar import SBAS_reframe_gmtsar
+from .Stack_reframe_gmtsar import Stack_reframe_gmtsar
 from .S1 import S1
 from .PRM import PRM
 
-class SBAS_reframe(SBAS_reframe_gmtsar):
+class Stack_reframe(Stack_reframe_gmtsar):
 
     def get_pins(self, subswath=None):
-        print ('The function is obsolete, and it does nothing. Use SBAS.reframe_parallel(geometry=...) to crop bursts.')
+        print ('The function is obsolete, and it does nothing. Use Stack.reframe_parallel(geometry=...) to crop bursts.')
         return []
 
     def set_pins(self, *args):
-        print ('The function is obsolete, and it does nothing. Use SBAS.reframe_parallel(geometry=...) to crop bursts.')
+        print ('The function is obsolete, and it does nothing. Use Stack.reframe_parallel(geometry=...) to crop bursts.')
         return
     
     def reframe(self, subswath, date, geometry=None, debug=False):
@@ -43,7 +43,7 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
 
         Examples
         --------
-        df = sbas.reframe(1, '2023-05-20')
+        df = stack.reframe(1, '2023-05-20')
         """
         import geopandas as gpd
         import numpy as np
@@ -158,17 +158,17 @@ class SBAS_reframe(SBAS_reframe_gmtsar):
         Examples
         --------
         Without defined geometry the command is silently skipped:
-        sbas.reframe_parallel()
+        stack.reframe_parallel()
         
         Define a line partially covering two bursts:
-        sbas.reframe_parallel(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
+        stack.reframe_parallel(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
         
         Read the geometry from GeoJSON file and convert to WGS84 coordinates:
         AOI = gpd.GeoDataFrame().from_file('AOI.json').to_crs(4326)
-        sbas.reframe_parallel(geometry=AOI)
+        stack.reframe_parallel(geometry=AOI)
         
         TODO: Define a point on a selected burst (this option is not available now):
-        sbas.reframe_parallel(geometry=Point(25.3, 35))
+        stack.reframe_parallel(geometry=Point(25.3, 35))
         """
         from tqdm.auto import tqdm
         import joblib

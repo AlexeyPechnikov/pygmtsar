@@ -17,7 +17,7 @@ class IO(datagrid):
 
     def dump(self, to_path=None):
         """
-        Dump SBAS object state to a pickle file (SBAS.pickle in the processing directory by default).
+        Dump Stack object state to a pickle file (Stack.pickle in the processing directory by default).
 
         Parameters
         ----------
@@ -31,34 +31,34 @@ class IO(datagrid):
         Examples
         --------
         Dump the current state to the default dump file in the processing directory:
-        sbas.dump()
+        stack.dump()
 
         Notes
         -----
-        This method serializes the state of the SBAS object and saves it to a pickle file. The pickle file can be used to
-        restore the SBAS object with its processed data and configuration. By default, the dump file is named "SBAS.pickle"
+        This method serializes the state of the Stack object and saves it to a pickle file. The pickle file can be used to
+        restore the Stack object with its processed data and configuration. By default, the dump file is named "Stack.pickle"
         and is saved in the processing directory. An alternative file path can be provided using the `to_path` parameter.
         """
         import pickle
         import os
 
         if to_path is None:
-            sbas_pickle = os.path.join(self.basedir, 'SBAS.pickle')
+            stack_pickle = os.path.join(self.basedir, 'Stack.pickle')
         else:
             if os.path.isdir(to_path):
-                sbas_pickle = os.path.join(to_path, 'SBAS.pickle')
+                stack_pickle = os.path.join(to_path, 'Stack.pickle')
             else:
-                sbas_pickle = to_path
+                stack_pickle = to_path
     
-        print (f'NOTE: save state to file {sbas_pickle}')
-        pickle.dump(self, open(sbas_pickle, 'wb'))
+        print (f'NOTE: save state to file {stack_pickle}')
+        pickle.dump(self, open(stack_pickle, 'wb'))
 
         return
 
     @staticmethod
     def restore(from_path):
         """
-        Restore SBAS object state from a pickle file (SBAS.pickle in the processing directory by default).
+        Restore Stack object state from a pickle file (Stack.pickle in the processing directory by default).
 
         Parameters
         ----------
@@ -67,36 +67,36 @@ class IO(datagrid):
 
         Returns
         -------
-        SBAS
-            The restored SBAS object.
+        Stack
+            The restored Stack object.
 
         Examples
         --------
         Restore the current state from the default dump file in the processing directory:
-        SBAS.restore()
+        Stack.restore()
 
         Notes
         -----
-        This static method restores the state of an SBAS object from a pickle file. The pickle file should contain the
-        serialized state of the SBAS object, including its processed data and configuration. By default, the method assumes
-        the input file is named "SBAS.pickle" and is located in the processing directory. An alternative file path can be
-        provided using the `from_path` parameter. The method returns the restored SBAS object.
+        This static method restores the state of an Stack object from a pickle file. The pickle file should contain the
+        serialized state of the Stack object, including its processed data and configuration. By default, the method assumes
+        the input file is named "Stack.pickle" and is located in the processing directory. An alternative file path can be
+        provided using the `from_path` parameter. The method returns the restored Stack object.
         """
         import pickle
         import os
 
         if os.path.isdir(from_path):
-            sbas_pickle = os.path.join(from_path, 'SBAS.pickle')
+            stack_pickle = os.path.join(from_path, 'Stack.pickle')
         else:
-            sbas_pickle = from_path
+            stack_pickle = from_path
 
-        print (f'NOTE: load state from file {sbas_pickle}')
-        return pickle.load(open(sbas_pickle, 'rb'))
+        print (f'NOTE: load state from file {stack_pickle}')
+        return pickle.load(open(stack_pickle, 'rb'))
 
 
     def backup(self, backup_dir, copy=False, debug=False):
         """
-        Backup framed SBAS scenes, orbits, DEM, and landmask files to build a minimal reproducible dataset.
+        Backup framed Stack scenes, orbits, DEM, and landmask files to build a minimal reproducible dataset.
 
         Parameters
         ----------
@@ -115,20 +115,20 @@ class IO(datagrid):
         Examples
         --------
         Backup the files to the specified directory:
-        sbas.backup('backup')
+        stack.backup('backup')
 
         Open the backup for the reproducible run by defining it as a new data directory:
-        sbas = SBAS('backup', 'backup/DEM_WGS84.nc', 'raw')
+        stack = Stack('backup', 'backup/DEM_WGS84.nc', 'raw')
 
         Notes
         -----
-        This method backs up the framed SBAS scenes, orbits, DEM, and landmask files to a specified backup directory.
+        This method backs up the framed Stack scenes, orbits, DEM, and landmask files to a specified backup directory.
         It provides a way to create a minimal reproducible dataset by preserving the necessary files for processing.
         The method creates the backup directory if it does not exist. By default, the method moves the scene and orbit files
         to the backup directory, effectively removing them from the work directory. The DEM and landmask files are always
         copied to the backup directory. If the `copy` parameter is set to True, the scene and orbit files will be copied
         instead of moved. Use caution when setting `copy` to True as it can result in duplicated files and consume
-        additional storage space. The method also updates the SBAS object's dataframe to mark the removed files as empty.
+        additional storage space. The method also updates the Stack object's dataframe to mark the removed files as empty.
         """
         import os
         import shutil
@@ -137,7 +137,7 @@ class IO(datagrid):
 
         # this optional file is dumped state, copy it if exists
         # auto-generated file can't be a symlink but user-defined symlink target should be copied
-        filename = os.path.join(self.basedir, 'SBAS.pickle')
+        filename = os.path.join(self.basedir, 'Stack.pickle')
         if os.path.exists(filename):
             if debug:
                 print ('DEBUG: copy', filename, backup_dir)
@@ -270,9 +270,9 @@ class IO(datagrid):
 
     def open_grid(self, name, subswath=None, add_subswath=True, chunksize=None):
         """
-        sbas.open_grid('intf_ll2ra')
-        sbas.open_grid('intf_ra2ll')
-        sbas.open_grid('intfweight')
+        stack.open_grid('intf_ll2ra')
+        stack.open_grid('intf_ra2ll')
+        stack.open_grid('intfweight')
         """
         import xarray as xr
 
@@ -343,7 +343,7 @@ class IO(datagrid):
 
     def open_stack(self, pairs, name, subswath=None, add_subswath=True, chunksize=None):
         """
-        sbas.open_stack(baseline_pairs,'phasefilt')
+        stack.open_stack(baseline_pairs,'phasefilt')
         """
         import xarray as xr
         import pandas as pd
@@ -437,7 +437,7 @@ class IO(datagrid):
 
     def open_stack_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
         """
-        tiffs = sbas.open_stack_geotif(['2022-06-16', '2022-06-28'], intensity=True)
+        tiffs = stack.open_stack_geotif(['2022-06-16', '2022-06-28'], intensity=True)
         """
         import xarray as xr
         import rioxarray as rio
@@ -477,7 +477,7 @@ class IO(datagrid):
         Opens an xarray 3D Dataset from a NetCDF file and re-chunks it based on the specified chunksize.
 
         This function takes the name of the model to be opened, reads the NetCDF file, and re-chunks
-        the dataset according to the provided chunksize or the default value from the 'sbas' object.
+        the dataset according to the provided chunksize or the default value from the 'stack' object.
         The 'date' dimension is always chunked with a size of 1.
 
         Parameters
@@ -486,7 +486,7 @@ class IO(datagrid):
             The name of the model file to be opened.
         chunksize : int, optional
             The chunk size to be used for dimensions other than 'date'. If not provided, the default
-            chunk size from the 'sbas' object will be used.
+            chunk size from the 'stack' object will be used.
 
         Returns
         -------
@@ -537,7 +537,7 @@ class IO(datagrid):
             The model to be saved.
         chunksize : int, optional
             The chunk size to be used for dimensions other than 'date'. If not provided, the default
-            chunk size from the 'sbas' object will be used.
+            chunk size from the 'stack' object will be used.
         caption: str
             The text caption for the saving progress bar.
 

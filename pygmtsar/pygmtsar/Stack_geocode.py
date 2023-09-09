@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_sbas import SBAS_sbas
+from .Stack_sbas import Stack_sbas
 from .tqdm_dask import tqdm_dask
 
-class SBAS_geocode(SBAS_sbas):
+class Stack_geocode(Stack_sbas):
 
     def geocode_parallel(self, coarsen=4, **kwargs):
         """
@@ -29,7 +29,7 @@ class SBAS_geocode(SBAS_sbas):
 
         Examples
         --------
-        sbas.topo_parallel()
+        stack.topo_parallel()
 
         Notes
         -----
@@ -140,7 +140,7 @@ class SBAS_geocode(SBAS_sbas):
 #             self.topo_parallel(coarsen=coarsen)
 # 
 #         # build geographic coordinates transformation matrix for landmask and other grids
-#         sbas.intf_ll2ra_matrix(data, subswath, chunksize=chunksize)
+#         stack.intf_ll2ra_matrix(data, subswath, chunksize=chunksize)
 #         # build radar coordinates transformation matrix for the interferograms grid stack        
 #         self.intf_ra2ll_matrix(data, subswath, chunksize=chunksize)
 ##########################################################################################
@@ -167,9 +167,9 @@ class SBAS_geocode(SBAS_sbas):
         Examples
         --------
         Geocode 3D unwrapped phase grid stack:
-        unwraps_ll = sbas.intf_ra2ll(sbas.open_grids(pairs, 'unwrap'))
+        unwraps_ll = stack.intf_ra2ll(stack.open_grids(pairs, 'unwrap'))
         # or use "geocode" option for open_grids() instead:
-        unwraps_ll = sbas.open_grids(pairs, 'unwrap', geocode=True)
+        unwraps_ll = stack.open_grids(pairs, 'unwrap', geocode=True)
         """
         import dask
         import xarray as xr
@@ -244,7 +244,7 @@ class SBAS_geocode(SBAS_sbas):
         #print ('step_y', step_y, 'step_x', step_x)
         assert step_y>=1 and step_x>=1, f'Transforming grid spacing (grid_dy, grid_dx) is smaller \
                                           than transform matrix spacing (trans_dy, trans_dx), \
-                                          call SBAS.topo_ra_parallel() or SBAS.geocode_parallel() with less coarsing'
+                                          call Stack.topo_ra_parallel() or Stack.geocode_parallel() with less coarsing'
         # decimate the full trans grid to the required spacing
         if autoscale and (step_y>1 or step_x>1):
             # define the equally spacing geographic coordinates grid
@@ -439,8 +439,8 @@ class SBAS_geocode(SBAS_sbas):
         Examples
         --------
         Inverse geocode 3D unwrapped phase grids stack:
-        unwraps_ll = sbas.open_grids(pairs, 'unwrap', geocode=True)
-        unwraps = sbas.intf_ll2ra(unwraps_ll)
+        unwraps_ll = stack.open_grids(pairs, 'unwrap', geocode=True)
+        unwraps = stack.intf_ll2ra(unwraps_ll)
         """
         import dask
         import xarray as xr

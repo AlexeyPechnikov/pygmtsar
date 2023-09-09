@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_unwrap import SBAS_unwrap
+from .Stack_unwrap import Stack_unwrap
 
-class SBAS_detrend(SBAS_unwrap):
+class Stack_detrend(Stack_unwrap):
 # 
 #     def detrend_parallel(self, pairs=None, chunksize=None, n_jobs=-1, interactive=False, **kwargs):
 #         """
@@ -37,12 +37,12 @@ class SBAS_detrend(SBAS_unwrap):
 #         Examples
 #         --------
 #         Detrend plain and topography and read the results:
-#         sbas.detrend_parallel(pairs)
-#         detrended = sbas.open_grids(pairs, 'detrend')
+#         stack.detrend_parallel(pairs)
+#         detrended = stack.open_grids(pairs, 'detrend')
 # 
 #         Detrend ionospheric effects and solid Earth's tides on large areas using Gaussian filtering
 #         and detrend plain and topography after that:
-#         sbas.detrend_parallel(pairs, wavelength=12000)
+#         stack.detrend_parallel(pairs, wavelength=12000)
 # 
 #         Notes
 #         -----
@@ -108,7 +108,7 @@ class SBAS_detrend(SBAS_unwrap):
 #         Examples
 #         --------
 #         Simplest detrending:
-#         unwrap_detrended = sbas.detrend(pair.values[0] if isinstance(pairs, pd.DataFrame) else pair[0])
+#         unwrap_detrended = stack.detrend(pair.values[0] if isinstance(pairs, pd.DataFrame) else pair[0])
 # 
 #         Detrend unwrapped interferogram in radar coordinates, see for details:
 #         - [GitHub Issue 98](https://github.com/gmtsar/gmtsar/issues/98)
@@ -257,17 +257,17 @@ class SBAS_detrend(SBAS_unwrap):
         Examples
         --------
         Detrend ionospheric effects and solid Earth's tides on a large area and save to disk:
-        sbas.gaussian_parallel(slcs, wavelength=400)
+        stack.gaussian_parallel(slcs, wavelength=400)
         For band-pass filtering apply the function twice and save to disk:
-        model = sbas.gaussian_parallel(slcs, wavelength=400, interactive=True) \
-            - sbas.gaussian_parallel(slcs, wavelength=2000, interactive=True)
-        sbas.save_model(model, caption='Gaussian Band-Pass filtering')
+        model = stack.gaussian_parallel(slcs, wavelength=400, interactive=True) \
+            - stack.gaussian_parallel(slcs, wavelength=2000, interactive=True)
+        stack.save_model(model, caption='Gaussian Band-Pass filtering')
 
         Detrend and return lazy xarray dataarray:
-        sbas.gaussian_parallel(slcs, wavelength=400, interactive=True)
+        stack.gaussian_parallel(slcs, wavelength=400, interactive=True)
         For band-pass filtering apply the function twice:
-        sbas.gaussian_parallel(slcs, wavelength=400, interactive=True) \
-            - sbas.gaussian_parallel(slcs, wavelength=2000, interactive=True) 
+        stack.gaussian_parallel(slcs, wavelength=400, interactive=True) \
+            - stack.gaussian_parallel(slcs, wavelength=2000, interactive=True) 
 
         """
         import xarray as xr

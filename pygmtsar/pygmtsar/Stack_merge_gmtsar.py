@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_intf import SBAS_intf
+from .Stack_intf import Stack_intf
 
-class SBAS_merge_gmtsar(SBAS_intf):
+class Stack_merge_gmtsar(Stack_intf):
 
     # stem_tofile + '.PRM' generating
     def merge_swath(self, conf, grid_tofile, stem_tofile, debug=False):

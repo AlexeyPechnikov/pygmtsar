@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_geocode import SBAS_geocode
+from .Stack_geocode import Stack_geocode
 from .tqdm_dask import tqdm_dask
 
-class SBAS_incidence(SBAS_geocode):
+class Stack_incidence(Stack_geocode):
 
     def los_projection(self, data):
         """
@@ -29,7 +29,7 @@ class SBAS_incidence(SBAS_geocode):
         Examples
         -------
         Calculate tidal LOS projection measured in meter [m]:
-        los_projection_mm = sbas.los_projection(tidal)
+        los_projection_mm = stack.los_projection(tidal)
         # Expected input
         # xarray.Dataset
         # Dimensions:
@@ -51,7 +51,7 @@ class SBAS_incidence(SBAS_geocode):
         # ...
     
         Calculate plate velocity LOS projection in millimeter [mm]:
-        sbas.los_projection([22.67, 13.36, 0])
+        stack.los_projection([22.67, 13.36, 0])
         # Expected output:
         # NOTE: estimation using central point satellite look vector
         # array([-15.57419278])
@@ -96,7 +96,7 @@ class SBAS_incidence(SBAS_geocode):
 #         Examples
 #         -------
 #         Calculate tidal LOS projection:
-#         los_projection_mm = 1000*sbas.los_projection(tidal)
+#         los_projection_mm = 1000*stack.los_projection(tidal)
 #         # Expected input
 #         #        lon       lat       dx         dy          dz
 #         # date						
@@ -109,12 +109,12 @@ class SBAS_incidence(SBAS_geocode):
 #         # ...
 # 
 #         Using list or tuple as input:
-#         los_projection_mm = 1000*sbas.los_projection([tidal.dx, tidal.dy, tidal.dz], lon, lat)
+#         los_projection_mm = 1000*stack.los_projection([tidal.dx, tidal.dy, tidal.dz], lon, lat)
 #         # Expected output:
 #         # [55.34030452, -56.55791618, ...]
 # 
 #         Using numpy.ndarray as input:
-#         los_projection_mm = 1000*sbas.los_projection(np.column_stack([tidal.dx, tidal.dy, tidal.dz]))
+#         los_projection_mm = 1000*stack.los_projection(np.column_stack([tidal.dx, tidal.dy, tidal.dz]))
 #         # Expected output (with central point satellite look vector estimation):
 #         # [54.72536278, -57.87347137, ...]
 # 
@@ -184,7 +184,7 @@ class SBAS_incidence(SBAS_geocode):
 #         Examples
 #         -------
 #         Calculate tidal LOS projection:
-#         los_projection_mm = 1000*sbas.los_projection(tidal)
+#         los_projection_mm = 1000*stack.los_projection(tidal)
 #         # Expected input
 #         #        lon       lat       dx         dy          dz
 #         # date						
@@ -197,12 +197,12 @@ class SBAS_incidence(SBAS_geocode):
 #         # ...
 # 
 #         Using list or tuple as input:
-#         los_projection_mm = 1000*sbas.los_projection([tidal.dx, tidal.dy, tidal.dz], lon, lat)
+#         los_projection_mm = 1000*stack.los_projection([tidal.dx, tidal.dy, tidal.dz], lon, lat)
 #         # Expected output:
 #         # [55.34030452, -56.55791618, ...]
 # 
 #         Using numpy.ndarray as input:
-#         los_projection_mm = 1000*sbas.los_projection(np.column_stack([tidal.dx, tidal.dy, tidal.dz]))
+#         los_projection_mm = 1000*stack.los_projection(np.column_stack([tidal.dx, tidal.dy, tidal.dz]))
 #         # Expected output (with central point satellite look vector estimation):
 #         # [54.72536278, -57.87347137, ...]
 # 
@@ -251,7 +251,7 @@ class SBAS_incidence(SBAS_geocode):
         Examples
         --------
         Get satellite look vectors:
-        sat_look_ll = sbas.get_sat_look()
+        sat_look_ll = stack.get_sat_look()
 
         Notes
         -----
@@ -279,17 +279,17 @@ class SBAS_incidence(SBAS_geocode):
         Examples
         --------
         Calculate LOS displacement for unwrapped phase grids in radar coordinates:
-        unwraps_ra = sbas.open_grids(pairs, 'unwrap')
-        los_disp_ra = sbas.los_displacement_mm(unwraps_ra)
+        unwraps_ra = stack.open_grids(pairs, 'unwrap')
+        los_disp_ra = stack.los_displacement_mm(unwraps_ra)
         # or the same code in one line
-        los_disp_ra = sbas.open_grids(pairs, 'unwrap', func=sbas.los_displacement_mm)
+        los_disp_ra = stack.open_grids(pairs, 'unwrap', func=stack.los_displacement_mm)
         # Note: here "func" argument for open_grids() function reduces the code to a single command.
 
         Calculate LOS displacement for detrended unwrapped phase grids in geographic coordinates:
-        detrend_ll = sbas.open_grids(pairs, 'detrend', geocode=True)
-        los_disp_ll = sbas.los_displacement_mm(detrend_ll)
+        detrend_ll = stack.open_grids(pairs, 'detrend', geocode=True)
+        los_disp_ll = stack.los_displacement_mm(detrend_ll)
         # or the same code in one line
-        los_disp_ll = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.los_displacement_mm)
+        los_disp_ll = stack.open_grids(pairs, 'detrend', geocode=True, func=stack.los_displacement_mm)
         # Note: here "func" argument for open_grids() function reduces the code to a single command.
         """
         import xarray as xr
@@ -318,7 +318,7 @@ class SBAS_incidence(SBAS_geocode):
         Examples
         --------
         Compute the incidence angle grid:
-        inc_angle_ll = sbas.incidence_angle()
+        inc_angle_ll = stack.incidence_angle()
 
         Notes
         -----
@@ -351,11 +351,11 @@ class SBAS_incidence(SBAS_geocode):
         Examples
         --------
         Calculate vertical displacement for unwrapped phase grids in geographic coordinates:
-        unwraps_ll = sbas.open_grids(pairs, 'unwrap', geocode=True)
-        vert_disp_mm = sbas.vertical_displacement_mm(unwraps_ll)
+        unwraps_ll = stack.open_grids(pairs, 'unwrap', geocode=True)
+        vert_disp_mm = stack.vertical_displacement_mm(unwraps_ll)
 
         Calculate vertical displacement for detrended unwrapped phase grids in geographic coordinates:
-        vert_disp_mm = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.vertical_displacement_mm)
+        vert_disp_mm = stack.open_grids(pairs, 'detrend', geocode=True, func=stack.vertical_displacement_mm)
         # Note: here "func" argument for open_grids() function reduces the code to a single command.
         """
         import numpy as np
@@ -383,11 +383,11 @@ class SBAS_incidence(SBAS_geocode):
         Examples
         --------
         Calculate East-West displacement for unwrapped phase grids in geographic coordinates:
-        unwraps_ll = sbas.open_grids(pairs, 'unwrap', geocode=True)
-        ew_disp_mm = sbas.eastwest_displacement_mm(unwraps_ll)
+        unwraps_ll = stack.open_grids(pairs, 'unwrap', geocode=True)
+        ew_disp_mm = stack.eastwest_displacement_mm(unwraps_ll)
 
         Calculate East-West displacement for detrended unwrapped phase grids in geographic coordinates:
-        ew_disp_mm = sbas.open_grids(pairs, 'detrend', geocode=True, func=sbas.eastwest_displacement_mm)
+        ew_disp_mm = stack.open_grids(pairs, 'detrend', geocode=True, func=stack.eastwest_displacement_mm)
         # Note: here "func" argument for open_grids() function reduces the code to a single command.
         """
         import numpy as np

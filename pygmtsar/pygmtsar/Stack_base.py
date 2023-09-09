@@ -11,23 +11,23 @@ from .IO import IO
 from .tqdm_joblib import tqdm_joblib
 from .tqdm_dask import tqdm_dask
 
-class SBAS_base(tqdm_joblib, IO):
+class Stack_base(tqdm_joblib, IO):
 
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
     def to_dataframe(self):
         """
-        Return a Pandas DataFrame for all SBAS scenes.
+        Return a Pandas DataFrame for all Stack scenes.
 
         Returns
         -------
         pandas.DataFrame
-            The DataFrame containing SBAS scenes.
+            The DataFrame containing Stack scenes.
 
         Examples
         --------
-        df = sbas.to_dataframe()
+        df = stack.to_dataframe()
         """
         return self.df
 
@@ -47,7 +47,7 @@ class SBAS_base(tqdm_joblib, IO):
 
     def set_reference(self, reference):
         """
-        Define reference scene for SBAS object.
+        Define reference scene for Stack object.
 
         Parameters
         ----------
@@ -56,16 +56,16 @@ class SBAS_base(tqdm_joblib, IO):
 
         Returns
         -------
-        SBAS
-            Modified instance of the SBAS class.
+        Stack
+            Modified instance of the Stack class.
 
         Examples
         --------
         Set the reference scene to '2022-01-20':
-        sbas.set_reference('2022-01-20')
+        stack.set_reference('2022-01-20')
         """
         if reference is None:
-            print ('NOTE: reference scene is None, SBAS.set_reference() command is ignored')
+            print ('NOTE: reference scene is None, Stack.set_reference() command is ignored')
             return self
         if not reference in self.df.index:
             raise Exception('Reference scene not found')
@@ -150,7 +150,7 @@ class SBAS_base(tqdm_joblib, IO):
         assert subswath is None or subswath in subswaths, f'ERROR: subswath {subswath} not found'
         if subswath is not None:
             return subswath
-        assert len(subswaths)==1, f'ERROR: multiple subswaths {subswaths} found, merge them first using SBAS.merge_parallel()'
+        assert len(subswaths)==1, f'ERROR: multiple subswaths {subswaths} found, merge them first using Stack.merge_parallel()'
         # define subswath
         return subswaths[0]
 

@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .SBAS_incidence import SBAS_incidence
+from .Stack_incidence import Stack_incidence
 
-class SBAS_tidal(SBAS_incidence):
+class Stack_tidal(Stack_incidence):
 
     def get_tidal(self, subswath=None, chunksize=None):
         return self.open_grid('tidal', subswath=subswath, chunksize=chunksize)
@@ -94,28 +94,28 @@ class SBAS_tidal(SBAS_incidence):
 #         --------
 #         Compute the tidal correction for a single pair of coordinates:
 # 
-#             coords = sbas.solid_tide(sbas.df.index, coords=[13.40076, 47.40143])
+#             coords = stack.solid_tide(stack.df.index, coords=[13.40076, 47.40143])
 # 
 #         Compute the tidal correction for multiple pairs of coordinates:
 # 
-#             coords = sbas.solid_tide(sbas.df.index, coords=[[13.40076, 47.40143], [13.40076, 47.40143]])
+#             coords = stack.solid_tide(stack.df.index, coords=[[13.40076, 47.40143], [13.40076, 47.40143]])
 #     
 #         Compute the tidal correction for point geodataframe:
-#             coords = sbas.solid_tide(sbas.df.index, AOI)
+#             coords = stack.solid_tide(stack.df.index, AOI)
 # 
 #         Compute the tidal correction for a single record point geodataframe:
-#             coords = sbas.solid_tide(sbas.df.index, AOI.head(1))
+#             coords = stack.solid_tide(stack.df.index, AOI.head(1))
 # 
 #         Output:
 # 
-#             >>> sbas.solid_tide(sbas.df.index[:3], coords=[lon, lat])        
+#             >>> stack.solid_tide(stack.df.index[:3], coords=[lon, lat])        
 #             lon	lat	dx	dy	dz
 #             date					
 #             2022-06-16	13.400758	47.401431	-0.066918	-0.004765	0.016200
 #             2022-06-28	13.400758	47.401431	-0.033571	0.012279	-0.099899
 #             2022-07-10	13.400758	47.401431	-0.000806	-0.007983	-0.150675
 # 
-#             >>> sbas.solid_tide(sbas.df.index[:3], coords=[[lon, lat], [lon+1, lat+1]])
+#             >>> stack.solid_tide(stack.df.index[:3], coords=[[lon, lat], [lon+1, lat+1]])
 #             lon	lat	dx	dy	dz
 #             date					
 #             2022-06-16	13.400758	47.401431	-0.066918	-0.004765	0.016200
@@ -196,28 +196,28 @@ class SBAS_tidal(SBAS_incidence):
         --------
         Compute the tidal correction for a single pair of coordinates:
 
-            coords = sbas.solid_tide(sbas.df.index, coords=[13.40076, 47.40143])
+            coords = stack.solid_tide(stack.df.index, coords=[13.40076, 47.40143])
 
         Compute the tidal correction for multiple pairs of coordinates:
 
-            coords = sbas.solid_tide(sbas.df.index, coords=[[13.40076, 47.40143], [13.40076, 47.40143]])
+            coords = stack.solid_tide(stack.df.index, coords=[[13.40076, 47.40143], [13.40076, 47.40143]])
 
         Compute the tidal correction for point geodataframe:
-            coords = sbas.solid_tide(sbas.df.index, AOI)
+            coords = stack.solid_tide(stack.df.index, AOI)
 
         Compute the tidal correction for a single record point geodataframe:
-            coords = sbas.solid_tide(sbas.df.index, AOI.head(1))
+            coords = stack.solid_tide(stack.df.index, AOI.head(1))
 
         Output:
 
-            >>> sbas.solid_tide(sbas.df.index[:3], coords=[lon, lat])        
+            >>> stack.solid_tide(stack.df.index[:3], coords=[lon, lat])        
             lon	lat	dx	dy	dz
             date					
             2022-06-16	13.400758	47.401431	-0.066918	-0.004765	0.016200
             2022-06-28	13.400758	47.401431	-0.033571	0.012279	-0.099899
             2022-07-10	13.400758	47.401431	-0.000806	-0.007983	-0.150675
 
-            >>> sbas.solid_tide(sbas.df.index[:3], coords=[[lon, lat], [lon+1, lat+1]])
+            >>> stack.solid_tide(stack.df.index[:3], coords=[[lon, lat], [lon+1, lat+1]])
             lon	lat	dx	dy	dz
             date					
             2022-06-16	13.400758	47.401431	-0.066918	-0.004765	0.016200
