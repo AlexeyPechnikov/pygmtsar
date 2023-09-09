@@ -80,7 +80,7 @@ class SBAS_geocode(SBAS_sbas):
     # coarsen=4:
     # nearest: coords [array([596.42352295]), array([16978.65625])]
     # linear:  coords [array([597.1080563]), array([16977.35608873])]
-    def ll2ra(self, data):
+    def ll2ra(self, data, z_offset=None):
         """
         Inverse geocode input geodataframe with 2D or 3D points. 
         """
@@ -105,7 +105,10 @@ class SBAS_geocode(SBAS_sbas):
                                              method='cubic',
                                              bounds_error=False)
             # interpolate specified point elevation on DEM adding 3D point vertical coordinate when exists
-            ele = interp([geom.y, geom.x])[0] + (geom.z if geom.has_z else 0)
+            if z_offset is None:
+                ele = interp([geom.y, geom.x])[0] + (geom.z if geom.has_z else 0)
+            else:
+                ele = interp([geom.y, geom.x])[0] + z_offset
             points_ll.append([geom.x, geom.y, ele])
             del interp
         points_ra = prm.SAT_llt2rat(points_ll)
