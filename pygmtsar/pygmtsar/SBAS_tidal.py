@@ -14,7 +14,7 @@ class SBAS_tidal(SBAS_incidence):
     def get_tidal(self, subswath=None, chunksize=None):
         return self.open_grid('tidal', subswath=subswath, chunksize=chunksize)
 
-    def tidal_parallel(self, dates=None, coarsen=32, chunksize=None, interactive=False):
+    def tidal_parallel(self, pairs, coarsen=32, chunksize=None, interactive=False):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -22,8 +22,8 @@ class SBAS_tidal(SBAS_incidence):
         import subprocess
         #import os
 
-        if dates is None:
-            dates = self.df.index
+        # some scenes can be missed in pairs 
+        dates = self.get_pairs(pairs, dates=True)[1]
 
         # expand simplified definition
         if not isinstance(coarsen, (list,tuple, np.ndarray)):
