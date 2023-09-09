@@ -917,7 +917,7 @@ class PRM(datagrid, PRM_gmtsar):
 
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
-    def intf(self, other, basedir, topo_fromfile, basename=None, wavelength=200, psize=32, \
+    def intf(self, other, basedir, topo_fromfile, basename=None, wavelength=200, psize=None, \
             coarsen=(1,4), func=None, weight=None, phase_tofile='phase', corr_tofile='corr', chunksize=None, debug=False):
         """
         Perform interferometric processing on the input SAR data.
