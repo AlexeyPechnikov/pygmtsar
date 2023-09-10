@@ -917,8 +917,10 @@ class PRM(datagrid, PRM_gmtsar):
 
     # see about correlation filter
     # https://github.com/gmtsar/gmtsar/issues/86
-    def intf(self, other, basedir, topo_fromfile, basename=None, wavelength=200, psize=None, \
-            coarsen=(1,4), func=None, weight=None, phase_tofile='phase', corr_tofile='corr', chunksize=None, debug=False):
+    def intf(self, other, basedir, topo_fromfile, basename=None, \
+            wavelength=200, psi=False, psize=None, \
+            coarsen=(1,4), func=None, weight=None, \
+            phase_tofile='phase', corr_tofile='corr', chunksize=None, debug=False):
         """
         Perform interferometric processing on the input SAR data.
 
@@ -934,6 +936,8 @@ class PRM(datagrid, PRM_gmtsar):
             Base name for the output files. If not provided, a default name will be generated.
         wavelength : int, optional
             Wavelength of the SAR data in meters. Default is 200 m.
+        psi : bool, optional
+            PSI flag calls not apply wavelength to phase. Default is False.
         psize : int, optional
             Werner/Goldstein filter window size in pixels. Default is 32 pixels.
         func : callable, optional
@@ -964,11 +968,20 @@ class PRM(datagrid, PRM_gmtsar):
         if not isinstance(other, PRM):
             raise Exception('Argument "other" should be PRM class instance')
 
-        if coarsen is None and psize is not None:
-            raise Exception('Argument "coarsen" can be None only when "psize" is None too')
+        if psi:
+            #print ('NOTE: disable downscaling (coarsen=None) and Goldstein adaptive filtering (psize=None) in PSI mode')
+            #if wavelength is not None:
+            #    print ('NOTE: anti-aliasing (speckle) filtering applied to correlation only in PSI mode')
+            coarsen = None
+            psize = None
+        if psize is not None:
+            #print ('NOTE: apply downscaling (coarsen=(1,4)) for Goldstein adaptive filtering (psize)')
+            coarsen = (1,4)
 
         # expand simplified definition
-        if not isinstance(coarsen, (list,tuple, np.ndarray)):
+        if coarsen == 1 or coarsen == (1,1):
+            raise Exception('Argument "coarsen" should be None to disable downscaling')
+        if coarsen is not None and not isinstance(coarsen, (list,tuple, np.ndarray)):
             coarsen = (coarsen, coarsen)
 
         # define lost class variables due to joblib
@@ -1015,17 +1028,19 @@ class PRM(datagrid, PRM_gmtsar):
         #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
 
         # anti-aliasing filter for multi-looking, wavelength can be None
-        imag = self.antialiasing_downscale(imag, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        real = self.antialiasing_downscale(real, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        amp1 = self.antialiasing_downscale(amp1, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        amp2 = self.antialiasing_downscale(amp2, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-
-        # calculate amplitude of interferogram
-        amp = np.sqrt(real**2 + imag**2)
-        # calculate masked correlation
-        corr = self.correlation(amp1, amp2, amp)
+        imag_filt = self.antialiasing_downscale(imag, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        real_filt = self.antialiasing_downscale(real, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        amp1_filt = self.antialiasing_downscale(amp1, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+        amp2_filt = self.antialiasing_downscale(amp2, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
         # cleanup
-        del amp1, amp2, amp
+        del amp1, amp2
+        
+        # calculate amplitude of interferogram
+        amp_filt = np.sqrt(real_filt**2 + imag_filt**2)
+        # calculate masked correlation
+        corr = self.correlation(amp1_filt, amp2_filt, amp_filt)
+        # cleanup
+        del amp1_filt, amp2_filt, amp_filt
         #chunksize=(512, 5393)
         #print ('DEBUG X2 corr', corr)
 
@@ -1034,10 +1049,12 @@ class PRM(datagrid, PRM_gmtsar):
             print ('DEBUG: intf apply Goldstein filter with size', psize is not None, psize)
         if psize is not None:
             phase = self.goldstein_filter_parallel((real + 1j * imag), corr, psize=psize)
-        else:
+        elif psi:
             phase = np.arctan2(imag, real)
+        else:
+            phase = np.arctan2(imag_filt, real_filt)
         # cleanup
-        del real, imag
+        del real, imag, real_filt, imag_filt
         #chunksize=(512, 5393)
         #print ('DEBUG X3 phase', phase)
 
