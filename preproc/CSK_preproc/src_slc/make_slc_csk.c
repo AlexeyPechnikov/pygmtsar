@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 
 int write_slc_hdf5(hid_t input, FILE *slc) {
 
-	int i, j, width, height;
+	int i, j, width, height, widthi;
 	short *buf, *tmp;
 	hsize_t dims[10];
 	hid_t memtype, dset, group;
@@ -107,6 +107,7 @@ int write_slc_hdf5(hid_t input, FILE *slc) {
 	hdf5_read(dims, input, "/S01", "SBI", "", 'n');
 	height = (int)dims[0];
 	width = (int)dims[1];
+    widthi = width;
 
 	buf = (short *)malloc(height * width * 2 * sizeof(short));
 	tmp = (short *)malloc(width * 2 * sizeof(short));
@@ -127,8 +128,8 @@ int write_slc_hdf5(hid_t input, FILE *slc) {
 
 	for (i = 0; i < height; i++) {
 		for (j = 0; j < width * 2; j += 2) {
-			tmp[j] = (short)buf[i * width * 2 + j];
-			tmp[j + 1] = (short)buf[i * width * 2 + j + 1];
+			tmp[j] = (short)buf[i * widthi * 2 + j];
+			tmp[j + 1] = (short)buf[i * widthi * 2 + j + 1];
 		}
 		fwrite(tmp, sizeof(short), width * 2, slc);
 	}

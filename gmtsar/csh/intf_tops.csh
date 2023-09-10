@@ -243,7 +243,7 @@ if ($stage <= 2) then
     endif
   
   cd ../..
-  if(-f intf_all/$ref_id"_"$rep_id) rm -rf intf_all/$ref_id"_"$rep_id 
+  if(-e intf_all/$ref_id"_"$rep_id) rm -rf intf_all/$ref_id"_"$rep_id 
   mv intf/$ref_id"_"$rep_id intf_all/$ref_id"_"$rep_id
 
   end

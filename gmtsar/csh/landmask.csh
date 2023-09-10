@@ -8,8 +8,9 @@ if ($#argv != 1) then
   echo ""
   echo "Usage: landmask.csh region_cut[0/10600/0/27648]"
   echo ""
-  echo "    make a landmask in radar coordinates "
-  echo "NOTE: The region_cut can be specified in batch.config file"
+  echo "    make a landmask in radar coordinates, needs to run with trans.dat "
+  echo ""
+  echo "    NOTE: The region_cut can be specified in batch.config file"
   echo ""
   exit 1
 endif

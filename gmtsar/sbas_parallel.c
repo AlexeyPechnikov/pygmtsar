@@ -98,7 +98,7 @@ char *USAGE = "USAGE: sbas_parallel intf.tab scene.tab N S xdim ydim [-atm ni] [
               "rms.grd\n"
               "  -dem                 --  output DEM error (m): dem_err.grd \n"
               "  -mmap                --  use mmap to allocate disk space for less use of memory \n"
-              "  -robust        --  only work with -atm turnned on, estimate velocity with records that has atm correction\n\n"
+              "  -robust              --  only work with -atm turnned on, estimate velocity with records that has atm correction\n\n"
               " output: \n"
               "  disp_##.grd          --  cumulative displacement time series (mm) "
               "grids\n"

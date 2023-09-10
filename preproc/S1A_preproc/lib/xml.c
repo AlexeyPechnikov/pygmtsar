@@ -423,11 +423,23 @@ int show_tree(tree *T, int ct, int lvl) {
 
 int cat_nums(char *str_out, char *str) {
 	// cat out the numbers in str to str_out
-	int i = 0, j = 0;
+	int i = 0, j = 0, sep1 = -1, sep2 = -1;
+
 	while (str[i] != '\0') {
 		if (str[i] >= '0' && str[i] <= '9') {
 			str_out[j++] = str[i];
 		}
+        // to account for single digits time such as 5:6:7.123456
+        else if (str[i] == 'T' || str[i] == ':' || str[i] == '.') {
+            sep2 = i;
+            if (sep2 - sep1 == 2) {
+              str_out[j] = str_out[j-1];
+              str_out[j-1] = '0';
+              j++;
+              sep2++;
+            }
+            sep1 = i;
+        }
 		i++;
 	}
 	str_out[j] = '\0';

@@ -402,7 +402,6 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
 	ker = (int *)malloc((count + 1) * sizeof(int));
 	kover = (int *)malloc((count + 1) * sizeof(int));
 	cflag_orig = (char *)malloc(sizeof(char) * 180 * (lpb + 1));
-	cflag = cflag_orig;
 
 	search_tree(xml_tree, "/product/imageAnnotation/imageInformation/productFirstLineUtcTime/", tmp_c, 2, 0, 1);
 	prm->clock_start = str2double(tmp_c);
@@ -417,6 +416,7 @@ int pop_burst(struct PRM *prm, tree *xml_tree, struct burst_bounds *bb, char *fi
 		t[i] = str2double(tmp_c);
 		search_tree(xml_tree, "/product/swathTiming/burstList/burst/firstValidSample/", tmp_cc, 1, 4, i);
 		lines_this_burst = get_words(tmp_cc);
+        cflag = cflag_orig;
 		strcpy(cflag, tmp_cc);
 		for (j = 0; j < lines_this_burst; j++) {
 			flag = (int)strtol(cflag, &cflag, 10);

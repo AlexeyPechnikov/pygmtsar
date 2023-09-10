@@ -52,9 +52,7 @@
   set mmaster = `awk -F: 'NR==1 {print $1}' $1 | awk '{ print "S1_"substr($1,16,8)"_ALL_F"substr($1,7,1)}'`
   # clean up a little bit
   rm *.PRM* *.SLC *.LED tmp*
-  if($mode == 1) then
-    rm baseline_table.dat
-  endif
+  if (-f baseline_table.dat) rm baseline_table.dat
 
   # loop over all the acquisitions
   foreach line (`awk '{print $0}' $1`)

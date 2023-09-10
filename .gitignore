@@ -232,6 +232,10 @@ preproc/S1A_preproc/src_tops/make_s1a_tops_6par
 preproc/S1A_preproc/src_tops/make_s1a_tops_6par.o
 preproc/TSX_preproc/src/make_slc_tsx
 preproc/TSX_preproc/src/make_slc_tsx.o
+preproc/NSR_preproc/include
+preproc/NSR_preproc/lib
+preproc/NSR_preproc/src_slc/make_slc_nsr
+preproc/NSR_preproc/src_slc/make_slc_nsr.o
 share/
 snaphu/src/snaphu
 snaphu/src/snaphu.o

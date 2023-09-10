@@ -415,9 +415,9 @@ echo $commandline
     echo ""
     echo " Pre-Process CSK Raw data - END"
     echo ""
-  else if ($SAT == "CSK_SLC" || $SAT == "TSX" || $SAT == "S1_STRIP" || $SAT == "RS2" || $SAT == "GF3") then
+  else if ($SAT == "CSK_SLC" || $SAT == "TSX" || $SAT == "S1_STRIP" || $SAT == "RS2" || $SAT == "GF3" || $SAT == "LT1") then
     echo ""
-    echo " Pre-Process CSK/TSX/RS2/S1_STRIP/GF3 SLC data - START"
+    echo " Pre-Process CSK/TSX/RS2/S1_STRIP/GF3/LT1 SLC data - START"
     echo ""
     if ($SAT == "CSK_SLC") then     
       if ($skip_master == 0 || $skip_master == 2) then
@@ -450,6 +450,13 @@ echo $commandline
       endif
       if ($skip_master == 0 || $skip_master == 1) then
         make_slc_gf3 $aligned.xml $aligned.tiff $aligned
+      endif
+    else if ($SAT == "LT1") then
+      if ($skip_master == 0 || $skip_master == 2) then
+        make_slc_lt1 $master.xml $master.tiff $master
+      endif
+      if ($skip_master == 0 || $skip_master == 1) then
+        make_slc_lt1 $aligned.xml $aligned.tiff $aligned
       endif
     else 
       if ($skip_master == 0 || $skip_master == 2) then
