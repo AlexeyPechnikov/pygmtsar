@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/csh -f
 #       $Id$
 
 # Align RAW or SLC images using orbits and DEM

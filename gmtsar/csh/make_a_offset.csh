@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/csh -f
 #       $Id$
 # Script to drive the xcorr to do the azimuthal pixel-tracking
 # Originated by Matt Wei, April 19, 2010
