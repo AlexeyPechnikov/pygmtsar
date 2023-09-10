@@ -200,6 +200,8 @@ class PRM_gmtsar:
 
         # TBD: use np.array_split() and [x for x in a if x.size > 0] for chunking processing
         pipe = os.pipe()
+        # for unicode file paths
+        #os.write(pipe[1], bytearray(self.to_str(), 'utf8'))
         os.write(pipe[1], bytearray(self.to_str(), 'ascii'))
         os.close(pipe[1])
         #print ('descriptor', str(pipe[0]))
