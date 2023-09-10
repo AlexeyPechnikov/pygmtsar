@@ -594,7 +594,9 @@ class datagrid:
 #         print ('DEBUG sigmas', sigmas)
 #         conv = dask_gaussian_filter(da_square.data, sigmas, mode='reflect', truncate=2)
 #         return xr.DataArray(conv, coords=da_square.coords, name=da.name)
-    # anti-aliasing filter and downscaling, single filter (potentially more accurate)x
+    # anti-aliasing filter and downscaling, single filter (potentially more accurate)
+    # coarsen = None disables downscaling and uses wavelength to filter
+    # coarsen=1 disables downscaling and use coarsen/cutoff filter
     def antialiasing_downscale(self, da, weight=None, wavelength=None, coarsen=(1,4), debug=False):
         import xarray as xr
         import numpy as np
@@ -605,7 +607,7 @@ class datagrid:
         cutoff = 5.3
         
         # allow this case to save the original grid resolution
-        if wavelength is None and (coarsen is None or coarsen==(1,1)):
+        if wavelength is None and coarsen is None:
             return da
 
         # antialiasing (multi-looking) filter
