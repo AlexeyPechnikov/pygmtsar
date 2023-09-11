@@ -47,7 +47,7 @@ class Stack_stack(Stack_dem):
 
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
     # use median decimation instead of average
-    def get_topo_llt(self, subswath, degrees, geoloc=True, debug=False):
+    def get_topo_llt(self, subswath, degrees, geoloc=True, buffer_degrees=0.05, debug=False):
         """
         Get the topography coordinates (lon, lat, z) for decimated DEM.
 
@@ -71,7 +71,7 @@ class Stack_stack(Stack_dem):
         import numpy as np
 
         # add buffer around the cropped area for borders interpolation
-        dem_area = self.get_dem(subswath, geoloc=geoloc)
+        dem_area = self.get_dem(subswath, geoloc=geoloc, buffer_degrees=buffer_degrees)
         ny = int(np.round(degrees/dem_area.lat.diff('lat')[0]))
         nx = int(np.round(degrees/dem_area.lon.diff('lon')[0]))
         if debug:

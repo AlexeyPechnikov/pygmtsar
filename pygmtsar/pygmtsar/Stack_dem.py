@@ -47,8 +47,9 @@ class Stack_dem(Stack_reframe):
 
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # small buffer produces incomplete area coverage and restricted NaNs
+    # 0.02 degrees works well worldwide but not in Siberia
     # minimum buffer size: 8 arc seconds for 90 m DEM
-    def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.02):
+    def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.05):
         """
         Retrieve the digital elevation model (DEM) data.
 
@@ -120,10 +121,11 @@ class Stack_dem(Stack_reframe):
 
 
     # buffer required to get correct (binary) results from SAT_llt2rat tool
+    # 0.02 degrees works well worldwide but not in Siberia
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
     # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, backend=None, product='SRTM1', resolution_meters=None, method=None, buffer_degrees=0.02, debug=False):
+    def download_dem(self, backend=None, product='SRTM1', resolution_meters=None, method=None, buffer_degrees=0.05, debug=False):
         """
         Download and preprocess digital elevation model (DEM) data.
 

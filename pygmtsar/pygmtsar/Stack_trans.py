@@ -58,7 +58,7 @@ class Stack_trans(Stack_stack):
         """
         return self.open_grid('trans', subswath=subswath, chunksize=chunksize)
 
-    def trans(self, subswath, coarsen, chunksize=None, interactive=False):
+    def trans(self, subswath, coarsen, chunksize=None, buffer_degrees=0.05, interactive=False):
         """
         Retrieve or calculate the transform data for a specific or all subswaths. This transform data is then saved as
         a NetCDF file for future use.
@@ -179,7 +179,7 @@ class Stack_trans(Stack_stack):
             return (rae, extent)
 
         # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
-        dem = self.get_dem(geoloc=True).rename({'lat': 'yy', 'lon': 'xx'})
+        dem = self.get_dem(geoloc=True, buffer_degrees=buffer_degrees).rename({'lat': 'yy', 'lon': 'xx'})
 
         # check DEM corners
         dem_corners = dem[::dem.yy.size-1, ::dem.xx.size-1]
