@@ -44,7 +44,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
         else:
             df = self.get_repeat(subswath, date)
 
-        orbit = os.path.relpath(df['orbitpath'][0], self.basedir)
+        orbit = os.path.relpath(df['orbitpath'].iloc[0], self.basedir)
 
         argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
         if debug:
@@ -106,9 +106,9 @@ class Stack_reframe_gmtsar(Stack_orbits):
             df = self.get_repeat(subswath, date)
 
         # TODO: use subswath
-        xmlfile = os.path.relpath(df['metapath'][0], self.basedir)
-        datafile = os.path.relpath(df['datapath'][0], self.basedir)
-        stem = self.multistem_stem(subswath, df['datetime'][0])[1]
+        xmlfile = os.path.relpath(df['metapath'].iloc[0], self.basedir)
+        datafile = os.path.relpath(df['datapath'].iloc[0], self.basedir)
+        stem = self.multistem_stem(subswath, df['datetime'].iloc[0])[1]
 
         argv = ['make_s1a_tops', xmlfile, datafile, stem, str(mode)]
         if rshift_fromfile is not None:
@@ -178,7 +178,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
         else:
             datapaths = [os.path.relpath(path, self.basedir)[:-5] for path in df['datapath']]
         #print ('datapaths', datapaths)
-        stem = self.multistem_stem(subswath, df['datetime'][0])[1]
+        stem = self.multistem_stem(subswath, df['datetime'].iloc[0])[1]
 
         # round values and convert to strings
         azi_1 = np.round(azi_1).astype(int).astype(str)

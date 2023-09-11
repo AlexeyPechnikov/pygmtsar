@@ -75,7 +75,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
             print ('DEBUG: geometry', geometry)
     
         df = self.get_repeat(subswath, date)
-        stem = self.multistem_stem(subswath, df['datetime'][0])[1]
+        stem = self.multistem_stem(subswath, df['datetime'].iloc[0])[1]
         #print ('stem', stem)
 
         old_filename = os.path.join(self.basedir, f'{stem}')
@@ -104,7 +104,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
 
         # Parse new .xml to define new scene name
         # like to 's1b-iw3-slc-vv-20171117t145922-20171117t145944-008323-00ebab-006'
-        filename = os.path.splitext(os.path.split(df['datapath'][0])[-1])[0]
+        filename = os.path.splitext(os.path.split(df['datapath'].iloc[0])[-1])[0]
         head1 = filename[:15]
         tail1 = filename[-17:]
         xml_header = S1.read_annotation(old_filename+'.xml')['product']['adsHeader']

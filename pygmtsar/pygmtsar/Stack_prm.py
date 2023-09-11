@@ -45,7 +45,7 @@ class Stack_prm(Stack_base):
         # to build sbas table and pairs after merging use unmerged subswath PRM files
         if singleswath and len(str(subswath))>1:
             subswath = int(str(subswath)[0])
-        multistem, stem = self.multistem_stem(subswath, line.datetime[0])
+        multistem, stem = self.multistem_stem(subswath, line.datetime.iloc[0])
         if multi:
             stem = multistem
         filename = os.path.join(self.basedir, f'{stem}.PRM')
