@@ -35,7 +35,7 @@ setup(
     install_requires=['xarray>=0.19.0',
                       'numpy>=1.22.4',
                       'numba',
-                      'pandas>=1.4',
+                      'pandas>=2.1.0',
                       'geopandas',
                       'distributed>=2022.11.1',
                       'dask[complete]',
