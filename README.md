@@ -5,23 +5,29 @@
 [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar)
 [![DOI](https://zenodo.org/badge/398018212.svg)](https://zenodo.org/badge/latestdoi/398018212)
 
-## PyGMTSAR (Python GMTSAR) - Sentinel-1 Satellite Interferometry for Everyone
+## Announcements
 
-Hint: You can sponsor PyGMTSAR software development on [Patreon](https://www.patreon.com/pechnikov).
+The e-book, titled 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction' is now available for the stable PyGMTSAR release on various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). If you'd like a preview of the content, you can check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar/book/PyGMTSAR_preview.pdf) uploaded in the repository.
+
+Currently in development, PyGMTSAR2 (Python InSAR) is aimed at experts in Sentinel-1 Satellite Interferometry, offering features such as SBAS, PSI, PSI-SBAS, and more. It is available in [pygmtsar2 branch](https://github.com/mobigroup/gmtsar/tree/pygmtsar2). I  share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and updates on its progress through my [LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/).
+
+You have the option to support the development of PyGMTSAR software on [Patreon](https://www.patreon.com/pechnikov) and [Buy Me a Coffee](https://www.buymeacoffee.com/pechnikov) platforms. These platforms also offer additional documentation and use cases.
+
+## PyGMTSAR (Python InSAR) - Sentinel-1 Satellite Interferometry for Everyone
 
 <img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" width="40%" />
 
-This repository is based on a fork of the original GMTSAR and extended with my patches to binary tools and the Python library PyGMTSAR. I commit my changes to binary tools to GMTSAR upstream, so it's possible to use the original GMTSAR master branch installation plus the PyGMTSAR Python package via PIP. The project documentation, including installation instructions, is available at the following link: https://mobigroup.github.io/gmtsar/
+This repository is based on a fork of the original GMTSAR and has been extended with my patches for binary tools and the Python library PyGMTSAR, located in the `pygmtsar` repository branch. I regularly commit my changes to the binary tools back to the GMTSAR upstream repository. This allows users to install the original GMTSAR master branch alongside the PyGMTSAR Python package using PIP. Once PyGMTSAR becomes independent of GMTSAR tools, it will be split into a separate repository.
 
 The goal of the project is to provide easy and fast satellite interferometry (InSAR) processing for Sentinel-1 radar scenes across various environments such as local hosts, cloud environments like Google Cloud VM and AI Notebooks, Amazon EC2, free-of-charge cloud environments like Google Colab, and Docker images. GMTSAR binary command-line tools are used under the hood, but all GMTSAR scripts and GMT commands are replaced by Python code using modern and robust algorithms.
 
-## PyGMTSAR Docker Images for Everyone on DockerHub
+## PyGMTSAR Docker Images on DockerHub
 
 <img src="https://user-images.githubusercontent.com/7342379/203853391-b0dd50e5-3b07-4655-b5f4-c08109f23ffd.png" width="50%">
 
 See Docker basic image for merged subswaths and cropped scenes and SBAS time series processing on [DockerHub PyGMTSAR for Everyone](https://hub.docker.com/r/mobigroup/pygmtsar) This image is the right choice to start and perform lots of common interferometry tasks. 
 
-## PyGMTSAR Docker Images for Experts on DockerHub
+## PyGMTSAR Large Docker Images on DockerHub
 
 <img src="https://user-images.githubusercontent.com/7342379/205281391-682816e5-8f1e-44bd-b7b6-478df7453bb1.png" width="50%">
 
@@ -90,7 +96,7 @@ Check out the separate GitHub repository for the Yamchi Dam area dynamic model, 
 
 ## Learn more
 
-- Documentation: https://github.com/mobigroup/gmtsar
+- Documentation: https://mobigroup.github.io/gmtsar/
 
 - Issue tracker: https://github.com/mobigroup/gmtsar/issues
 
