@@ -12,6 +12,32 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_stl(Stack_tidal):
 
+    def stack_vs_cube(self, data_pairs, data):
+        """
+        Calculate difference between pairs and dates
+    
+        Use to calculate solution vs pair unwrapped phases difference as
+        diff = sbas.stack_vs_cube(phase_unwrap, solution)
+        error = np.sqrt(sbas.wrap(diff)**2).sum('pair')
+        """
+        import xarray as xr
+
+        # extract pairs
+        pairs = self.get_pairs(data_pairs)
+        # calculate differences between end and start dates for all the pairs
+        error_pairs = []
+        for rec in pairs.itertuples():
+            error_pair = data.sel(date=rec.rep) - data.sel(date=rec.ref) - data_pairs.isel(pair=rec.Index)
+            error_pairs.append(error_pair)
+        # form 3D stack
+        return xr.concat(error_pairs, dim='pair').assign_coords({'pair': data_pairs.pair})
+
+    def cube_trend(self, data, deg=1):
+        import xarray as xr
+
+        trend = xr.polyval(data.date, data.polyfit('date', deg).polyfit_coefficients)
+        return trend
+    
     @staticmethod
     def stl(ts, dt, dt_periodic, periods, robust=False):
         """
