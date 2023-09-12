@@ -59,6 +59,10 @@ class Stack_geocode(Stack_sbas):
         subswath = self.get_subswath()
         return self.ra2ll(data, subswath, **kwargs)
 
+    def cube_ra2ll(self, data, **kwargs):
+        subswath = self.get_subswath()
+        return self.ra2ll(data, subswath, **kwargs)
+        
 #     def stack_ra2ll(s# elf, data, **kwargs):
 #         if not isinstance(data, (list, tuple)):
 #             subswath = self.get_subswath()

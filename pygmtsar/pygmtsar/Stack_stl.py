@@ -69,7 +69,7 @@ class Stack_stl(Stack_tidal):
 
     # Aggregate data for varying frequencies (e.g., 12+ days for 6 days S1AB images interval)
     # Use frequency strings like '1W' for 1 week, '2W' for 2 weeks, '10d' for 10 days, '1M' for 1 month, etc.
-    def stack_stl(self, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
+    def cube_stl(self, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data in parallel.
 
