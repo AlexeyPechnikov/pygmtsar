@@ -341,9 +341,9 @@ class IO(datagrid):
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
-    def open_stack(self, pairs, name, subswath=None, add_subswath=True, chunksize=None):
+    def open_pairs(self, pairs, name, subswath=None, add_subswath=True, chunksize=None):
         """
-        stack.open_stack(baseline_pairs,'phasefilt')
+        stack.open_pairs(baseline_pairs,'phasefilt')
         """
         import xarray as xr
         import pandas as pd
@@ -402,7 +402,7 @@ class IO(datagrid):
 
         return das if subswath is None else das[0]
 
-    def open_stack_slc(self, dates=None, subswath=None, intensity=False, dfact=2.5e-07, chunksize=None):
+    def open_stack(self, dates=None, subswath=None, intensity=False, dfact=2.5e-07, chunksize=None):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -472,7 +472,7 @@ class IO(datagrid):
 
         return stacks if subswath is None else stacks[0]
 
-    def open_model(self, name, chunksize=None):
+    def open_cube(self, name, chunksize=None):
         """
         Opens an xarray 3D Dataset from a NetCDF file and re-chunks it based on the specified chunksize.
 
@@ -525,7 +525,7 @@ class IO(datagrid):
             return model[list(model.data_vars)[0]]
         return model
 
-    def save_model(self, model, name=None, caption='Saving 3D datacube', chunksize=None, debug=False):
+    def save_cube(self, model, name=None, caption='Saving 3D datacube', chunksize=None, debug=False):
         """
         Save an xarray 3D Dataset to a NetCDF file and re-chunks it based on the specified chunksize.
 

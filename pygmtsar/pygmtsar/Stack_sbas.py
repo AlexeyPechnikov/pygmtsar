@@ -266,7 +266,7 @@ class Stack_sbas(Stack_detrend):
         if interactive:
             return model
 
-        self.save_model(model, caption='[Correlation-Weighted] Least Squares Computing', chunksize=chunksize)
+        self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing', chunksize=chunksize)
 
     def baseline_table(self, n_jobs=-1, debug=False):
         """

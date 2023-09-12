@@ -39,7 +39,7 @@ class Stack_ps(Stack_stl):
                 dates = self.df[self.df['subswath']==subswath].index.values
             #print ('dates', dates)
             # intensity=False means complex data
-            slcs = self.open_stack_slc(dates=dates, subswath=subswath, intensity=True, dfact=dfact)
+            slcs = self.open_stack(dates=dates, subswath=subswath, intensity=True, dfact=dfact)
             # convert to amplitude for GMTSAR compatible calculations
             if not intensity:
                 slcs = np.sqrt(slcs)

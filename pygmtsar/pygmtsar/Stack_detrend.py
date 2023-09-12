@@ -261,7 +261,7 @@ class Stack_detrend(Stack_unwrap):
         For band-pass filtering apply the function twice and save to disk:
         model = stack.gaussian_parallel(slcs, wavelength=400, interactive=True) \
             - stack.gaussian_parallel(slcs, wavelength=2000, interactive=True)
-        stack.save_model(model, caption='Gaussian Band-Pass filtering')
+        stack.save_cube(model, caption='Gaussian Band-Pass filtering')
 
         Detrend and return lazy xarray dataarray:
         stack.gaussian_parallel(slcs, wavelength=400, interactive=True)
@@ -318,4 +318,4 @@ class Stack_detrend(Stack_unwrap):
         if interactive:
             return out
 
-        self.save_model(out, caption='Gaussian filtering')
+        self.save_cube(out, caption='Gaussian filtering')

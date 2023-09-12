@@ -190,4 +190,4 @@ class Stack_stl(Stack_tidal):
         if interactive:
             return model
 
-        self.save_model(model, name='stl', caption='Seasonal-Trend decomposition using LOESS', chunksize=chunksize)
+        self.save_cube(model, name='stl', caption='Seasonal-Trend decomposition using LOESS', chunksize=chunksize)
