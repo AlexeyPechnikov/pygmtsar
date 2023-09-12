@@ -11,27 +11,91 @@ from .Stack_incidence import Stack_incidence
 
 class Stack_tidal(Stack_incidence):
 
-    def tidal_los(self, data):
+#     # naive code is not suitable for large grids and stacks
+#     def cube_tidal_los(self, data):
+#         """
+#         Calculate tidal LOS displacement [m] for data dates and spatial extent
+#         """
+#         import xarray as xr
+# 
+#         # suppose only one subswath
+#         solid_tide = self.get_tidal()[0]
+#         # interpolate on the data_pairs 2D grid
+#         tidal_dates = solid_tide.interp_like(data, method='linear', assume_sorted=True)
+#         # compute LOS projection, [m]
+#         tidal_dates_los = self.los_projection(tidal_dates)
+#         return tidal_dates_los
+
+    def cube_tidal_los(self, data_pairs, chunksize=None):
         """
-        Calculate tidal LOS displacement [m] for data dates and spatial extent
+        Calculate tidal LOS displacement [m] for data pairs dates and spatial extent
         """
+        import pandas as pd
+        import dask
         import xarray as xr
+        import numpy as np
 
+        if chunksize is None:
+            chunksize = self.chunksize
+
+        # select only required dates
+        dates = self.get_pairs(data_pairs, dates=True)[1]
+        data_grid = data_pairs[0] if len(data_pairs.dims) == 3 else data_pairs
+    
         # suppose only one subswath
-        solid_tide = self.get_tidal()[0]
-        # interpolate on the data_pairs 2D grid
-        tidal_dates = solid_tide.interp_like(data, method='linear', assume_sorted=True)
-        # compute LOS projection, [m]
-        tidal_dates_los = self.los_projection(tidal_dates) 
-        return tidal_dates_los
+        solid_tide = self.get_tidal()[0].sel(date=dates)
 
-    def tidal_los_rad(self, data):
+        # satellite look vector
+        sat_look = self.get_sat_look()
+
+        @dask.delayed
+        def interp_block(date, ys_block, xs_block):
+            # use outer variables
+            # interpolate on the data_pairs 2D grid
+            coords = {'y': ys_block, 'x': xs_block}
+            block_tidal = solid_tide.sel(date=date).interp(coords, method='linear', assume_sorted=True)
+            block_look = sat_look.interp(coords, method='linear', assume_sorted=True)
+            los = xr.dot(xr.concat([block_look.look_E, block_look.look_N, block_look.look_U], dim='dim'),
+                      xr.concat([block_tidal.dx, block_tidal.dy, block_tidal.dz], dim='dim'),
+                      dims=['dim'])
+            del block_tidal, block_look, coords
+            return los.data[None,]
+
+        # define output radar coordinates grid and split to equal chunks and rest
+        ys_blocks = np.array_split(data_pairs.y, np.arange(0, data_pairs.y.size, chunksize)[1:])
+        xs_blocks = np.array_split(data_pairs.x, np.arange(0, data_pairs.x.size, chunksize)[1:])
+
+        # per-block processing
+        blocks3d  = []
+        for date in dates:
+            blocks2d  = []
+            for ys_block in ys_blocks:
+                blocks = []
+                for xs_block in xs_blocks:
+                    block = dask.array.from_delayed(interp_block(date, ys_block, xs_block),
+                                                    shape=(1, ys_block.size, xs_block.size), dtype=np.float32)
+                    blocks.append(block)
+                    del block
+                blocks2d.append(blocks)
+                del blocks
+            blocks3d.append(blocks2d)
+            del blocks2d
+        dask_block = dask.array.block(blocks3d)
+        del blocks3d
+
+        # convert coordinate to valid dates
+        coords = {'date': pd.to_datetime(dates), 'y': data_grid.coords['y'], 'x': data_grid.coords['x']}
+        out = xr.DataArray(dask_block, coords=coords)
+        del dask_block
+        return out.rename('tidal')
+
+    def cube_tidal_los_rad(self, data, chunksize=None):
         """
         Calculate tidal LOS displacement [rad] for data dates and spatial extent
         """
-        return 1000*self.tidal_los(data)/self.los_displacement_mm(1)
+        return 1000*self.cube_tidal_los(data, chunksize=chunksize)/self.los_displacement_mm(1)
 
-    def stack_tidal_los(self, data_pairs):
+    def stack_tidal_los(self, data_pairs, chunksize=None):
         """
         Calculate tidal LOS displacement [m] for data_pairs pairs and spatial extent
         """
@@ -41,7 +105,7 @@ class Stack_tidal(Stack_incidence):
         pairs = self.get_pairs(data_pairs)
         # interpolate on the data_pairs 2D grid
         # compute LOS projection, [m]
-        tidal_dates_los = self.tidal_los(data_pairs)
+        tidal_dates_los = self.cube_tidal_los(data_pairs, chunksize=chunksize)
         # calculate differences between end and start dates for all the pairs
         tidal_pairs = []
         for rec in pairs.itertuples():
@@ -50,12 +114,81 @@ class Stack_tidal(Stack_incidence):
         # form 3D stack
         return xr.concat(tidal_pairs, dim='pair').assign_coords({'pair': data_pairs.pair})
 
-    def stack_tidal_los_rad(self, data_pairs):
+#     # faster, but there is no significant advantage vs naive version
+#     def stack_tidal_los(self, data_pairs, chunksize=None):
+#         """
+#         Calculate tidal LOS displacement [m] for data pairs dates and spatial extent
+#         """
+#         import pandas as pd
+#         import dask
+#         import xarray as xr
+#         import numpy as np
+# 
+#         if chunksize is None:
+#             chunksize = self.chunksize
+# 
+#         # select only required dates
+#         pairs, dates = self.get_pairs(data_pairs, dates=True)
+#         data_grid = data_pairs[0] if len(data_pairs.dims) == 3 else data_pairs
+# 
+#         # suppose only one subswath
+#         solid_tide = self.get_tidal()[0].sel(date=dates)
+# 
+#         # satellite look vector
+#         sat_look = self.get_sat_look()
+# 
+#         @dask.delayed
+#         def interp_block(date_ref, date_rep, ys_block, xs_block):
+#             # use outer variables
+#             # interpolate on the data_pairs 2D grid
+#             coords = {'y': ys_block, 'x': xs_block}
+#             block_tidal = solid_tide.sel(date=date_rep).interp(coords, method='linear', assume_sorted=True) - \
+#                           solid_tide.sel(date=date_ref).interp(coords, method='linear', assume_sorted=True)
+#             block_look = sat_look.interp(coords, method='linear', assume_sorted=True)
+#             los = xr.dot(xr.concat([block_look.look_E, block_look.look_N, block_look.look_U], dim='dim'),
+#                       xr.concat([block_tidal.dx, block_tidal.dy, block_tidal.dz], dim='dim'),
+#                       dims=['dim'])
+#             del block_tidal, block_look, coords
+#             return los.data[None,]
+# 
+#         # define output radar coordinates grid and split to equal chunks and rest
+#         ys_blocks = np.array_split(data_pairs.y, np.arange(0, data_pairs.y.size, chunksize)[1:])
+#         xs_blocks = np.array_split(data_pairs.x, np.arange(0, data_pairs.x.size, chunksize)[1:])
+# 
+#         # per-block processing
+#         blocks3d  = []
+#         for rec in pairs.itertuples():
+#             blocks2d  = []
+#             for ys_block in ys_blocks:
+#                 blocks = []
+#                 for xs_block in xs_blocks:
+#                     block = dask.array.from_delayed(interp_block(rec.ref, rec.rep, ys_block, xs_block),
+#                                                     shape=(1, ys_block.size, xs_block.size), dtype=np.float32)
+#                     blocks.append(block)
+#                     del block
+#                 blocks2d.append(blocks)
+#                 del blocks
+#             blocks3d.append(blocks2d)
+#             del blocks2d
+#         dask_block = dask.array.block(blocks3d)
+#         del blocks3d
+# 
+#         out = xr.DataArray(dask_block, coords=data_pairs.coords)
+#         del dask_block
+#         return out.rename('tidal')
+
+    def stack_tidal_los_rad(self, data_pairs, chunksize=None):
         """
         Calculate tidal LOS displacement [rad] for data_pairs pairs and spatial extent
         """
-        return 1000*self.stack_tidal_los(data_pairs)/self.los_displacement_mm(1)
+        return 1000*self.stack_tidal_los(data_pairs, chunksize=chunksize)/self.los_displacement_mm(1)
 
+    def stack_tidal_correction_wrap(self, data_pairs, chunksize=None):
+        """
+        Apply tidal correction to wrapped phase pairs [rad] and wrap the result.
+        """
+        return self.wrap(data_pairs - self.stack_tidal_los_rad(data_pairs, chunksize=chunksize))
+    
     def get_tidal(self, subswath=None, chunksize=None):
         return self.open_grid('tidal', subswath=subswath, chunksize=chunksize)
 
