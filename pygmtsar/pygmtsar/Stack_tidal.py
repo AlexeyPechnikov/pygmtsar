@@ -11,6 +11,51 @@ from .Stack_incidence import Stack_incidence
 
 class Stack_tidal(Stack_incidence):
 
+    def tidal_los(self, data):
+        """
+        Calculate tidal LOS displacement [m] for data dates and spatial extent
+        """
+        import xarray as xr
+
+        # suppose only one subswath
+        solid_tide = self.get_tidal()[0]
+        # interpolate on the data_pairs 2D grid
+        tidal_dates = solid_tide.interp_like(data, method='linear', assume_sorted=True)
+        # compute LOS projection, [m]
+        tidal_dates_los = self.los_projection(tidal_dates) 
+        return tidal_dates_los
+
+    def tidal_los_rad(self, data):
+        """
+        Calculate tidal LOS displacement [rad] for data dates and spatial extent
+        """
+        return 1000*self.tidal_los(data)/self.los_displacement_mm(1)
+
+    def stack_tidal_los(self, data_pairs):
+        """
+        Calculate tidal LOS displacement [m] for data_pairs pairs and spatial extent
+        """
+        import xarray as xr
+
+        # extract pairs
+        pairs = self.get_pairs(data_pairs)
+        # interpolate on the data_pairs 2D grid
+        # compute LOS projection, [m]
+        tidal_dates_los = self.tidal_los(data_pairs)
+        # calculate differences between end and start dates for all the pairs
+        tidal_pairs = []
+        for rec in pairs.itertuples():
+            tidal_pair = tidal_dates_los.sel(date=rec.rep) - tidal_dates_los.sel(date=rec.ref)
+            tidal_pairs.append(tidal_pair)
+        # form 3D stack
+        return xr.concat(tidal_pairs, dim='pair').assign_coords({'pair': data_pairs.pair})
+
+    def stack_tidal_los_rad(self, data_pairs):
+        """
+        Calculate tidal LOS displacement [rad] for data_pairs pairs and spatial extent
+        """
+        return 1000*self.stack_tidal_los(data_pairs)/self.los_displacement_mm(1)
+
     def get_tidal(self, subswath=None, chunksize=None):
         return self.open_grid('tidal', subswath=subswath, chunksize=chunksize)
 
