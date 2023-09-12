@@ -12,6 +12,12 @@ from .Stack_unwrap_snaphu import Stack_unwrap_snaphu
 class Stack_unwrap(Stack_unwrap_snaphu):
 
     @staticmethod
+    def wrap(data_pairs):
+        import numpy as np
+
+        return np.mod(data_pairs + np.pi, 2 * np.pi) - np.pi
+
+    @staticmethod
     def unwrap1d(data_pairs, matrix):
         import numpy as np
 
