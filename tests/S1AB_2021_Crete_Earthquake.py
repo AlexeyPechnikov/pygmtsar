@@ -30,8 +30,8 @@ if __name__ == '__main__':
     print (sbas.get_pins())
     sbas.to_dataframe()
     # Download DEM
-    #sbas.download_dem(backend='GMT', product='SRTM3')
-    sbas.download_dem(product='SRTM1')
+    sbas.download_dem(backend='GMT', product='SRTM3')
+    #sbas.download_dem(product='SRTM1')
     print (sbas.get_dem())
     # Align a Stack of Images
     sbas.stack_parallel()
