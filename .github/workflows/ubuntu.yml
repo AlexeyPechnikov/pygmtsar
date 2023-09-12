@@ -115,6 +115,8 @@ jobs:
       run: |
         git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
         cd GMTSAR
+        # revert recent broken commit
+        git checkout e98ebc0f4164939a4780b1534bac186924d7c998
         autoconf
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
@@ -175,6 +177,8 @@ jobs:
       run: |
         git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
         cd GMTSAR
+        # revert recent broken commit
+        git checkout e98ebc0f4164939a4780b1534bac186924d7c998
         autoconf
         ./configure --with-orbits-dir=/tmp CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
         make CFLAGS='-z muldefs' LDFLAGS='-z muldefs'
