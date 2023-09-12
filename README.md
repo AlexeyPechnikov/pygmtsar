@@ -1,10 +1,18 @@
-## Currently in development, PyGMTSAR2 (Python GMTSAR) is aimed at experts in Sentinel-1 Satellite Interferometry, offering features such as SBAS, PSI, PSI-SBAS, and more.
+## Announcements
+
+The e-book, titled 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction' is now available for the stable PyGMTSAR release on various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). If you'd like a preview of the content, you can check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar/book/PyGMTSAR_preview.pdf) uploaded in the repository.
+
+You have the option to support the development of PyGMTSAR software on [Patreon](https://www.patreon.com/pechnikov) and [Buy Me a Coffee](https://www.buymeacoffee.com/pechnikov) platforms. These platforms also offer additional documentation and use cases.
+
+## PyGMTSAR2 (Python InSAR) - Sentinel-1 Satellite Interferometry for Experts
+
+Currently in development, PyGMTSAR2 (Python InSAR) is aimed at experts in Sentinel-1 Satellite Interferometry, offering features such as SBAS, PSI, PSI-SBAS, and more. It is available in [pygmtsar2 branch](https://github.com/mobigroup/gmtsar/tree/pygmtsar2). I  share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and updates on its progress through my [LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/).
 
 <img src="https://user-images.githubusercontent.com/7342379/194891967-be2b56b5-c30c-4040-8ef8-39b448ce2390.jpg" width="40%" />
 
 ## About PyGMTSAR2
 
-PyGMTSAR allows accessible, reproducible, and powerful Sentinel-1 SBAS interferometry for everyone. But how about all the interferometry approaches like SBAS, PSI, PSI-SBAS, and time series and trend analysis, along with visualization, in a single Python package available on Google Colab, DockerHub, and beyond? This is the goal for PyGMTSAR2!
+PyGMTSAR2 allows accessible, reproducible, and powerful Sentinel-1 SBAS interferometry for everyone. But how about all the interferometry approaches like SBAS, PSI, PSI-SBAS, and time series and trend analysis, along with visualization, in a single Python package available on Google Colab, DockerHub, and beyond? This is the goal for PyGMTSAR2!
 
 PyGMTSAR2 is under development. I share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and updates on its progress through my [LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/).
 
