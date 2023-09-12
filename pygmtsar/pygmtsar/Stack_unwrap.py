@@ -13,8 +13,13 @@ class Stack_unwrap(Stack_unwrap_snaphu):
 
     @staticmethod
     def wrap(data_pairs):
+        import xarray as xr
         import numpy as np
+        import dask
 
+        if isinstance(data_pairs, xr.DataArray):
+            return xr.DataArray(dask.array.mod(data_pairs.data + np.pi, 2 * np.pi) - np.pi, data_pairs.coords)\
+                .rename(data_pairs.name)
         return np.mod(data_pairs + np.pi, 2 * np.pi) - np.pi
 
     @staticmethod
