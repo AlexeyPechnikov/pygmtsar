@@ -1,6 +1,6 @@
 ## Announcements
 
-The e-book, titled 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction' is now available for the stable PyGMTSAR release on various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). If you'd like a preview of the content, you can check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar/book/PyGMTSAR_preview.pdf) uploaded in the repository.
+The e-book, titled 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction' is now available for the stable PyGMTSAR release on various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). If you'd like a preview of the content, you can check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) uploaded in the repository.
 
 You have the option to support the development of PyGMTSAR software on [Patreon](https://www.patreon.com/pechnikov) and [Buy Me a Coffee](https://www.buymeacoffee.com/pechnikov) platforms. These platforms also offer additional documentation and use cases.
 
