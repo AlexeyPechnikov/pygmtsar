@@ -7,7 +7,7 @@
 
 ## Announcements
 
-The e-book, titled 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction' is now available for the stable PyGMTSAR release on various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). If you'd like a preview of the content, you can check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar/book/PyGMTSAR_preview.pdf) uploaded in the repository.
+The e-book, titled 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction' is now available for the stable PyGMTSAR release on various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). If you'd like a preview of the content, you can check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) uploaded in the repository.
 
 Currently in development, PyGMTSAR2 (Python InSAR) is aimed at experts in Sentinel-1 Satellite Interferometry, offering features such as SBAS, PSI, PSI-SBAS, and more. It is available in [pygmtsar2 branch](https://github.com/mobigroup/gmtsar/tree/pygmtsar2). I  share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and updates on its progress through my [LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/).
 
