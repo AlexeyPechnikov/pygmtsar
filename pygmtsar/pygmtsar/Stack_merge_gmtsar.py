@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .Stack_intf import Stack_intf
+from .Stack_phasediff import Stack_phasediff
 
-class Stack_merge_gmtsar(Stack_intf):
+class Stack_merge_gmtsar(Stack_phasediff):
 
     # stem_tofile + '.PRM' generating
     def merge_swath(self, conf, grid_tofile, stem_tofile, debug=False):
@@ -44,7 +44,7 @@ class Stack_merge_gmtsar(Stack_intf):
             print ('DEBUG: conf:', f'\n{conf}')
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
-                             encoding='ascii')
+                             encoding='utf8')
         stdout_data, stderr_data = p.communicate(input=conf)
         if len(stderr_data) > 0 and debug:
             print ('DEBUG: merge_swath', stderr_data)

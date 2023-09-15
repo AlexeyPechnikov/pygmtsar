@@ -29,13 +29,13 @@ class PRM_gmtsar:
         import subprocess
 
         argv = ['gmtsar_sharedir.csh']
-        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
         stdout_data, stderr_data = p.communicate()
 
-        stderr_data = stderr_data.decode('utf8').strip()
+        stderr_data = stderr_data.strip()
         if stderr_data is not None and len(stderr_data):
             print ('gmtsar_sharedir', stderr_data)
-        data = stdout_data.decode('utf8').strip()
+        data = stdout_data.strip()
         if data == '':
             return stderr_data
         return data
@@ -69,7 +69,7 @@ class PRM_gmtsar:
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(['calc_dop_orb', '/dev/stdin', '/dev/stdout', str(earth_radius), str(doppler_centroid)],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             cwd=cwd, encoding='ascii')
+                             cwd=cwd, encoding='utf8')
         stdout_data, stderr_data = p.communicate(input=self.to_str())
         #print ('stdout_data', stdout_data)
         if len(stderr_data) > 0 and debug:
@@ -111,12 +111,12 @@ class PRM_gmtsar:
             raise Exception('Argument "other" should be PRM class instance')
 
         pipe1 = os.pipe()
-        os.write(pipe1[1], bytearray(self.to_str(), 'ascii'))
+        os.write(pipe1[1], bytearray(self.to_str(), 'utf8'))
         os.close(pipe1[1])
         #print ('descriptor 1', str(pipe1[0]))
 
         pipe2 = os.pipe()
-        os.write(pipe2[1], bytearray(other.to_str(), 'ascii'))
+        os.write(pipe2[1], bytearray(other.to_str(), 'utf8'))
         os.close(pipe2[1])
         #print ('descriptor 2', str(pipe2[0]))
 
@@ -126,7 +126,7 @@ class PRM_gmtsar:
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
-                             cwd=cwd, encoding='ascii')
+                             cwd=cwd, encoding='utf8')
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
         if len(stderr_data) > 0 and debug:
@@ -219,7 +219,7 @@ class PRM_gmtsar:
                              cwd=cwd, bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=stdin_data)
 
-        stderr_data = stderr_data.decode('ascii')
+        stderr_data = stderr_data.decode('utf8')
         if stderr_data.startswith('interpolation point outside of data constraints'):
             print ('Error: SAT_llt2rat processing stopped due to invalid coordinates for one of input points')
             return None
@@ -269,7 +269,7 @@ class PRM_gmtsar:
             raise Exception('Argument should be PRM class instance')
 
         pipe1 = os.pipe()
-        os.write(pipe1[1], bytearray(repeatPRM.to_str(), 'ascii'))
+        os.write(pipe1[1], bytearray(repeatPRM.to_str(), 'utf8'))
         os.close(pipe1[1])
         #print ('descriptor 1', pipe1[0])
 
@@ -282,7 +282,7 @@ class PRM_gmtsar:
         #cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         #p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         #                     stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[1]],
-        #                     cwd=cwd, encoding='ascii', shell=True)
+        #                     cwd=cwd, encoding='utf8', shell=True)
         argv = ['resamp', f'/dev/stdin', f'/dev/fd/{pipe1[0]}',
                 f'/dev/fd/{pipe2[1]}', '/dev/stdout', str(interp)]
         if debug:
@@ -291,19 +291,19 @@ class PRM_gmtsar:
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[1]],
                              cwd=cwd)
-        stdout_data, stderr_data = p.communicate(input=bytearray(self.to_str(), 'ascii'))
+        stdout_data, stderr_data = p.communicate(input=bytearray(self.to_str(), 'utf8'))
 
         # print errors and notifications
         if len(stderr_data) > 0 and debug:
-            print ('DEBUG: resamp', stderr_data.decode('ascii'))
+            print ('DEBUG: resamp', stderr_data.decode('utf8'))
 
         # save big SLC binary file
         with open(repeatSLC_tofile, 'wb') as f:
             f.write(stdout_data)
 
         # PRM file should be small text
-        data = os.read(pipe2[0],int(10e6)).decode('ascii')
-        return PRM.from_str(data)
+        data = os.read(pipe2[0],int(10e6))
+        return PRM.from_str(data.decode('utf8'))
 
     # TODO: add topo_ra argument processing
     # two binary files real.grd and imag.grd will be created
@@ -342,12 +342,12 @@ class PRM_gmtsar:
             raise Exception('Argument "other" should be PRM class instance')
 
         pipe1 = os.pipe()
-        os.write(pipe1[1], bytearray(self.to_str(), 'ascii'))
+        os.write(pipe1[1], bytearray(self.to_str(), 'utf8'))
         os.close(pipe1[1])
         #print ('descriptor 1', str(pipe1[0]))
 
         pipe2 = os.pipe()
-        os.write(pipe2[1], bytearray(other.to_str(), 'ascii'))
+        os.write(pipe2[1], bytearray(other.to_str(), 'utf8'))
         os.close(pipe2[1])
         #print ('descriptor 2', str(pipe2[0]))
 
@@ -362,7 +362,7 @@ class PRM_gmtsar:
             print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[0]],
-                             cwd=cwd, encoding='ascii')
+                             cwd=cwd, encoding='utf8')
         stdout_data, stderr_data = p.communicate()
         #print ('stdout_data', stdout_data)
         if len(stderr_data) > 0 and debug:
@@ -418,7 +418,7 @@ class PRM_gmtsar:
             raise Exception('Should be defined data source as coordinates triplet (coords) or as file (fromfile)')
 
         pipe = os.pipe()
-        os.write(pipe[1], bytearray(self.to_str(), 'ascii'))
+        os.write(pipe[1], bytearray(self.to_str(), 'utf8'))
         os.close(pipe[1])
         #print ('descriptor', str(pipe[0]))
 
@@ -431,10 +431,10 @@ class PRM_gmtsar:
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe[0]],
-                             cwd=cwd, bufsize=10*1000*1000)
+                             cwd=cwd, encoding='utf8', bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=stdin_data)
 
-        stderr_data = stderr_data.decode('ascii')
+        stderr_data = stderr_data
         if stderr_data is not None and len(stderr_data) and debug:
             print ('DEBUG: SAT_look', stderr_data)
             return None

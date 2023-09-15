@@ -206,6 +206,12 @@ class PRM(datagrid, PRM_gmtsar):
             A PRM object.
         """
         from io import StringIO
+        if isinstance(prm_string, bytes):
+            # for cases like
+            #return PRM.from_str(os.read(pipe2[0],int(10e6))
+            prm_string = prm_string.decode('utf-8')
+        # for cases like
+        # return PRM.from_str(os.read(pipe2[0],int(10e6).decode('utf8'))
         prm = StringIO(prm_string)
         return PRM._from_io(prm)
 

@@ -49,12 +49,12 @@ class Stack_reframe_gmtsar(Stack_orbits):
         argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
         if debug:
             print ('DEBUG: argv', argv)
-        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
-            print ('DEBUG: ext_orb_s1a', stderr_data.decode('ascii'))
+            print ('DEBUG: ext_orb_s1a', stderr_data)
         if len(stdout_data) > 0 and debug:
-            print ('DEBUG: ext_orb_s1a', stdout_data.decode('ascii'))
+            print ('DEBUG: ext_orb_s1a', stdout_data)
 
         return
 
@@ -117,12 +117,12 @@ class Stack_reframe_gmtsar(Stack_orbits):
             argv.append(ashift_fromfile)
         if debug:
             print ('DEBUG: argv', argv)
-        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
-            print ('DEBUG: make_s1a_tops', stderr_data.decode('ascii'))
+            print ('DEBUG: make_s1a_tops', stderr_data)
         if len(stdout_data) > 0 and debug:
-            print ('DEBUG: make_s1a_tops', stdout_data.decode('ascii'))
+            print ('DEBUG: make_s1a_tops', stdout_data)
 
         self.ext_orb_s1a(subswath, stem, date, debug=debug)
 
@@ -187,11 +187,11 @@ class Stack_reframe_gmtsar(Stack_orbits):
         argv = ['assemble_tops', azi_1, azi_2] + datapaths + [stem]
         if debug:
             print ('DEBUG: argv', argv)
-        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.basedir)
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', cwd=self.basedir)
         stdout_data, stderr_data = p.communicate()
         if len(stderr_data) > 0 and debug:
-            print ('DEBUG: assemble_tops', stderr_data.decode('ascii'))
+            print ('DEBUG: assemble_tops', stderr_data)
         if len(stdout_data) > 0 and debug:
-            print ('DEBUG: assemble_tops', stdout_data.decode('ascii'))
+            print ('DEBUG: assemble_tops', stdout_data)
 
         return

@@ -231,7 +231,7 @@ class Stack_tidal(Stack_incidence):
                                  stderr=subprocess.PIPE, cwd=cwd, bufsize=10*1000*1000)
             stdout_data, stderr_data = p.communicate(input=stdin_data)
 
-            stderr_data = stderr_data.decode('ascii')
+            stderr_data = stderr_data.decode('utf8')
             if stderr_data is not None and len(stderr_data):
                 print ('DEBUG: solid_tide', stderr_data)
                 return None
@@ -338,7 +338,7 @@ class Stack_tidal(Stack_incidence):
 #                                  stderr=subprocess.PIPE, cwd=cwd, bufsize=10*1000*1000)
 #             stdout_data, stderr_data = p.communicate(input=stdin_data)
 # 
-#             stderr_data = stderr_data.decode('ascii')
+#             stderr_data = stderr_data.decode('utf8')
 #             if stderr_data is not None and len(stderr_data) and debug:
 #                 print ('DEBUG: solid_tide', stderr_data)
 #                 return None
@@ -440,7 +440,7 @@ class Stack_tidal(Stack_incidence):
                                  stderr=subprocess.PIPE, cwd=cwd, bufsize=10*1000*1000)
             stdout_data, stderr_data = p.communicate(input=stdin_data)
 
-            stderr_data = stderr_data.decode('ascii')
+            stderr_data = stderr_data.decode('utf8')
             if stderr_data is not None and len(stderr_data) and debug:
                 print ('DEBUG: solid_tide', stderr_data)
                 return None
