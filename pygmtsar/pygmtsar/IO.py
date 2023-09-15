@@ -359,27 +359,14 @@ class IO(datagrid):
         else:
             subswaths = [subswath]
 
-        if isinstance(pairs, pd.DataFrame):
-            # convert to standalone DataFrame first
-            pairs = self.get_pairs(pairs)[['ref', 'rep']].astype(str).values
-        else:
-            pairs = np.asarray(pairs)
-
-        def set_pair(ds):
-            """
-            Extract the pair name from the filename and set it as a coordinate.
-            """
-            filename = os.path.basename(ds.encoding['source'])
-            pair = keys[filename]
-            ds = ds.assign_coords(pair=' '.join(pair), ref=pair[0], rep=pair[1])
-            if 'a' in ds.dims and 'r' in ds.dims:
-                return ds.rename({'a': 'y', 'r': 'x'})
-            return ds
+        # convert to 2D single-element array
+        pairs = self.get_pairs(pairs)[['ref','rep']].astype(str).values
 
         das = []
         for swath in subswaths:
             filenames = self.get_filenames(pairs, name, swath, add_subswath=add_subswath)
-            keys = {os.path.basename(filename): pair for filename, pair in zip(filenames, pairs)}
+            #print ('filenames', filenames)
+            #print ('keys', keys)
 
             ds = xr.open_mfdataset(
                 filenames,
@@ -387,16 +374,17 @@ class IO(datagrid):
                 chunks=chunksize,
                 parallel=True,
                 concat_dim='pair',
-                combine='nested',
-                preprocess=set_pair
-            )
-            if 'ref' in ds:
-                ds['ref'].values = pd.to_datetime(ds.ref)
-            if 'rep' in ds:
-                ds['rep'].values = pd.to_datetime(ds.rep)
+                combine='nested'
+            ).assign(pair=[' '.join(pair) for pair in pairs])
+        
+            ds.coords['ref'] = xr.DataArray(pd.to_datetime(pairs[:,0]), coords=ds.pair.coords)
+            ds.coords['rep'] = xr.DataArray(pd.to_datetime(pairs[:,1]), coords=ds.pair.coords)
+
+            if 'a' in ds.dims and 'r' in ds.dims:
+                ds = ds.rename({'a': 'y', 'r': 'x'})
 
             if len(ds.data_vars) == 1:
-                das.append(ds[list(ds.data_vars)[0]])
+                das.append(ds[list(ds.data_vars)[0]].rename(name))
             else:
                 das.append(ds)
 
