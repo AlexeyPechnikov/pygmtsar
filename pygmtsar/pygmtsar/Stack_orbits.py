@@ -20,7 +20,7 @@ class Stack_orbits(Stack_prm):
         Returns
         -------
         None
-        
+
 
         Examples
         --------
@@ -28,8 +28,9 @@ class Stack_orbits(Stack_prm):
         """
         from eof.download import download_eofs
 
-        df = self.df[self.df['orbitpath'].isna()]
-    
+        subswath = self.df.subswath.iloc[0]
+        df = self.df[self.df['orbitpath'].isna()&(self.df.subswath==subswath)]
+
         # download all the misssed orbit files
         for record in df.itertuples():
             #print (date, mission)
