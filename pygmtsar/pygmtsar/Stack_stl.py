@@ -39,7 +39,7 @@ class Stack_stl(Stack_tidal):
         return trend
     
     @staticmethod
-    def stl(ts, dt, dt_periodic, periods, robust=False):
+    def stl1d(ts, dt, dt_periodic, periods, robust=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data.
 
@@ -102,7 +102,7 @@ class Stack_stl(Stack_tidal):
         The function performs the following steps:
         1. Convert the 'date' coordinate to valid dates.
         2. Unify date intervals to a specified frequency (e.g., weekly) for a mix of time intervals.
-        3. Apply the Stack.stl function in parallel using xarray's apply_ufunc and Dask.
+        3. Apply the Stack.stl1d function in parallel using Dask.
         4. Rename the output date dimension to match the original irregular date dimension.
         5. Return the STL decomposition results as an xarray Dataset.
 
@@ -134,8 +134,8 @@ class Stack_stl(Stack_tidal):
         Examples
         --------
         Use on (date,lat,lon) and (date,y,x) grids to return the results or store them on disk:
-        stack.stl_parallel(disp, interactive=True)
-        stack.stl_parallel(disp)
+        stack.cube_stl(disp, interactive=True)
+        stack.cube_stl(disp)
 
         See Also
         --------
@@ -149,7 +149,7 @@ class Stack_stl(Stack_tidal):
         import os
 
         if chunksize is None:
-            # see lstsq_parallel() for details
+            # see lstsq() for details
             chunksize = self.chunksize // 4
 
         if isinstance(data, xr.DataArray):
@@ -179,7 +179,7 @@ class Stack_stl(Stack_tidal):
             data_block = data.isel({dim1: lats, dim2: lons}).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
             # Vectorize vec_lstsq
             #vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(3,m)')
-            vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(m),(m),(m)')
+            vec_stl = np.vectorize(lambda data: self.stl1d(data, dt, dt_periodic, periods, robust), signature='(n)->(m),(m),(m)')
             # Apply vec_lstsq to data_block and revert the original dimensions order
             block = vec_stl(data_block)
             del vec_stl, data_block

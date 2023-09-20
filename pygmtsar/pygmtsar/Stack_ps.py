@@ -16,16 +16,16 @@ class Stack_ps(Stack_stl):
         return self.open_grid('ps', subswath, chunksize=chunksize)
 
     #from pygmtsar import tqdm_dask
-    #Stack.ps_parallel = ps_parallel    
-    #stack.ps_parallel(interactive=True)
-    #stack.ps_parallel()
+    #Stack.ps = ps    
+    #stack.ps(interactive=True)
+    #stack.ps()
     #adi = stack.open_grids(None, 'ps')
     #adi
     #ps_decimator = stack.pixel_decimator(resolution_meters=60, grid=adi, debug=True)
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def ps_parallel(self, dates=None, intensity=True, dfact=2.5e-07, chunksize=None):
+    def ps(self, dates=None, intensity=True, dfact=2.5e-07, chunksize=None):
         import xarray as xr
         import numpy as np
         import dask
@@ -117,7 +117,7 @@ class Stack_ps(Stack_stl):
         return df
 
     #df.to_file('adi.sqlite', driver='GPKG')
-    def get_adi_threshold_parallel(self, threshold, **kwargs):
+    def get_adi_threshold(self, threshold, **kwargs):
         subswaths = self.get_subswaths()
     
         adis = [self.get_adi_threshold(subswath, threshold, **kwargs) for subswath in subswaths]

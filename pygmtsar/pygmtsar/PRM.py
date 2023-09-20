@@ -379,6 +379,8 @@ class PRM(datagrid, PRM_gmtsar):
             The PRM object.
         """
         self._to_io(prm)
+        # update internal filename after saving with the new filename
+        self.filename = prm
         return self
 
     #def update(self):
@@ -737,8 +739,34 @@ class PRM(datagrid, PRM_gmtsar):
 
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
+    # note: only one dimension chunked due to sequential file writing 
+    def write_SLC_int(self, data, chunksize=None):
+        import numpy as np
+        import os
+
+        # define lost class variables due to joblib
+        if chunksize is None:
+            chunksize = self.chunksize
+
+        dirname = os.path.dirname(self.filename)
+        slc_filename = os.path.join(dirname, self.get('SLC_file'))
+        if os.path.exists(slc_filename):
+            os.remove(slc_filename)
+
+        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, chunksize)[1:])
+        with open(slc_filename, 'wb') as f:
+            for ys_block in ys_blocks:
+                slc_block = data.isel(y=ys_block)
+                re = slc_block.re.values
+                im = slc_block.im.values
+                buffer = np.zeros((2*re.size), dtype=re.dtype)
+                buffer[::2] = re.ravel()
+                buffer[1::2] = im.ravel()
+                buffer.tofile(f)
+                del buffer, re, im, slc_block
+
     # note: only one dimension chunked due to sequential file reading 
-    def read_SLC_int(self, intensity=False, dfact=2.5e-07, chunksize=None):
+    def read_SLC_int(self, intensity=False, scale=2.5e-07, chunksize=None):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
         The method reads binary SLC data file, which contains alternating sequences of real and imaginary parts.
@@ -777,28 +805,12 @@ class PRM(datagrid, PRM_gmtsar):
             chunksize = self.chunksize
 
         @dask.delayed
-        def read_SLC_block(slc_filename, start, stop, intensity):
+        def read_SLC_block(slc_filename, start, stop):
             # Read a chunk of the SLC file
             # [real_0, imag_0, real_1, imag_1, real_2, imag_2, ...]
             #print ('    offset, shape', start*2, 2*(stop-start))
             # offset is measured in bytes
-            data = np.memmap(slc_filename, dtype=np.int16, mode='r', offset=start*4, shape=(2*(stop-start),))
-            #print ('        size', data.size)
-            real_part = data[::2]
-            imag_part = data[1::2]
-            if not intensity:
-                # return original complex data
-                return (dfact*(real_part + 1j * imag_part)).astype(np.complex64)
-            # Calculate intensity (GMTSAR compatible while it names intensity as amplitude)
-            #return (dfact*np.abs(real_part + 1j * imag_part))**2
-            return ((dfact*real_part)**2 + (dfact*imag_part)**2).astype(np.float32)
-            #    if not decibel:
-            #return I
-            # calculate decibels, pay attention for -np.inf values
-            #with warnings.catch_warnings():
-            #    warnings.simplefilter("ignore", category=RuntimeWarning)
-            #    dB = 10*np.log10((I))
-            #return np.where(np.isfinite(dB), dB, np.nan).astype(np.float32)
+            return np.memmap(slc_filename, dtype=np.int16, mode='r', offset=start*4, shape=(2*(stop-start),))
 
         prm = PRM.from_file(self.filename)
         # num_patches multiplier is omitted
@@ -811,27 +823,34 @@ class PRM(datagrid, PRM_gmtsar):
         blocks = int(np.ceil(ydim * xdim / blocksize))
         #print ('chunks', chunks, 'chunksize', chunksize)
         # Create a lazy Dask array that reads chunks of the SLC file
-        lazy_arrays = []
+        res = []
+        ims = []
         for i in range(blocks):
             start = i * blocksize
             stop = min((i+1) * blocksize, ydim * xdim)
             #print ('start, stop, shape', start, stop, (stop-start))
             # use proper output data type for complex data and intensity
-            block = dask.array.from_delayed(read_SLC_block(slc_filename, start, stop, intensity), shape=((stop-start),),
-                dtype=np.float32 if intensity else np.complex64)
-            lazy_arrays.append(block)
+            block = dask.array.from_delayed(read_SLC_block(slc_filename, start, stop),
+                shape=(2*(stop-start),), dtype=np.int16)
+            res.append(block[::2])
+            ims.append(block[1::2])
             del block
         # Concatenate the chunks together
         # Data file can include additional data outside of the specified dimensions
-        data = dask.array.concatenate(lazy_arrays).reshape((-1, xdim))[:ydim,:]
-        del lazy_arrays
-        #amp = xr.DataArray(dask.array.flipud(amp), coords={'y': np.arange(ydim) + 0.5, 'x': np.arange(xdim) + 0.5})
-        data = xr.DataArray(data, coords={'y': np.arange(ydim) + 0.5, 'x': np.arange(xdim) + 0.5})
-        # set the short name instead of autogenerated one
-        return data.rename('SLC')
+        re = dask.array.concatenate(res).reshape((-1, xdim))[:ydim,:]
+        im = dask.array.concatenate(ims).reshape((-1, xdim))[:ydim,:]
+        del res, ims
+        coords = {'y': np.arange(ydim) + 0.5, 'x': np.arange(xdim) + 0.5}
+        re = xr.DataArray(re, coords=coords).rename('re')
+        im = xr.DataArray(im, coords=coords).rename('im')
+        if intensity:
+            return ((scale or 1)*re.astype(np.float32))**2 + ((scale or 1)*im.astype(np.float32))**2
+        if scale is not None:
+            return scale * (xr.merge([re, im]).astype(np.float32))
+        return xr.merge([re, im])
 
     @staticmethod
-    def goldstein_filter_parallel(data, corr, psize):
+    def goldstein_filter(data, corr, psize):
         import xarray as xr
         import numpy as np
         import dask
@@ -854,7 +873,7 @@ class PRM(datagrid, PRM_gmtsar):
                             [np.flip(quadrant, axis=0), np.flip(np.flip(quadrant, axis=0), axis=1)]])
             return wgt
 
-        def goldstein_filter(data, corr, wgt, psize):
+        def patch_goldstein_filter(data, corr, wgt, psize):
             """
             Apply the Goldstein adaptive filter to the given data.
 
@@ -888,7 +907,7 @@ class PRM(datagrid, PRM_gmtsar):
                     corr_window = corr[i:i+psize, j:j+psize]
                     wgt_window = wgt_matrix[:data_window.shape[0],:data_window.shape[1]]
                     # Apply the filter to the window
-                    filtered_window = goldstein_filter(data_window, corr_window, wgt_window, psize)
+                    filtered_window = patch_goldstein_filter(data_window, corr_window, wgt_window, psize)
                     # Add the result to the output array
                     slice_i = slice(i, min(i + psize, out.shape[0]))
                     slice_j = slice(j, min(j + psize, out.shape[1]))
@@ -1054,7 +1073,7 @@ class PRM(datagrid, PRM_gmtsar):
         if debug:
             print ('DEBUG: intf apply Goldstein filter with size', psize is not None, psize)
         if psize is not None:
-            phase = self.goldstein_filter_parallel((real + 1j * imag), corr, psize=psize)
+            phase = self.goldstein_filter((real + 1j * imag), corr, psize=psize)
         elif psi:
             phase = np.arctan2(imag, real)
         else:

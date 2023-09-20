@@ -256,10 +256,9 @@ class Stack_incidence(Stack_geocode):
         Notes
         -----
         This function returns the satellite look vectors in geographic coordinates as Xarray Dataset. The satellite look vectors
-        should be computed and saved prior to calling this function using the `sat_look_parallel` method.
+        should be computed and saved prior to calling this function using the `sat_look` method.
         """
-        subswath = self.get_subswath()    
-        return self.open_grid('sat_look', subswath=subswath, chunksize=chunksize)
+        return self.open_grid('sat_look', chunksize=chunksize)
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, data):
@@ -323,7 +322,7 @@ class Stack_incidence(Stack_geocode):
         Notes
         -----
         This function computes the incidence angle grid in geographic coordinates based on the satellite look vectors.
-        The satellite look vectors should be computed and saved prior to calling this function using the `sat_look_parallel` method.
+        The satellite look vectors should be computed and saved prior to calling this function using the `sat_look` method.
         The incidence angle is calculated using the formula:
         incidence_angle = arctan2(sqrt(look_E**2 + look_N**2), look_U)
         """
@@ -399,12 +398,10 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = self.incidence_angle()
         return sign * los_disp/np.sin(incidence_ll)
 
-    def sat_look_parallel(self, chunksize=None, interactive=False):
+    def sat_look(self, chunksize=None, interactive=False):
         #import dask
         import xarray as xr
         import numpy as np
-
-        subswath = self.get_subswath()
 
         # ..., look_E, look_N, look_U
         satlook_map = {0: 'look_E', 1: 'look_N', 2: 'look_U'}
@@ -421,7 +418,7 @@ class Stack_incidence(Stack_geocode):
             chunksize = self.chunksize
 
         # reference grid
-        trans_inv = self.get_trans_inv(subswath, chunksize=chunksize)[['lt', 'll', 'ele']]
+        trans_inv = self.get_trans_inv(chunksize=chunksize)[['lt', 'll', 'ele']]
 
         # xarray wrapper for the valid area only
         enu = xr.apply_ufunc(
@@ -443,5 +440,4 @@ class Stack_incidence(Stack_geocode):
         if interactive:
             return sat_look
 
-        return self.save_grid(sat_look, 'sat_look', subswath,
-                              f'Satellite Look Vector Computing sw{subswath}', chunksize)
+        return self.save_grid(sat_look, 'sat_look', f'Satellite Look Vector Computing', chunksize)

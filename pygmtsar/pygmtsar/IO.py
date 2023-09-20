@@ -178,25 +178,19 @@ class IO(datagrid):
                 self.df[col] = None
         return
 
-    def get_filename(self, name, subswath=None, add_subswath=True):
+    def get_filename(self, name, add_subswath=True):
         import os
 
-        if subswath is None:
-            # define subswath when subswath=None and check otherwise
-            subswaths = self.get_subswaths()
+        if add_subswath:
+            subswath = self.get_subswath()
+            prefix = f'F{subswath}_'
         else:
-            subswaths = [subswath]
+            prefix = ''
 
-        filenames = []
-        for swath in subswaths:
-            prefix = f'F{swath}_' if add_subswath == True else ''
-            filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
-            filenames.append(filename)
+        filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
+        return filename
 
-        # only one filename when only one subswath
-        return filenames[0] if subswath is not None or add_subswath is False else filenames
-
-    def get_filenames(self, pairs, name, subswath=None, add_subswath=True):
+    def get_filenames(self, pairs, name, add_subswath=True):
         """
         Get the filenames of the data grids. The filenames are determined by the subswath, pairs, and name parameters.
 
@@ -220,11 +214,11 @@ class IO(datagrid):
         import numpy as np
         import os
 
-        if subswath is None:
-            # define subswath when subswath=None and check otherwise
-            subswaths = self.get_subswaths()
+        if add_subswath:
+            subswath = self.get_subswath()
+            prefix = f'F{subswath}_'
         else:
-            subswaths = [subswath]
+            prefix = ''
 
         if isinstance(pairs, pd.DataFrame):
             # convert to standalone DataFrame first
@@ -232,43 +226,32 @@ class IO(datagrid):
         else:
             pairs = np.asarray(pairs)
 
-        filenames_total = []
-        for swath in subswaths:
-            prefix = f'F{swath}_' if add_subswath == True else ''
-            filenames = []
-            if len(pairs.shape) == 1:
-                # read all the grids from files
-                for date in sorted(pairs):
-                    filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
-                    filenames.append(filename)
-            elif len(pairs.shape) == 2:
-                # read all the grids from files
-                for pair in pairs:
-                    filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
-                    filenames.append(filename)
-            filenames_total.append(filenames)
+        filenames = []
+        if len(pairs.shape) == 1:
+            # read all the grids from files
+            for date in sorted(pairs):
+                filename = os.path.join(self.basedir, f'{prefix}{name}_{date}.grd'.replace('-',''))
+                filenames.append(filename)
+        elif len(pairs.shape) == 2:
+            # read all the grids from files
+            for pair in pairs:
+                filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
+                filenames.append(filename)
+        return filenames
 
-        return filenames_total if subswath is None else filenames_total[0]
-
-    def load_pairs(self, name='phase', subswath=None):
+    def load_pairs(self, name='phase'):
         import numpy as np
         from glob import glob
 
         # find all the named grids
-        patterns = self.get_filename(f'????????_????????_{name}', subswath)
-        if subswath is not None:
-            patterns = [patterns]
-    
-        pairs_total = []
-        for pattern in patterns:
-            filenames = glob(pattern, recursive=False)
-            pairs = [filename.split('_')[-3:-1] for filename in sorted(filenames)]
-            # return as numpy array for compatibility reasons
-            pairs_total.append(np.asarray(pairs))
-    
-        return pairs_total if subswath is None else pairs_total[0]
+        pattern = self.get_filename(f'????????_????????_{name}')
 
-    def open_grid(self, name, subswath=None, add_subswath=True, chunksize=None):
+        filenames = glob(pattern, recursive=False)
+        pairs = [filename.split('_')[-3:-1] for filename in sorted(filenames)]
+        # return as numpy array for compatibility reasons
+        return np.asarray(pairs)
+
+    def open_grid(self, name, add_subswath=True, chunksize=None):
         """
         stack.open_grid('intf_ll2ra')
         stack.open_grid('intf_ra2ll')
@@ -279,69 +262,43 @@ class IO(datagrid):
         if chunksize is None:
             chunksize = self.chunksize
 
-        if subswath is None:
-            # iterate all the subswaths
-            subswaths = self.get_subswaths()
-        else:
-            subswaths = [subswath]
+        filename = self.get_filename(name, add_subswath=add_subswath)
+        ds = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
+        if 'a' in ds.dims and 'r' in ds.dims:
+            ds = ds.rename({'a': 'y', 'r': 'x'})
+        if len(ds.data_vars) == 1:
+            return ds[list(ds.data_vars)[0]]
+        return ds
 
-        das = []
-        for swath in subswaths:
-            filename = self.get_filename(name, swath, add_subswath=add_subswath)
-            ds = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
-            if 'a' in ds.dims and 'r' in ds.dims:
-                ds = ds.rename({'a': 'y', 'r': 'x'})
-            if len(ds.data_vars) == 1:
-                das.append(ds[list(ds.data_vars)[0]])
-            else:
-                das.append(ds)
-
-        return das if subswath is None else das[0]
-
-    def save_grid(self, data, name, subswath=None, caption='Saving 2D grid', chunksize=None):
+    def save_grid(self, data, name, caption='Saving 2D grid', chunksize=None):
         import xarray as xr
         import dask
         import os
 
-        if subswath is None:
-            subswaths = self.get_subswaths()
-        else:
-            subswaths = [subswath]
-    
-        if not isinstance(data, (list, tuple)):
-            grids = [data]
-        else:
-            grids = data
-    
-        assert len(subswaths) == len(grids), 'ERROR: mismatch between data and subswaths'
-    
         if chunksize is None:
             chunksize = self.chunksize
 
-        # save to NetCDF files
-        delayeds = []
-        for subswath, grid in zip(subswaths, grids):
-            filename = self.get_filename(name, subswath)
-            if os.path.exists(filename):
-                os.remove(filename)
+        # save to NetCDF file
+        filename = self.get_filename(name)
+        if os.path.exists(filename):
+            os.remove(filename)
 
-            if isinstance(grid, xr.Dataset):
-                encoding = {varname: self.compression(grid[varname].shape, chunksize=chunksize) for varname in grid.data_vars}
-            elif isinstance(grid, xr.DataArray):
-                encoding = {grid.name: self.compression(grid.shape, chunksize=chunksize)}
-            else:
-                raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
-            delayed = grid.to_netcdf(filename,
-                                  encoding=encoding,
-                                  engine=self.engine,
-                                  compute=False)
-            delayeds.append(delayed)
-    
-        tqdm_dask(dask.persist(delayeds), desc=caption)
+        if isinstance(data, xr.Dataset):
+            encoding = {varname: self.compression(data[varname].shape, chunksize=chunksize) for varname in data.data_vars}
+        elif isinstance(data, xr.DataArray):
+            encoding = {data.name: self.compression(data.shape, chunksize=chunksize)}
+        else:
+            raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
+        delayed = data.to_netcdf(filename,
+                              encoding=encoding,
+                              engine=self.engine,
+                              compute=False)
+
+        tqdm_dask(dask.persist(delayed), desc=caption)
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
-    def open_pairs(self, pairs, name, subswath=None, add_subswath=True, chunksize=None):
+    def open_pairs(self, pairs, name, add_subswath=True, chunksize=None):
         """
         stack.open_pairs(baseline_pairs,'phasefilt')
         """
@@ -352,45 +309,34 @@ class IO(datagrid):
 
         if chunksize is None:
             chunksize = self.chunksize
-
-        if subswath is None:
-            # iterate all the subswaths
-            subswaths = self.get_subswaths() if add_subswath else [None]
-        else:
-            subswaths = [subswath]
-
+    
         # convert to 2D single-element array
         pairs = self.get_pairs(pairs)[['ref','rep']].astype(str).values
 
-        das = []
-        for swath in subswaths:
-            filenames = self.get_filenames(pairs, name, swath, add_subswath=add_subswath)
-            #print ('filenames', filenames)
-            #print ('keys', keys)
+        filenames = self.get_filenames(pairs, name, add_subswath=add_subswath)
+        #print ('filenames', filenames)
+        #print ('keys', keys)
 
-            ds = xr.open_mfdataset(
-                filenames,
-                engine=self.engine,
-                chunks=chunksize,
-                parallel=True,
-                concat_dim='pair',
-                combine='nested'
-            ).assign(pair=[' '.join(pair) for pair in pairs])
-        
-            ds.coords['ref'] = xr.DataArray(pd.to_datetime(pairs[:,0]), coords=ds.pair.coords)
-            ds.coords['rep'] = xr.DataArray(pd.to_datetime(pairs[:,1]), coords=ds.pair.coords)
+        ds = xr.open_mfdataset(
+            filenames,
+            engine=self.engine,
+            chunks=chunksize,
+            parallel=True,
+            concat_dim='pair',
+            combine='nested'
+        ).assign(pair=[' '.join(pair) for pair in pairs])
+    
+        ds.coords['ref'] = xr.DataArray(pd.to_datetime(pairs[:,0]), coords=ds.pair.coords)
+        ds.coords['rep'] = xr.DataArray(pd.to_datetime(pairs[:,1]), coords=ds.pair.coords)
 
-            if 'a' in ds.dims and 'r' in ds.dims:
-                ds = ds.rename({'a': 'y', 'r': 'x'})
+        if 'a' in ds.dims and 'r' in ds.dims:
+            ds = ds.rename({'a': 'y', 'r': 'x'})
 
-            if len(ds.data_vars) == 1:
-                das.append(ds[list(ds.data_vars)[0]].rename(name))
-            else:
-                das.append(ds)
+        if len(ds.data_vars) == 1:
+            return ds[list(ds.data_vars)[0]].rename(name)
+        return ds
 
-        return das if subswath is None else das[0]
-
-    def open_stack(self, dates=None, subswath=None, intensity=False, dfact=2.5e-07, chunksize=None):
+    def open_stack(self, dates=None, intensity=False, scale=2.5e-07, chunksize=None):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -399,66 +345,57 @@ class IO(datagrid):
         if chunksize is None:
             chunksize = self.chunksize
 
-        if subswath is None:
-            subswaths = self.get_subswaths()
-        else:
-            subswaths = [subswath]
-
-        stacks = []
-        for swath in subswaths:
-            if dates is None:
-                dates = self.df[self.df['subswath']==swath].index.values
-            #print ('dates', dates)
-            # select radar coordinates extent
-            rng_max = self.PRM(swath).get('num_rng_bins')
-            #print ('azi_max', azi_max, 'rng_max', rng_max)
-            # use SLC-related chunks for faster processing
-            minichunksize = int(np.round(chunksize**2/rng_max))
-            #print (minichunksize)
-            slcs = [self.PRM(swath, date).read_SLC_int(intensity=intensity, dfact=dfact, chunksize=minichunksize) for date in dates]
-            # build stack
-            slcs = xr.concat(slcs, dim='date')
-            slcs['date'] = pd.to_datetime(dates)
-            stacks.append(slcs)
-
-        return stacks if subswath is None else stacks[0]
-
-    def open_stack_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
-        """
-        tiffs = stack.open_stack_geotif(['2022-06-16', '2022-06-28'], intensity=True)
-        """
-        import xarray as xr
-        import rioxarray as rio
-        import pandas as pd
-        import numpy as np
-        # from GMTSAR code
-        DFACT = 2.5e-07
-    
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        if subswath is None:
-            subswaths = self.get_subswaths()
-        else:
-            subswaths = [subswath]
-
-        stack = []
-        for swath in self.get_subswaths():
-            if dates is None:
-                dates = self.df[self.df['subswath']==swath].index.values
-            #print ('dates', dates)
-            tiffs = self.df[(self.df['subswath']==swath)&(self.df.index.isin(dates))].datapath.values
-            tiffs = [rio.open_rasterio(tif, chunks=chunksize)[0] for tif in tiffs]
-            # build stack
-            tiffs = xr.concat(tiffs, dim='date')
-            tiffs['date'] = pd.to_datetime(dates)
-            # 2 and 4 multipliers to have the same values as in SLC
-            if intensity:
-                stack.append((2*DFACT*np.abs(tiffs))**2)
-            else:
-                stack.append(2*DFACT*tiffs)
-
-        return stacks if subswath is None else stacks[0]
+        if dates is None:
+            dates = self.df.index.values
+        #print ('dates', dates)
+        # select radar coordinates extent
+        rng_max = self.PRM().get('num_rng_bins')
+        #print ('azi_max', azi_max, 'rng_max', rng_max)
+        # use SLC-related chunks for faster processing
+        minichunksize = int(np.round(chunksize**2/rng_max))
+        #print (minichunksize)
+        slcs = [self.PRM(date).read_SLC_int(intensity=intensity, scale=scale, chunksize=minichunksize) for date in dates]
+        # build stack
+        slcs = xr.concat(slcs, dim='date')
+        slcs['date'] = pd.to_datetime(dates)
+        return slcs
+# 
+#     def open_stack_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
+#         """
+#         tiffs = stack.open_stack_geotif(['2022-06-16', '2022-06-28'], intensity=True)
+#         """
+#         import xarray as xr
+#         import rioxarray as rio
+#         import pandas as pd
+#         import numpy as np
+#         # from GMTSAR code
+#         DFACT = 2.5e-07
+#     
+#         if chunksize is None:
+#             chunksize = self.chunksize
+# 
+#         if subswath is None:
+#             subswaths = self.get_subswaths()
+#         else:
+#             subswaths = [subswath]
+# 
+#         stack = []
+#         for swath in self.get_subswaths():
+#             if dates is None:
+#                 dates = self.df[self.df['subswath']==swath].index.values
+#             #print ('dates', dates)
+#             tiffs = self.df[(self.df['subswath']==swath)&(self.df.index.isin(dates))].datapath.values
+#             tiffs = [rio.open_rasterio(tif, chunks=chunksize)[0] for tif in tiffs]
+#             # build stack
+#             tiffs = xr.concat(tiffs, dim='date')
+#             tiffs['date'] = pd.to_datetime(dates)
+#             # 2 and 4 multipliers to have the same values as in SLC
+#             if intensity:
+#                 stack.append((2*DFACT*np.abs(tiffs))**2)
+#             else:
+#                 stack.append(2*DFACT*tiffs)
+# 
+#         return stacks if subswath is None else stacks[0]
 
     def open_cube(self, name, chunksize=None):
         """

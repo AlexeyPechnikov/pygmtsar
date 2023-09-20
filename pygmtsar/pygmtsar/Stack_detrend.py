@@ -10,76 +10,7 @@
 from .Stack_unwrap import Stack_unwrap
 
 class Stack_detrend(Stack_unwrap):
-# 
-#     def detrend_parallel(self, pairs=None, chunksize=None, n_jobs=-1, interactive=False, **kwargs):
-#         """
-#         Detrend and save to files a set of unwrapped interferograms combining optional topography and linear components removal
-#         plus optional Gaussian filtering after that.
-# 
-#         Parameters
-#         ----------
-#         pairs : list, tuple, array or pandas.DataFrame, optional
-#             A list or array of pairs of reference and repeat dates, or a DataFrame with 'ref' and 'rep' columns.
-#         chunksize : int or None, optional
-#             The number of time steps to process at a time. If None, the entire time series is processed at once.
-#         n_jobs : int, optional
-#             The number of jobs to run in parallel. -1 means using all available processors, default is -1.
-#         interactive : bool, optional
-#             Whether to return the intermediate results instead of saving them to disk. Default is False.
-#         **kwargs : dict
-#             Additional keyword arguments to be passed to the detrend function.
-# 
-#         Returns
-#         -------
-#         None or list
-#             If interactive is False (default), returns None. If interactive is True, returns a list of detrended grids.
-# 
-#         Examples
-#         --------
-#         Detrend plain and topography and read the results:
-#         stack.detrend_parallel(pairs)
-#         detrended = stack.open_grids(pairs, 'detrend')
-# 
-#         Detrend ionospheric effects and solid Earth's tides on large areas using Gaussian filtering
-#         and detrend plain and topography after that:
-#         stack.detrend_parallel(pairs, wavelength=12000)
-# 
-#         Notes
-#         -----
-#         This function detrends and saves a set of unwrapped interferograms by combining optional topography and linear components removal.
-#         Additional keyword arguments can be passed to customize the detrending process.
-#         The detrended grids can be saved to disk or returned as intermediate results.
-#         """
-#         import dask
-#         import pandas as pd
-#         from tqdm.auto import tqdm
-#         import joblib
-# 
-#         # convert pairs (list, array, dataframe) to 2D numpy array
-#         pairs = self.get_pairs(pairs)[['ref', 'rep']].astype(str).values
-# 
-#         def func(pair, **kwargs):
-#             #print (f'**kwargs {kwargs}')
-#             grid = self.open_grids([pair], 'unwrap', interactive=False)[0]
-#             # ignore detrending when all the fits are disabled
-#             out = self.detrend(grid, **kwargs)
-#             if interactive:
-#                 return out
-#             # prepare pipeline for processing and saving
-#             delayed = self.save_grids([out], 'detrend', chunksize=chunksize, interactive=False)
-#             # perform the pipeline
-#             dask.persist(delayed)
-# 
-#         label = 'Detrending and Saving' if not interactive else 'Detrending'
-#         with self.tqdm_joblib(tqdm(desc=label, total=len(pairs))) as progress_bar:
-#             results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(func)(pair, **kwargs) for pair in pairs)
-#         
-#         if interactive:
-#             return results
-# 
-#         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-#         import gc; gc.collect()
-# 
+
 #     def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
 #                 resolution_meters=90, debug=False):
 #         """
@@ -257,17 +188,17 @@ class Stack_detrend(Stack_unwrap):
         Examples
         --------
         Detrend ionospheric effects and solid Earth's tides on a large area and save to disk:
-        stack.gaussian_parallel(slcs, wavelength=400)
+        stack.stack_gaussian2d(slcs, wavelength=400)
         For band-pass filtering apply the function twice and save to disk:
-        model = stack.gaussian_parallel(slcs, wavelength=400, interactive=True) \
-            - stack.gaussian_parallel(slcs, wavelength=2000, interactive=True)
+        model = stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
+            - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True)
         stack.save_cube(model, caption='Gaussian Band-Pass filtering')
 
         Detrend and return lazy xarray dataarray:
-        stack.gaussian_parallel(slcs, wavelength=400, interactive=True)
+        stack.stack_gaussian2d(slcs, wavelength=400, interactive=True)
         For band-pass filtering apply the function twice:
-        stack.gaussian_parallel(slcs, wavelength=400, interactive=True) \
-            - stack.gaussian_parallel(slcs, wavelength=2000, interactive=True) 
+        stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
+            - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True) 
 
         """
         import xarray as xr

@@ -49,7 +49,8 @@ class Stack_dem(Stack_reframe):
     # small buffer produces incomplete area coverage and restricted NaNs
     # 0.02 degrees works well worldwide but not in Siberia
     # minimum buffer size: 8 arc seconds for 90 m DEM
-    def get_dem(self, subswath=None, geoloc=False, buffer_degrees=0.05):
+    # subswath argument is required for aligning
+    def get_dem(self, subswath=None, geoloc=False, buffer_degrees=None):
         """
         Retrieve the digital elevation model (DEM) data.
 
@@ -62,7 +63,7 @@ class Stack_dem(Stack_reframe):
             by the specified subswath, plus an additional buffer around it. If False, the full DEM extent will be returned.
             Default is False.
         buffer_degrees : float, optional
-            Buffer size in degrees to expand the area covered by the DEM. Default is 0.02 degrees.
+            Buffer size in degrees to expand the area covered by the DEM. Default is 0.1 degrees.
 
         Returns
         -------
@@ -95,6 +96,9 @@ class Stack_dem(Stack_reframe):
 
         if self.dem_filename is None:
             raise Exception('Set DEM first')
+        
+        if buffer_degrees is None:
+            buffer_degrees = 0.1
 
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
@@ -125,7 +129,7 @@ class Stack_dem(Stack_reframe):
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
     # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, backend=None, product='SRTM1', resolution_meters=None, method=None, buffer_degrees=0.05, debug=False):
+    def download_dem(self, backend=None, product='SRTM1', resolution_meters=None, method=None, buffer_degrees=None, debug=False):
         """
         Download and preprocess digital elevation model (DEM) data.
 
@@ -140,7 +144,7 @@ class Stack_dem(Stack_reframe):
         method : None, optional
             Deprecated argument. Ignored.
         buffer_degrees : float, optional
-            Buffer size in degrees to expand the area covered by the DEM. Default is 0.02 degrees.
+            Buffer size in degrees to expand the area covered by the DEM. Default is 0.1 degrees.
         debug : bool, optional
             Enable debug mode. Default is False.
 
@@ -182,6 +186,9 @@ class Stack_dem(Stack_reframe):
         if self.dem_filename is not None:
             print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
             return
+        
+        if buffer_degrees is None:
+            buffer_degrees = 0.1
 
         if backend is not None:
             print ('Note: "backend" argument is deprecated, just omit it')

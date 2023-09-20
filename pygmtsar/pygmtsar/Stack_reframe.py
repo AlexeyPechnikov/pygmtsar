@@ -12,16 +12,8 @@ from .S1 import S1
 from .PRM import PRM
 
 class Stack_reframe(Stack_reframe_gmtsar):
-
-    def get_pins(self, subswath=None):
-        print ('The function is obsolete, and it does nothing. Use Stack.reframe_parallel(geometry=...) to crop bursts.')
-        return []
-
-    def set_pins(self, *args):
-        print ('The function is obsolete, and it does nothing. Use Stack.reframe_parallel(geometry=...) to crop bursts.')
-        return
     
-    def reframe(self, subswath, date, geometry=None, debug=False):
+    def reframe_subswath(self, subswath, date, geometry=None, debug=False):
         """
         Estimate framed area using Sentinel-1 GCPs approximation.
 
@@ -140,7 +132,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
 
         return df
 
-    def reframe_parallel(self, geometry=None, n_jobs=-1, **kwargs):
+    def reframe(self, geometry=None, n_jobs=-1, **kwargs):
         """
         Reorder bursts from sequential scenes to cover the full orbit area or some bursts only.
 
@@ -158,17 +150,17 @@ class Stack_reframe(Stack_reframe_gmtsar):
         Examples
         --------
         Without defined geometry the command is silently skipped:
-        stack.reframe_parallel()
+        stack.reframe()
         
         Define a line partially covering two bursts:
-        stack.reframe_parallel(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
+        stack.reframe(geometry=LineString([Point(25.3, 35.0), Point(25, 35.2)]))
         
         Read the geometry from GeoJSON file and convert to WGS84 coordinates:
         AOI = gpd.GeoDataFrame().from_file('AOI.json').to_crs(4326)
-        stack.reframe_parallel(geometry=AOI)
+        stack.reframe(geometry=AOI)
         
         TODO: Define a point on a selected burst (this option is not available now):
-        stack.reframe_parallel(geometry=Point(25.3, 35))
+        stack.reframe(geometry=Point(25.3, 35))
         """
         from tqdm.auto import tqdm
         import joblib
@@ -184,7 +176,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
 
         # process all the scenes
         with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
-            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe)(subswath, date, geometry, **kwargs) \
+            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe_subswath)(subswath, date, geometry, **kwargs) \
                                                      for date in dates for subswath in subswaths)
 
         self.df = pd.concat(records)

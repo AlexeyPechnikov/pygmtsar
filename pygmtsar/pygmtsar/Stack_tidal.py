@@ -18,8 +18,7 @@ class Stack_tidal(Stack_incidence):
 #         """
 #         import xarray as xr
 # 
-#         # suppose only one subswath
-#         solid_tide = self.get_tidal()[0]
+#         solid_tide = self.get_tidal()
 #         # interpolate on the data_pairs 2D grid
 #         tidal_dates = solid_tide.interp_like(data, method='linear', assume_sorted=True)
 #         # compute LOS projection, [m]
@@ -42,8 +41,7 @@ class Stack_tidal(Stack_incidence):
         dates = self.get_pairs(data_pairs, dates=True)[1]
         data_grid = data_pairs[0] if len(data_pairs.dims) == 3 else data_pairs
     
-        # suppose only one subswath
-        solid_tide = self.get_tidal()[0].sel(date=dates)
+        solid_tide = self.get_tidal().sel(date=dates)
 
         # satellite look vector
         sat_look = self.get_sat_look()
@@ -131,8 +129,7 @@ class Stack_tidal(Stack_incidence):
 #         pairs, dates = self.get_pairs(data_pairs, dates=True)
 #         data_grid = data_pairs[0] if len(data_pairs.dims) == 3 else data_pairs
 # 
-#         # suppose only one subswath
-#         solid_tide = self.get_tidal()[0].sel(date=dates)
+#         solid_tide = self.get_tidal().sel(date=dates)
 # 
 #         # satellite look vector
 #         sat_look = self.get_sat_look()
@@ -189,10 +186,10 @@ class Stack_tidal(Stack_incidence):
         """
         return self.wrap(data_pairs - self.stack_tidal_los_rad(data_pairs, chunksize=chunksize))
     
-    def get_tidal(self, subswath=None, chunksize=None):
-        return self.open_grid('tidal', subswath=subswath, chunksize=chunksize)
+    def get_tidal(self, chunksize=None):
+        return self.open_grid('tidal', chunksize=chunksize)
 
-    def tidal_parallel(self, pairs, coarsen=32, chunksize=None, interactive=False):
+    def tidal(self, pairs, coarsen=32, chunksize=None, interactive=False):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -207,8 +204,7 @@ class Stack_tidal(Stack_incidence):
         if not isinstance(coarsen, (list,tuple, np.ndarray)):
             coarsen = (coarsen, coarsen)
 
-        subswath = self.get_subswath()
-        trans_inv = self.get_trans_inv(subswath)
+        trans_inv = self.get_trans_inv()
         dy, dx = np.diff(trans_inv.y)[0], np.diff(trans_inv.x)[0]
         step_y, step_x = int(np.round(coarsen[0]*dy)), int(np.round(coarsen[1]*dx))
         #print ('step_y, step_x', step_y, step_x)
@@ -247,7 +243,7 @@ class Stack_tidal(Stack_incidence):
         if interactive:
                 return ds
         #.rename({'y': 'a', 'x': 'r'})
-        return self.save_grid(ds, 'tidal', subswath, f'Solid Earth Tides Computing sw{subswath}', chunksize)
+        return self.save_grid(ds, 'tidal', f'Solid Earth Tides Computing', chunksize)
 
 #     def solid_tide(self, dates, data, debug=False):
 #         """

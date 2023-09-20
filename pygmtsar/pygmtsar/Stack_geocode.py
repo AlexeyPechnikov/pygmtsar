@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_geocode(Stack_sbas):
 
-    def geocode_parallel(self, coarsen=4, **kwargs):
+    def geocode(self, coarsen=4, **kwargs):
         """
         Build topography in radar coordinates from WGS84 DEM using parallel computation.
 
@@ -29,51 +29,25 @@ class Stack_geocode(Stack_sbas):
 
         Examples
         --------
-        stack.topo_parallel()
+        stack.topo()
 
         Notes
         -----
-        This method performs the parallel computation of topography in the radar coordinates for all subswaths
-        using Dask. It calls the 'topo' method for each subswath in parallel. If 'interactive' is True, the delayed
+        This method performs the parallel computation of topography in the radar coordinates using Dask.
+        It calls the 'topo' method. If 'interactive' is True, the delayed
         computation handlers will be returned. Otherwise, the progress will be displayed using tqdm_dask.
         """
         import dask
 
-        # process all the subswaths
-        subswaths = self.get_subswaths()
-
-        for subswath in subswaths:
-            self.trans(subswath=subswath, coarsen=coarsen, interactive=False, **kwargs)
-            self.trans_inv(subswath=subswath, coarsen=coarsen, interactive=False, **kwargs)
-            self.topo(subswath=subswath, interactive=False, **kwargs)
+        self.trans(coarsen=coarsen, interactive=False, **kwargs)
+        self.trans_inv(coarsen=coarsen, interactive=False, **kwargs)
+        self.topo(interactive=False, **kwargs)
 
     def stack_ra2ll(self, data, **kwargs):
-        if isinstance(data, (list, tuple)):
-            subswaths = self.get_subswaths()
-            stacks = []
-            for swath, data_swath in zip(subswaths, data):
-                stack = self.ra2ll(data_swath, swath, **kwargs)
-                stacks.append(stack)
-            return stacks
-
-        subswath = self.get_subswath()
-        return self.ra2ll(data, subswath, **kwargs)
+        return self.ra2ll(data, **kwargs)
 
     def cube_ra2ll(self, data, **kwargs):
-        subswath = self.get_subswath()
-        return self.ra2ll(data, subswath, **kwargs)
-        
-#     def stack_ra2ll(s# elf, data, **kwargs):
-#         if not isinstance(data, (list, tuple)):
-#             subswath = self.get_subswath()
-#             return self.ra2ll(data, subswath, **kwargs)
-#     
-#         subswaths = selt.get_subswaths()
-#         stacks = []
-#         for swath in subswaths:
-#             stack = self.ra2ll(data, swath, **kwargs)
-#             stacks.append(stack)
-#         return stacks
+        return self.ra2ll(data, **kwargs)
 
     # coarsen=1:
     # nearest: coords [array([596.97436523]), array([16976.93164062])]
@@ -121,36 +95,10 @@ class Stack_geocode(Stack_sbas):
         # set fake CRS to differ from WGS84 coordinates
         return gpd.GeoDataFrame(data, geometry=[Point(point_ra) for point_ra in points_ra], crs=3857)
 
-#     def geocode_parallel(self, data, coarsen=None, chunksize=None):
-#         """
-#         Perform parallel geocoding of the interferograms.
-# 
-#         Parameters
-#         ----------
-#         data : Xarray dataarray
-#             Stack of interferograms to process.
-# 
-#         Notes
-#         -----
-#         This method performs parallel geocoding of the interferograms. It builds the necessary geocoding matrices
-#         to apply the geocoding transformation to the interferogram grids. The geocoding involves converting the
-#         radar coordinates to geographic coordinates and vice versa.
-#         """
-# 
-#         # build trans_dat, trans_ dat_inv and topo_ra grids for merged subswaths
-#         # for single-digit subswath the grids already created for interferogram processing
-#         subswath = self.get_subswath()
-#         if len(str(subswath)) > 1 or coarsen is not None:
-#             self.topo_parallel(coarsen=coarsen)
-# 
-#         # build geographic coordinates transformation matrix for landmask and other grids
-#         stack.intf_ll2ra_matrix(data, subswath, chunksize=chunksize)
-#         # build radar coordinates transformation matrix for the interferograms grid stack        
-#         self.intf_ra2ll_matrix(data, subswath, chunksize=chunksize)
 ##########################################################################################
 # ra2ll
 ##########################################################################################
-    def ra2ll(self, data, subswath, autoscale=True, chunksize=None):
+    def ra2ll(self, data, autoscale=True, chunksize=None):
         """
         Perform geocoding from radar to geographic coordinates.
 
@@ -188,52 +136,66 @@ class Stack_geocode(Stack_sbas):
             chunksize = self.chunksize
 
         # get complete transform table
-        trans = self.get_trans(subswath)
+        trans = self.get_trans()
 
         @dask.delayed
         def intf_block(lats_block, lons_block, stackval=None):
             from scipy.interpolate import RegularGridInterpolator
-
+        
             # use outer variables
             block_grid = data.sel({stackvar: stackval}) if stackval is not None else data
-            trans_block = trans.sel(lat=lats_block, lon=lons_block)
+            trans_block = trans.sel(lat=lats_block, lon=lons_block).compute(n_workers=1)
+        
             # check if the data block exists
             if not (trans_block.lat.size>0 and trans_block.lon.size>0):
+                del block_grid, trans_block
                 return np.nan * np.zeros((lats_block.size, lons_block.size), dtype=np.float32)
 
             # use trans table subset
             y = trans_block.azi.values.ravel()
             x = trans_block.rng.values.ravel()
             points = np.column_stack([y, x])
-
+            del trans_block
+        
             # get interferogram full grid
-            ys = block_grid.y.values
-            xs = block_grid.x.values
+            ys = data.y.values
+            xs = data.x.values
 
             # this code spends additional time for the checks to exclude warnings
             if np.all(np.isnan(y)):
+                del block_grid, ys, xs, points
                 return np.nan * np.zeros((lats_block.size, lons_block.size), dtype=np.float32)
+
             # calculate trans grid subset extent
             ymin, ymax = np.nanmin(y), np.nanmax(y)
             xmin, xmax = np.nanmin(x), np.nanmax(x)
+            del y, x
             # and spacing
-            dy = np.diff(ys)[0]
-            dx = np.diff(xs)[0]
-
+            dy = ys[1] - ys[0]
+            dx = xs[1] - xs[0]
+        
             # select required interferogram grid subset
-            ys = ys[(ys>ymin-dy)&(ys<ymax+dy)]
-            xs = xs[(xs>xmin-dx)&(xs<xmax+dx)]
-
+            ys_subset = ys[(ys>ymin-dy)&(ys<ymax+dy)]
+            xs_subset = xs[(xs>xmin-dx)&(xs<xmax+dx)]
+            del ymin, ymax, xmin, xmax, dy, dx, ys, xs
+        
             # for cropped interferogram we can have no valid pixels for the processing
-            if ys.size == 0 or xs.size == 0:
+            if ys_subset.size == 0 or xs_subset.size == 0:
+                del ys_subset, xs_subset, points, block_grid
                 return np.nan * np.zeros((lats_block.size, lons_block.size), dtype=np.float32)
 
-            values = block_grid.sel(y=ys, x=xs).values.astype(np.float64)
+            # Wall time: 1min 25s
+
+            values = block_grid.sel(y=ys_subset, x=xs_subset).compute(n_workers=1).data.astype(np.float64)
+            del block_grid
+        
+            # Wall time: 7min 47s
+            # distributed.worker.memory - WARNING - Worker is at 81% memory usage.
 
             # perform interpolation
-            interp = RegularGridInterpolator((ys, xs), values, method='nearest', bounds_error=False)
+            interp = RegularGridInterpolator((ys_subset, xs_subset), values, method='nearest', bounds_error=False)
             grid_ll = interp(points).reshape(lats_block.size, lons_block.size).astype(np.float32)
-
+            del ys_subset, xs_subset, points, values
             return grid_ll
 
         # analyse grid and transform matrix spacing
@@ -248,7 +210,7 @@ class Stack_geocode(Stack_sbas):
         #print ('step_y', step_y, 'step_x', step_x)
         assert step_y>=1 and step_x>=1, f'Transforming grid spacing (grid_dy, grid_dx) is smaller \
                                           than transform matrix spacing (trans_dy, trans_dx), \
-                                          call Stack.topo_ra_parallel() or Stack.geocode_parallel() with less coarsing'
+                                          call Stack.geocode() with less coarsing'
         # decimate the full trans grid to the required spacing
         if autoscale and (step_y>1 or step_x>1):
             # define the equally spacing geographic coordinates grid
@@ -307,7 +269,7 @@ class Stack_geocode(Stack_sbas):
 ##########################################################################################
 # ll2ra
 ##########################################################################################
-    def intf_ll2ra_matrix(self, stack, subswath, chunksize=None, interactive=False):
+    def intf_ll2ra_matrix(self, stack, chunksize=None, interactive=False):
         """
         Perform parallel computation of the geographic-to-radar coordinate transformation matrix.
 
@@ -373,7 +335,7 @@ class Stack_geocode(Stack_sbas):
         #print ('xs_blocks', xs_blocks)
 
         # get transform table
-        trans_inv = self.get_trans_dat_inv(subswath=subswath)[['lt', 'll']]
+        trans_inv = self.get_trans_dat_inv()[['lt', 'll']]
         #print ('trans_inv', trans_inv)
 
         # per-block processing
@@ -392,9 +354,9 @@ class Stack_geocode(Stack_sbas):
 
         if interactive:
             return trans
-        return self.save_grid(trans, 'intf_ll2ra', f'Build ll2ra Transform sw{subswath}', subswath, chunksize)
+        return self.save_grid(trans, 'intf_ll2ra', f'Build ll2ra Transform', chunksize)
 
-    def get_intf_ll2ra(self, subswath=None, chunksize=None):
+    def get_intf_ll2ra(self, chunksize=None):
         """
         Get the geographic-to-radar coordinate transformation matrix.
 
@@ -416,8 +378,7 @@ class Stack_geocode(Stack_sbas):
         """
         import xarray as xr
 
-        subswath = self.get_subswath(subswath)
-        filename = self.get_filenames(None, 'intf_ll2ra', subswath)
+        filename = self.get_filenames(None, 'intf_ll2ra')
         trans_inv = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
         if 'a' in trans_inv.dims and 'r' in trans_inv.dims:
             return trans_inv.rename({'a': 'y', 'r': 'x'})

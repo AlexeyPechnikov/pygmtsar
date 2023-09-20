@@ -14,7 +14,7 @@ class Stack_unwrap_snaphu(Stack_landmask):
     # -s for SMOOTH mode and -d for DEFO mode when DEFOMAX_CYCLE should be defined in the configuration
     # DEFO mode (-d) and DEFOMAX_CYCLE=0 is equal to SMOOTH mode (-s)
     # https://web.stanford.edu/group/radar/softwareandlinks/sw/snaphu/snaphu_man1.html
-    def snaphu(self, phase, corr, conf=None, tiledir=None, chunksize=None, debug=False):
+    def snaphu(self, phase, corr=None, conf=None, chunksize=None, conncomp=False, debug=False):
         """
         Unwraps phase using SNAPHU with the given phase and correlation data.
 
@@ -24,29 +24,28 @@ class Stack_unwrap_snaphu(Stack_landmask):
 
         Parameters
         ----------
-        phase : str or xarray.DataArray, optional
+        phase : xarray.DataArray
             The phase data as a string or xarray.DataArray, default is 'phasefilt'.
 
-        corr : str or xarray.DataArray, optional
+        corr : xarray.DataArray, optional
             The correlation data as a string or xarray.DataArray, default is 'corr'.
 
         conf : str, optional
             The SNAPHU configuration string, default is None (use the PRM's snaphu_config method).
 
-        interactive : bool, optional
-            If True, return the unwrapped phase as an xarray.DataArray instead of saving it to disk, default is True.
-
         chunksize : tuple, optional
             The chunk size for dask arrays, default is None (use the instance's chunksize).
+
+        conncomp : bool, optional
+            If True, return connection components map, default is False.
 
         debug : bool, optional
             If True, print debugging information during the unwrapping process, default is False.
 
         Returns
         -------
-        xarray.DataArray
-            If interactive is True, return the unwrapped phase as an xarray.DataArray; otherwise, return None and
-            save the unwrapped phase to disk.
+        xarray.Dataset
+            Return the unwrapped phase and optional connection components as an xarray.Dataset.
 
         """
         import xarray as xr
@@ -54,76 +53,93 @@ class Stack_unwrap_snaphu(Stack_landmask):
         import pandas as pd
         import os
         import subprocess
+        from datetime import datetime
 
+        # unique filenames specifier
+        timenow = datetime.now().strftime("%F_%T.%f").replace(':', '.')
+    
         # define lost class variables due to joblib
         if chunksize is None:
             chunksize = self.chunksize
 
         if conf is None:
             conf = self.PRM().snaphu_config()
-        if tiledir is not None:
-            conf += f'    TILEDIR {tiledir}'
-        
+        # set unique processing subdirectory
+        conf += f'    TILEDIR snaphu_tiledir_{timenow}'
+
         # define basename for SNAPHU temp files
-        pair = phase.pair.replace(' ', '_')
         # crop .grd from filename
-        basename = self.get_filenames(pair, '')[0][:-4]
+        basename = self.get_filename(f'snaphu_{timenow}', '')[:-4]
         #print ('basename', basename)
 
         # SNAPHU input files
-        phase_in = basename + 'unwrap.phase'
-        corr_in = basename + 'unwrap.corr'
+        phase_in = basename + '.phase'
+        corr_in = basename + '.corr'
         # SNAPHU output files
         unwrap_out = basename + 'unwrap.out'
         conncomp_out = basename + 'conncomp.out'
 
-        # cleanup from previous runs
-        # conncomp_filename, unwrap_filename are required output files
-        for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
-            #print ('tmp_file', tmp_file)
-            if os.path.exists(tmp_file):
-                os.remove(tmp_file)
-
         # prepare SNAPHU input files
         # NaN values are not allowed for SNAPHU phase input file
         # interpolate when exist valid values around and fill zero pixels far away from valid ones
-        self.nearest_grid(phase).fillna(0).astype(np.float32).values.tofile(phase_in)
-        # NaN values are not allowed for SNAPHU correlation input file
-        # just fill NaNs by zeroes because the main trick is phase filling
-        corr.fillna(0).astype(np.float32).values.tofile(corr_in)
+        self.nearest_grid(phase).fillna(0).values.astype(np.float32).tofile(phase_in)
+    
+        if corr is not None:
+            # NaN values are not allowed for SNAPHU correlation input file
+            # just fill NaNs by zeroes because the main trick is phase filling
+            corr.fillna(0).values.astype(np.float32).tofile(corr_in)
 
         # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
-        argv = ['snaphu', phase_in, str(phase.shape[1]), '-c', corr_in,
-                '-f', '/dev/stdin', '-o', unwrap_out, '-g', conncomp_out, '-d']
+        argv = ['snaphu', phase_in, str(phase.shape[1]), '-f', '/dev/stdin', '-o', unwrap_out, '-d']
+        # output connection componetets map
+        if conncomp:
+            argv.append('-g')
+            argv.append(conncomp_out)
+        # add optional correlation grid
+        if corr is not None:
+            argv.append('-c')
+            argv.append(corr_in)
         if debug:
             argv.append('-v')
             print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
-                             encoding='ascii', bufsize=10*1000*1000)
+                             encoding='utf8', bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=conf)
 
-        # convert to grid the connected components from SNAPHU output as is (UCHAR)
-        values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
-        conn = xr.DataArray(values, phase.coords, name='conncomp').chunk(chunksize)
-        del values
+        if os.path.exists(unwrap_out):
+            outs = []
 
-        # convert to grid unwrapped phase from SNAPHU output applying postprocessing
-        values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
-        #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
-        unwrap = xr.DataArray(values, phase.coords, name='phase').chunk(chunksize)
-        del values
+            # convert to grid unwrapped phase from SNAPHU output applying postprocessing
+            values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
+            #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
+            # revert NaNs in output because SNAPNU does not support them
+            unwrap = xr.DataArray(values, phase.coords, name='phase').where(corr).chunk(chunksize)
+            outs.append(unwrap)
+            del values, unwrap
+        
+            if conncomp:
+                # convert to grid the connected components from SNAPHU output as is (UCHAR)
+                values = np.fromfile(conncomp_out, dtype=np.ubyte).reshape(phase.shape)
+                conn = xr.DataArray(values, phase.coords, name='conncomp').chunk(chunksize)
+                outs.append(conn)
+                del values, conn
 
-        # the output files required for interactive output
-        for tmp_file in [phase_in, corr_in] + [unwrap_out, conncomp_out] if not interactive else []:
+            out = xr.merge(outs)
+            del outs
+        else:
+            out = xr.Dataset()
+    
+        # add processing log
+        out.attrs['snaphu'] = stdout_data + '\n' + stderr_data
+
+        # the output files deleted immediately
+        # but these are accessible while open descriptors persist
+        for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
             if os.path.exists(tmp_file):
                 os.remove(tmp_file)
 
-        if debug:
-            return (unwrap, conn, stdout_data, stderr_data)
-        else:
-            # revert NaNs in output because SNAPNU does not support them
-            return (unwrap.where(corr), conn)
+        return out
             
     def snaphu_config(self, defomax=0, **kwargs):
         """

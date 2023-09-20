@@ -7,15 +7,15 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .Stack_stack import Stack_stack
+from .Stack_align import Stack_align
 from .tqdm_dask import tqdm_dask
 
-class Stack_trans(Stack_stack):
+class Stack_trans(Stack_align):
     
-    def define_trans_grid(self, subswath, coarsen):
+    def define_trans_grid(self, coarsen):
         import numpy as np
         # select radar coordinates extent
-        rng_max, yvalid, num_patch = self.PRM(subswath).get('num_rng_bins', 'num_valid_az', 'num_patches')
+        rng_max, yvalid, num_patch = self.PRM().get('num_rng_bins', 'num_valid_az', 'num_patches')
         azi_max = yvalid * num_patch
         #print ('azi_max', azi_max, 'rng_max', rng_max)
         # this grid covers the full interferogram area
@@ -30,18 +30,17 @@ class Stack_trans(Stack_stack):
         #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
         return (azis, rngs)
 
-    def get_trans(self, subswath=None, chunksize=None):
+    def get_trans(self, chunksize=None):
         """
-        Retrieve the transform data for a specific or all subswaths.
+        Retrieve the transform data.
 
         This function opens a NetCDF dataset, which contains data mapping from radar
         coordinates to geographical coordinates (from azimuth-range to latitude-longitude domain).
 
         Parameters
         ----------
-        subswath : int, optional
-            Subswath number to retrieve. If not specified, the function will retrieve the inverse
-            transform data for all available subswaths.
+        chunksize : int, optional
+            Dask chunk size.
 
         Returns
         -------
@@ -50,17 +49,14 @@ class Stack_trans(Stack_stack):
 
         Examples
         --------
-        Get the inverse transform data for a specific subswath:
-        get_trans(1)
-
-        Get the inverse transform data for all available subswaths:
-        get_trans_()
+        Get the inverse transform data:
+        get_trans()
         """
-        return self.open_grid('trans', subswath=subswath, chunksize=chunksize)
+        return self.open_grid('trans', chunksize=chunksize)
 
-    def trans(self, subswath, coarsen, chunksize=None, buffer_degrees=0.05, interactive=False):
+    def trans(self, coarsen, chunksize=None, buffer_degrees=None, interactive=False):
         """
-        Retrieve or calculate the transform data for a specific or all subswaths. This transform data is then saved as
+        Retrieve or calculate the transform data. This transform data is then saved as
         a NetCDF file for future use.
 
         This function generates data mapping from geographical coordinates to radar coordinates (azimuth-range domain).
@@ -69,11 +65,10 @@ class Stack_trans(Stack_stack):
 
         Parameters
         ----------
-        subswath : int, optional
-            Subswath number to retrieve. If not specified, the function will retrieve the transform
-            data for all available subswaths.
         coarsen(jdec, idec) : (int, int) , optional
             The decimation factor in the azimuth and range direction. Default is 2.
+        chunksize : int, optional
+            Dask chunk size.
         interactive : bool, optional
             If True, the function returns the transform data without saving it. If False, the function
             saves the transform data as a NetCDF file. Default is False.
@@ -87,13 +82,9 @@ class Stack_trans(Stack_stack):
 
         Examples
         --------
-        Calculate and get the transform data for a specific subswath:
-        >>> trans_dat(1)
-        <dask.delayed.Delayed at 0x7f8d13a69a90>
-
-        Calculate and get the transform data for all available subswaths:
+        Calculate and get the transform data:
         >>> trans_dat()
-        <dask.delayed.Delayed at 0x7f8d13a69b70>
+        <dask.delayed.Delayed at 0x7f8d13a69a90>
 
         Calculate and get the transform data without saving it:
         >>> trans_dat(interactive=True)
@@ -117,7 +108,7 @@ class Stack_trans(Stack_stack):
             coarsen = (coarsen, coarsen)
 
         # build trans.dat
-        def SAT_llt2rat(z, lat, lon, subswath, amin=0, amax=None, rmin=0, rmax=None):
+        def SAT_llt2rat(z, lat, lon, amin=0, amax=None, rmin=0, rmax=None):
             if amax is not None and rmax is not None:
                 # check border coordinates to detect if the block is completely outside of radar area
                 lats = np.concatenate([lat, lat, np.repeat(lat[0], lon.size), np.repeat(lat[-1], lon.size)])
@@ -125,7 +116,7 @@ class Stack_trans(Stack_stack):
                 zs = np.concatenate([z[:,0], z[:,-1], z[0,:], z[-1,:]])
                 coords_ll = np.column_stack([lons, lats, zs])
                 # raell
-                coords_ra = self.PRM(subswath).SAT_llt2rat(coords_ll, precise=1, binary=False)\
+                coords_ra = self.PRM().SAT_llt2rat(coords_ll, precise=1, binary=False)\
                     .astype(np.float32).reshape(zs.size, 5)
                 del lons, lats, coords_ll
                 #print (coords_ra.shape)
@@ -145,8 +136,10 @@ class Stack_trans(Stack_stack):
             coords_ll = np.column_stack([lons.ravel(), lats.ravel(), z.ravel()])
             # for binary=True values outside of the scene missed and the array is not complete
             # 4th and 5th coordinates are the same as input lat, lon
-            coords_ra = self.PRM(subswath).SAT_llt2rat(coords_ll, precise=1, binary=False)\
-                .astype(np.float32).reshape(z.shape[0], z.shape[1], 5)[...,:3]
+            coords_ra = self.PRM().SAT_llt2rat(coords_ll, precise=1, binary=False).astype(np.float32)
+            if coords_ra.size == 0:
+                return coords_ra
+            coords_ra = coords_ra.reshape(z.shape[0], z.shape[1], 5)[...,:3]
             del lons, lats, coords_ll
             if amax is not None and rmax is not None:
                 # mask values outside of radar area
@@ -156,7 +149,7 @@ class Stack_trans(Stack_stack):
             return coords_ra
 
         # exclude latitude and longitude columns as redudant
-        def trans_block(lats, lons, subswath, amin=0, amax=None, rmin=0, rmax=None):
+        def trans_block(lats, lons, amin=0, amax=None, rmin=0, rmax=None):
             dlat = dem.yy.diff('yy')[0]
             dlon = dem.xx.diff('xx')[0]
             topo = dem.sel(yy=slice(lats[0]-dlat, lats[-1]+dlat), xx=slice(lons[0]-dlon, lons[-1]+dlon))
@@ -165,7 +158,7 @@ class Stack_trans(Stack_stack):
             grid = topo.interp({topo.dims[0]: lats, topo.dims[1]: lons})
             del topo
             #print ('grid.shape', grid.shape) 
-            rae = SAT_llt2rat(grid.values, lats, lons, subswath, amin, amax, rmin, rmax)
+            rae = SAT_llt2rat(grid.values, lats, lons, amin, amax, rmin, rmax)
             del grid
             # define radar coordinate extent for the block
             # this code produces a lot of warnings "RuntimeWarning: All-NaN slice encountered"
@@ -183,7 +176,7 @@ class Stack_trans(Stack_stack):
 
         # check DEM corners
         dem_corners = dem[::dem.yy.size-1, ::dem.xx.size-1]
-        rngs, azis, _ = trans_block(dem_corners.yy, dem_corners.xx, subswath)[0].transpose(2,0,1)
+        rngs, azis, _ = trans_block(dem_corners.yy, dem_corners.xx)[0].transpose(2,0,1)
         azi_size = abs(np.diff(azis, axis=0).mean())
         rng_size = abs(np.diff(rngs, axis=1).mean())
         #print ('azi_size', azi_size)
@@ -193,7 +186,7 @@ class Stack_trans(Stack_stack):
         #print ('azi_steps', azi_steps, 'rng_steps',rng_steps)
 
         # select radar coordinates extent
-        azis, rngs = self.define_trans_grid(subswath, coarsen)
+        azis, rngs = self.define_trans_grid(coarsen)
         azi_max = np.max(azis)
         rng_max = np.max(rngs)
         # allow 2 points around for linear and cubic interpolations
@@ -222,10 +215,10 @@ class Stack_trans(Stack_stack):
             extents = []
             for lats_block in lats_blocks:
                 # extract multiple outputs
-                blockset = dask.delayed(trans_block)(lats_block, lons_block, subswath, **borders)
+                blockset = dask.delayed(trans_block)(lats_block, lons_block, **borders)
                 block = dask.array.from_delayed(blockset[0], shape=(lats_block.size, lons_block.size, 3), dtype=np.float32)
                 extent = dask.array.from_delayed(blockset[1], shape=(4,), dtype=np.float32)
-                #block = dask.array.from_delayed(dask.delayed(trans_block)(lats_block, lons_block, subswath, **extent),
+                #block = dask.array.from_delayed(dask.delayed(trans_block)(lats_block, lons_block, **extent),
                 #                                shape=(lats_block.size, lons_block.size, 3), dtype=np.float32)
                 blocks.append(block.transpose(2,1,0))
                 extents.append(extent[:, None, None])
@@ -253,4 +246,4 @@ class Stack_trans(Stack_stack):
 
         if interactive:
             return trans
-        return self.save_grid(trans, 'trans', subswath, f'Radar Transform Computing sw{subswath}', chunksize)
+        return self.save_grid(trans, 'trans', 'Radar Transform Computing', chunksize)

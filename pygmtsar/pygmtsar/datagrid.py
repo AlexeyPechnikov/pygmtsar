@@ -455,13 +455,9 @@ class datagrid:
 
         Examples
         --------
-        Get the default average ground pixel size:
+        Get the default ground pixel size:
         stack.pixel_size()
         >>> (14.0, 15.7)
-
-        Get the default ground pixel size per subswath:
-        stack.pixel_size(average=False)
-        >>> [(14.0, 16.7), (14.0, 14.7)]
 
         Get the ground pixel size for an unwrapped phase grid with a decimation of {'y': 2, 'x': 2}:
         stack.pixel_size(unwraps)
@@ -472,29 +468,13 @@ class datagrid:
         This method computes the ground pixel size in meters for the default processing grid or a user-defined grid.
         The pixel size is calculated based on the azimuth and range pixel sizes obtained from the processing parameters.
         If a grid is provided, the pixel sizes are adjusted according to the grid decimation coefficients.
-        By default, the method returns the average pixel size across all subswaths. Setting `average` to False will return
-        a list of pixel sizes per subswath. The pixel sizes are rounded to one decimal place.
+        The pixel sizes are rounded to one decimal place.
         """
         import xarray as xr
         import numpy as np
 
-        outs = []
-        for subswath in self.get_subswaths():
-            # pixel size in meters
-            azi_px_size, rng_px_size = self.PRM(subswath).pixel_size(grid)
-            # raster pixels decimation
-            #if isinstance(grid, xr.DataArray):
-            #    dy = grid.y.diff('y')[0].item()
-            #    dx = grid.x.diff('x')[0].item()
-            #else:
-            #    dy, dx = grid
-            #outs.append((np.round(azi_px_size*dy,1), np.round(rng_px_size*dx,1)))
-            outs.append((np.round(azi_px_size,1), np.round(rng_px_size,1)))
-        if average:
-            pxs = np.asarray(outs)
-            return (np.round(pxs[:,0].mean(), 1), np.round(pxs[:,1].mean(), 1))
-        else:
-            return outs[0] if len(outs) == 1 else outs
+        # pixel size in meters
+        return self.PRM().pixel_size(grid)
 
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
     def pixel_decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
@@ -513,13 +493,13 @@ class datagrid:
         Returns
         -------
         callable
-            Post-processing function for Stack.ints() and Stack.intf_parallel().
+            Post-processing lambda function.
 
         Examples
         --------
         Decimate computed interferograms to default DEM resolution 60 meters:
         decimator = stack.pixel_decimator()
-        stack.intf_parallel(pairs, func=decimator)
+        stack.intf(pairs, func=decimator)
         """
         import numpy as np
         import dask
@@ -539,7 +519,7 @@ class datagrid:
         dy, dx = self.pixel_size(grid)
         yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
         if debug:
-            print (f'DEBUG: average per subswaths ground pixel size in meters: y={dy}, x={dx}')
+            print (f'DEBUG: ground pixel size in meters: y={dy}, x={dx}')
         if yscale <= 1 and xscale <= 1 and xscale0==1:
             # decimation impossible
             if debug:

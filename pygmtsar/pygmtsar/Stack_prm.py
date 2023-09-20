@@ -12,14 +12,12 @@ from .PRM import PRM
 
 class Stack_prm(Stack_base):
 
-    def PRM(self, subswath=None, date=None, multi=True, singleswath=False):
+    def PRM(self, date=None, subswath=None, multi=True, singleswath=False):
         """
         Open a PRM (Parameter) file.
 
         Parameters
         ----------
-        subswath : int, optional
-            The subswath number. If None, return a single subswath PRM file. Default is None.
         date : str, optional
             The date of the PRM file. If None or equal to self.reference, return the reference PRM file. Default is None.
         multi : bool, optional
@@ -35,7 +33,9 @@ class Stack_prm(Stack_base):
         import os
 
         # check if subswath exists or return a single subswath for None
-        subswath = self.get_subswath(subswath)
+        # workaround for stack_rep_subswath()
+        if subswath is None:
+            subswath = self.get_subswath()
 
         if date is None or date == self.reference:
             line = self.get_reference(subswath)

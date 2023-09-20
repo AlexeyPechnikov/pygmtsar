@@ -10,150 +10,103 @@
 from .Stack_topo import Stack_topo
 from .tqdm_dask import tqdm_dask
 
-class Stack_intf(Stack_topo):
+class Stack_phasediff(Stack_topo):
 
-    def intf(self, subswath, pair, **kwargs):
-        """
-        Generate an interferogram for a given pair of dates representing synthetic aperture radar (SAR) images.
-
-        Parameters:
-        ----------
-        subswath : int
-            The subswath number to use.
-
-        pair : tuple
-            A tuple of strings representing the dates for the pair of images in the form 'YYYYMMDD'.
-
-        kwargs : dict, optional
-            Additional keyword arguments for the PRM.intf() method. This can be used to customize the interferogram generation process.
-
-        Raises:
-        ------
-        OSError
-            If the required input files or directories cannot be accessed.
-
-        Notes:
-        ------
-        This method generates an interferogram by first creating PRM objects for the reference (ref) and repeat (rep) images. It then calls the intf() method of the PRM object for the reference image, passing the PRM object for the repeat image and any additional keyword arguments. The output is an interferogram stored as a grid file.
-        """
+    def phasediff(self, pair, topo_fromfile=None, chunksize=None, debug=False):
+        import os
         import pandas as pd
         import numpy as np
+        import xarray as xr
+        import dask.array
+        import warnings
+        from datetime import datetime
+        # suppress Dask warning "RuntimeWarning: divide by zero encountered in divide"
+        #warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
+
+        # unique filenames specifier
+        #timenow = datetime.now().strftime("%F_%T.%f").replace(':', '.')
+
+        # define lost class variables due to joblib
+        if chunksize is None:
+            chunksize = self.chunksize
 
         # convert to 2D single-element array
-        if isinstance(pair, pd.DataFrame):
-            assert len(pair) == 1, 'Only single-record DataFrame or 1 D or 2D pair of dates allowed'
-            pair = self.get_pairs(pair)[['ref','rep']].astype(str).values
-        else:
-            pair = [pair] if np.asarray(pair).ndim == 1 else pair
+        pairs = self.get_pairs([pair] if np.asarray(pair).ndim == 1 else pair)
+        pair = pairs[['ref','rep']].astype(str).values[0]
 
         # extract dates from pair
-        date1, date2 = pair[0]
+        date1, date2 = pair
 
-        prm_ref = self.PRM(subswath, date1)
-        prm_rep = self.PRM(subswath, date2)
+        prm_ref = self.PRM(date1)
+        prm_rep = self.PRM(date2)
+        if debug:
+            print ('PRM reference:', prm_ref.filename)
+            print ('PRM repeat:   ', prm_rep.filename)
 
-        if 'topo_file' in kwargs:
-            topo_file = kwargs['topo_file']
-            del kwargs['topo_file']
-        else:
-            topo_file = self.get_filename('topo', subswath)
-        #print ('Stack intf kwargs', kwargs)
-        prm_ref.intf(prm_rep,
-                     basedir=self.basedir,
-                     topo_fromfile = topo_file,
-                     **kwargs)
+        if topo_fromfile is None:
+            topo_fromfile = self.get_filename('topo')
 
-    def intf_parallel(self, pairs, weight=None, n_jobs=-1, chunksize=None, **kwargs):
+        subswath = self.get_subswath()
+
+        # make full file name, use workaround for 'weight' argument name defined without extension
+        fullname = lambda name: os.path.join(self.basedir, f'F{subswath}_{date1}_{date2}_{name}'.replace('-',''))
+
+        # prepare PRMs for the calculation below
+        if debug:
+            print ('SAT_baseline:\n', prm_ref.SAT_baseline(prm_rep, tail=9))
+        prm_rep.set(prm_ref.SAT_baseline(prm_rep, tail=9))
+        prm_ref.set(prm_ref.SAT_baseline(prm_ref).sel('SC_height','SC_height_start','SC_height_end'))
+
+        # for topo use relative path from PRM files directory
+        # use imag.grd=bf for GMT native, C-binary format
+        # cleanup
+        for name in ['real.grd', 'imag.grd']:
+            filename = fullname(name)
+            if os.path.exists(filename):
+                os.remove(filename)
+        prm_ref.phasediff(prm_rep, topo_fromfile=topo_fromfile,
+                       imag_tofile=fullname('imag.grd'),
+                       real_tofile=fullname('real.grd'),
+                       debug=debug)
+
+    #     # original SLC (do not flip vertically)
+    #     amp1 = prm_ref.read_SLC_int(intensity=True)
+    #     amp2 = prm_rep.read_SLC_int(intensity=True)
+    #     # phasediff tool output files (flip vertically)
+    #     imag = xr.open_dataarray(fullname('imag.grd'), engine=self.engine, chunks=chunksize)
+    #     imag.data = dask.array.flipud(imag)
+    #     real = xr.open_dataarray(fullname('real.grd'), engine=self.engine, chunks=chunksize)
+    #     real.data = dask.array.flipud(real)
+
+    #     out = xr.Dataset({'amp1': amp1, 'amp2': amp2, 'phasediff': real +1j*imag})
+    #     out['ref'] = date1
+    #     out['rep'] = date2
+    #     out['pair'] = f'{date1} {date2}'
+    #     del amp1, amp2, real, imag
+    #     return out
+
+    def stack_phasediff(self, pairs, topo_fromfile=None, chunksize=None, n_jobs=-1):
         """
-        Build interferograms for all the subswaths in parallel.
+        Build phase difference for all pairs.
 
         Parameters
         ----------
         pairs : list
             List of date pairs (baseline pairs).
+        topo_fromfile : str, optional
+            Define radar coordinate topography. Default is topography created by geocode().
         n_jobs : int, optional
             Number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
-        wavelength : float, optional
-            Filtering wavelength in meters.
-        psize : int, optional
-            Patch size for modified Goldstein adaptive filter (power of two).
-        func : function, optional
-            Post-processing function usually used for decimation.
-
         Returns
         -------
         None
-
-        Examples
-        --------
-        For default 60m DEM resolution and other default parameters use command below:
-        pairs = [stack.to_dataframe().index.unique()]
-        decimator = lambda dataarray: dataarray.coarsen({'y': 4, 'x': 4}, boundary='trim').mean()
-        stack.intf_parallel(pairs, func=decimator)
         """
-        import xarray as xr
-        import pandas as pd
-        import numpy as np
-        import dask
         from tqdm.auto import tqdm
         import joblib
-        import os
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs = self.get_pairs(pairs)[['ref', 'rep']].astype(str).values
 
-        subswaths = self.get_subswaths()
-
-        # for now (Python 3.10.10 on MacOS) joblib loads the code from disk instead of copying it
-        kwargs['chunksize'] = chunksize
-
-        # materialize lazy weights
-        if weight is not None and isinstance(weight, xr.DataArray):
-            if len(subswaths) == 1:
-                weights = [weight]
-            else:
-                raise ValueError(f"Argument weight should be a list or a tuple of DataArray corresponding to subswaths")
-        elif weight is not None and isinstance(weight, (list, tuple)):
-            weights = weight
-        else:
-            # form list of None
-            weights = [None for swath in subswaths]
-        
-    #     if weight is not None and isinstance(weight, (list, tuple)):
-    #         for idx, subswath in enumerate(subswaths):
-    #             weight_filename = self.get_filename('intfweight', subswath)
-    #             if os.path.exists(weight_filename):
-    #                 os.remove(weight_filename)
-    #             # workaround to save NetCDF file correct
-    #             handler = weight[idx].rename('weight').rename({'y':'a','x':'r'}).\
-    #                 to_netcdf(weight_filename,
-    #                           encoding={'weight': self.compression(weight[idx].shape, chunksize=chunksize)},
-    #                           engine=self.engine,
-    #                           compute=False)
-    #             tqdm_dask(dask.persist(handler), desc=f'Materialize weight sw{subswath}')
-    #         # set base name for all subswaths
-    #         kwargs['weight'] = 'intfweight'
-
-        # this way does not work properly for long interferogram series on MacOS
-        # see https://github.com/mobigroup/gmtsar/commit/3eea6a52ddc608639e5e06306bce2f973a184fd6
-        with self.tqdm_joblib(tqdm(desc='Interferograms', total=len(pairs)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.intf)(subswath, pair, weight=weight, **kwargs) \
-                for (subswath, weight) in zip(subswaths, weights) for pair in pairs)
-
-#         # workaround: start a set of jobs together but not more than available cpu cores at once
-#         from joblib.externals import loky
-#         if n_jobs == -1:
-#             n_jobs = joblib.cpu_count()
-#         # create list of arrays [subswath, date1, date2] where all the items are strings
-#         subpairs = [[subswath, pair[0], pair[1]] for subswath in subswaths for pair in pairs]
-#         n_chunks = int(np.ceil(len(subpairs)/n_jobs))
-#         chunks = np.array_split(subpairs, n_chunks)
-#         #print ('n_jobs', n_jobs, 'n_chunks', n_chunks, 'chunks', [len(chunk) for chunk in chunks])
-#         with tqdm(desc='Interferograms', total=len(subpairs)) as pbar:
-#             for chunk in chunks:
-#                 loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
-#                 with joblib.parallel_backend('loky', n_jobs=n_jobs):
-#                     # convert string subswath to integer value
-#                     joblib.Parallel()(joblib.delayed(self.intf)(int(subswath), [date1, date2], **kwargs) \
-#                         for (subswath,date1,date2) in chunk)
-#                     pbar.update(len(chunk))
+        with self.tqdm_joblib(tqdm(desc='Phase Difference', total=len(pairs))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.phasediff)(pair, topo_fromfile, chunksize) \
+                for pair in pairs)

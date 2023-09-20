@@ -13,15 +13,12 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_topo(Stack_trans_inv):
 
-    def topo(self, subswath, chunksize=None, interactive=False):
+    def topo(self, chunksize=None, interactive=False):
         """
         Compute the topography in radar coordinates (topo).
 
         Parameters
         ----------
-        subswath : int or None, optional
-            The subswath number to compute the topographic radar coordinates for. If None, the computation
-            will be performed for all subswaths. Default is None.
         interactive : bool, optional
             If True, the computation will be performed interactively and the result will be returned as a delayed object.
             Default is False.
@@ -32,7 +29,9 @@ class Stack_topo(Stack_trans_inv):
         #import os
 
         # GMTSAR phasediff tool requires "The dimension SLC must be multiplication factor of the topo"
-        topo = self.get_trans_inv(subswath).ele[1:,1:].rename('topo')
+        topo = self.get_trans_inv().ele[1:,1:].rename('topo')
+        # add average topography for topo phase removal in phasediff
+        topo['average'] = topo.mean()
     
         if interactive:
             # do not flip vertically because it's returned as is without Stack.get_topo() function
@@ -41,9 +40,9 @@ class Stack_topo(Stack_trans_inv):
         topo = xr.DataArray(dask.array.flipud(topo), coords=topo.coords, name=topo.name)
         # rename to save lazy NetCDF preventing broken coordinates (y,y)
         return self.save_grid(topo.rename({'y': 'a', 'x': 'r'}),
-                              'topo', subswath, f'Radar Topography Computing sw{subswath}', chunksize)
+                              'topo', f'Radar Topography Computing', chunksize)
 
-    def get_topo(self, subswath=None, chunksize=None):
+    def get_topo(self, chunksize=None):
         """
         Get the radar topography grid.
 
@@ -55,7 +54,7 @@ class Stack_topo(Stack_trans_inv):
 
         Examples
         --------
-        Get DEM for all the processed subswaths:
+        Get DEM:
         topo = stack.get_topo()
 
         Notes
@@ -73,9 +72,6 @@ class Stack_topo(Stack_trans_inv):
             # flip vertically for GMTSAR compatibility reasons
             return xr.DataArray(dask.array.flipud(topo), coords=topo.coords, attrs=topo.attrs, name=topo.name)
 
-        topos = self.open_grid('topo', subswath, chunksize=chunksize)
-        if subswath is None:
-            return [func(topo) for topo in topos]
-        else:
-            return func(topos)
+        topos = self.open_grid('topo', chunksize=chunksize)
+        return func(topos)
 

@@ -13,7 +13,7 @@ from .PRM import PRM
 class Stack_sbas(Stack_detrend):
 
     @staticmethod
-    def lstsq(x, w, matrix):
+    def lstsq1d(x, w, matrix):
         """
         Compute the least squares solution (or weighted least squares if weights are provided) for a given matrix.
 
@@ -144,11 +144,11 @@ class Stack_sbas(Stack_detrend):
 
         Examples:
         -----
-        stack.lstsq_parallel(unwraps_detrend, interactive=False)
-        stack.lstsq_parallel(unwraps_detrend, corrs, interactive=False)
-        stack.lstsq_parallel([unwraps_detrend, corrs], interactive=False)
-        stack.lstsq_parallel((unwraps_detrend, corrs), interactive=False)
-        stack.lstsq_parallel((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
+        stack.stack_lstsq(unwraps_detrend, interactive=False)
+        stack.stack_lstsq(unwraps_detrend, corrs, interactive=False)
+        stack.stack_lstsq([unwraps_detrend, corrs], interactive=False)
+        stack.stack_lstsq((unwraps_detrend, corrs), interactive=False)
+        stack.stack_lstsq((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
 
         Notes
         -----
@@ -228,13 +228,13 @@ class Stack_sbas(Stack_detrend):
                 # 3D array
                 weight_block = weight.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
                 # Vectorize vec_lstsq
-                vec_lstsq = np.vectorize(lambda x, w: self.lstsq(x, w, matrix), signature='(n),(n)->(m)')
+                vec_lstsq = np.vectorize(lambda x, w: self.lstsq1d(x, w, matrix), signature='(n),(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
                 block = vec_lstsq(data_block, weight_block).transpose(2,0,1)
                 del weight_block, vec_lstsq
             else:
                 # Vectorize vec_lstsq
-                vec_lstsq = np.vectorize(lambda x: self.lstsq(x, weight, matrix), signature='(n)->(m)')
+                vec_lstsq = np.vectorize(lambda x: self.lstsq1d(x, weight, matrix), signature='(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
                 block = vec_lstsq(data_block).transpose(2,0,1)
                 del vec_lstsq
@@ -301,18 +301,16 @@ class Stack_sbas(Stack_detrend):
         import joblib
         import os
 
-        # use any subswath (the 1st one here) to produce the table
-        subswath = self.get_subswaths()[0]
-        datetimes = self.df[self.df.subswath==subswath].datetime
+        datetimes = self.df.datetime
 
         def get_filename(dt):
-            _, stem = self.multistem_stem(subswath, dt)
+            _, stem = self.multistem_stem(dt)
             filename = os.path.join(self.basedir, f'{stem}.PRM')
             return filename
     
         def ondemand(date, dt):
             if not os.path.exists(get_filename(dt)):
-                self.make_s1a_tops(subswath, date, debug=debug)
+                self.make_s1a_tops(date, debug=debug)
 
         # generate PRM, LED if needed
         #for (date, dt) in datetimes.iteritems():
@@ -321,13 +319,11 @@ class Stack_sbas(Stack_detrend):
         with self.tqdm_joblib(tqdm(desc='PRM generation', total=len(datetimes))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in datetimes.items())
     
-        # after merging use unmerged subswath PRM files
         # calc_dop_orb() required for SAT_baseline
         reference_dt = datetimes[self.reference]
         prm_ref = PRM().from_file(get_filename(reference_dt)).calc_dop_orb(inplace=True)
         data = []
         for (date, dt) in datetimes.items():
-            # after merging use unmerged subswath PRM files
             prm_rep = PRM().from_file(get_filename(dt))
             ST0 = prm_rep.get('SC_clock_start')
             DAY = int(ST0 % 1000)
