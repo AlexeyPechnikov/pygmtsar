@@ -739,6 +739,28 @@ class PRM(datagrid, PRM_gmtsar):
 
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
+    def fix_aligned(self):
+        """
+        Correction for the range and azimuth shifts of the re-aligned SLC images (fix_prm_params() in GMTSAR)
+        """
+        #from scipy import constants
+        # constant from GMTSAR code
+        SOL = 299792456.0
+    
+        #delr = constants.speed_of_light / self.get('rng_samp_rate') / 2.0
+        delr = SOL / self.get('rng_samp_rate') / 2.0
+        near_range = self.get('near_range') + \
+            (self.get('st_rng_bin') - self.get('chirp_ext') + self.get('rshift') + self.get('sub_int_r') - 1)* delr
+    
+        SC_clock_start = self.get('SC_clock_start') + \
+            (self.get('ashift') + self.get('sub_int_a')) / (self.get('PRF') * 86400.0) + \
+            (self.get('nrows') - self.get('num_valid_az')) / (2 * self.get('PRF') * 86400.0)
+    
+        SC_clock_stop = SC_clock_start + \
+            (self.get('num_valid_az') * self.get('num_patches')) / (self.get('PRF') * 86400.0)
+    
+        return self.set(near_range=near_range, SC_clock_start=SC_clock_start, SC_clock_stop=SC_clock_stop)
+
     # note: only one dimension chunked due to sequential file writing 
     def write_SLC_int(self, data, chunksize=None):
         import numpy as np
