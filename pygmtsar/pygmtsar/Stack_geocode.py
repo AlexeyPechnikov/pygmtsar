@@ -34,14 +34,13 @@ class Stack_geocode(Stack_sbas):
         Notes
         -----
         This method performs the parallel computation of topography in the radar coordinates using Dask.
-        It calls the 'topo' method. If 'interactive' is True, the delayed
-        computation handlers will be returned. Otherwise, the progress will be displayed using tqdm_dask.
+        If 'interactive' is True, the delayed computation handlers will be returned.
+        Otherwise, the progress will be displayed using tqdm_dask.
         """
         import dask
 
         self.trans(coarsen=coarsen, interactive=False, **kwargs)
         self.trans_inv(coarsen=coarsen, interactive=False, **kwargs)
-        self.topo(interactive=False, **kwargs)
 
     def stack_ra2ll(self, data, **kwargs):
         return self.ra2ll(data, **kwargs)
