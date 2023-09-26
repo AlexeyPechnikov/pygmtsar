@@ -178,6 +178,8 @@ class Stack_dem(Stack_reframe):
         import xarray as xr
         import numpy as np
         import pygmt
+        # suppress warnings
+        pygmt.config(GMT_VERBOSE='errors')
         import rioxarray as rio
         import os
         #import subprocess
