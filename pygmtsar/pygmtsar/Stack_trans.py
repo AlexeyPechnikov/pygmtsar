@@ -30,7 +30,7 @@ class Stack_trans(Stack_align):
         #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
         return (azis, rngs)
 
-    def get_trans(self, chunksize=None):
+    def get_trans(self):
         """
         Retrieve the transform data.
 
@@ -39,9 +39,6 @@ class Stack_trans(Stack_align):
 
         Parameters
         ----------
-        chunksize : int, optional
-            Dask chunk size.
-
         Returns
         -------
         xarray.Dataset or list of xarray.Dataset
@@ -52,9 +49,9 @@ class Stack_trans(Stack_align):
         Get the inverse transform data:
         get_trans()
         """
-        return self.open_grid('trans', chunksize=chunksize)
+        return self.open_grid('trans')
 
-    def trans(self, coarsen, chunksize=None, buffer_degrees=None, interactive=False):
+    def trans(self, coarsen, buffer_degrees=None, interactive=False):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
         a NetCDF file for future use.
@@ -67,8 +64,6 @@ class Stack_trans(Stack_align):
         ----------
         coarsen(jdec, idec) : (int, int) , optional
             The decimation factor in the azimuth and range direction. Default is 2.
-        chunksize : int, optional
-            Dask chunk size.
         interactive : bool, optional
             If True, the function returns the transform data without saving it. If False, the function
             saves the transform data as a NetCDF file. Default is False.
@@ -99,9 +94,6 @@ class Stack_trans(Stack_align):
         #llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
         # use only 3 values from 5 available ignoring redudant lat, lon
         llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele'}
-
-        if chunksize is None:
-            chunksize = self.chunksize
 
         # expand simplified definition
         if not isinstance(coarsen, (list,tuple, np.ndarray)):
@@ -203,8 +195,8 @@ class Stack_trans(Stack_align):
         #print ('lats.size', lats.size, 'lons.size', lons.size)
 
         # split to equal chunks and rest
-        lats_blocks = np.array_split(lats, np.arange(0,lats.size, chunksize)[1:])
-        lons_blocks = np.array_split(lons, np.arange(0,lons.size, chunksize)[1:])
+        lats_blocks = np.array_split(lats, np.arange(0,lats.size, self.chunksize)[1:])
+        lons_blocks = np.array_split(lons, np.arange(0,lons.size, self.chunksize)[1:])
         #print ('lats_blocks.size', len(lats_blocks), 'lons_blocks.size', len(lons_blocks))
         #print ('lats_blocks[0]', lats_blocks[0])
 
@@ -246,4 +238,4 @@ class Stack_trans(Stack_align):
 
         if interactive:
             return trans
-        return self.save_grid(trans, 'trans', 'Radar Transform Computing', chunksize)
+        return self.save_grid(trans, 'trans', 'Radar Transform Computing')

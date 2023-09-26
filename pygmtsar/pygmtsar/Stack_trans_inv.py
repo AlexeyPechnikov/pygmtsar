@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_trans_inv(Stack_trans):
 
-    def get_trans_inv(self, chunksize=None):
+    def get_trans_inv(self):
         """
         Retrieve the inverse transform data.
 
@@ -21,9 +21,6 @@ class Stack_trans_inv(Stack_trans):
 
         Parameters
         ----------
-        chunksize : int, optional
-            Dask chunk size.
-
         Returns
         -------
         xarray.Dataset
@@ -34,9 +31,9 @@ class Stack_trans_inv(Stack_trans):
         Get the inverse transform data:
         get_trans_inv()
         """
-        return self.open_grid('trans_inv', chunksize=chunksize)
+        return self.open_grid('trans_inv')
 
-    def trans_inv(self, coarsen, method='linear', chunksize=None, interactive=False):
+    def trans_inv(self, coarsen=1, method='linear', interactive=False):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
             a NetCDF file for future use.
@@ -48,8 +45,6 @@ class Stack_trans_inv(Stack_trans):
         ----------
         coarsen(jdec, idec) : (int, int) , optional
             The decimation factor in the azimuth and range direction. Default is 2.
-        chunksize : int, optional
-            Dask chunk size.
         interactive : bool, optional
             If True, the computation will be performed interactively and the result will be returned as a delayed object.
             Default is False.
@@ -58,9 +53,6 @@ class Stack_trans_inv(Stack_trans):
         import xarray as xr
         import numpy as np
         #import os
-
-        if chunksize is None:
-            chunksize = self.chunksize
 
         # expand simplified definition
         if not isinstance(coarsen, (list,tuple, np.ndarray)):
@@ -178,8 +170,8 @@ class Stack_trans_inv(Stack_trans):
 
         # build topo_ra grid by chunks
         # split to equal chunks and rest
-        azis_blocks = np.array_split(azis, np.arange(0, azis.size, chunksize)[1:])
-        rngs_blocks = np.array_split(rngs, np.arange(0, rngs.size, chunksize)[1:])
+        azis_blocks = np.array_split(azis, np.arange(0, azis.size, self.chunksize)[1:])
+        rngs_blocks = np.array_split(rngs, np.arange(0, rngs.size, self.chunksize)[1:])
         #print ('azis_blocks.size', len(azis_blocks), 'rngs_blocks.size', len(rngs_blocks))
         #print ('lats_blocks[0]', lats_blocks[0])
 
@@ -191,7 +183,7 @@ class Stack_trans_inv(Stack_trans):
             block_lls  = []
             block_eles = []
             for azis_block in azis_blocks:
-                data = trans_dat_inv_block_prepare(azis_block, rngs_block, chunksize)
+                data = trans_dat_inv_block_prepare(azis_block, rngs_block, self.chunksize)
                 block_lt  = dask.array.from_delayed(trans_dat_inv_block(data, 2, azis_block, rngs_block),
                                                 shape=(azis_block.size, rngs_block.size), dtype=np.float32)
                 block_lts.append(block_lt.transpose(1,0))
@@ -226,4 +218,4 @@ class Stack_trans_inv(Stack_trans):
             return trans_inv
         # rename to save lazy NetCDF preventing broken coordinates (y,y)
         return self.save_grid(trans_inv.rename({'y': 'a', 'x': 'r'}),
-                              'trans_inv', f'Radar Inverse Transform Computing', chunksize)
+                              'trans_inv', f'Radar Inverse Transform Computing')

@@ -743,12 +743,12 @@ class PRM(datagrid, PRM_gmtsar):
         """
         Correction for the range and azimuth shifts of the re-aligned SLC images (fix_prm_params() in GMTSAR)
         """
-        #from scipy import constants
+        from scipy import constants
         # constant from GMTSAR code
-        SOL = 299792456.0
+        #SOL = 299792456.0
     
-        #delr = constants.speed_of_light / self.get('rng_samp_rate') / 2.0
-        delr = SOL / self.get('rng_samp_rate') / 2.0
+        delr = constants.speed_of_light / self.get('rng_samp_rate') / 2
+        #delr = SOL / self.get('rng_samp_rate') / 2
         near_range = self.get('near_range') + \
             (self.get('st_rng_bin') - self.get('chirp_ext') + self.get('rshift') + self.get('sub_int_r') - 1)* delr
     
@@ -762,20 +762,16 @@ class PRM(datagrid, PRM_gmtsar):
         return self.set(near_range=near_range, SC_clock_start=SC_clock_start, SC_clock_stop=SC_clock_stop)
 
     # note: only one dimension chunked due to sequential file writing 
-    def write_SLC_int(self, data, chunksize=None):
+    def write_SLC_int(self, data):
         import numpy as np
         import os
-
-        # define lost class variables due to joblib
-        if chunksize is None:
-            chunksize = self.chunksize
 
         dirname = os.path.dirname(self.filename)
         slc_filename = os.path.join(dirname, self.get('SLC_file'))
         if os.path.exists(slc_filename):
             os.remove(slc_filename)
 
-        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, chunksize)[1:])
+        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, self.chunksize)[1:])
         with open(slc_filename, 'wb') as f:
             for ys_block in ys_blocks:
                 slc_block = data.isel(y=ys_block)
@@ -788,7 +784,7 @@ class PRM(datagrid, PRM_gmtsar):
                 del buffer, re, im, slc_block
 
     # note: only one dimension chunked due to sequential file reading 
-    def read_SLC_int(self, intensity=False, scale=2.5e-07, chunksize=None):
+    def read_SLC_int(self, intensity=False, scale=2.5e-07):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
         The method reads binary SLC data file, which contains alternating sequences of real and imaginary parts.
@@ -822,10 +818,6 @@ class PRM(datagrid, PRM_gmtsar):
         import os
         import warnings
 
-        # define lost class variables due to joblib
-        if chunksize is None:
-            chunksize = self.chunksize
-
         @dask.delayed
         def read_SLC_block(slc_filename, start, stop):
             # Read a chunk of the SLC file
@@ -841,7 +833,7 @@ class PRM(datagrid, PRM_gmtsar):
         slc_filename = os.path.join(dirname, slc_filename)
         #print (slc_filename, ydim, xdim)
 
-        blocksize = chunksize*xdim
+        blocksize = self.chunksize*xdim
         blocks = int(np.ceil(ydim * xdim / blocksize))
         #print ('chunks', chunks, 'chunksize', chunksize)
         # Create a lazy Dask array that reads chunks of the SLC file
@@ -967,7 +959,7 @@ class PRM(datagrid, PRM_gmtsar):
     def intf(self, other, basedir, topo_fromfile, basename=None, \
             wavelength=200, psi=False, psize=None, \
             coarsen=(1,4), func=None, weight=None, \
-            phase_tofile='phase', corr_tofile='corr', chunksize=None, debug=False):
+            phase_tofile='phase', corr_tofile='corr', debug=False):
         """
         Perform interferometric processing on the input SAR data.
 
@@ -989,8 +981,6 @@ class PRM(datagrid, PRM_gmtsar):
             Werner/Goldstein filter window size in pixels. Default is 32 pixels.
         func : callable, optional
             Custom function to apply on the processed data arrays. Default is None.
-        chunksize : int or dict, optional
-            Chunk size for dask arrays. Default is None.
         debug : bool, optional
             Enable debug mode. Default is False.
 
@@ -1031,10 +1021,6 @@ class PRM(datagrid, PRM_gmtsar):
         if coarsen is not None and not isinstance(coarsen, (list,tuple, np.ndarray)):
             coarsen = (coarsen, coarsen)
 
-        # define lost class variables due to joblib
-        if chunksize is None:
-            chunksize = self.chunksize
-
         # define basename from two PRM names
         subswath = os.path.basename(self.filename)[16:18]
         if basename is None:
@@ -1067,9 +1053,9 @@ class PRM(datagrid, PRM_gmtsar):
         amp1 = self.read_SLC_int(intensity=True)
         amp2 = other.read_SLC_int(intensity=True)
         # phasediff tool output files (flip vertically)
-        imag = xr.open_dataarray(fullname('imag.grd'), engine=self.engine, chunks=chunksize)
+        imag = xr.open_dataarray(fullname('imag.grd'), engine=self.engine, chunks=self.chunksize)
         imag.data = dask.array.flipud(imag)
-        real = xr.open_dataarray(fullname('real.grd'), engine=self.engine, chunks=chunksize)
+        real = xr.open_dataarray(fullname('real.grd'), engine=self.engine, chunks=self.chunksize)
         real.data = dask.array.flipud(real)
         #real.shape, imag.shape (5484, 21572) (5484, 21572)
         #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
@@ -1110,7 +1096,7 @@ class PRM(datagrid, PRM_gmtsar):
         corr_filename = fullname(f'{corr_tofile}.grd')
         if os.path.exists(corr_filename):
             os.remove(corr_filename)
-        encoding = {'corr': self.compression(corr.shape, chunksize=chunksize)}
+        encoding = {'corr': self.compression(corr.shape)}
         #print ('DEBUG X2', corr_da)
         # rename to save lazy NetCDF preventing broken coordinates (y,y) 
         corr.rename('corr').rename({'y': 'a', 'x': 'r'}).to_netcdf(corr_filename, encoding=encoding, engine=self.engine)
@@ -1120,7 +1106,7 @@ class PRM(datagrid, PRM_gmtsar):
         phase_filename = fullname(f'{phase_tofile}.grd')
         if os.path.exists(phase_filename):
             os.remove(phase_filename)
-        encoding = {'phase': self.compression(phase.shape, chunksize=chunksize)}
+        encoding = {'phase': self.compression(phase.shape)}
         #print ('DEBUG X3', phase_da)
         # mask phase using masked correlation
         # rename to save lazy NetCDF preventing broken coordinates (y,y)

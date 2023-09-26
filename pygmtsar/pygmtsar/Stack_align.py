@@ -476,13 +476,10 @@ class Stack_align(Stack_dem):
 #             os.remove(filename)
 
     # define bottoms from reference scene and apply for all scenes
-    def align_subswaths(self, date, offsets=None, chunksize=None, debug=False):
+    def get_subswaths_offsets(self, date, offsets=None, debug=False):
         import xarray as xr
         import numpy as np
         from scipy import constants
-
-        if chunksize is None:
-            chunksize = chunksize
 
         subswaths = self.get_subswaths()
 
@@ -570,57 +567,137 @@ class Stack_align(Stack_dem):
     
         return {'bottoms': bottoms, 'lefts': x1s, 'rights': x2s, 'bottom': minh, 'extent': [maxy, maxx]}
 
+#     # merge_swath.c modified for SLCs
+#     # use reference scene vertical subswath aligments
+#     def merge_subswaths(self, date, offsets, chunksize=None, debug=False):
+#         import xarray as xr
+#         import numpy as np
+#         import os
+# 
+#         if chunksize is None:
+#             chunksize = self.chunksize
+# 
+#         subswaths = self.get_subswaths()
+# 
+#         #if debug:
+#         #    print ('offsets', offsets)
+#         # use reference scene vertical offsets
+#         maxy = offsets['extent'][0]
+#         minh = offsets['bottom']
+#         bottoms = offsets['bottoms']
+#         # use calculated horizontal offsets
+#         #offsets = self.get_subswaths_offsets(date, offsets=offsets, chunksize=chunksize, debug=debug)
+#         maxx = offsets['extent'][1]
+#         lefts = offsets['lefts']
+#         rights = offsets['rights']
+# 
+#         slcs = []
+#         prms = []
+#         for subswath, bottom, left, right in zip(subswaths, bottoms, lefts, rights):
+#             prm = self.PRM(date, subswath=subswath)
+#             # disable scaling
+#             slc = prm.read_SLC_int(scale=None)
+#             slc = slc.isel(x=slice(left, right)).assign_coords(y=slc.y + bottom)
+#             slcs.append(slc)
+#             prms.append(prm)
+# 
+#         # check and merge SLCs, use zero fill for np.int16 datatype
+#         slc = xr.concat(slcs, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
+# 
+#         if debug:
+#             print ('assert slc.y.size == maxy', slc.y.size, maxy)
+#         assert slc.y.size == maxy, 'Incorrect output grid azimuth dimension size'
+#         if debug:
+#             print ('assert slc.x.size == maxx', slc.x.size, maxx)
+#         assert slc.x.size == maxx, 'Incorrect output grid range dimension sizes'
+#         del slcs
+# 
+#         # define merge filenames  
+#         filename = prms[0].filename[:-5] + ''.join(map(str, subswaths))
+#         prm_filename = filename + '.PRM'
+#         netcdf_filename = os.path.basename(filename + '.grd')
+#         if debug:
+#             print ('prm_filename', prm_filename, 'netcdf_filename', netcdf_filename)
+# 
+#         # merge PRM
+#         prm = PRM(prms[0])
+#         dt = -minh / prm.get('PRF') / 86400
+#         prm = prm.set(SLC_file=None, netcdf_filename=netcdf_filename,
+#                       num_lines=maxy, nrows=maxy, num_valid_az=maxy,
+#                       num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
+#                       SC_clock_start=prm.get('SC_clock_start') - dt,
+#                       clock_start=prm.get('clock_start') - dt,
+#                       SC_clock_stop=prm.get('SC_clock_start') + maxy / prm.get('PRF') / 86400,
+#                       clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400)\
+#                  .to_file(prm_filename)
+#         #.calc_dop_orb(prm.get('earth_radius'), 0, inplace=True, debug=debug)\
+# 
+#         # add PRM to grid
+#         slc.attrs['prm'] = str(prm)
+# 
+#         # save merged SLC
+#         #prm.write_SLC_int(slc, chunksize=chunksize)
+#         encoding = {vn: self.compression(slc[vn].shape, zlib=False, chunksize=chunksize) for vn in slc.data_vars}
+#         # add directory name
+#         netcdf_filename = os.path.join(self.basedir, netcdf_filename)
+#         # rename dimensions to prevent issue with square output
+#         slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.engine)
+# 
+#         # add calculated offsets to single subswaths
+#         for idx, prm in enumerate(prms):
+#             prm.set(smath_maxy=maxy, swath_maxx=maxx,
+#                     swath_bottom=bottoms[idx],
+#                     swath_left=lefts[idx], swath_right=rights[idx]).update()
+#         # for single SLCs add crop coordinates
+#         #slc.attrs['bottom'] = bottom[idx]
+#         #slc.attrs['left'] = left[idx]
+#         #slc.attrs['right'] = rights[idx]
+# 
+#         # cleanup
+#         # [os.path.join(self.basedir, prm.get('led_file')) for prm in prms]
+#         # [prm.filename for prm in prms]
+#         cleanup = [os.path.join(self.basedir, prm.get('SLC_file')) for prm in prms]
+#         for filename in cleanup:
+#             if debug:
+#                 print ('DEBUG: remove', filename)
+#             os.remove(filename)
+
     # merge_swath.c modified for SLCs
     # use reference scene vertical subswath aligments
-    def merge_subswaths(self, date, offsets=None, chunksize=None, debug=False):
-        import xarray as xr
+    def aligh_subswaths(self, date, offsets, debug=False):
         import numpy as np
         import os
 
         subswaths = self.get_subswaths()
 
-        offsets = self.align_subswaths(date, offsets=offsets, chunksize=chunksize, debug=debug)
-        if debug:
-            print ('offsets', offsets)
+        #offsets = self.get_subswaths_offsets(date, offsets=offsets, debug=debug)
+        #if debug:
+        #    print ('offsets', offsets)
+        # use reference scene vertical offsets
         maxy = offsets['extent'][0]
-        maxx = offsets['extent'][1]
         minh = offsets['bottom']
         bottoms = offsets['bottoms']
+        maxx = offsets['extent'][1]
         lefts = offsets['lefts']
         rights = offsets['rights']
 
-        slcs = []
         prms = []
         for subswath, bottom, left, right in zip(subswaths, bottoms, lefts, rights):
             prm = self.PRM(date, subswath=subswath)
-            # disable scaling
-            slc = prm.read_SLC_int(scale=None)
-            slc = slc.isel(x=slice(left, right)).assign_coords(y=slc.y + bottom)
-            slcs.append(slc)
             prms.append(prm)
-    
-        # check and merge SLCs, use zero fill for np.int16 datatype
-        slc = xr.concat(slcs, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
-
-        if debug:
-            print ('assert slc.y.size == maxy', slc.y.size, maxy)
-        assert slc.y.size == maxy, 'Incorrect output grid azimuth dimension size'
-        if debug:
-            print ('assert slc.x.size == maxx', slc.x.size, maxx)
-        assert slc.x.size == maxx, 'Incorrect output grid range dimension sizes'
-        del slcs
 
         # define merge filenames  
-        filename = prms[0].filename[:-5] + ''.join(map(str, subswaths))
-        prm_filename = filename + '.PRM'
-        slc_filename = os.path.basename(filename + '.SLC')
+        prm_filename = prms[0].filename[:-5] + ''.join(map(str, subswaths)) + '.PRM'
         if debug:
-            print ('prm_filename', prm_filename, 'slc_filename', slc_filename)
+            print ('prm_filename', prm_filename)
 
         # merge PRM
         prm = PRM(prms[0])
         dt = -minh / prm.get('PRF') / 86400
-        prm = prm.set(SLC_file=slc_filename,
+        prm = prm.set(SLC_file=None,
+                      swath_bottom=';'.join(map(str, bottoms)),
+                      swath_left=';'.join(map(str, lefts)),
+                      swath_right=';'.join(map(str, rights)),
                       num_lines=maxy, nrows=maxy, num_valid_az=maxy,
                       num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
                       SC_clock_start=prm.get('SC_clock_start') - dt,
@@ -629,30 +706,35 @@ class Stack_align(Stack_dem):
                       clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400)\
                  .to_file(prm_filename)
         #.calc_dop_orb(prm.get('earth_radius'), 0, inplace=True, debug=debug)\
-    
-        # add PRM to grid
-        slc.attrs['prm'] = str(prm)
-    
-        # save merged SLC
-        prm.write_SLC_int(slc, chunksize=chunksize)
-        #return slc
 
-        # add calculated offsets to single subswaths
-        for idx, prm in enumerate(prms):
-            prm.set(smath_maxy=maxy, swath_maxx=maxx,
-                    swath_bottom=bottoms[idx],
-                    swath_left=lefts[idx], swath_right=rights[idx]).update()
+    def convert_slc2netcdf(self, subswath, date, debug=False):
+        import xarray as xr
+        #import numpy as np
+        import os
+
+        prm = self.PRM(date, subswath=subswath)
+        slc = prm.read_SLC_int(scale=None)
+        # add PRM to grid
+        #slc.attrs['prm'] = str(prm)
+
+        netcdf_filename = prm.filename[:-4] + '.grd'
+        #print ('netcdf_filename', netcdf_filename)
+        # cleanup before saving
+        if os.path.exists(netcdf_filename):
+            os.remove(netcdf_filename)
+        # complevel=0 means disabled compression and the fastest saving
+        encoding = {vn: self.compression(slc[vn].shape, complevel=0) for vn in slc.data_vars}
+        # rename dimensions to prevent issue with square output
+        slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.engine)
 
         # cleanup
-        # [os.path.join(self.basedir, prm.get('led_file')) for prm in prms]
-        # [prm.filename for prm in prms]
-        cleanup = [os.path.join(self.basedir, prm.get('SLC_file')) for prm in prms]
-        for filename in cleanup:
-            if debug:
-                print ('DEBUG: remove', filename)
-            os.remove(filename)
+        slc_filename = os.path.join(self.basedir, prm.get('SLC_file'))
+        if debug:
+            print ('DEBUG: remove', slc_filename)
+        # file always exists, no check required
+        os.remove(slc_filename)
 
-    def align(self, dates=None, n_jobs=-1, **kwargs):
+    def align(self, dates=None, n_jobs=-1, debug=False):
         """
         Stack and align scenes.
 
@@ -683,28 +765,26 @@ class Stack_align(Stack_dem):
 
         # prepare reference scene
         #self.stack_ref()
-        with self.tqdm_joblib(tqdm(desc='Reference Frame', total=len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.align_ref_subswath)(subswath, **kwargs) for subswath in subswaths)
+        with self.tqdm_joblib(tqdm(desc='Aligning Reference', total=len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.align_ref_subswath)(subswath, debug=debug) for subswath in subswaths)
 
         # prepare secondary images
-        with self.tqdm_joblib(tqdm(desc='Aligning Frames', total=len(dates_rep)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.align_rep_subswath)(subswath, date, **kwargs) \
+        with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.align_rep_subswath)(subswath, date, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
+        # convert all SLC to NetCDF
+        with self.tqdm_joblib(tqdm(desc='Converting (TODO)', total=len(dates_rep)*len(subswaths))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.convert_slc2netcdf)(subswath, date, debug=debug) \
+                                           for date in dates for subswath in subswaths)
 
-        if len(subswaths) == 1:
-            return
-
-        # merge subswaths
-        offsets = self.align_subswaths(self.reference)
-        
-        # TODO
-        for date in dates:
-            self.merge_subswaths(date, offsets=offsets, **kwargs)
-
-#         with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(dates))) as progress_bar:
-#             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge_date)(date, **kwargs) \
-#                                            for date in dates)
-
+        if len(subswaths) > 1:
+            offsets = self.get_subswaths_offsets(self.reference, debug=debug)
+#             for date in dates:
+#                 self.aligh_subswaths(date, offsets, debug=debug)
+            with self.tqdm_joblib(tqdm(desc=f'Virtual Merging', total=len(dates))) as progress_bar:
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.aligh_subswaths)(date, offsets, debug=debug) \
+                                               for date in dates)
+        # merge subswaths, datapath and metapath converted to lists even for a single subswath, geometry merges bursts
         df = self.df.groupby(self.df.index).agg({'datetime': min, 'orbit': min, 'mission': min, 'polarization':min,
                                             'subswath': lambda s: int(''.join(map(str,list(s)))),
                                             'datapath': lambda p: list(p),
@@ -712,5 +792,6 @@ class Stack_align(Stack_dem):
                                             'orbitpath': min,
                                             'geometry': lambda g: g.unary_union
                                            })
+        # update the main object for the merged subswaths
         self.df = gpd.GeoDataFrame(df)
         

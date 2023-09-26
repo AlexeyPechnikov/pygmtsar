@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_stl(Stack_tidal):
 
-    def stack_vs_cube(self, data_pairs, data):
+    def estimator(self, data_pairs, data):
         """
         Calculate difference between pairs and dates
     
@@ -32,7 +32,7 @@ class Stack_stl(Stack_tidal):
         # form 3D stack
         return xr.concat(error_pairs, dim='pair').assign_coords({'pair': data_pairs.pair})
 
-    def cube_trend(self, data, deg=1):
+    def trend(self, data, deg=1):
         import xarray as xr
 
         trend = xr.polyval(data.date, data.polyfit('date', deg).polyfit_coefficients)
@@ -95,7 +95,7 @@ class Stack_stl(Stack_tidal):
 
     # Aggregate data for varying frequencies (e.g., 12+ days for 6 days S1AB images interval)
     # Use frequency strings like '1W' for 1 week, '2W' for 2 weeks, '10d' for 10 days, '1M' for 1 month, etc.
-    def cube_stl(self, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
+    def stl(self, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data in parallel.
 
@@ -134,8 +134,8 @@ class Stack_stl(Stack_tidal):
         Examples
         --------
         Use on (date,lat,lon) and (date,y,x) grids to return the results or store them on disk:
-        stack.cube_stl(disp, interactive=True)
-        stack.cube_stl(disp)
+        stack.stl(disp, interactive=True)
+        stack.stl(disp)
 
         See Also
         --------

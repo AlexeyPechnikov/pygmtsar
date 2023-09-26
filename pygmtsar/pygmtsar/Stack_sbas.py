@@ -117,7 +117,7 @@ class Stack_sbas(Stack_detrend):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def stack_lstsq(self, data=None, weight=None, chunksize=None, interactive=False, debug=False):
+    def lstsq(self, data=None, weight=None, chunksize=None, interactive=False, debug=False):
         """
         Perform least squares (weighted or unweighted) computation on the input data in parallel.
 
@@ -144,11 +144,11 @@ class Stack_sbas(Stack_detrend):
 
         Examples:
         -----
-        stack.stack_lstsq(unwraps_detrend, interactive=False)
-        stack.stack_lstsq(unwraps_detrend, corrs, interactive=False)
-        stack.stack_lstsq([unwraps_detrend, corrs], interactive=False)
-        stack.stack_lstsq((unwraps_detrend, corrs), interactive=False)
-        stack.stack_lstsq((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
+        stack.lstsq(unwraps_detrend, interactive=False)
+        stack.lstsq(unwraps_detrend, corrs, interactive=False)
+        stack.lstsq([unwraps_detrend, corrs], interactive=False)
+        stack.lstsq((unwraps_detrend, corrs), interactive=False)
+        stack.lstsq((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
 
         Notes
         -----

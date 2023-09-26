@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_geocode(Stack_sbas):
 
-    def geocode(self, coarsen=4, **kwargs):
+    def geocode(self, coarsen=4):
         """
         Build topography in radar coordinates from WGS84 DEM using parallel computation.
 
@@ -39,14 +39,14 @@ class Stack_geocode(Stack_sbas):
         """
         import dask
 
-        self.trans(coarsen=coarsen, interactive=False, **kwargs)
-        self.trans_inv(coarsen=coarsen, interactive=False, **kwargs)
+        self.trans(coarsen=coarsen, interactive=False)
+        self.trans_inv(coarsen=coarsen, interactive=False)
 
-    def stack_ra2ll(self, data, **kwargs):
-        return self.ra2ll(data, **kwargs)
-
-    def cube_ra2ll(self, data, **kwargs):
-        return self.ra2ll(data, **kwargs)
+#     def stack_ra2ll(self, data, **kwargs):
+#         return self.ra2ll(data, **kwargs)
+# 
+#     def cube_ra2ll(self, data, **kwargs):
+#         return self.ra2ll(data, **kwargs)
 
     # coarsen=1:
     # nearest: coords [array([596.97436523]), array([16976.93164062])]
@@ -97,7 +97,7 @@ class Stack_geocode(Stack_sbas):
 ##########################################################################################
 # ra2ll
 ##########################################################################################
-    def ra2ll(self, data, autoscale=True, chunksize=None):
+    def ra2ll(self, data, autoscale=True):
         """
         Perform geocoding from radar to geographic coordinates.
 
@@ -107,8 +107,6 @@ class Stack_geocode(Stack_sbas):
             Grid(s) representing the interferogram(s) in radar coordinates.
         trans : xarray.DataArray
             Geocoding transform matrix in radar coordinates.
-        chunksize : int or dict, optional
-            Chunk size for dask arrays. If not provided, the default chunk size is used.
 
         Returns
         -------
@@ -130,9 +128,6 @@ class Stack_geocode(Stack_sbas):
         if not 'y' in data.dims or not 'x' in data.dims:
             print ('NOTE: the input data not in radar coordinates, miss geocoding')
             return data
-
-        if chunksize is None:
-            chunksize = self.chunksize
 
         # get complete transform table
         trans = self.get_trans()
@@ -222,8 +217,8 @@ class Stack_geocode(Stack_sbas):
         trans = trans[['azi', 'rng']]
 
         # split to equal chunks and rest
-        lats_blocks = np.array_split(lats, np.arange(0, lats.size, chunksize)[1:])
-        lons_blocks = np.array_split(lons, np.arange(0, lons.size, chunksize)[1:])
+        lats_blocks = np.array_split(lats, np.arange(0, lats.size, self.chunksize)[1:])
+        lons_blocks = np.array_split(lons, np.arange(0, lons.size, self.chunksize)[1:])
 
         # find stack dim
         stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
@@ -268,226 +263,226 @@ class Stack_geocode(Stack_sbas):
 ##########################################################################################
 # ll2ra
 ##########################################################################################
-    def intf_ll2ra_matrix(self, stack, chunksize=None, interactive=False):
-        """
-        Perform parallel computation of the geographic-to-radar coordinate transformation matrix.
-
-        Parameters
-        ----------
-        pairs : list or None, optional
-            List of interferogram pairs to process. If None, all available pairs will be processed.
-        interactive : bool, optional
-            Flag indicating whether to return the matrix without saving to a file.
-        """
-        import xarray as xr
-        import numpy as np
-        import dask
-        import os
-
-        if len(stack.dims) == 3:
-            intf = stack[0].astype(bool)
-        else:
-            intf = stack.astype(bool)
-
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        @dask.delayed
-        def intf_block_inv(intf_block):
-            from scipy.interpolate import RegularGridInterpolator
-
-            # define input grid subset
-            trans_inv_dy = np.diff(trans_inv.y)[0]
-            trans_inv_dx = np.diff(trans_inv.x)[0]
-            ymin, ymax = np.min(intf_block.y)-trans_inv_dy, np.max(intf_block.y)+trans_inv_dy
-            xmin, xmax = np.min(intf_block.x)-trans_inv_dx, np.max(intf_block.x)+trans_inv_dx
-            trans_block = trans_inv.sel(y=slice(ymin, ymax), x=slice(xmin,xmax))
-            #print ('trans_block', trans_block)
-
-            # for cropped interferogram we can have no valid pixels for the processing
-            if trans_block.y.size == 0 or trans_block.x.size == 0:
-                fake_block = np.nan * np.zeros((intf.y.size, intf.x.size), dtype=np.float32)
-                return np.asarray([fake_block, fake_block])
-
-            # define input grid
-            trans_grid = (trans_block.y, trans_block.x)
-
-            # define output grid
-            ys, xs = np.meshgrid(intf_block.y, intf_block.x)
-            points = np.column_stack([ys.ravel(), xs.ravel()])
-
-            grids = []
-            for var in ['lt', 'll']:
-                # np.float64 required for the interpolator
-                block = trans_block[var].compute(n_workers=1).data.astype(np.float64)
-                # perform interpolation
-                interp = RegularGridInterpolator(trans_grid, block, method='linear', bounds_error=False)
-                grid = interp(points).reshape((intf_block.y.size, intf_block.x.size))
-                grids.append(grid)
-                del block, interp, grid
-
-            del trans_block, trans_grid, ys, xs, points
-            return np.asarray(grids)
-
-        blocks = chunksize**2 // intf.y.size
-        xs_blocks = np.array_split(intf.x, np.arange(0, intf.x.size, blocks if blocks>=1 else 1)[1:])
-        #print ('xs_blocks', xs_blocks)
-
-        # get transform table
-        trans_inv = self.get_trans_dat_inv()[['lt', 'll']]
-        #print ('trans_inv', trans_inv)
-
-        # per-block processing
-        block_lts  = []
-        block_lls  = []
-        for xs_block in xs_blocks:
-            block_lt, block_ll = dask.array.from_delayed(intf_block_inv(intf.sel(x=xs_block)),
-                                            shape=(2, intf.y.size, xs_block.size), dtype=np.float32)
-            block_lts.append(block_lt)
-            block_lls.append(block_ll)
-            del block_lt, block_ll
-        # set the output grid and drop the fake dimension if needed
-        lt = xr.DataArray(dask.array.block(block_lts), coords=intf.coords)
-        ll = xr.DataArray(dask.array.block(block_lls), coords=intf.coords)
-        trans = xr.Dataset({'lt': lt, 'll': ll}).rename({'y': 'a', 'x': 'r'})
-
-        if interactive:
-            return trans
-        return self.save_grid(trans, 'intf_ll2ra', f'Build ll2ra Transform', chunksize)
-
-    def get_intf_ll2ra(self, chunksize=None):
-        """
-        Get the geographic-to-radar coordinate transformation matrix.
-
-        Parameters
-        ----------
-        chunksize : int or dict, optional
-            Chunk size for dask arrays. If not provided, the default chunk size is used.
-
-        Returns
-        -------
-        xarray.DataArray
-            The radar-to-geographic coordinate transformation matrix.
-
-        Notes
-        -----
-        This method retrieves the geographic-to-radar coordinate transformation matrix (intf_ll2ra) stored in the
-        NetCDF grid. The matrix is useful for direct geocoding, converting geographic coordinate grids to
-        radar coordinates interferogram grid.
-        """
-        import xarray as xr
-
-        filename = self.get_filenames(None, 'intf_ll2ra')
-        trans_inv = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
-        if 'a' in trans_inv.dims and 'r' in trans_inv.dims:
-            return trans_inv.rename({'a': 'y', 'r': 'x'})
-        else:
-            return trans_inv
-
-    def intf_ll2ra(self, grids, chunksize=None):
-        """
-        Perform inverse geocoding from geographic to radar coordinates.
-
-        Parameters
-        ----------
-        grids : xarray.DataArray
-            Grid(s) representing the interferogram(s) in radar coordinates.
-        chunksize : int or dict, optional
-            Chunk size for dask arrays. If not provided, the default chunk size is used.
-
-        Returns
-        -------
-        xarray.DataArray
-            The inverse geocoded grid(s) in geographic coordinates.
-
-        Examples
-        --------
-        Inverse geocode 3D unwrapped phase grids stack:
-        unwraps_ll = stack.open_grids(pairs, 'unwrap', geocode=True)
-        unwraps = stack.intf_ll2ra(unwraps_ll)
-        """
-        import dask
-        import xarray as xr
-        import numpy as np
-
-        # helper check
-        if not 'lat' in grids.dims or not 'lon' in grids.dims:
-            print ('NOTE: the input grid is not in geographic coordinates, miss inverse geocoding')
-            return grids
-
-        if chunksize is None:
-            chunksize = self.chunksize
-
-        @dask.delayed
-        def intf_block_inv(trans_inv, grid_ll):
-            from scipy.interpolate import RegularGridInterpolator
-
-            # use trans table subset
-            lt = trans_inv.lt.values.ravel()
-            ll = trans_inv.ll.values.ravel()
-            points = np.column_stack([lt, ll])
-
-            # get interferogram full grid
-            lats = grid_ll.lat.values
-            lons = grid_ll.lon.values
-
-            # calculate trans grid subset extent
-            ltmin, ltmax = np.nanmin(lt), np.nanmax(lt)
-            llmin, llmax = np.nanmin(ll), np.nanmax(ll)
-            # and spacing
-            dlat = np.diff(lats)[0]
-            dlon = np.diff(lons)[0]
-
-            # select required interferogram grid subset
-            lats = lats[(lats>ltmin-dlat)&(lats<ltmax+dlat)]
-            lons = lons[(lons>llmin-dlon)&(lons<llmax+dlon)]
-
-            # for cropped interferogram we can have no valid pixels for the processing
-            if lats.size == 0 or lons.size == 0:
-                return np.nan * np.zeros((trans_inv.y.size, trans.x.size), dtype=np.float32)
-
-            values = grid_ll.sel(lat=lats, lon=lons).values.astype(np.float64)
-
-            # perform interpolation
-            interp = RegularGridInterpolator((lats, lons), values, method='nearest', bounds_error=False)
-            grid_ra = interp(points).reshape(trans_inv.y.size, trans_inv.x.size).astype(np.float32)
-
-            return grid_ra
-
-        # get transform table
-        trans_inv = self.get_intf_ll2ra()[['lt', 'll']]
-        ys = trans_inv.y
-        xs = trans_inv.x
-        # define processing blocks
-        chunks = ys.size / chunksize
-        xs_blocks = np.array_split(xs, np.arange(0, xs.size, chunksize)[1:])
-
-        grids_ra = []
-        # unify input grid(s) to stack
-        for grid_ll in grids if len(grids.dims) == 3 else [grids]:
-            # per-block processing
-            blocks  = []
-            for xs_block in xs_blocks:
-                block = dask.array.from_delayed(intf_block_inv(trans_inv.sel(x=xs_block), grid_ll),
-                                                shape=(ys.size, xs_block.size), dtype=np.float32)
-                blocks.append(block)
-            #grid_ll = dask.array.block(blocks)
-            # set the output grid and drop the fake dimension if needed
-            grid_ra = xr.DataArray(dask.array.block(blocks), coords=trans_inv.coords).rename(grids.name)
-            grids_ra.append(grid_ra)
-
-        if len(grids.dims) == 2:
-            # drop the fake dimension
-            coords = trans_inv.coords
-            out = xr.DataArray(grids_ra[0], coords=coords).rename(grids.name)
-        else:
-            # find stack dim
-            stack_dim = grids.dims[0]
-            coords = {stack_dim: grids[stack_dim], 'y': trans_inv.y, 'x': trans_inv.x}
-            out = xr.DataArray(dask.array.stack(grids_ra), coords=coords).rename(grids.name)
-
-        # append source grid coordinates excluding removed lat, lon ones
-        for (k,v) in grids.coords.items():
-            if k not in ['lat','lon']:
-                out[k] = v
-        return out.chunk(chunksize)
+#     def intf_ll2ra_matrix(self, stack, chunksize=None, interactive=False):
+#         """
+#         Perform parallel computation of the geographic-to-radar coordinate transformation matrix.
+# 
+#         Parameters
+#         ----------
+#         pairs : list or None, optional
+#             List of interferogram pairs to process. If None, all available pairs will be processed.
+#         interactive : bool, optional
+#             Flag indicating whether to return the matrix without saving to a file.
+#         """
+#         import xarray as xr
+#         import numpy as np
+#         import dask
+#         import os
+# 
+#         if len(stack.dims) == 3:
+#             intf = stack[0].astype(bool)
+#         else:
+#             intf = stack.astype(bool)
+# 
+#         if chunksize is None:
+#             chunksize = self.chunksize
+# 
+#         @dask.delayed
+#         def intf_block_inv(intf_block):
+#             from scipy.interpolate import RegularGridInterpolator
+# 
+#             # define input grid subset
+#             trans_inv_dy = np.diff(trans_inv.y)[0]
+#             trans_inv_dx = np.diff(trans_inv.x)[0]
+#             ymin, ymax = np.min(intf_block.y)-trans_inv_dy, np.max(intf_block.y)+trans_inv_dy
+#             xmin, xmax = np.min(intf_block.x)-trans_inv_dx, np.max(intf_block.x)+trans_inv_dx
+#             trans_block = trans_inv.sel(y=slice(ymin, ymax), x=slice(xmin,xmax))
+#             #print ('trans_block', trans_block)
+# 
+#             # for cropped interferogram we can have no valid pixels for the processing
+#             if trans_block.y.size == 0 or trans_block.x.size == 0:
+#                 fake_block = np.nan * np.zeros((intf.y.size, intf.x.size), dtype=np.float32)
+#                 return np.asarray([fake_block, fake_block])
+# 
+#             # define input grid
+#             trans_grid = (trans_block.y, trans_block.x)
+# 
+#             # define output grid
+#             ys, xs = np.meshgrid(intf_block.y, intf_block.x)
+#             points = np.column_stack([ys.ravel(), xs.ravel()])
+# 
+#             grids = []
+#             for var in ['lt', 'll']:
+#                 # np.float64 required for the interpolator
+#                 block = trans_block[var].compute(n_workers=1).data.astype(np.float64)
+#                 # perform interpolation
+#                 interp = RegularGridInterpolator(trans_grid, block, method='linear', bounds_error=False)
+#                 grid = interp(points).reshape((intf_block.y.size, intf_block.x.size))
+#                 grids.append(grid)
+#                 del block, interp, grid
+# 
+#             del trans_block, trans_grid, ys, xs, points
+#             return np.asarray(grids)
+# 
+#         blocks = chunksize**2 // intf.y.size
+#         xs_blocks = np.array_split(intf.x, np.arange(0, intf.x.size, blocks if blocks>=1 else 1)[1:])
+#         #print ('xs_blocks', xs_blocks)
+# 
+#         # get transform table
+#         trans_inv = self.get_trans_dat_inv()[['lt', 'll']]
+#         #print ('trans_inv', trans_inv)
+# 
+#         # per-block processing
+#         block_lts  = []
+#         block_lls  = []
+#         for xs_block in xs_blocks:
+#             block_lt, block_ll = dask.array.from_delayed(intf_block_inv(intf.sel(x=xs_block)),
+#                                             shape=(2, intf.y.size, xs_block.size), dtype=np.float32)
+#             block_lts.append(block_lt)
+#             block_lls.append(block_ll)
+#             del block_lt, block_ll
+#         # set the output grid and drop the fake dimension if needed
+#         lt = xr.DataArray(dask.array.block(block_lts), coords=intf.coords)
+#         ll = xr.DataArray(dask.array.block(block_lls), coords=intf.coords)
+#         trans = xr.Dataset({'lt': lt, 'll': ll}).rename({'y': 'a', 'x': 'r'})
+# 
+#         if interactive:
+#             return trans
+#         return self.save_grid(trans, 'intf_ll2ra', f'Build ll2ra Transform', chunksize)
+# 
+#     def get_intf_ll2ra(self, chunksize=None):
+#         """
+#         Get the geographic-to-radar coordinate transformation matrix.
+# 
+#         Parameters
+#         ----------
+#         chunksize : int or dict, optional
+#             Chunk size for dask arrays. If not provided, the default chunk size is used.
+# 
+#         Returns
+#         -------
+#         xarray.DataArray
+#             The radar-to-geographic coordinate transformation matrix.
+# 
+#         Notes
+#         -----
+#         This method retrieves the geographic-to-radar coordinate transformation matrix (intf_ll2ra) stored in the
+#         NetCDF grid. The matrix is useful for direct geocoding, converting geographic coordinate grids to
+#         radar coordinates interferogram grid.
+#         """
+#         import xarray as xr
+# 
+#         filename = self.get_filenames(None, 'intf_ll2ra')
+#         trans_inv = xr.open_dataset(filename, engine=self.engine, chunks=self.chunksize)
+#         if 'a' in trans_inv.dims and 'r' in trans_inv.dims:
+#             return trans_inv.rename({'a': 'y', 'r': 'x'})
+#         else:
+#             return trans_inv
+# 
+#     def intf_ll2ra(self, grids, chunksize=None):
+#         """
+#         Perform inverse geocoding from geographic to radar coordinates.
+# 
+#         Parameters
+#         ----------
+#         grids : xarray.DataArray
+#             Grid(s) representing the interferogram(s) in radar coordinates.
+#         chunksize : int or dict, optional
+#             Chunk size for dask arrays. If not provided, the default chunk size is used.
+# 
+#         Returns
+#         -------
+#         xarray.DataArray
+#             The inverse geocoded grid(s) in geographic coordinates.
+# 
+#         Examples
+#         --------
+#         Inverse geocode 3D unwrapped phase grids stack:
+#         unwraps_ll = stack.open_grids(pairs, 'unwrap', geocode=True)
+#         unwraps = stack.intf_ll2ra(unwraps_ll)
+#         """
+#         import dask
+#         import xarray as xr
+#         import numpy as np
+# 
+#         # helper check
+#         if not 'lat' in grids.dims or not 'lon' in grids.dims:
+#             print ('NOTE: the input grid is not in geographic coordinates, miss inverse geocoding')
+#             return grids
+# 
+#         if chunksize is None:
+#             chunksize = self.chunksize
+# 
+#         @dask.delayed
+#         def intf_block_inv(trans_inv, grid_ll):
+#             from scipy.interpolate import RegularGridInterpolator
+# 
+#             # use trans table subset
+#             lt = trans_inv.lt.values.ravel()
+#             ll = trans_inv.ll.values.ravel()
+#             points = np.column_stack([lt, ll])
+# 
+#             # get interferogram full grid
+#             lats = grid_ll.lat.values
+#             lons = grid_ll.lon.values
+# 
+#             # calculate trans grid subset extent
+#             ltmin, ltmax = np.nanmin(lt), np.nanmax(lt)
+#             llmin, llmax = np.nanmin(ll), np.nanmax(ll)
+#             # and spacing
+#             dlat = np.diff(lats)[0]
+#             dlon = np.diff(lons)[0]
+# 
+#             # select required interferogram grid subset
+#             lats = lats[(lats>ltmin-dlat)&(lats<ltmax+dlat)]
+#             lons = lons[(lons>llmin-dlon)&(lons<llmax+dlon)]
+# 
+#             # for cropped interferogram we can have no valid pixels for the processing
+#             if lats.size == 0 or lons.size == 0:
+#                 return np.nan * np.zeros((trans_inv.y.size, trans.x.size), dtype=np.float32)
+# 
+#             values = grid_ll.sel(lat=lats, lon=lons).values.astype(np.float64)
+# 
+#             # perform interpolation
+#             interp = RegularGridInterpolator((lats, lons), values, method='nearest', bounds_error=False)
+#             grid_ra = interp(points).reshape(trans_inv.y.size, trans_inv.x.size).astype(np.float32)
+# 
+#             return grid_ra
+# 
+#         # get transform table
+#         trans_inv = self.get_intf_ll2ra()[['lt', 'll']]
+#         ys = trans_inv.y
+#         xs = trans_inv.x
+#         # define processing blocks
+#         chunks = ys.size / chunksize
+#         xs_blocks = np.array_split(xs, np.arange(0, xs.size, chunksize)[1:])
+# 
+#         grids_ra = []
+#         # unify input grid(s) to stack
+#         for grid_ll in grids if len(grids.dims) == 3 else [grids]:
+#             # per-block processing
+#             blocks  = []
+#             for xs_block in xs_blocks:
+#                 block = dask.array.from_delayed(intf_block_inv(trans_inv.sel(x=xs_block), grid_ll),
+#                                                 shape=(ys.size, xs_block.size), dtype=np.float32)
+#                 blocks.append(block)
+#             #grid_ll = dask.array.block(blocks)
+#             # set the output grid and drop the fake dimension if needed
+#             grid_ra = xr.DataArray(dask.array.block(blocks), coords=trans_inv.coords).rename(grids.name)
+#             grids_ra.append(grid_ra)
+# 
+#         if len(grids.dims) == 2:
+#             # drop the fake dimension
+#             coords = trans_inv.coords
+#             out = xr.DataArray(grids_ra[0], coords=coords).rename(grids.name)
+#         else:
+#             # find stack dim
+#             stack_dim = grids.dims[0]
+#             coords = {stack_dim: grids[stack_dim], 'y': trans_inv.y, 'x': trans_inv.x}
+#             out = xr.DataArray(dask.array.stack(grids_ra), coords=coords).rename(grids.name)
+# 
+#         # append source grid coordinates excluding removed lat, lon ones
+#         for (k,v) in grids.coords.items():
+#             if k not in ['lat','lon']:
+#                 out[k] = v
+#         return out.chunk(chunksize)

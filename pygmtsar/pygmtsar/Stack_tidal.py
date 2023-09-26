@@ -25,7 +25,7 @@ class Stack_tidal(Stack_incidence):
 #         tidal_dates_los = self.los_projection(tidal_dates)
 #         return tidal_dates_los
 
-    def cube_tidal_los(self, data_pairs, chunksize=None):
+    def tidal_los(self, data_pairs):
         """
         Calculate tidal LOS displacement [m] for data pairs dates and spatial extent
         """
@@ -33,9 +33,6 @@ class Stack_tidal(Stack_incidence):
         import dask
         import xarray as xr
         import numpy as np
-
-        if chunksize is None:
-            chunksize = self.chunksize
 
         # select only required dates
         dates = self.get_pairs(data_pairs, dates=True)[1]
@@ -60,8 +57,8 @@ class Stack_tidal(Stack_incidence):
             return los.data[None,]
 
         # define output radar coordinates grid and split to equal chunks and rest
-        ys_blocks = np.array_split(data_pairs.y, np.arange(0, data_pairs.y.size, chunksize)[1:])
-        xs_blocks = np.array_split(data_pairs.x, np.arange(0, data_pairs.x.size, chunksize)[1:])
+        ys_blocks = np.array_split(data_pairs.y, np.arange(0, data_pairs.y.size, self.chunksize)[1:])
+        xs_blocks = np.array_split(data_pairs.x, np.arange(0, data_pairs.x.size, self.chunksize)[1:])
 
         # per-block processing
         blocks3d  = []
@@ -87,13 +84,13 @@ class Stack_tidal(Stack_incidence):
         del dask_block
         return out.rename('tidal')
 
-    def cube_tidal_los_rad(self, data, chunksize=None):
+    def tidal_los_rad(self, data):
         """
         Calculate tidal LOS displacement [rad] for data dates and spatial extent
         """
-        return 1000*self.cube_tidal_los(data, chunksize=chunksize)/self.los_displacement_mm(1)
+        return 1000*self.tidal_los(data)/self.los_displacement_mm(1)
 
-    def stack_tidal_los(self, data_pairs, chunksize=None):
+    def stack_tidal_los(self, data_pairs):
         """
         Calculate tidal LOS displacement [m] for data_pairs pairs and spatial extent
         """
@@ -103,7 +100,7 @@ class Stack_tidal(Stack_incidence):
         pairs = self.get_pairs(data_pairs)
         # interpolate on the data_pairs 2D grid
         # compute LOS projection, [m]
-        tidal_dates_los = self.cube_tidal_los(data_pairs, chunksize=chunksize)
+        tidal_dates_los = self.tidal_los(data_pairs)
         # calculate differences between end and start dates for all the pairs
         tidal_pairs = []
         for rec in pairs.itertuples():
@@ -174,22 +171,22 @@ class Stack_tidal(Stack_incidence):
 #         del dask_block
 #         return out.rename('tidal')
 
-    def stack_tidal_los_rad(self, data_pairs, chunksize=None):
+    def stack_tidal_los_rad(self, data_pairs):
         """
         Calculate tidal LOS displacement [rad] for data_pairs pairs and spatial extent
         """
-        return 1000*self.stack_tidal_los(data_pairs, chunksize=chunksize)/self.los_displacement_mm(1)
+        return 1000*self.stack_tidal_los(data_pairs)/self.los_displacement_mm(1)
 
-    def stack_tidal_correction_wrap(self, data_pairs, chunksize=None):
+    def stack_tidal_correction_wrap(self, data_pairs):
         """
         Apply tidal correction to wrapped phase pairs [rad] and wrap the result.
         """
-        return self.wrap(data_pairs - self.stack_tidal_los_rad(data_pairs, chunksize=chunksize))
+        return self.wrap(data_pairs - self.stack_tidal_los_rad(data_pairs))
     
-    def get_tidal(self, chunksize=None):
-        return self.open_grid('tidal', chunksize=chunksize)
+    def get_tidal(self):
+        return self.open_grid('tidal')
 
-    def tidal(self, pairs, coarsen=32, chunksize=None, interactive=False):
+    def tidal(self, pairs, coarsen=32, interactive=False):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -243,7 +240,7 @@ class Stack_tidal(Stack_incidence):
         if interactive:
                 return ds
         #.rename({'y': 'a', 'x': 'r'})
-        return self.save_grid(ds, 'tidal', f'Solid Earth Tides Computing', chunksize)
+        return self.save_grid(ds, 'tidal', f'Solid Earth Tides Computing')
 
 #     def solid_tide(self, dates, data, debug=False):
 #         """

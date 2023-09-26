@@ -12,8 +12,8 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_ps(Stack_stl):
 
-    def get_ps(self, subswath=None, chunksize=None):
-        return self.open_grid('ps', subswath, chunksize=chunksize)
+    def get_ps(self, subswath=None):
+        return self.open_grid('ps', subswath)
 
     #from pygmtsar import tqdm_dask
     #Stack.ps = ps    
@@ -25,14 +25,11 @@ class Stack_ps(Stack_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def ps(self, dates=None, intensity=True, dfact=2.5e-07, chunksize=None):
+    def ps(self, dates=None, intensity=True, dfact=2.5e-07):
         import xarray as xr
         import numpy as np
         import dask
         import os
-
-        if chunksize is None:
-            chunksize = self.chunksize
 
         for subswath in self.get_subswaths():
             if dates is None:
@@ -55,7 +52,7 @@ class Stack_ps(Stack_stl):
             self.save_grid(ds.rename({'y': 'a', 'x': 'r'}), 'ps', subswath, f'Persistent Scatterers sw{subswath}')
             del ds
 
-    def get_adi_threshold(self, subswath, threshold, chunksize=None):
+    def get_adi_threshold(self, subswath, threshold):
         """
         Vectorize Amplitude Dispersion Index (ADI) raster values selected using the specified threshold.
         """
@@ -64,9 +61,6 @@ class Stack_ps(Stack_stl):
         import pandas as pd
         import geopandas as gpd
 
-        if chunksize is None:
-            chunksize = self.chunksize
-    
         def adi_block(ys, xs):
             from scipy.interpolate import griddata
             # we can calculate more accurate later
@@ -91,12 +85,12 @@ class Stack_ps(Stack_stl):
             return np.column_stack([grid_lt, grid_ll, adi_block_value])
     
         # data grid and transform table
-        adi = self.get_adi(subswath, chunksize=chunksize)
-        trans_inv = self.get_trans_dat_inv(subswath, chunksize=chunksize)
+        adi = self.get_adi(subswath)
+        trans_inv = self.get_trans_dat_inv(subswath)
     
         # split to equal chunks and rest
-        ys_blocks = np.array_split(np.arange(adi.y.size), np.arange(0, adi.y.size, chunksize)[1:])
-        xs_blocks = np.array_split(np.arange(adi.x.size), np.arange(0, adi.x.size, chunksize)[1:])
+        ys_blocks = np.array_split(np.arange(adi.y.size), np.arange(0, adi.y.size, self.chunksize)[1:])
+        xs_blocks = np.array_split(np.arange(adi.x.size), np.arange(0, adi.x.size, self.chunksize)[1:])
         # arrays size is unknown so we cannot construct dask array
         blocks = []
         for ys_block in ys_blocks:

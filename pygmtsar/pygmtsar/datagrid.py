@@ -29,7 +29,7 @@ class datagrid:
     chunksize = 1024
     engine = 'h5netcdf'
     complevel = 3
-    
+
     # define lost class variables due to joblib via arguments
     def compression(self, shape=None, complevel=None, chunksize=None):
         """
@@ -84,6 +84,8 @@ class datagrid:
                 chunksizes = tuple(chunksizes)
             else:
                 chunksizes=(chunksize, chunksize)
+        if complevel == 0:
+            return dict(chunksizes=chunksizes)
         return dict(zlib=True, complevel=complevel, chunksizes=chunksizes)
 
     @staticmethod

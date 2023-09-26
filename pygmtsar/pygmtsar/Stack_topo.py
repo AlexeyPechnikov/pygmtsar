@@ -11,7 +11,7 @@ from .Stack_trans_inv import Stack_trans_inv
 
 class Stack_topo(Stack_trans_inv):
 
-    def get_topo(self, chunksize=None):
+    def get_topo(self):
         """
         Get the radar topography grid.
 
@@ -29,4 +29,4 @@ class Stack_topo(Stack_trans_inv):
         -----
         This method returns 'topo' variable from inverse radar transform grid.
         """
-        return self.get_trans_inv(chunksize=chunksize)['ele'].rename('topo')
+        return self.get_trans_inv()['ele'].rename('topo')

@@ -12,20 +12,17 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_phasediff(Stack_topo):
 
-    def phasediff(self, pair, topo='auto', scale=2.5e-07, method='cubic', chunksize=None):
+    def phasediff(self, pairs, topo='auto', method='cubic'):
         import dask
         import xarray as xr
         import numpy as np
 
-        # TODO
-        date1, date2 = pair
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs, dates = self.get_pairs(pairs, dates=True)
+        pairs = pairs[['ref', 'rep']].astype(str).values
 
         if topo == 'auto':
             topo = self.get_topo()
-
-        if chunksize is None:
-            # SLC chunksize is unlimited for x dimension and chunked for y
-            chunksize = self.chunksize // 8
 
         # calculate the combined earth curvature and topography correction
         def calc_drho(rho, topo, earth_radius, height, b, alpha, Bx):
@@ -46,8 +43,12 @@ class Stack_phasediff(Stack_topo):
             del term1, sint, cost, ret, c, cosa, sina
             return drho
 
-        def block_phasediff(ys, xs):
-            # use outer variables topo, data1, data2, prm1, prm2, scale
+        def block_phasediff(stack_idx, ys, xs):
+            # unpack input stacks
+            prm1,  prm2  = stack_prm[stack_idx]
+            data1, data2 = stack_data[stack_idx]
+        
+            # use outer variables topo, data1, data2, prm1, prm2
             # build topo block
             dy, dx = topo.y.diff('y').item(0), topo.x.diff('x').item(0)
             # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
@@ -70,12 +71,12 @@ class Stack_phasediff(Stack_topo):
             tspan = 86400 * abs(prm2.get('SC_clock_stop') - prm2.get('SC_clock_start'))
             assert (tspan >= 0.01) and (prm2.get('PRF') >= 0.01), 'Check sc_clock_start, sc_clock_end, or PRF'
 
-            #from scipy import constants
+            from scipy import constants
             # setup the default parameters
             # constant from GMTSAR code for consistency
-            SOL = 299792456.0
-            #drange = constants.speed_of_light / (2 * prm2.get('rng_samp_rate'))
-            drange = SOL / (2 * prm2.get('rng_samp_rate'))
+            #SOL = 299792456.0
+            drange = constants.speed_of_light / (2 * prm2.get('rng_samp_rate'))
+            #drange = SOL / (2 * prm2.get('rng_samp_rate'))
             alpha = prm2.get('alpha_start') * np.pi / 180
             cnst = -4 * np.pi / prm2.get('radar_wavelength')
 
@@ -128,7 +129,7 @@ class Stack_phasediff(Stack_topo):
             drho = calc_drho(near_range, block_topo, prm1.get('earth_radius'), height, B, alpha, Bx)
 
             # make topographic and model phase corrections
-            # GMTSAR uses float32 complex operations with precision lost
+            # GMTSAR uses float32 complex operations with precision loss
             #phase_shift = np.exp(1j * (cnst * drho).astype(np.float32))
             phase_shift = np.exp(1j * (cnst * drho))
             del block_topo, near_range, drho, height, B, alpha, Bx, Bv, Bh, time
@@ -141,80 +142,82 @@ class Stack_phasediff(Stack_topo):
             block_data2 = data2.sel(y=ys, x=xs)\
                 .compute(n_workers=1)\
                 .assign_coords(y=ys.astype(int), x=xs.x.astype(int))
-        
+
             intf = block_data1 * phase_shift * np.conj(block_data2)
             del block_data1, block_data2, phase_shift
-            return intf.where(abs(intf)>scale**2).astype(np.complex64)
+            return intf.where(abs(intf)>0).astype(np.complex64)
+
+        # open datafiles required for all the pairs
+        data = self.open_stack(dates)
+
+        stack_prm  = []
+        stack_data = []
+        stack = []
+        for stack_idx, pair in enumerate(pairs):
+            date1, date2 = pair
+        
+            data1 = data.sel(date=date1)
+            data2 = data.sel(date=date2)
+        
+            # prepare for delayed stack processing
+            stack_data.append((data1, data2))
+
+            # prepare for delayed stack processing
+            prm1 = self.PRM(date1)
+            prm2 = self.PRM(date2)
+            # it does not work because attributes are the same for all the grids
+            #prm1 = PRM.from_str(data1.prm)
+            #prm2 = PRM.from_str(data2.prm)
+            # directory and filename required for SAT_... tools to locate LED file
+            #prm1.filename = os.path.join(self.basedir, prm1.get('led_file'))
+            #prm2.filename = os.path.join(self.basedir, prm2.get('led_file'))
+            #print ('prm1.filename', prm1.filename)
+
+            # update and add required parameters
+            prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
+            # TEST - remove PRMs cross-linking
+            #prm2.set(prm2.SAT_baseline(prm2, tail=9)).fix_aligned()
+            prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
+            stack_prm.append((prm1, prm2))
+        
+            # check the grids
+            #assert prm1.get('num_rng_bins') == prm2.get('num_rng_bins'), 'The dimensions of range do not match'
+            #assert prm1.get('num_patches') * prm1.get('num_valid_az') == prm2.get('num_patches') * prm2.get('num_valid_az'), \
+            #    'The dimensions of azimuth do not match'
+
+            if topo is None:
+                # calculation is straightforward and does not require delayed wrappers
+                intf = (data1 * np.conj(data2)).where(abs(data1)>0)
+            else:
+                # split to equal chunks and rest
+                ys_blocks = np.array_split(data[0].y, np.arange(0,data.y.size, self.chunksize)[1:])
+                xs_blocks = np.array_split(data[0].x, np.arange(0,data.x.size, self.chunksize)[1:])
+                #print ('ys_blocks.size', len(ys_blocks), 'xs_blocks.size', len(xs_blocks))
+
+                blocks_total = []
+                for ys_block in ys_blocks:
+                    blocks = []
+                    for xs_block in xs_blocks:
+                        block = dask.array.from_delayed(dask.delayed(block_phasediff)(stack_idx, ys_block, xs_block),
+                                                        shape=(ys_block.size, xs_block.size), dtype=np.complex64)
+                        blocks.append(block)
+                        del block
+                    blocks_total.append(blocks)
+                    del blocks
+                intf = xr.DataArray(dask.array.block(blocks_total), coords={'y': data.y, 'x': data.x})
+                del blocks_total
+
+            # add to stack
+            stack.append(intf)
+            # cleanup
+            del intf, data1, data2, prm1, prm2
     
-        prm1 = self.PRM(date1)
-        prm2 = self.PRM(date2)
-
-        # update and add required parameters
-        prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
-        prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
-
-        # check the grids
-        assert prm1.get('num_rng_bins') == prm2.get('num_rng_bins'), 'The dimensions of range do not match'
-        assert prm1.get('num_patches') * prm1.get('num_valid_az') == prm2.get('num_patches') * prm2.get('num_valid_az'), \
-            'The dimensions of azimuth do not match'
-
-        # read datafiles and convert to complex values
-        slc1 = prm1.read_SLC_int(scale=scale, chunksize=chunksize)
-        data1 = (slc1.re + 1j * slc1.im)
-        slc2 = prm2.read_SLC_int(scale=scale, chunksize=chunksize)
-        data2 = (slc2.re + 1j * slc2.im)
-        del slc1, slc2
+        # cleanup
+        del data
     
-        if topo is None:
-            # calculation is straightforward and does not require delayed wrappers
-            return (data1 * np.conj(data2)).where(abs(data1)>scale**2).rename('phasediff')
+        coord_pair = [' '.join(pair) for pair in pairs]
+        coord_ref = xr.DataArray(pd.to_datetime(pairs[:,0]), coords={'pair': coord_pair})
+        coord_rep = xr.DataArray(pd.to_datetime(pairs[:,1]), coords={'pair': coord_pair})
     
-        ychunks, xchunks = data1.chunks
-        ychunksize = ychunks[0]
-        xchunksize = xchunks[0]
-        #print (ychunksize, xchunksize)
-    
-        # split to equal chunks and rest
-        ys_blocks = np.array_split(data1.y, np.arange(0,data1.y.size, ychunksize)[1:])
-        xs_blocks = np.array_split(data1.x, np.arange(0,data1.x.size, xchunksize)[1:])
-        print ('ys_blocks.size', len(ys_blocks), 'xs_blocks.size', len(xs_blocks))
-    
-        blocks_total = []
-        for ys_block in ys_blocks:
-            blocks = []
-            for xs_block in xs_blocks:
-                block = dask.array.from_delayed(dask.delayed(block_phasediff)(ys_block, xs_block),
-                                                shape=(ys_block.size, xs_block.size), dtype=np.complex64)
-                blocks.append(block)
-                del block
-            blocks_total.append(blocks)
-            del blocks
-        intf = xr.DataArray(dask.array.block(blocks_total), coords=data1.coords).rename('phasediff')
-        del blocks_total
-        return intf
+        return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
 
-    def stack_phasediff(self, pairs, topo_fromfile=None, chunksize=None, n_jobs=-1):
-        """
-        Build phase difference for all pairs.
-
-        Parameters
-        ----------
-        pairs : list
-            List of date pairs (baseline pairs).
-        topo_fromfile : str, optional
-            Define radar coordinate topography. Default is topography created by geocode().
-        n_jobs : int, optional
-            Number of parallel processing jobs. n_jobs=-1 means all the processor cores used.
-        Returns
-        -------
-        None
-        """
-        from tqdm.auto import tqdm
-        import joblib
-
-        # convert pairs (list, array, dataframe) to 2D numpy array
-        pairs = self.get_pairs(pairs)[['ref', 'rep']].astype(str).values
-
-        with self.tqdm_joblib(tqdm(desc='Phase Difference', total=len(pairs))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.phasediff)(pair, topo_fromfile, chunksize) \
-                for pair in pairs)

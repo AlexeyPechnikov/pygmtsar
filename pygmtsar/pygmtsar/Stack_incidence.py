@@ -239,7 +239,7 @@ class Stack_incidence(Stack_geocode):
 #         los = np.dot(np.column_stack([data.dx, data.dy, data.dz]), [look.look_E, look.look_N, look.look_U])
 #         return data.assign(los=scale*los)
 
-    def get_sat_look(self, chunksize=None):
+    def get_sat_look(self):
         """
         Return satellite look vectors in geographic coordinates as Xarray Dataset.
 
@@ -258,7 +258,7 @@ class Stack_incidence(Stack_geocode):
         This function returns the satellite look vectors in geographic coordinates as Xarray Dataset. The satellite look vectors
         should be computed and saved prior to calling this function using the `sat_look` method.
         """
-        return self.open_grid('sat_look', chunksize=chunksize)
+        return self.open_grid('sat_look')
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, data):
@@ -398,7 +398,7 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = self.incidence_angle()
         return sign * los_disp/np.sin(incidence_ll)
 
-    def sat_look(self, chunksize=None, interactive=False):
+    def sat_look(self, interactive=False):
         #import dask
         import xarray as xr
         import numpy as np
@@ -414,11 +414,8 @@ class Stack_incidence(Stack_geocode):
                                      .reshape(z.shape[0], z.shape[1], 6)[...,3:]
             return look
 
-        if chunksize is None:
-            chunksize = self.chunksize
-
         # reference grid
-        trans_inv = self.get_trans_inv(chunksize=chunksize)[['lt', 'll', 'ele']]
+        trans_inv = self.get_trans_inv()[['lt', 'll', 'ele']]
 
         # xarray wrapper for the valid area only
         enu = xr.apply_ufunc(
@@ -440,4 +437,4 @@ class Stack_incidence(Stack_geocode):
         if interactive:
             return sat_look
 
-        return self.save_grid(sat_look, 'sat_look', f'Satellite Look Vector Computing', chunksize)
+        return self.save_grid(sat_look, 'sat_look', f'Satellite Look Vector Computing')

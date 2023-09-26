@@ -336,29 +336,76 @@ class IO(datagrid):
             return ds[list(ds.data_vars)[0]].rename(name)
         return ds
 
-    def open_stack(self, dates=None, intensity=False, scale=2.5e-07, chunksize=None):
+    def open_stack(self, dates=None, scale=2.5e-07):
         import xarray as xr
         import pandas as pd
         import numpy as np
-        import dask
-
-        if chunksize is None:
-            chunksize = self.chunksize
+        import os
 
         if dates is None:
             dates = self.df.index.values
         #print ('dates', dates)
-        # select radar coordinates extent
-        rng_max = self.PRM().get('num_rng_bins')
-        #print ('azi_max', azi_max, 'rng_max', rng_max)
-        # use SLC-related chunks for faster processing
-        minichunksize = int(np.round(chunksize**2/rng_max))
-        #print (minichunksize)
-        slcs = [self.PRM(date).read_SLC_int(intensity=intensity, scale=scale, chunksize=minichunksize) for date in dates]
-        # build stack
-        slcs = xr.concat(slcs, dim='date')
-        slcs['date'] = pd.to_datetime(dates)
-        return slcs
+    
+        subswath = self.get_subswath()
+        #print ('subswath', subswath)
+
+        def open_subswath(sw):
+            filenames = [self.PRM(date).filename[:-4-len(str(subswath))] + str(sw) + '.grd' for date in dates]
+            #print ('filenames', filenames)
+            ds = xr.open_mfdataset(
+                filenames,
+                engine=self.engine,
+                chunks=self.chunksize,
+                parallel=True,
+                concat_dim='date',
+                combine='nested'
+            ).assign(date=pd.to_datetime(dates)).rename({'a': 'y', 'r': 'x'})
+            if scale is None:
+                # there is no complex int16 datatype, so return two variables for real and imag parts
+                return ds
+            # scale and return as complex values
+            return (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs)
+    
+        if len(str(subswath)) == 1:
+            return open_subswath(subswath)
+    
+        # merge subswaths to single virtual raster
+        prm = self.PRM()
+        bottoms, lefts, rights = [list(map(int, param.split(';'))) for param in prm.get('swath_bottom', 'swath_left', 'swath_right')]
+        maxx = sum([right-left for right, left in zip(rights, lefts)])
+        dss = []
+        for (sw, bottom, left, right) in zip(str(subswath), bottoms, lefts, rights):
+            ds = open_subswath(sw)
+            dss.append(ds.isel(x=slice(left, right)).assign_coords(y=ds.y + bottom))
+            del ds
+        ds = xr.concat(dss, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
+        #.chunk(chunksize)
+        del dss
+        return ds
+
+#     def open_stack(self, dates=None, intensity=False, scale=2.5e-07, chunksize=None):
+#         import xarray as xr
+#         import pandas as pd
+#         import numpy as np
+#         import dask
+# 
+#         if chunksize is None:
+#             chunksize = self.chunksize
+# 
+#         if dates is None:
+#             dates = self.df.index.values
+#         #print ('dates', dates)
+#         # select radar coordinates extent
+#         rng_max = self.PRM().get('num_rng_bins')
+#         #print ('azi_max', azi_max, 'rng_max', rng_max)
+#         # use SLC-related chunks for faster processing
+#         minichunksize = int(np.round(chunksize**2/rng_max))
+#         #print (minichunksize)
+#         slcs = [self.PRM(date).read_SLC_int(intensity=intensity, scale=scale, chunksize=minichunksize) for date in dates]
+#         # build stack
+#         slcs = xr.concat(slcs, dim='date')
+#         slcs['date'] = pd.to_datetime(dates)
+#         return slcs
 # 
 #     def open_stack_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
 #         """
