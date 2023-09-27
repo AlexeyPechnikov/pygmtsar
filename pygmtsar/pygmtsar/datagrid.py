@@ -71,7 +71,7 @@ class datagrid:
         if isinstance(chunksize, (tuple, list, np.ndarray)):
             # use as is, it can be 2D or 3D grid (even 1D while it is not used for now)
             if shape is not None:
-                assert len(shape) == len(chunksize), 'ERROR: defined shape and chunksize dimensions are not equal'
+                assert len(shape) == len(chunksize), f'ERROR: defined shape and chunksize dimensions are not equal: {len(shape)} != {len(chunksize)}'
                 chunksizes = tuple([chunksize[dim] if chunksize[dim]<shape[dim] else shape[dim] for dim in range(len(shape))])
             else:
                 chunksizes = chunksize
@@ -587,7 +587,11 @@ class datagrid:
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
         # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
-        
+
+        # expand simplified definition
+        if coarsen is not None and not isinstance(coarsen, (list,tuple, np.ndarray)):
+            coarsen = (coarsen, coarsen)
+
         # allow this case to save the original grid resolution
         if wavelength is None and coarsen is None:
             return da

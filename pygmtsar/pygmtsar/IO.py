@@ -345,43 +345,69 @@ class IO(datagrid):
         if dates is None:
             dates = self.df.index.values
         #print ('dates', dates)
-    
-        subswath = self.get_subswath()
-        #print ('subswath', subswath)
 
-        def open_subswath(sw):
-            filenames = [self.PRM(date).filename[:-4-len(str(subswath))] + str(sw) + '.grd' for date in dates]
-            #print ('filenames', filenames)
-            ds = xr.open_mfdataset(
-                filenames,
-                engine=self.engine,
-                chunks=self.chunksize,
-                parallel=True,
-                concat_dim='date',
-                combine='nested'
-            ).assign(date=pd.to_datetime(dates)).rename({'a': 'y', 'r': 'x'})
-            if scale is None:
-                # there is no complex int16 datatype, so return two variables for real and imag parts
-                return ds
-            # scale and return as complex values
-            return (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs)
-    
-        if len(str(subswath)) == 1:
-            return open_subswath(subswath)
-    
-        # merge subswaths to single virtual raster
-        prm = self.PRM()
-        bottoms, lefts, rights = [list(map(int, param.split(';'))) for param in prm.get('swath_bottom', 'swath_left', 'swath_right')]
-        maxx = sum([right-left for right, left in zip(rights, lefts)])
-        dss = []
-        for (sw, bottom, left, right) in zip(str(subswath), bottoms, lefts, rights):
-            ds = open_subswath(sw)
-            dss.append(ds.isel(x=slice(left, right)).assign_coords(y=ds.y + bottom))
-            del ds
-        ds = xr.concat(dss, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
-        #.chunk(chunksize)
-        del dss
-        return ds
+        filenames = [self.PRM(date).filename[:-4] + '.grd' for date in dates]
+        #print ('filenames', filenames)
+        ds = xr.open_mfdataset(
+            filenames,
+            engine=self.engine,
+            chunks=self.chunksize,
+            parallel=True,
+            concat_dim='date',
+            combine='nested'
+        ).assign(date=pd.to_datetime(dates)).rename({'a': 'y', 'r': 'x'})
+        if scale is None:
+            # there is no complex int16 datatype, so return two variables for real and imag parts
+            return ds
+        # scale and return as complex values
+        return (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs)
+
+#     def open_stack(self, dates=None, scale=2.5e-07):
+#         import xarray as xr
+#         import pandas as pd
+#         import numpy as np
+#         import os
+# 
+#         if dates is None:
+#             dates = self.df.index.values
+#         #print ('dates', dates)
+#     
+#         subswath = self.get_subswath()
+#         #print ('subswath', subswath)
+# 
+#         def open_subswath(sw):
+#             filenames = [self.PRM(date).filename[:-4-len(str(subswath))] + str(sw) + '.grd' for date in dates]
+#             #print ('filenames', filenames)
+#             ds = xr.open_mfdataset(
+#                 filenames,
+#                 engine=self.engine,
+#                 chunks=self.chunksize,
+#                 parallel=True,
+#                 concat_dim='date',
+#                 combine='nested'
+#             ).assign(date=pd.to_datetime(dates)).rename({'a': 'y', 'r': 'x'})
+#             if scale is None:
+#                 # there is no complex int16 datatype, so return two variables for real and imag parts
+#                 return ds
+#             # scale and return as complex values
+#             return (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs)
+#     
+#         if len(str(subswath)) == 1:
+#             return open_subswath(subswath)
+#     
+#         # merge subswaths to single virtual raster
+#         prm = self.PRM()
+#         bottoms, lefts, rights = [list(map(int, param.split(';'))) for param in prm.get('swath_bottom', 'swath_left', 'swath_right')]
+#         maxx = sum([right-left for right, left in zip(rights, lefts)])
+#         dss = []
+#         for (sw, bottom, left, right) in zip(str(subswath), bottoms, lefts, rights):
+#             ds = open_subswath(sw)
+#             dss.append(ds.isel(x=slice(left, right)).assign_coords(y=ds.y + bottom))
+#             del ds
+#         ds = xr.concat(dss, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
+#         #.chunk(chunksize)
+#         del dss
+#         return ds
 
 #     def open_stack(self, dates=None, intensity=False, scale=2.5e-07, chunksize=None):
 #         import xarray as xr
@@ -444,9 +470,9 @@ class IO(datagrid):
 # 
 #         return stacks if subswath is None else stacks[0]
 
-    def open_cube(self, name, chunksize=None):
+    def open_cube(self, name):
         """
-        Opens an xarray 3D Dataset from a NetCDF file and re-chunks it based on the specified chunksize.
+        Opens an xarray 3D Dataset from a NetCDF file.
 
         This function takes the name of the model to be opened, reads the NetCDF file, and re-chunks
         the dataset according to the provided chunksize or the default value from the 'stack' object.
@@ -456,36 +482,32 @@ class IO(datagrid):
         ----------
         name : str
             The name of the model file to be opened.
-        chunksize : int, optional
-            The chunk size to be used for dimensions other than 'date'. If not provided, the default
-            chunk size from the 'stack' object will be used.
 
         Returns
         -------
         xarray.Dataset
-            The re-chunked xarray Dataset read from the specified NetCDF file.
+            Xarray Dataset read from the specified NetCDF file.
 
         """
         import xarray as xr
         import pandas as pd
         import os
 
-        if chunksize is None:
-            chunksize = self.chunksize
-
         model_filename = self.get_filename(name, add_subswath=False)
         assert os.path.exists(model_filename), f'ERROR: The NetCDF file is missed: {model_filename}'
 
-        # Open the dataset without chunking
+        # Workaround: open the dataset without chunking
         model = xr.open_dataset(model_filename, engine=self.engine)
-        chunks = {dim: 1 if dim == 'date' else chunksize for dim in model.dims}
+        # Determine the proper chunk sizes
+        chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in model.dims}
         # Re-chunk the dataset using the chunks dictionary
         model = model.chunk(chunks)
 
         # convert string dates to dates
-        if 'date' in model.dims:
-            model['date'] = pd.to_datetime(model['date'].values)
-    
+        for dim in ['date', 'ref', 'rep']:
+            if dim in model.dims:
+                model[dim] = pd.to_datetime(model[dim])
+
         if 'yy' in model.dims and 'xx' in model.dims:
             model = model.rename({'yy': 'lat', 'xx': 'lon'})
 
@@ -497,9 +519,9 @@ class IO(datagrid):
             return model[list(model.data_vars)[0]]
         return model
 
-    def save_cube(self, model, name=None, caption='Saving 3D datacube', chunksize=None, debug=False):
+    def save_cube(self, model, name=None, compression=False, caption='Saving 3D DataCube', debug=False):
         """
-        Save an xarray 3D Dataset to a NetCDF file and re-chunks it based on the specified chunksize.
+        Save an xarray 3D Dataset to a NetCDF file.
 
         The 'date' dimension is always chunked with a size of 1.
 
@@ -507,9 +529,10 @@ class IO(datagrid):
         ----------
         model : xarray.Dataset
             The model to be saved.
-        chunksize : int, optional
-            The chunk size to be used for dimensions other than 'date'. If not provided, the default
-            chunk size from the 'stack' object will be used.
+        name : str
+            The text name for the output NetCDF file.
+        compression : boolean
+            The flag to enable output file compression. Default is False.
         caption: str
             The text caption for the saving progress bar.
 
@@ -521,15 +544,12 @@ class IO(datagrid):
         import dask
         import os
 
-        if chunksize is None:
-            chunksize = self.chunksize
-
         if name is None and isinstance(model, xr.DataArray):
             assert model.name is not None, 'Define the grid name or use name argument for the NetCDF filename'
             name = model.name
         elif name is None:
             raise ValueError('Specify name for the output NetCDF file')
-        
+
         # save to NetCDF file
         model_filename = self.get_filename(name, add_subswath=False)
         if os.path.exists(model_filename):
@@ -537,15 +557,22 @@ class IO(datagrid):
         if isinstance(model, xr.DataArray):
             if debug:
                 print ('DEBUG: DataArray')
-            netcdf_compression = self.compression(model.shape, chunksize=(1, chunksize, chunksize))
+            netcdf_compression = self.compression(model.shape, complevel=None if compression else 0,
+                                                  chunksize=(1, self.chunksize, self.chunksize))
             encoding = {model.name: netcdf_compression}
         elif isinstance(model, xr.Dataset):
             if debug:
                 print ('DEBUG: Dataset')
             if len(model.dims) == 3:
-                encoding = {varname: self.compression(model[varname].shape, chunksize=(1, chunksize, chunksize)) for varname in model.data_vars}
+                encoding = {varname: self.compression(model[varname].shape, complevel=None if compression else 0,
+                            chunksize=(1, self.chunksize, self.chunksize)) for varname in model.data_vars}
             else:
-                encoding = {varname: self.compression(model[varname].shape, chunksize=chunksize) for varname in model.data_vars}
+                encoding = {varname: self.compression(model[varname].shape, chunksize=self.chunksize) for varname in model.data_vars}
+    
+        # prevent Xarray Dask saving issue
+        if 'y' in model.dims and 'x' in model.dims:
+            model = model.rename({'y': 'a', 'x': 'r'})
+    
         delayed = model.to_netcdf(model_filename,
                          engine=self.engine,
                          encoding=encoding,

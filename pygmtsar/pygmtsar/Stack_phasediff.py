@@ -13,9 +13,14 @@ from .tqdm_dask import tqdm_dask
 class Stack_phasediff(Stack_topo):
 
     def phasediff(self, pairs, topo='auto', method='cubic'):
+        import pandas as pd
         import dask
         import xarray as xr
         import numpy as np
+        
+        # disable "distributed.utils_perf - WARNING - full garbage collections ..."
+        from dask.distributed import utils_perf
+        utils_perf.disable_gc_diagnosis()
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(pairs, dates=True)
@@ -43,11 +48,31 @@ class Stack_phasediff(Stack_topo):
             del term1, sint, cost, ret, c, cosa, sina
             return drho
 
-        def block_phasediff(stack_idx, ys, xs):
+        def block_phasediff(stack_idx, ylim, xlim):
+            # disable "distributed.utils_perf - WARNING - full garbage collections ..."
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        
             # unpack input stacks
             prm1,  prm2  = stack_prm[stack_idx]
             data1, data2 = stack_data[stack_idx]
+
+            # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
+            block_data1 = data1.isel(y=slice(ylim[0], ylim[1]), x=slice(xlim[0], xlim[1])).compute(n_workers=1)
+            block_data2 = data2.isel(y=slice(ylim[0], ylim[1]), x=slice(xlim[0], xlim[1])).compute(n_workers=1)
+            del data1, data2
+
+            if abs(block_data1).sum() == 0:
+                intf = np.nan * xr.zeros_like(block_data1)
+                del block_data1, block_data2
+                return intf
         
+            ys = block_data1.y
+            xs = block_data1.x
+
+            block_data1 = block_data1.assign_coords(y=ys.astype(int), x=xs.astype(int))
+            block_data2 = block_data2.assign_coords(y=ys.astype(int), x=xs.astype(int))
+
             # use outer variables topo, data1, data2, prm1, prm2
             # build topo block
             dy, dx = topo.y.diff('y').item(0), topo.x.diff('x').item(0)
@@ -56,7 +81,7 @@ class Stack_phasediff(Stack_topo):
             block_topo = topo.sel(y=slice(ys[0]-2*dy, ys[-1]+2*dy), x=slice(xs[0]-2*dx, xs[-1]+2*dx))\
                         .compute(n_workers=1)\
                         .fillna(0)\
-                        .interp({'y': ys, 'x': xs}, method=method)\
+                        .interp({'y': ys, 'x': xs}, method=method, kwargs={'fill_value': 'extrapolate'})\
                         .assign_coords(y=ys.astype(int), x=xs.x.astype(int))
             # set dimensions
             xdim = prm1.get('num_rng_bins')
@@ -135,21 +160,22 @@ class Stack_phasediff(Stack_topo):
             del block_topo, near_range, drho, height, B, alpha, Bx, Bv, Bh, time
 
             # calculate phase difference
-            # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
-            block_data1 = data1.sel(y=ys, x=xs)\
-                .compute(n_workers=1)\
-                .assign_coords(y=ys.astype(int), x=xs.x.astype(int))
-            block_data2 = data2.sel(y=ys, x=xs)\
-                .compute(n_workers=1)\
-                .assign_coords(y=ys.astype(int), x=xs.x.astype(int))
-
             intf = block_data1 * phase_shift * np.conj(block_data2)
             del block_data1, block_data2, phase_shift
             return intf.where(abs(intf)>0).astype(np.complex64)
 
         # open datafiles required for all the pairs
         data = self.open_stack(dates)
-
+        # define blocks
+        chunks = data.chunks
+        ychunks,xchunks = chunks[1], chunks[2]
+        ychunks = np.concatenate([[0], np.cumsum(ychunks)])
+        xchunks = np.concatenate([[0], np.cumsum(xchunks)])
+        ylims = [(y1, y2) for y1, y2 in zip(ychunks, ychunks[1:])]
+        xlims = [(x1, x2) for x1, x2 in zip(xchunks, xchunks[1:])]
+        #print ('ylims', ylims)
+        #print ('xlims', xlims)
+    
         stack_prm  = []
         stack_data = []
         stack = []
@@ -190,16 +216,16 @@ class Stack_phasediff(Stack_topo):
                 intf = (data1 * np.conj(data2)).where(abs(data1)>0)
             else:
                 # split to equal chunks and rest
-                ys_blocks = np.array_split(data[0].y, np.arange(0,data.y.size, self.chunksize)[1:])
-                xs_blocks = np.array_split(data[0].x, np.arange(0,data.x.size, self.chunksize)[1:])
+                #ys_blocks = np.array_split(data[0].y, np.arange(0,data.y.size, self.chunksize)[1:])
+                #xs_blocks = np.array_split(data[0].x, np.arange(0,data.x.size, self.chunksize)[1:])
                 #print ('ys_blocks.size', len(ys_blocks), 'xs_blocks.size', len(xs_blocks))
 
                 blocks_total = []
-                for ys_block in ys_blocks:
+                for ylim in ylims:
                     blocks = []
-                    for xs_block in xs_blocks:
-                        block = dask.array.from_delayed(dask.delayed(block_phasediff)(stack_idx, ys_block, xs_block),
-                                                        shape=(ys_block.size, xs_block.size), dtype=np.complex64)
+                    for xlim in xlims:
+                        block = dask.array.from_delayed(dask.delayed(block_phasediff)(stack_idx, ylim, xlim),
+                                                        shape=((ylim[1]-ylim[0]), (xlim[1]-xlim[0])), dtype=np.complex64)
                         blocks.append(block)
                         del block
                     blocks_total.append(blocks)
@@ -220,4 +246,3 @@ class Stack_phasediff(Stack_topo):
         coord_rep = xr.DataArray(pd.to_datetime(pairs[:,1]), coords={'pair': coord_pair})
     
         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
-
