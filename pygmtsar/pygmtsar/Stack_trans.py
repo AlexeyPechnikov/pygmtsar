@@ -23,11 +23,11 @@ class Stack_trans(Stack_align):
         #azis = np.arange(0, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
         #rngs = np.arange(0, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
         # for subpixel resolution
-        azis = np.arange(0, azi_max+coarsen[0], coarsen[0], dtype=np.float64)
-        rngs = np.arange(0, rng_max+coarsen[1], coarsen[1], dtype=np.float64)
+        #azis = np.arange(0, azi_max+coarsen[0], coarsen[0], dtype=np.float64)
+        #rngs = np.arange(0, rng_max+coarsen[1], coarsen[1], dtype=np.float64)
         # this grid is better suitable for multilooking interferogram coordinates
-        #azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
-        #rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+        azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
+        rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
         return (azis, rngs)
 
     def get_trans(self):
