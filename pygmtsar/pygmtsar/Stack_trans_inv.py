@@ -62,6 +62,10 @@ class Stack_trans_inv(Stack_trans):
         # it can be some times slow and requires much less memory
         @dask.delayed
         def trans_dat_inv_block_prepare(azis, rngs, chunksize):
+            # disable "distributed.utils_perf - WARNING - full garbage collections ..."
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+
             # required one delta around for nearest interpolation and two for linear
             dazi = np.diff(azis)[0]
             drng = np.diff(rngs)[0]
@@ -97,12 +101,15 @@ class Stack_trans_inv(Stack_trans):
                 # cleanup
                 del block_lt, block_ll, block_azi, block_rng, block_ele, mask
             # merge extracted results
-            return (np.concatenate(block_azis),
-                    np.concatenate(block_rngs),
-                    np.concatenate(block_lts),
-                    np.concatenate(block_lls),
-                    np.concatenate(block_eles)
-                   )
+            blocks = (np.concatenate(block_azis),
+                      np.concatenate(block_rngs),
+                      np.concatenate(block_lts),
+                      np.concatenate(block_lls),
+                      np.concatenate(block_eles)
+                     )
+            del block_azis, block_rngs, block_lts, block_lls, block_eles
+            del block_mask, blocks_ys, blocks_xs
+            return blocks
         
         # griddata interpolation is easy and provides multiple methods
         @dask.delayed

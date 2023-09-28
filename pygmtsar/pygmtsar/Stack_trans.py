@@ -126,13 +126,15 @@ class Stack_trans(Stack_align):
             # compute 3D radar coordinates for all the geographical 3D points
             lons, lats = np.meshgrid(lon.astype(np.float32), lat.astype(np.float32))
             coords_ll = np.column_stack([lons.ravel(), lats.ravel(), z.ravel()])
+            del lons, lats
             # for binary=True values outside of the scene missed and the array is not complete
             # 4th and 5th coordinates are the same as input lat, lon
             coords_ra = self.PRM().SAT_llt2rat(coords_ll, precise=1, binary=False).astype(np.float32)
+            del coords_ll
             if coords_ra.size == 0:
+                del lons, lats
                 return coords_ra
             coords_ra = coords_ra.reshape(z.shape[0], z.shape[1], 5)[...,:3]
-            del lons, lats, coords_ll
             if amax is not None and rmax is not None:
                 # mask values outside of radar area
                 mask = (coords_ra[...,0]>=rmin) & (coords_ra[...,0]<=rmax) & (coords_ra[...,1]>=amin) & (coords_ra[...,1]<=amax)
@@ -142,10 +144,13 @@ class Stack_trans(Stack_align):
 
         # exclude latitude and longitude columns as redudant
         def trans_block(lats, lons, amin=0, amax=None, rmin=0, rmax=None):
+            # disable "distributed.utils_perf - WARNING - full garbage collections ..."
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+            
             dlat = dem.yy.diff('yy')[0]
             dlon = dem.xx.diff('xx')[0]
-            topo = dem.sel(yy=slice(lats[0]-dlat, lats[-1]+dlat), xx=slice(lons[0]-dlon, lons[-1]+dlon))
-            del dlat, dlon
+            topo = dem.sel(yy=slice(lats[0]-dlat, lats[-1]+dlat), xx=slice(lons[0]-dlon, lons[-1]+dlon)).compute(n_workers=1)
             #print ('topo.shape', topo.shape, 'lats.size', lats.size, 'lons', lons.size)
             grid = topo.interp({topo.dims[0]: lats, topo.dims[1]: lons})
             del topo
