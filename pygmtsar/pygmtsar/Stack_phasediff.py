@@ -17,10 +17,6 @@ class Stack_phasediff(Stack_topo):
         import dask
         import xarray as xr
         import numpy as np
-        
-        # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(pairs, dates=True)
@@ -52,7 +48,7 @@ class Stack_phasediff(Stack_topo):
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
             from dask.distributed import utils_perf
             utils_perf.disable_gc_diagnosis()
-        
+
             # unpack input stacks
             prm1,  prm2  = stack_prm[stack_idx]
             data1, data2 = stack_data[stack_idx]
@@ -66,23 +62,31 @@ class Stack_phasediff(Stack_topo):
                 intf = np.nan * xr.zeros_like(block_data1)
                 del block_data1, block_data2
                 return intf
-        
-            ys = block_data1.y
-            xs = block_data1.x
 
-            block_data1 = block_data1.assign_coords(y=ys.astype(int), x=xs.astype(int))
-            block_data2 = block_data2.assign_coords(y=ys.astype(int), x=xs.astype(int))
+            ys = block_data1.y.astype(int)
+            xs = block_data1.x.astype(int)
+
+            block_data1 = block_data1.assign_coords(y=ys, x=xs)
+            block_data2 = block_data2.assign_coords(y=ys, x=xs)
 
             # use outer variables topo, data1, data2, prm1, prm2
             # build topo block
             dy, dx = topo.y.diff('y').item(0), topo.x.diff('x').item(0)
-            # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
-            # fill NaNs by zero because typically DEM is missed outside of land areas
-            block_topo = topo.sel(y=slice(ys[0]-2*dy, ys[-1]+2*dy), x=slice(xs[0]-2*dx, xs[-1]+2*dx))\
-                        .compute(n_workers=1)\
-                        .fillna(0)\
-                        .interp({'y': ys, 'x': xs}, method=method, kwargs={'fill_value': 'extrapolate'})\
-                        .assign_coords(y=ys.astype(int), x=xs.x.astype(int))
+            if dy == 1 and dx == 1:
+                # topography is already in the original resolution
+                block_topo = topo.isel(y=slice(ylim[0], ylim[1]), x=slice(xlim[0], xlim[1]))\
+                            .compute(n_workers=1)\
+                            .fillna(0)\
+                            .assign_coords(y=ys, x=xs)
+            else:
+                # topography resolution is different, interpolation with extrapolation required
+                # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
+                # fill NaNs by zero because typically DEM is missed outside of land areas
+                block_topo = topo.sel(y=slice(ys[0]-3*dy, ys[-1]+3*dy), x=slice(xs[0]-3*dx, xs[-1]+3*dx))\
+                            .compute(n_workers=1)\
+                            .fillna(0)\
+                            .interp({'y': block_data1.y, 'x': block_data1.x}, method=method, kwargs={'fill_value': 'extrapolate'})\
+                            .assign_coords(y=ys, x=xs)
             # set dimensions
             xdim = prm1.get('num_rng_bins')
             ydim = prm1.get('num_patches') * prm1.get('num_valid_az')
@@ -175,16 +179,16 @@ class Stack_phasediff(Stack_topo):
         xlims = [(x1, x2) for x1, x2 in zip(xchunks, xchunks[1:])]
         #print ('ylims', ylims)
         #print ('xlims', xlims)
-    
+
         stack_prm  = []
         stack_data = []
         stack = []
         for stack_idx, pair in enumerate(pairs):
             date1, date2 = pair
-        
+
             data1 = data.sel(date=date1)
             data2 = data.sel(date=date2)
-        
+
             # prepare for delayed stack processing
             stack_data.append((data1, data2))
 
@@ -205,7 +209,7 @@ class Stack_phasediff(Stack_topo):
             #prm2.set(prm2.SAT_baseline(prm2, tail=9)).fix_aligned()
             prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
             stack_prm.append((prm1, prm2))
-        
+
             # check the grids
             #assert prm1.get('num_rng_bins') == prm2.get('num_rng_bins'), 'The dimensions of range do not match'
             #assert prm1.get('num_patches') * prm1.get('num_valid_az') == prm2.get('num_patches') * prm2.get('num_valid_az'), \
@@ -237,12 +241,12 @@ class Stack_phasediff(Stack_topo):
             stack.append(intf)
             # cleanup
             del intf, data1, data2, prm1, prm2
-    
+
         # cleanup
         del data
-    
+
         coord_pair = [' '.join(pair) for pair in pairs]
         coord_ref = xr.DataArray(pd.to_datetime(pairs[:,0]), coords={'pair': coord_pair})
         coord_rep = xr.DataArray(pd.to_datetime(pairs[:,1]), coords={'pair': coord_pair})
-    
+
         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
