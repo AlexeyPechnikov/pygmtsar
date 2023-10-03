@@ -954,173 +954,173 @@ class PRM(datagrid, PRM_gmtsar):
         # amp1 and amp2 chunks are high for SLC, amp has normal chunks for NetCDF
         return xr.where(a >= thresh, corr, np.nan).chunk(a.chunksizes).rename('phase')
 
-    # see about correlation filter
-    # https://github.com/gmtsar/gmtsar/issues/86
-    def intf(self, other, basedir, topo_fromfile, basename=None, \
-            wavelength=200, psi=False, psize=None, \
-            coarsen=(1,4), func=None, weight=None, \
-            phase_tofile='phase', corr_tofile='corr', debug=False):
-        """
-        Perform interferometric processing on the input SAR data.
-
-        Parameters
-        ----------
-        other : PRM
-            Another instance of the PRM class representing the second SAR data.
-        basedir : str
-            Base directory for storing the processed data files.
-        topo_fromfile : str
-            Path to the topo file used for the calculation.
-        basename : str, optional
-            Base name for the output files. If not provided, a default name will be generated.
-        wavelength : int, optional
-            Wavelength of the SAR data in meters. Default is 200 m.
-        psi : bool, optional
-            PSI flag calls not apply wavelength to phase. Default is False.
-        psize : int, optional
-            Werner/Goldstein filter window size in pixels. Default is 32 pixels.
-        func : callable, optional
-            Custom function to apply on the processed data arrays. Default is None.
-        debug : bool, optional
-            Enable debug mode. Default is False.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        This method performs interferometric processing on the input SAR data using GMTSAR tools.
-        It generates various intermediate and final files, including amplitude and phase data,
-        and applies filtering and convolution operations to produce the desired output.
-        """
-        import os
-        import numpy as np
-        import xarray as xr
-        import dask.array
-        import warnings
-        # suppress Dask warning "RuntimeWarning: divide by zero encountered in divide"
-        warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
-
-        if not isinstance(other, PRM):
-            raise Exception('Argument "other" should be PRM class instance')
-
-        if psi:
-            #print ('NOTE: disable downscaling (coarsen=None) and Goldstein adaptive filtering (psize=None) in PSI mode')
-            #if wavelength is not None:
-            #    print ('NOTE: anti-aliasing (speckle) filtering applied to correlation only in PSI mode')
-            coarsen = None
-            psize = None
-        if psize is not None:
-            #print ('NOTE: apply downscaling (coarsen=(1,4)) for Goldstein adaptive filtering (psize)')
-            coarsen = (1,4)
-
-        # expand simplified definition
-        if coarsen == 1 or coarsen == (1,1):
-            raise Exception('Argument "coarsen" should be None to disable downscaling')
-        if coarsen is not None and not isinstance(coarsen, (list,tuple, np.ndarray)):
-            coarsen = (coarsen, coarsen)
-
-        # define basename from two PRM names
-        subswath = os.path.basename(self.filename)[16:18]
-        if basename is None:
-            # S1_20171111_ALL_F3.PRM -> F3
-            date1    = os.path.basename(self.filename)[3:11]
-            date2    = os.path.basename(other.filename)[3:11]
-            basename = f'{subswath}_{date1}_{date2}_'
-            #print ('basename', basename)
-
-        # make full file name, use workaround for 'weight' argument name defined without extension
-        fullname = lambda name: os.path.join(basedir, basename + name if name[-4:]=='.grd' else f'{subswath}_{name}.grd')
-
-        # prepare PRMs for the calculation below
-        other.set(self.SAT_baseline(other, tail=9))
-        self.set(self.SAT_baseline(self).sel('SC_height','SC_height_start','SC_height_end'))
-
-        # for topo use relative path from PRM files directory
-        # use imag.grd=bf for GMT native, C-binary format
-        # os.path.join(basedir, f'{subswath}_topo.grd')
-        if os.path.exists(fullname('real.grd')):
-            os.remove(fullname('real.grd'))
-        if os.path.exists(fullname('imag.grd')):
-            os.remove(fullname('imag.grd'))
-        self.phasediff(other, topo_fromfile=topo_fromfile,
-                       imag_tofile=fullname('imag.grd'),
-                       real_tofile=fullname('real.grd'),
-                       debug=debug)
-
-        # original SLC (do not flip vertically)
-        amp1 = self.read_SLC_int(intensity=True)
-        amp2 = other.read_SLC_int(intensity=True)
-        # phasediff tool output files (flip vertically)
-        imag = xr.open_dataarray(fullname('imag.grd'), engine=self.engine, chunks=self.chunksize)
-        imag.data = dask.array.flipud(imag)
-        real = xr.open_dataarray(fullname('real.grd'), engine=self.engine, chunks=self.chunksize)
-        real.data = dask.array.flipud(real)
-        #real.shape, imag.shape (5484, 21572) (5484, 21572)
-        #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
-
-        # anti-aliasing filter for multi-looking, wavelength can be None
-        imag_filt = self.antialiasing_downscale(imag, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        real_filt = self.antialiasing_downscale(real, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        amp1_filt = self.antialiasing_downscale(amp1, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        amp2_filt = self.antialiasing_downscale(amp2, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
-        # cleanup
-        del amp1, amp2
-        
-        # calculate amplitude of interferogram
-        amp_filt = np.sqrt(real_filt**2 + imag_filt**2)
-        # calculate masked correlation
-        corr = self.correlation(amp1_filt, amp2_filt, amp_filt)
-        # cleanup
-        del amp1_filt, amp2_filt, amp_filt
-        #chunksize=(512, 5393)
-        #print ('DEBUG X2 corr', corr)
-
-        # Apply Goldstein filter function after multi-looking
-        if debug:
-            print ('DEBUG: intf apply Goldstein filter with size', psize is not None, psize)
-        if psize is not None:
-            phase = self.goldstein_filter((real + 1j * imag), corr, psize=psize)
-        elif psi:
-            phase = np.arctan2(imag, real)
-        else:
-            phase = np.arctan2(imag_filt, real_filt)
-        # cleanup
-        del real, imag, real_filt, imag_filt
-        #chunksize=(512, 5393)
-        #print ('DEBUG X3 phase', phase)
-
-        if func is not None:
-            corr = func(corr)
-        corr_filename = fullname(f'{corr_tofile}.grd')
-        if os.path.exists(corr_filename):
-            os.remove(corr_filename)
-        encoding = {'corr': self.compression(corr.shape)}
-        #print ('DEBUG X2', corr_da)
-        # rename to save lazy NetCDF preventing broken coordinates (y,y) 
-        corr.rename('corr').rename({'y': 'a', 'x': 'r'}).to_netcdf(corr_filename, encoding=encoding, engine=self.engine)
-
-        if func is not None:
-            phase = func(phase)
-        phase_filename = fullname(f'{phase_tofile}.grd')
-        if os.path.exists(phase_filename):
-            os.remove(phase_filename)
-        encoding = {'phase': self.compression(phase.shape)}
-        #print ('DEBUG X3', phase_da)
-        # mask phase using masked correlation
-        # rename to save lazy NetCDF preventing broken coordinates (y,y)
-        phase.rename('phase').rename({'y': 'a', 'x': 'r'}).to_netcdf(phase_filename, encoding=encoding, engine=self.engine)
-
-        # cleanup
-        del corr, phase
-        for name in ['real.grd', 'imag.grd']:
-            filename = fullname(name)
-            if os.path.exists(filename):
-                os.remove(filename)
-
-        #print ('DEBUG X4')
-        return
+#     # see about correlation filter
+#     # https://github.com/gmtsar/gmtsar/issues/86
+#     def intf(self, other, basedir, topo_fromfile, basename=None, \
+#             wavelength=200, psi=False, psize=None, \
+#             coarsen=(1,4), func=None, weight=None, \
+#             phase_tofile='phase', corr_tofile='corr', debug=False):
+#         """
+#         Perform interferometric processing on the input SAR data.
+# 
+#         Parameters
+#         ----------
+#         other : PRM
+#             Another instance of the PRM class representing the second SAR data.
+#         basedir : str
+#             Base directory for storing the processed data files.
+#         topo_fromfile : str
+#             Path to the topo file used for the calculation.
+#         basename : str, optional
+#             Base name for the output files. If not provided, a default name will be generated.
+#         wavelength : int, optional
+#             Wavelength of the SAR data in meters. Default is 200 m.
+#         psi : bool, optional
+#             PSI flag calls not apply wavelength to phase. Default is False.
+#         psize : int, optional
+#             Werner/Goldstein filter window size in pixels. Default is 32 pixels.
+#         func : callable, optional
+#             Custom function to apply on the processed data arrays. Default is None.
+#         debug : bool, optional
+#             Enable debug mode. Default is False.
+# 
+#         Returns
+#         -------
+#         None
+# 
+#         Notes
+#         -----
+#         This method performs interferometric processing on the input SAR data using GMTSAR tools.
+#         It generates various intermediate and final files, including amplitude and phase data,
+#         and applies filtering and convolution operations to produce the desired output.
+#         """
+#         import os
+#         import numpy as np
+#         import xarray as xr
+#         import dask.array
+#         import warnings
+#         # suppress Dask warning "RuntimeWarning: divide by zero encountered in divide"
+#         warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
+# 
+#         if not isinstance(other, PRM):
+#             raise Exception('Argument "other" should be PRM class instance')
+# 
+#         if psi:
+#             #print ('NOTE: disable downscaling (coarsen=None) and Goldstein adaptive filtering (psize=None) in PSI mode')
+#             #if wavelength is not None:
+#             #    print ('NOTE: anti-aliasing (speckle) filtering applied to correlation only in PSI mode')
+#             coarsen = None
+#             psize = None
+#         if psize is not None:
+#             #print ('NOTE: apply downscaling (coarsen=(1,4)) for Goldstein adaptive filtering (psize)')
+#             coarsen = (1,4)
+# 
+#         # expand simplified definition
+#         if coarsen == 1 or coarsen == (1,1):
+#             raise Exception('Argument "coarsen" should be None to disable downscaling')
+#         if coarsen is not None and not isinstance(coarsen, (list,tuple, np.ndarray)):
+#             coarsen = (coarsen, coarsen)
+# 
+#         # define basename from two PRM names
+#         subswath = os.path.basename(self.filename)[16:18]
+#         if basename is None:
+#             # S1_20171111_ALL_F3.PRM -> F3
+#             date1    = os.path.basename(self.filename)[3:11]
+#             date2    = os.path.basename(other.filename)[3:11]
+#             basename = f'{subswath}_{date1}_{date2}_'
+#             #print ('basename', basename)
+# 
+#         # make full file name, use workaround for 'weight' argument name defined without extension
+#         fullname = lambda name: os.path.join(basedir, basename + name if name[-4:]=='.grd' else f'{subswath}_{name}.grd')
+# 
+#         # prepare PRMs for the calculation below
+#         other.set(self.SAT_baseline(other, tail=9))
+#         self.set(self.SAT_baseline(self).sel('SC_height','SC_height_start','SC_height_end'))
+# 
+#         # for topo use relative path from PRM files directory
+#         # use imag.grd=bf for GMT native, C-binary format
+#         # os.path.join(basedir, f'{subswath}_topo.grd')
+#         if os.path.exists(fullname('real.grd')):
+#             os.remove(fullname('real.grd'))
+#         if os.path.exists(fullname('imag.grd')):
+#             os.remove(fullname('imag.grd'))
+#         self.phasediff(other, topo_fromfile=topo_fromfile,
+#                        imag_tofile=fullname('imag.grd'),
+#                        real_tofile=fullname('real.grd'),
+#                        debug=debug)
+# 
+#         # original SLC (do not flip vertically)
+#         amp1 = self.read_SLC_int(intensity=True)
+#         amp2 = other.read_SLC_int(intensity=True)
+#         # phasediff tool output files (flip vertically)
+#         imag = xr.open_dataarray(fullname('imag.grd'), engine=self.engine, chunks=self.chunksize)
+#         imag.data = dask.array.flipud(imag)
+#         real = xr.open_dataarray(fullname('real.grd'), engine=self.engine, chunks=self.chunksize)
+#         real.data = dask.array.flipud(real)
+#         #real.shape, imag.shape (5484, 21572) (5484, 21572)
+#         #print ('DEBUG X1 real.shape, imag.shape', real.shape, imag.shape)
+# 
+#         # anti-aliasing filter for multi-looking, wavelength can be None
+#         imag_filt = self.antialiasing_downscale(imag, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+#         real_filt = self.antialiasing_downscale(real, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+#         amp1_filt = self.antialiasing_downscale(amp1, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+#         amp2_filt = self.antialiasing_downscale(amp2, weight=weight, wavelength=wavelength, coarsen=coarsen, debug=debug)
+#         # cleanup
+#         del amp1, amp2
+#         
+#         # calculate amplitude of interferogram
+#         amp_filt = np.sqrt(real_filt**2 + imag_filt**2)
+#         # calculate masked correlation
+#         corr = self.correlation(amp1_filt, amp2_filt, amp_filt)
+#         # cleanup
+#         del amp1_filt, amp2_filt, amp_filt
+#         #chunksize=(512, 5393)
+#         #print ('DEBUG X2 corr', corr)
+# 
+#         # Apply Goldstein filter function after multi-looking
+#         if debug:
+#             print ('DEBUG: intf apply Goldstein filter with size', psize is not None, psize)
+#         if psize is not None:
+#             phase = self.goldstein_filter((real + 1j * imag), corr, psize=psize)
+#         elif psi:
+#             phase = np.arctan2(imag, real)
+#         else:
+#             phase = np.arctan2(imag_filt, real_filt)
+#         # cleanup
+#         del real, imag, real_filt, imag_filt
+#         #chunksize=(512, 5393)
+#         #print ('DEBUG X3 phase', phase)
+# 
+#         if func is not None:
+#             corr = func(corr)
+#         corr_filename = fullname(f'{corr_tofile}.grd')
+#         if os.path.exists(corr_filename):
+#             os.remove(corr_filename)
+#         encoding = {'corr': self.compression(corr.shape)}
+#         #print ('DEBUG X2', corr_da)
+#         # rename to save lazy NetCDF preventing broken coordinates (y,y) 
+#         corr.rename('corr').rename({'y': 'a', 'x': 'r'}).to_netcdf(corr_filename, encoding=encoding, engine=self.engine)
+# 
+#         if func is not None:
+#             phase = func(phase)
+#         phase_filename = fullname(f'{phase_tofile}.grd')
+#         if os.path.exists(phase_filename):
+#             os.remove(phase_filename)
+#         encoding = {'phase': self.compression(phase.shape)}
+#         #print ('DEBUG X3', phase_da)
+#         # mask phase using masked correlation
+#         # rename to save lazy NetCDF preventing broken coordinates (y,y)
+#         phase.rename('phase').rename({'y': 'a', 'x': 'r'}).to_netcdf(phase_filename, encoding=encoding, engine=self.engine)
+# 
+#         # cleanup
+#         del corr, phase
+#         for name in ['real.grd', 'imag.grd']:
+#             filename = fullname(name)
+#             if os.path.exists(filename):
+#                 os.remove(filename)
+# 
+#         #print ('DEBUG X4')
+#         return
 
     # see make_gaussian_filter.c for the original code
     def pixel_size(self, grid=1):

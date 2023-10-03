@@ -72,7 +72,7 @@ class Stack_landmask(Stack_phasediff):
 
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
-        landmask = xr.open_dataset(self.landmask_filename, engine=self.engine, chunks=self.chunksize)
+        landmask = xr.open_dataset(self.landmask_filename, engine=self.netcdf_engine, chunks=self.chunksize)
         assert 'lat' in landmask.coords and 'lon' in landmask.coords
         # define latlon array
         z_array_name = [data_var for data_var in landmask.data_vars if len(landmask.data_vars[data_var].coords)==2]

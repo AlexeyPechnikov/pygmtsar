@@ -33,7 +33,7 @@ class Stack_trans_inv(Stack_trans):
         """
         return self.open_grid('trans_inv')
 
-    def trans_inv(self, coarsen=1, method='linear', interactive=False):
+    def trans_inv(self, coarsen=1, interactive=False):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
             a NetCDF file for future use.
@@ -48,172 +48,151 @@ class Stack_trans_inv(Stack_trans):
         interactive : bool, optional
             If True, the computation will be performed interactively and the result will be returned as a delayed object.
             Default is False.
+    
+        Note
+        ----
+        This function operates on the 'trans' grid using NetCDF chunks (specified by 'netcdf_chunksize') rather than
+        larger processing chunks. This approach is effective due to on-the-fly index creation for the NetCDF chunks.
+
         """
         import dask
         import xarray as xr
         import numpy as np
-        #import os
+        import warnings
+        # suppress Dask warning "RuntimeWarning: All-NaN slice encountered return np.nanmin"
+        warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
 
         # expand simplified definition
         if not isinstance(coarsen, (list,tuple, np.ndarray)):
             coarsen = (coarsen, coarsen)
 
-        # extract and process multiple chunked trans_dat subsets
-        # it can be some times slow and requires much less memory
-        @dask.delayed
-        def trans_dat_inv_block_prepare(azis, rngs, chunksize):
+        def trans_inv_block(azis, rngs, chunksize):
+            from scipy.spatial import cKDTree
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
             from dask.distributed import utils_perf
             utils_perf.disable_gc_diagnosis()
-
+            # suppress Dask warning "RuntimeWarning: All-NaN slice encountered return np.nanmin"
+            warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
+        
             # required one delta around for nearest interpolation and two for linear
             dazi = np.diff(azis)[0]
             drng = np.diff(rngs)[0]
-            azis_min = azis.min() - 2*dazi
-            azis_max = azis.max() + 2*dazi
-            rngs_min = rngs.min() - 2*drng
-            rngs_max = rngs.max() + 2*drng
+            azis_min = azis.min() - dazi
+            azis_max = azis.max() + dazi
+            rngs_min = rngs.min() - drng
+            rngs_max = rngs.max() + drng
+            del dazi, drng
             #print ('azis_min', azis_min, 'azis_max', azis_max)
-
-            block_mask = ((trans_dat.amin<=azis_max)&(trans_dat.amax>=azis_min)&(trans_dat.rmin<=rngs_max)&(trans_dat.rmax>=rngs_min)).values
-            blocks_ys, blocks_xs = np.meshgrid(trans_dat.block_azi, trans_dat.block_rng, indexing='ij')
-
-            # process chunks
-            block_azis = []
-            block_rngs = []
-            block_lts  = []
-            block_lls  = []
-            block_eles = []
-            for block_y, block_x in zip(blocks_ys[block_mask], blocks_xs[block_mask]):
-                # define coordinates
-                block_lt, block_ll = [block.ravel() for block in np.meshgrid(lt_blocks[block_y], ll_blocks[block_x], indexing='ij')]
-                # extract variables
-                block_azi = trans_dat['azi'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
-                block_rng = trans_dat['rng'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
-                block_ele = trans_dat['ele'].data.blocks[block_y, block_x].compute(n_workers=1).ravel()
-                # mask valid values
-                mask = (block_azi>=azis_min)&(block_azi<=azis_max)&(block_rng>=rngs_min)&(block_rng<=rngs_max)
-                block_lts.append(block_lt[mask])
-                block_lls.append(block_ll[mask])
-                block_azis.append(block_azi[mask])
-                block_rngs.append(block_rng[mask])
-                block_eles.append(block_ele[mask])
-                # cleanup
-                del block_lt, block_ll, block_azi, block_rng, block_ele, mask
-            # merge extracted results
-            blocks = (np.concatenate(block_azis),
-                      np.concatenate(block_rngs),
-                      np.concatenate(block_lts),
-                      np.concatenate(block_lls),
-                      np.concatenate(block_eles)
-                     )
-            del block_azis, block_rngs, block_lts, block_lls, block_eles
-            del block_mask, blocks_ys, blocks_xs
-            return blocks
         
-        # griddata interpolation is easy and provides multiple methods
-        @dask.delayed
-        def trans_dat_inv_block(data, index, azis, rngs):
-            from scipy.interpolate import griddata
+            # define valid coordinate blocks 
+            block_mask = ((trans_amin<=azis_max)&(trans_amax>=azis_min)&(trans_rmin<=rngs_max)&(trans_rmax>=rngs_min)).values
+            block_azi, block_rng = trans_amin.shape
+            blocks_ys, blocks_xs = np.meshgrid(range(block_azi), range(block_rng), indexing='ij')
+            #assert 0, f'blocks_ys, blocks_xs: {blocks_ys[block_mask]}, {blocks_xs[block_mask]}'
+            # extract valid coordinates from the defined blocks
+            blocks_trans = []
+            blocks_lt = []
+            blocks_ll = []
+            for block_y, block_x in zip(blocks_ys[block_mask], blocks_xs[block_mask]):
+                # coordinates
+                block_lt, block_ll = [block.ravel() for block in np.meshgrid(lt_blocks[block_y], ll_blocks[block_x], indexing='ij')]
+                # variables
+                block_trans = trans.isel(lat=slice(chunksize*block_y,chunksize*(block_y+1)),
+                                         lon=slice(chunksize*block_x,chunksize*(block_x+1)))[['azi', 'rng', 'ele']]\
+                                   .compute(n_workers=1).to_array().values.reshape(3,-1)
+                # select valuable coordinates only
+                mask = (block_trans[0,:]>=azis_min)&(block_trans[0,:]<=azis_max)&\
+                       (block_trans[1,:]>=rngs_min)&(block_trans[1,:]<=rngs_max)
+                # ignore block without valid pixels
+                if mask[mask].size > 0:
+                    # append valid pixels to accumulators
+                    blocks_lt.append(block_lt[mask])
+                    blocks_ll.append(block_ll[mask])
+                    blocks_trans.append(block_trans[:,mask])
+                del block_lt, block_ll, block_trans, mask
+            del block_mask, block_azi, block_rng, blocks_ys, blocks_xs
+        
+            if len(blocks_lt) == 0:
+                # this case is possible when DEM is incomplete, and it is not an error
+                return np.nan * np.zeros((3, azis.size, rngs.size), np.float32)
+        
+            # TEST
+            #return np.nan * np.zeros((3, azis.size, rngs.size), np.float32)
+    
+            # valid coordinates
+            block_lt = np.concatenate(blocks_lt)
+            block_ll = np.concatenate(blocks_ll)
+            block_trans = np.concatenate(blocks_trans, axis=1)
+            del blocks_lt, blocks_ll, blocks_trans
 
-            #block_azi, block_rng, block_lt, block_ll, block_ele = data
-            # coordinates azi, rng
-            points = np.column_stack([data[0], data[1]])
-            grid = griddata(points, data[index], (azis[None, :], rngs[:, None]), method='linear').astype(np.float32)
-            output = grid.reshape((rngs.size, azis.size)).T
-            del points, grid
-            return output
-
-    #         # cKDTree interpolations allows to get the distances to nearest pixels
-    #         @dask.delayed
-    #         def trans_dat_inv_block(data, azis, rngs):
-    #             from scipy.spatial import cKDTree
-    # 
-    #             block_azi, block_rng, block_ele = data
-    # 
-    #             # interpolate topo_ra on trans_dat
-    #             grid_azi, grid_rng = np.meshgrid(azis, rngs)
-    #             tree = cKDTree(np.column_stack([block_azi, block_rng]), compact_nodes=False, balanced_tree=False)
-    #             d, inds = tree.query(np.column_stack([grid_azi.ravel(), grid_rng.ravel()]), k = 1, workers=1)
-    #             grid = block_ele[inds]
-    #             #print ('distance range', d.min().round(2), d.max().round(2))
-    # 
-    #             del block_ele, block_azi, block_rng, tree
-    #             return grid.reshape((rngs.size, azis.size)).T
-
-    #     # griddata interpolation is easy and provides multiple methods
-    #     @dask.delayed
-    #     def trans_dat_inv_block(data, azis, rngs):
-    #         from scipy.interpolate import griddata
-
-    #         block_azi, block_rng, block_lt, block_ll, block_ele = data
-    #         points = np.column_stack([block_azi, block_rng])
-
-    #         output = []
-    #         for block in [block_lt, block_ll, block_ele]:
-    #             grid = griddata(points, block, (azis[None, :], rngs[:, None]), method='linear').astype(np.float32)
-    #             output.append(grid.reshape((rngs.size, azis.size)).T)
-    #             del grid
-
-    #         del block_ele, block_azi, block_rng, block_lt, block_ll, points
-    #         return np.asarray(output)
+            # perform index search on radar coordinate grid for the nearest geographic coordinates grid pixel
+            grid_azi, grid_rng = np.meshgrid(azis, rngs, indexing='ij')
+            tree = cKDTree(np.column_stack([block_trans[0], block_trans[1]]), compact_nodes=False, balanced_tree=False)
+            distances, indices = tree.query(np.column_stack([grid_azi.ravel(), grid_rng.ravel()]), k=1, workers=1)
+            del grid_azi, grid_rng, tree, cKDTree
+        
+            # take the nearest pixels coordinates and elevation
+            # the only one index search is required to define all the output variables
+            grid_lt = block_lt[indices]
+            del block_lt
+            grid_ll = block_ll[indices]
+            del block_ll
+            grid_ele = block_trans[2][indices]
+            #print ('distance range', distances.min().round(2), distances.max().round(2))
+            #assert distances.max() < 2, 'Unexpectedly large distance between radar and geographic coordinate grid pixels (>=2)'
+            del block_trans, indices, distances
+        
+            # pack all the outputs into one 3D array
+            return np.asarray([grid_lt, grid_ll, grid_ele]).reshape((3, azis.size, rngs.size))
 
         # trans.dat - file generated by llt_grid2rat (r a topo lon lat)"
-        trans_dat = self.get_trans()
-        # check that the dataset is opened with the same chunksize as it is used for creation
-        assert trans_dat.azi.data.numblocks == trans_dat.amax.shape, 'Chunksize is differ to the original for trans_dat'
-        # materialize indices
-        trans_dat['amin'] = trans_dat.amin.compute()
-        trans_dat['amax'] = trans_dat.amax.compute()
-        trans_dat['rmin'] = trans_dat.rmin.compute()
-        trans_dat['rmax'] = trans_dat.rmax.compute()
-        # convert axes to Dask arrays with the same chunks
-        chunks = trans_dat.azi.data.chunks
-        lt_blocks = np.array_split(trans_dat['lat'].values, np.cumsum(chunks[0])[:-1])
-        ll_blocks = np.array_split(trans_dat['lon'].values, np.cumsum(chunks[1])[:-1])
+        trans = self.get_trans()
 
-        # define topo_ra grid
+        # calculate indices on the fly
+        trans_blocks = trans[['azi', 'rng']].coarsen(lat=self.netcdf_chunksize, lon=self.netcdf_chunksize, boundary='trim')
+        #block_min, block_max = dask.compute(trans_blocks.min(), trans_blocks.max())
+        # materialize with progress bar indication
+        tqdm_dask(trans_blocks_persist := dask.persist(trans_blocks.min(), trans_blocks.max()), desc='Radar Transform Indexing')
+        # only convert structure
+        block_min, block_max = dask.compute(trans_blocks_persist)[0]
+        trans_amin = block_min.azi
+        trans_amax = block_max.azi
+        trans_rmin = block_min.rng
+        trans_rmax = block_max.rng
+        del trans_blocks, block_min, block_max
+        #print ('trans_amin', trans_amin)
+   
+        # split geographic coordinate grid to equal chunks and rest
+        #chunks = trans.azi.data.chunks
+        #lt_blocks = np.array_split(trans['lat'].values, np.cumsum(chunks[0])[:-1])
+        #ll_blocks = np.array_split(trans['lon'].values, np.cumsum(chunks[1])[:-1])
+        lt_blocks = np.array_split(trans['lat'].values, np.arange(0, trans['lat'].size, self.netcdf_chunksize)[1:])
+        ll_blocks = np.array_split(trans['lon'].values, np.arange(0, trans['lon'].size, self.netcdf_chunksize)[1:])
+    
+        # split radar coordinate grid to equal chunks and rest
         azis, rngs = self.define_trans_grid(coarsen)
-
-        # build topo_ra grid by chunks
-        # split to equal chunks and rest
-        azis_blocks = np.array_split(azis, np.arange(0, azis.size, self.chunksize)[1:])
-        rngs_blocks = np.array_split(rngs, np.arange(0, rngs.size, self.chunksize)[1:])
+        azis_blocks = np.array_split(azis, np.arange(0, azis.size, self.netcdf_chunksize)[1:])
+        rngs_blocks = np.array_split(rngs, np.arange(0, rngs.size, self.netcdf_chunksize)[1:])
         #print ('azis_blocks.size', len(azis_blocks), 'rngs_blocks.size', len(rngs_blocks))
-        #print ('lats_blocks[0]', lats_blocks[0])
 
-        block_lts_total  = []
-        block_lls_total  = []
-        block_eles_total = []
-        for rngs_block in rngs_blocks:
-            block_lts  = []
-            block_lls  = []
-            block_eles = []
-            for azis_block in azis_blocks:
-                data = trans_dat_inv_block_prepare(azis_block, rngs_block, self.chunksize)
-                block_lt  = dask.array.from_delayed(trans_dat_inv_block(data, 2, azis_block, rngs_block),
-                                                shape=(azis_block.size, rngs_block.size), dtype=np.float32)
-                block_lts.append(block_lt.transpose(1,0))
-                block_ll  = dask.array.from_delayed(trans_dat_inv_block(data, 3, azis_block, rngs_block),
-                                                shape=(azis_block.size, rngs_block.size), dtype=np.float32)
-                block_lls.append(block_ll.transpose(1,0))
-                block_ele = dask.array.from_delayed(trans_dat_inv_block(data, 4, azis_block, rngs_block),
-                                                shape=(azis_block.size, rngs_block.size), dtype=np.float32)
-                block_eles.append(block_ele.transpose(1,0))
-                del block_lt, block_ll, block_ele
-            block_lts_total.append(block_lts)
-            block_lls_total.append(block_lls)
-            block_eles_total.append(block_eles)
-            del block_lts, block_lls, block_eles
-
+        blocks_total = []
+        for azis_block in azis_blocks:
+            blocks = []
+            for rngs_block in rngs_blocks:
+                block = dask.array.from_delayed(dask.delayed(trans_inv_block, traverse=False)
+                                               (azis_block, rngs_block, self.netcdf_chunksize),
+                                               shape=(3, azis_block.size, rngs_block.size), dtype=np.float32)
+                blocks.append(block)
+                del block
+            blocks_total.append(blocks)
+            del blocks
+    
+        trans_inv_dask = dask.array.block(blocks_total)
+        del blocks_total
         coords = {'y': azis, 'x': rngs}
-        lt  = xr.DataArray(dask.array.block(block_lts_total).transpose(1,0),  coords=coords)
-        ll  = xr.DataArray(dask.array.block(block_lls_total).transpose(1,0),  coords=coords)
-        ele = xr.DataArray(dask.array.block(block_eles_total).transpose(1,0), coords=coords)
-        del block_lts_total, block_lls_total, block_eles_total
-
-        trans_inv = xr.Dataset({'lt': lt, 'll': ll, 'ele': ele})
-        del lt, ll, ele
+        trans_inv = xr.Dataset({key: xr.DataArray(trans_inv_dask[idx],  coords=coords)
+                                for idx, key in enumerate(['lt', 'll', 'ele'])})
+        del trans_inv_dask
 
         # calculate indices
         trans_inv['lt_min'] = trans_inv.lt.min('x')
@@ -224,5 +203,5 @@ class Stack_trans_inv(Stack_trans):
         if interactive:
             return trans_inv
         # rename to save lazy NetCDF preventing broken coordinates (y,y)
-        return self.save_grid(trans_inv.rename({'y': 'a', 'x': 'r'}),
+        return self.save_grid(trans_inv.rename({'y': 'a', 'x': 'r'}), 
                               'trans_inv', f'Radar Inverse Transform Computing')

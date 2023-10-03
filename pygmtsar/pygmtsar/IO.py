@@ -43,10 +43,10 @@ class IO(datagrid):
         import os
 
         if to_path is None:
-            stack_pickle = os.path.join(self.basedir, 'Stack.pickle')
+            stack_pickle = os.path.join(self.basedir, 'stack.pickle')
         else:
             if os.path.isdir(to_path):
-                stack_pickle = os.path.join(to_path, 'Stack.pickle')
+                stack_pickle = os.path.join(to_path, 'stack.pickle')
             else:
                 stack_pickle = to_path
     
@@ -239,19 +239,7 @@ class IO(datagrid):
                 filenames.append(filename)
         return filenames
 
-    def load_pairs(self, name='phase'):
-        import numpy as np
-        from glob import glob
-
-        # find all the named grids
-        pattern = self.get_filename(f'????????_????????_{name}')
-
-        filenames = glob(pattern, recursive=False)
-        pairs = [filename.split('_')[-3:-1] for filename in sorted(filenames)]
-        # return as numpy array for compatibility reasons
-        return np.asarray(pairs)
-
-    def open_grid(self, name, add_subswath=True, chunksize=None):
+    def open_grid(self, name, add_subswath=True):
         """
         stack.open_grid('intf_ll2ra')
         stack.open_grid('intf_ra2ll')
@@ -259,24 +247,18 @@ class IO(datagrid):
         """
         import xarray as xr
 
-        if chunksize is None:
-            chunksize = self.chunksize
-
         filename = self.get_filename(name, add_subswath=add_subswath)
-        ds = xr.open_dataset(filename, engine=self.engine, chunks=chunksize)
+        ds = xr.open_dataset(filename, engine=self.netcdf_engine, chunks=self.chunksize)
         if 'a' in ds.dims and 'r' in ds.dims:
             ds = ds.rename({'a': 'y', 'r': 'x'})
         if len(ds.data_vars) == 1:
             return ds[list(ds.data_vars)[0]]
         return ds
 
-    def save_grid(self, data, name, caption='Saving 2D grid', chunksize=None):
+    def save_grid(self, data, name, caption='Saving 2D grid'):
         import xarray as xr
         import dask
         import os
-
-        if chunksize is None:
-            chunksize = self.chunksize
 
         # save to NetCDF file
         filename = self.get_filename(name)
@@ -284,57 +266,21 @@ class IO(datagrid):
             os.remove(filename)
 
         if isinstance(data, xr.Dataset):
-            encoding = {varname: self.compression(data[varname].shape, chunksize=chunksize) for varname in data.data_vars}
+            encoding = {varname: self.compression(data[varname].shape,
+                        chunksize=self.netcdf_chunksize) for varname in data.data_vars}
         elif isinstance(data, xr.DataArray):
-            encoding = {data.name: self.compression(data.shape, chunksize=chunksize)}
+            encoding = {data.name: self.compression(data.shape,
+                        chunksize=self.netcdf_chunksize)}
         else:
             raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
         delayed = data.to_netcdf(filename,
                               encoding=encoding,
-                              engine=self.engine,
+                              engine=self.netcdf_engine,
                               compute=False)
 
         tqdm_dask(dask.persist(delayed), desc=caption)
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
-
-    def open_pairs(self, pairs, name, add_subswath=True, chunksize=None):
-        """
-        stack.open_pairs(baseline_pairs,'phasefilt')
-        """
-        import xarray as xr
-        import pandas as pd
-        import numpy as np
-        import os
-
-        if chunksize is None:
-            chunksize = self.chunksize
-    
-        # convert to 2D single-element array
-        pairs = self.get_pairs(pairs)[['ref','rep']].astype(str).values
-
-        filenames = self.get_filenames(pairs, name, add_subswath=add_subswath)
-        #print ('filenames', filenames)
-        #print ('keys', keys)
-
-        ds = xr.open_mfdataset(
-            filenames,
-            engine=self.engine,
-            chunks=chunksize,
-            parallel=True,
-            concat_dim='pair',
-            combine='nested'
-        ).assign(pair=[' '.join(pair) for pair in pairs])
-    
-        ds.coords['ref'] = xr.DataArray(pd.to_datetime(pairs[:,0]), coords=ds.pair.coords)
-        ds.coords['rep'] = xr.DataArray(pd.to_datetime(pairs[:,1]), coords=ds.pair.coords)
-
-        if 'a' in ds.dims and 'r' in ds.dims:
-            ds = ds.rename({'a': 'y', 'r': 'x'})
-
-        if len(ds.data_vars) == 1:
-            return ds[list(ds.data_vars)[0]].rename(name)
-        return ds
 
     def open_stack(self, dates=None, scale=2.5e-07):
         import xarray as xr
@@ -350,7 +296,7 @@ class IO(datagrid):
         #print ('filenames', filenames)
         ds = xr.open_mfdataset(
             filenames,
-            engine=self.engine,
+            engine=self.netcdf_engine,
             chunks=self.chunksize,
             parallel=True,
             concat_dim='date',
@@ -497,7 +443,7 @@ class IO(datagrid):
         assert os.path.exists(model_filename), f'ERROR: The NetCDF file is missed: {model_filename}'
 
         # Workaround: open the dataset without chunking
-        model = xr.open_dataset(model_filename, engine=self.engine)
+        model = xr.open_dataset(model_filename, engine=self.netcdf_engine)
         # Determine the proper chunk sizes
         chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in model.dims}
         # Re-chunk the dataset using the chunks dictionary
@@ -519,7 +465,7 @@ class IO(datagrid):
             return model[list(model.data_vars)[0]]
         return model
 
-    def save_cube(self, model, name=None, compression=False, caption='Saving 3D DataCube', debug=False):
+    def save_cube(self, model, name=None, caption='Saving 3D DataCube', debug=False):
         """
         Save an xarray 3D Dataset to a NetCDF file.
 
@@ -531,8 +477,6 @@ class IO(datagrid):
             The model to be saved.
         name : str
             The text name for the output NetCDF file.
-        compression : boolean
-            The flag to enable output file compression. Default is False.
         caption: str
             The text caption for the saving progress bar.
 
@@ -557,24 +501,25 @@ class IO(datagrid):
         if isinstance(model, xr.DataArray):
             if debug:
                 print ('DEBUG: DataArray')
-            netcdf_compression = self.compression(model.shape, complevel=None if compression else 0,
-                                                  chunksize=(1, self.chunksize, self.chunksize))
+            netcdf_compression = self.compression(model.shape,
+                                    chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize))
             encoding = {model.name: netcdf_compression}
         elif isinstance(model, xr.Dataset):
             if debug:
                 print ('DEBUG: Dataset')
             if len(model.dims) == 3:
-                encoding = {varname: self.compression(model[varname].shape, complevel=None if compression else 0,
-                            chunksize=(1, self.chunksize, self.chunksize)) for varname in model.data_vars}
+                encoding = {varname: self.compression(model[varname].shape,
+                                chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize)) for varname in model.data_vars}
             else:
-                encoding = {varname: self.compression(model[varname].shape, chunksize=self.chunksize) for varname in model.data_vars}
+                encoding = {varname: self.compression(model[varname].shape,
+                                chunksize=self.netcdf_chunksize) for varname in model.data_vars}
     
         # prevent Xarray Dask saving issue
         if 'y' in model.dims and 'x' in model.dims:
             model = model.rename({'y': 'a', 'x': 'r'})
     
         delayed = model.to_netcdf(model_filename,
-                         engine=self.engine,
+                         engine=self.netcdf_engine,
                          encoding=encoding,
                          compute=False)
         tqdm_dask(dask.persist(delayed), desc=caption)

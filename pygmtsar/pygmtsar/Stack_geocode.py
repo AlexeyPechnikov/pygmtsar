@@ -37,10 +37,8 @@ class Stack_geocode(Stack_sbas):
         If 'interactive' is True, the delayed computation handlers will be returned.
         Otherwise, the progress will be displayed using tqdm_dask.
         """
-        import dask
-
-        self.trans(coarsen=coarsen, interactive=False)
-        self.trans_inv(coarsen=coarsen, interactive=False)
+        self.trans(coarsen=coarsen)
+        self.trans_inv(coarsen=coarsen)
 
 #     def stack_ra2ll(self, data, **kwargs):
 #         return self.ra2ll(data, **kwargs)

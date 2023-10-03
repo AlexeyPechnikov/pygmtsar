@@ -12,6 +12,9 @@ from .PRM import PRM
 
 class Stack_dem(Stack_reframe):
 
+    # Buffer size in degrees to expand the area covered by the DEM. Default is 0.02 degrees.
+    buffer_degrees = 0.02
+    
     def set_dem(self, dem_filename):
         """
         Set the filename of the digital elevation model (DEM) in WGS84 NetCDF grid.
@@ -50,7 +53,7 @@ class Stack_dem(Stack_reframe):
     # 0.02 degrees works well worldwide but not in Siberia
     # minimum buffer size: 8 arc seconds for 90 m DEM
     # subswath argument is required for aligning
-    def get_dem(self, subswath=None, geoloc=False, buffer_degrees=None):
+    def get_dem(self, subswath=None, geoloc=False):
         """
         Retrieve the digital elevation model (DEM) data.
 
@@ -62,8 +65,6 @@ class Stack_dem(Stack_reframe):
             Flag indicating whether to return geolocated DEM. If True, the returned DEM will be limited to the area covered
             by the specified subswath, plus an additional buffer around it. If False, the full DEM extent will be returned.
             Default is False.
-        buffer_degrees : float, optional
-            Buffer size in degrees to expand the area covered by the DEM. Default is 0.1 degrees.
 
         Returns
         -------
@@ -97,12 +98,9 @@ class Stack_dem(Stack_reframe):
         if self.dem_filename is None:
             raise Exception('Set DEM first')
         
-        if buffer_degrees is None:
-            buffer_degrees = 0.1
-
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
-        dem = xr.open_dataset(self.dem_filename, engine=self.engine, chunks=self.chunksize)
+        dem = xr.open_dataset(self.dem_filename, engine=self.netcdf_engine, chunks=self.chunksize)
         assert 'lat' in dem.coords and 'lon' in dem.coords, 'DEM should be defined as lat,lon grid'
         # define latlon array
         z_array_name = [data_var for data_var in dem.data_vars if len(dem.data_vars[data_var].coords)==2]
@@ -120,8 +118,8 @@ class Stack_dem(Stack_reframe):
         #print ('xmin, xmax', xmin, xmax)
         return dem\
                    .transpose('lat','lon')\
-                   .sel(lat=slice(bounds[1]-buffer_degrees, bounds[3]+buffer_degrees),
-                       lon=slice(bounds[0]-buffer_degrees, bounds[2]+buffer_degrees))
+                   .sel(lat=slice(bounds[1] - self.buffer_degrees, bounds[3] + self.buffer_degrees),
+                        lon=slice(bounds[0] - self.buffer_degrees, bounds[2] + self.buffer_degrees))
 
 
     # buffer required to get correct (binary) results from SAT_llt2rat tool
@@ -129,7 +127,7 @@ class Stack_dem(Stack_reframe):
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
     # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, backend=None, product='SRTM1', resolution_meters=None, method=None, buffer_degrees=None, debug=False):
+    def download_dem(self, product='SRTM1', debug=False):
         """
         Download and preprocess digital elevation model (DEM) data.
 
@@ -143,8 +141,6 @@ class Stack_dem(Stack_reframe):
             Approximate desired resolution of the DEM data in meters. Default is 60 meters.
         method : None, optional
             Deprecated argument. Ignored.
-        buffer_degrees : float, optional
-            Buffer size in degrees to expand the area covered by the DEM. Default is 0.1 degrees.
         debug : bool, optional
             Enable debug mode. Default is False.
 
@@ -189,16 +185,6 @@ class Stack_dem(Stack_reframe):
             print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
             return
         
-        if buffer_degrees is None:
-            buffer_degrees = 0.1
-
-        if backend is not None:
-            print ('Note: "backend" argument is deprecated, just omit it')
-        if method is not None:
-            print ('Note: "method" argument is deprecated, just omit it')
-        if resolution_meters is not None:
-            print ('Note: "resolution_meters" argument is deprecated, just omit it')
-
         if product == 'SRTM1':
             resolution = '01s'
         elif product == 'SRTM3':
@@ -216,7 +202,7 @@ class Stack_dem(Stack_reframe):
 
         # generate DEM for the area using GMT extent as W E S N
         # round the coordinates up to 1 mm
-        minx, miny, maxx, maxy = self.df.dissolve().envelope.buffer(buffer_degrees).bounds.round(8).values[0]
+        minx, miny, maxx, maxy = self.df.dissolve().envelope.buffer(self.buffer_degrees).bounds.round(8).values[0]
         # Set the region for the grdcut and grdsample operations
         region = [minx, maxx, miny, maxy]
 
@@ -238,7 +224,7 @@ class Stack_dem(Stack_reframe):
                     ortho = ortho.sel(lat=slice(maxy, miny))
                     ortho = ortho.reindex(lat=ortho.lat[::-1])
             elif os.path.splitext(product)[-1] in ['.nc', '.netcdf', '.grd']:
-                ortho = xr.open_dataarray(product, engine=self.engine, chunks=self.chunksize)\
+                ortho = xr.open_dataarray(product, engine=self.netcdf_engine, chunks=self.chunksize)\
                     .sel(lat=slice(miny, maxy), lon=slice(minx, maxx))
 
             #print ('ortho', ortho)
@@ -247,7 +233,8 @@ class Stack_dem(Stack_reframe):
             if os.path.exists(dem_filename):
                 os.remove(dem_filename)
             #print ('(ortho + geoid_resamp)', (ortho + geoid))
-            (ortho + geoid).rename('dem').to_netcdf(dem_filename, engine=self.engine)
+            encoding = {'dem': self.compression(ortho.shape)}
+            (ortho + geoid).rename('dem').to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
             pbar.update(1)
 
         self.dem_filename = dem_filename

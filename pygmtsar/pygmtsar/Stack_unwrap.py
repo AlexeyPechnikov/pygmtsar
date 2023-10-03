@@ -258,7 +258,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
 # #             # workaround to save NetCDF file correct
 # #             #if 'y' in mask.dims and 'x' in mask.dims:
 # #             #    mask = mask.rename({'y':'a', 'x':'r'})
-# #             mask.rename('mask').to_netcdf(mask_filename, encoding={'mask': self.compression(mask.shape, chunksize=chunksize)}, engine=self.engine)
+# #             mask.rename('mask').to_netcdf(mask_filename, encoding={'mask': self.compression(mask.shape, chunksize=chunksize)}, engine=self.netcdf_engine)
 # #             kwargs['mask'] = 'unwrapmask'
 # 
 #         # save results to NetCDF files

@@ -47,7 +47,7 @@ class Stack_align(Stack_dem):
 
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
     # use median decimation instead of average
-    def get_topo_llt(self, subswath, degrees, geoloc=True, buffer_degrees=None, debug=False):
+    def get_topo_llt(self, subswath, degrees, geoloc=True, debug=False):
         """
         Get the topography coordinates (lon, lat, z) for decimated DEM.
 
@@ -71,7 +71,7 @@ class Stack_align(Stack_dem):
         import numpy as np
 
         # add buffer around the cropped area for borders interpolation
-        dem_area = self.get_dem(subswath, geoloc=geoloc, buffer_degrees=buffer_degrees)
+        dem_area = self.get_dem(subswath, geoloc=geoloc)
         ny = int(np.round(degrees/dem_area.lat.diff('lat')[0]))
         nx = int(np.round(degrees/dem_area.lon.diff('lon')[0]))
         if debug:
@@ -247,13 +247,13 @@ class Stack_align(Stack_dem):
 
         r_grd = self.offset2shift(r_xyz, rmax, amax)
         r_grd_filename = stem_prm[:-4]+'_r.grd'
-        r_grd.to_netcdf(r_grd_filename, engine=self.engine)
+        r_grd.to_netcdf(r_grd_filename, engine=self.netcdf_engine)
         # drop the temporary file at the end of the function
         cleanup.append(r_grd_filename)
 
         a_grd = self.offset2shift(a_xyz, rmax, amax)
         a_grd_filename = stem_prm[:-4]+'_a.grd'
-        a_grd.to_netcdf(a_grd_filename, engine=self.engine)
+        a_grd.to_netcdf(a_grd_filename, engine=self.netcdf_engine)
         # drop the temporary file at the end of the function
         cleanup.append(a_grd_filename)
 
@@ -634,11 +634,11 @@ class Stack_align(Stack_dem):
         #prm.write_SLC_int(slc, chunksize=chunksize)
         # encoding = {vn: self.compression(slc[vn].shape, complevel=0,
 #                     chunksize=(self.chunksize, 4*self.chunksize)) for vn in slc.data_vars}
-        encoding = {vn: self.compression(slc[vn].shape, complevel=0) for vn in slc.data_vars}
+        encoding = {vn: self.compression(slc[vn].shape) for vn in slc.data_vars}
         # add directory name
         netcdf_filename = os.path.join(self.basedir, netcdf_filename)
         # rename dimensions to prevent issue with square output
-        slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.engine)
+        slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
 
         # add calculated offsets to single subswaths
     #         for idx, prm in enumerate(prms):
@@ -722,7 +722,7 @@ class Stack_align(Stack_dem):
 #         # complevel=0 means disabled compression and the fastest saving
 #         encoding = {vn: self.compression(slc[vn].shape, complevel=0, chunksize=(self.chunksize // 4, 4 * self.chunksize)) for vn in slc.data_vars}
 #         # rename dimensions to prevent issue with square output
-#         slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.engine)
+#         slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
 # 
 #         # cleanup
 #         slc_filename = os.path.join(self.basedir, prm.get('SLC_file'))

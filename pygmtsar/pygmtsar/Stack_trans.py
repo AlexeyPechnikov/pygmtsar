@@ -51,7 +51,7 @@ class Stack_trans(Stack_align):
         """
         return self.open_grid('trans')
 
-    def trans(self, coarsen, buffer_degrees=None, interactive=False):
+    def trans(self, coarsen):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
         a NetCDF file for future use.
@@ -62,120 +62,106 @@ class Stack_trans(Stack_align):
 
         Parameters
         ----------
-        coarsen(jdec, idec) : (int, int) , optional
-            The decimation factor in the azimuth and range direction. Default is 2.
-        interactive : bool, optional
-            If True, the function returns the transform data without saving it. If False, the function
-            saves the transform data as a NetCDF file. Default is False.
+        coarsen : int or (int, int)
+            The decimation factor in the azimuth and range direction.
 
         Returns
         -------
-        xarray.Dataset or dask.delayed.Delayed
-            If interactive is True, it returns an xarray dataset with the transform data.
-            If interactive is False, it returns a dask Delayed object representing the computation of writing
-            the transform data to a NetCDF file.
+        None
 
         Examples
         --------
         Calculate and get the transform data:
-        >>> trans_dat()
-        <dask.delayed.Delayed at 0x7f8d13a69a90>
-
-        Calculate and get the transform data without saving it:
-        >>> trans_dat(interactive=True)
+        >>> trans_dat(1)
         """
         import dask
         import xarray as xr
         import numpy as np
-        #import os
-        #import sys
+        import os
+        from tqdm.auto import tqdm
+        import joblib
 
         # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
         #llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
-        # use only 3 values from 5 available ignoring redudant lat, lon
+        # use only 3 values from 5 available ignoring redundant lat, lon
         llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele'}
 
         # expand simplified definition
         if not isinstance(coarsen, (list,tuple, np.ndarray)):
             coarsen = (coarsen, coarsen)
 
-        # build trans.dat
-        def SAT_llt2rat(z, lat, lon, amin=0, amax=None, rmin=0, rmax=None):
-            if amax is not None and rmax is not None:
-                # check border coordinates to detect if the block is completely outside of radar area
-                lats = np.concatenate([lat, lat, np.repeat(lat[0], lon.size), np.repeat(lat[-1], lon.size)])
-                lons = np.concatenate([np.repeat(lon[0], lat.size), np.repeat(lon[-1], lat.size), lon, lon])
-                zs = np.concatenate([z[:,0], z[:,-1], z[0,:], z[-1,:]])
-                coords_ll = np.column_stack([lons, lats, zs])
-                # raell
-                coords_ra = self.PRM().SAT_llt2rat(coords_ll, precise=1, binary=False)\
-                    .astype(np.float32).reshape(zs.size, 5)
-                del lons, lats, coords_ll
-                #print (coords_ra.shape)
-                # check validity
-                mask = (coords_ra[:,0]>=rmin) & (coords_ra[:,0]<=rmax) & (coords_ra[:,1]>=amin) & (coords_ra[:,1]<=amax)
-                del coords_ra
-                #print ('mask[mask].size', mask[mask].size)
-                valid_pixels = mask[mask].size
-                del mask
-                if valid_pixels == 0:
-                    # no valid pixels in the block, miss the processing
-                    return np.nan * np.zeros((z.shape[0], z.shape[1], 5), np.float32)
-                # valid points included into the block, continue
-
-            # compute 3D radar coordinates for all the geographical 3D points
-            lons, lats = np.meshgrid(lon.astype(np.float32), lat.astype(np.float32))
-            coords_ll = np.column_stack([lons.ravel(), lats.ravel(), z.ravel()])
-            del lons, lats
+        prm = self.PRM()
+        def SAT_llt2rat(lats, lons, zs):
             # for binary=True values outside of the scene missed and the array is not complete
             # 4th and 5th coordinates are the same as input lat, lon
-            coords_ra = self.PRM().SAT_llt2rat(coords_ll, precise=1, binary=False).astype(np.float32)
-            del coords_ll
-            if coords_ra.size == 0:
-                del lons, lats
-                return coords_ra
-            coords_ra = coords_ra.reshape(z.shape[0], z.shape[1], 5)[...,:3]
-            if amax is not None and rmax is not None:
-                # mask values outside of radar area
-                mask = (coords_ra[...,0]>=rmin) & (coords_ra[...,0]<=rmax) & (coords_ra[...,1]>=amin) & (coords_ra[...,1]<=amax)
-                coords_ra[~mask] = np.nan
-                del mask
-            return coords_ra
+            return prm.SAT_llt2rat(np.column_stack([lons, lats, zs]),
+                                        precise=1, binary=False)\
+                           .astype(np.float32).reshape(zs.size, 5)[...,:3]
 
-        # exclude latitude and longitude columns as redudant
-        def trans_block(lats, lons, amin=0, amax=None, rmin=0, rmax=None):
+        # exclude latitude and longitude columns as redundant
+        def trans_block(lats, lons, amin=-np.inf, amax=np.inf, rmin=-np.inf, rmax=np.inf, filename=None):
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
             from dask.distributed import utils_perf
             utils_perf.disable_gc_diagnosis()
-            
+
             dlat = dem.yy.diff('yy')[0]
             dlon = dem.xx.diff('xx')[0]
-            topo = dem.sel(yy=slice(lats[0]-dlat, lats[-1]+dlat), xx=slice(lons[0]-dlon, lons[-1]+dlon)).compute(n_workers=1)
+            topo = dem.sel(yy=slice(lats[0]-dlat, lats[-1]+dlat), xx=slice(lons[0]-dlon, lons[-1]+dlon))\
+                      .compute(n_workers=1)
             #print ('topo.shape', topo.shape, 'lats.size', lats.size, 'lons', lons.size)
-            grid = topo.interp({topo.dims[0]: lats, topo.dims[1]: lons})
-            del topo
-            #print ('grid.shape', grid.shape) 
-            rae = SAT_llt2rat(grid.values, lats, lons, amin, amax, rmin, rmax)
-            del grid
-            # define radar coordinate extent for the block
-            # this code produces a lot of warnings "RuntimeWarning: All-NaN slice encountered"
-            #rmin, rmax = np.nanmin(rae[...,0]), np.nanmax(rae[...,0])
-            #amin, amax = np.nanmin(rae[...,1]), np.nanmax(rae[...,1])
-            # this code spends additional time for the checks to exclude warnings
-            if not np.all(np.isnan(rae[...,:2])):
-                extent = np.asarray([np.nanmin(rae[...,1]), np.nanmax(rae[...,1]), np.nanmin(rae[...,0]), np.nanmax(rae[...,0])], dtype=np.float32)
+            if np.isfinite(amin):
+                # check if the topo block is empty or not
+                lts = topo.yy.values
+                lls = topo.xx.values
+                border_lts = np.concatenate([lts, lts, np.repeat(lts[0], lls.size), np.repeat(lts[-1], lls.size)])
+                border_lls = np.concatenate([np.repeat(lls[0], lts.size), np.repeat(lls[-1], lts.size), lls, lls])
+                border_zs  = np.concatenate([topo.values[:,0], topo.values[:,-1], topo.values[0,:], topo.values[-1,:]])
+                rae = SAT_llt2rat(border_lts, border_lls, border_zs)
+                del lts, lls, border_lts, border_lls, border_zs
+                mask = (rae[:,0]>=rmin) & (rae[:,0]<=rmax) & (rae[:,1]>=amin) & (rae[:,1]<=amax)
+                del rae
+                #print ('mask[mask].size', mask[mask].size)
+                valid_pixels = mask[mask].size > 0
+                del mask
             else:
-                extent = np.asarray([np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
-            return (rae, extent)
-
+                # continue the processing without empty block check
+                valid_pixels = True
+        
+            if valid_pixels:
+                grid = topo.interp({topo.dims[0]: lats, topo.dims[1]: lons})
+                del topo
+                # compute 3D radar coordinates for all the geographical 3D points
+                lls, lts = np.meshgrid(lons.astype(np.float32), lats.astype(np.float32))
+                rae = SAT_llt2rat(lts.ravel(), lls.ravel(), grid.values.ravel())
+                del lls, lts, grid
+                # mask invalid values for better compression
+                mask = (rae[...,0]>=rmin) & (rae[...,0]<=rmax) & (rae[...,1]>=amin) & (rae[...,1]<=amax)
+                rae[~mask] = np.nan
+                del mask
+                rae = rae.reshape(lats.size, lons.size, -1).transpose(2,0,1)
+            else:
+                rae = np.nan * np.zeros((3, lats.size, lons.size), np.float32)
+        
+            if filename is None:
+                return rae
+            # transform to separate variables, round for better compression
+            trans = xr.Dataset({val: xr.DataArray(rae[key],
+                            coords={'lat': lats,'lon': lons}) for (key, val) in llt2rat_map.items()})
+            encoding = {vn: self.compression(trans[vn].shape, chunksize=self.netcdf_chunksize) for vn in trans.data_vars}
+            if os.path.exists(filename):
+                os.remove(filename)
+            trans.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
+            del trans
+        
         # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
-        dem = self.get_dem(geoloc=True, buffer_degrees=buffer_degrees).rename({'lat': 'yy', 'lon': 'xx'})
+        dem = self.get_dem(geoloc=True).rename({'lat': 'yy', 'lon': 'xx'})
 
         # check DEM corners
-        dem_corners = dem[::dem.yy.size-1, ::dem.xx.size-1]
-        rngs, azis, _ = trans_block(dem_corners.yy, dem_corners.xx)[0].transpose(2,0,1)
+        dem_corners = dem[::dem.yy.size-1, ::dem.xx.size-1].compute()
+        rngs, azis, _ = trans_block(dem_corners.yy.values, dem_corners.xx.values)
         azi_size = abs(np.diff(azis, axis=0).mean())
         rng_size = abs(np.diff(rngs, axis=1).mean())
+        del rngs, azis, _
         #print ('azi_size', azi_size)
         #print ('rng_size', rng_size)
         azi_steps = int(np.round(azi_size / coarsen[0]))
@@ -186,14 +172,11 @@ class Stack_trans(Stack_align):
         azis, rngs = self.define_trans_grid(coarsen)
         azi_max = np.max(azis)
         rng_max = np.max(rngs)
-        # allow 2 points around for linear and cubic interpolations
-        borders = {'amin': -2*azi_size/azi_steps, 'amax': azi_max+2*azi_size/azi_steps,
-                 'rmin': -2*rng_size/rng_steps, 'rmax': rng_max+2*rng_size/rng_steps}
+        borders = {'amin': -coarsen[0], 'amax': azi_max + coarsen[0],
+                   'rmin': -coarsen[1], 'rmax': rng_max + coarsen[1]}
         #print ('borders', borders)
 
-        ################################################################################
         # process the area
-        ################################################################################
         lats = np.linspace(dem.yy[0], dem.yy[-1], azi_steps)
         lons = np.linspace(dem.xx[0], dem.xx[-1], rng_steps)
         #print ('lats', lats, 'lons', lons)
@@ -205,42 +188,36 @@ class Stack_trans(Stack_align):
         #print ('lats_blocks.size', len(lats_blocks), 'lons_blocks.size', len(lons_blocks))
         #print ('lats_blocks[0]', lats_blocks[0])
 
-        blocks_total = []
-        extents_total = []
-        for lons_block in lons_blocks:
-            blocks = []
-            extents = []
-            for lats_block in lats_blocks:
-                # extract multiple outputs
-                blockset = dask.delayed(trans_block)(lats_block, lons_block, **borders)
-                block = dask.array.from_delayed(blockset[0], shape=(lats_block.size, lons_block.size, 3), dtype=np.float32)
-                extent = dask.array.from_delayed(blockset[1], shape=(4,), dtype=np.float32)
-                #block = dask.array.from_delayed(dask.delayed(trans_block)(lats_block, lons_block, **extent),
-                #                                shape=(lats_block.size, lons_block.size, 3), dtype=np.float32)
-                blocks.append(block.transpose(2,1,0))
-                extents.append(extent[:, None, None])
-                del blockset, block, extent
-            blocks_total.append(blocks)
-            extents_total.append(extents)
-            del blocks, extents
-        rae = dask.array.block(blocks_total).transpose(2,1,0)
-        extent = dask.array.block(extents_total).transpose(2,1,0)
-        del blocks_total, extents_total
+        # helper function
+        chunks = len(lats_blocks), len(lons_blocks)
+        digits = len(str(chunks[0]*chunks[1]))
+        def fullname(index):
+            return os.path.join(self.basedir, f'trans_{index:0{digits}d}.grd')
+        # Process data in chunks and save each chunk into a separate NetCDF file.
+        with self.tqdm_joblib(tqdm(desc='Radar Transform Computing', total=chunks[0]*chunks[1])) as progress_bar:
+            joblib.Parallel(n_jobs=-1)(joblib.delayed(trans_block)(
+                lats_blocks[lat], lons_blocks[lon], **borders, filename=fullname(index)
+            ) for index, (lat, lon) in enumerate(np.ndindex(chunks[0], chunks[1])))
 
-        # transform to separate variables
-        key_boundaries = {val: xr.DataArray(extent[...,key], dims=['block_azi', 'block_rng'])
-                          for (key, val) in enumerate(['amin', 'amax', 'rmin', 'rmax'])}
-        keys_vars = {val: xr.DataArray(rae[...,key], coords={'lat': lats,'lon': lons})
-                          for (key, val) in llt2rat_map.items()}
-        del extent, rae
-        trans = xr.Dataset({**key_boundaries, **keys_vars})
-        del key_boundaries, keys_vars
-
-        # add corresponding radar grid coordinates
+        filenames = [fullname(index[0]) for index in enumerate(np.ndindex(chunks[0], chunks[1]))]
+        # re-save all the chunk NetCDF files as single NetCDF file
+        trans = xr.open_mfdataset(
+            np.asarray(filenames).reshape((chunks[0], chunks[1])).tolist(),
+            engine=self.netcdf_engine,
+            chunks=self.chunksize,
+            parallel=True,
+            concat_dim=['lat','lon'],
+            combine='nested'
+        )
+        # add target radar coordinate grid for the user defined spacing (coarsen)
+        azis, rngs = self.define_trans_grid(coarsen)
         trans['y'] = azis
         trans['x'] = rngs
-        del azis, rngs
-
-        if interactive:
-            return trans
-        return self.save_grid(trans, 'trans', 'Radar Transform Computing')
+        self.save_grid(trans, 'trans', 'Radar Transform Saving')
+        del lats_blocks, lons_blocks, trans
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
+        # cleanup
+        for filename in filenames:
+            os.remove(filename)
+        del filenames

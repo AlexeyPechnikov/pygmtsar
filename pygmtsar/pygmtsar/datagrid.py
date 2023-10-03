@@ -16,9 +16,9 @@ class datagrid:
     ----------
     chunksize : int
         The chunk size for data compression. Default is 512.
-    engine : str
+    netcdf_engine : str
         The engine used for NetCDF file operations. Default is 'h5netcdf'.
-    complevel : int
+    netcdf_complevel : int
         The compression level for data compression. Default is 3.
     noindex : np.uint32
         The NODATA index value for transform matrices.
@@ -26,12 +26,15 @@ class datagrid:
     import numpy as np
 
     # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
-    chunksize = 1024
-    engine = 'h5netcdf'
-    complevel = 3
+    chunksize = 2048
+    netcdf_engine = 'h5netcdf'
+    netcdf_chunksize = 512
+    netcdf_compression_algorithm = 'zlib'
+    netcdf_complevel = -1
+    netcdf_shuffle = True
 
     # define lost class variables due to joblib via arguments
-    def compression(self, shape=None, complevel=None, chunksize=None):
+    def compression(self, shape=None, chunksize=None):
         """
         Return the compression options for a data grid.
 
@@ -39,8 +42,6 @@ class datagrid:
         ----------
         shape : tuple, list, np.ndarray, optional
             The shape of the data grid. Required if chunksize is less than grid dimension sizes. Default is None.
-        complevel : int, optional
-            The compression level for data compression. If not specified, the class attribute complevel is used.
         chunksize : int or tuple, optional
             The chunk size for data compression. If not specified, the class attribute chunksize is used.
 
@@ -63,10 +64,9 @@ class datagrid:
         """
         import numpy as np
 
-        if complevel is None:
-            complevel = self.complevel
         if chunksize is None:
-            chunksize = self.chunksize
+            chunksize = self.netcdf_chunksize
+
         assert chunksize is not None, 'compression() chunksize is None'
         if isinstance(chunksize, (tuple, list, np.ndarray)):
             # use as is, it can be 2D or 3D grid (even 1D while it is not used for now)
@@ -84,9 +84,12 @@ class datagrid:
                 chunksizes = tuple(chunksizes)
             else:
                 chunksizes=(chunksize, chunksize)
-        if complevel == 0:
-            return dict(chunksizes=chunksizes)
-        return dict(zlib=True, complevel=complevel, chunksizes=chunksizes)
+        opts = dict(chunksizes=chunksizes)
+        if self.netcdf_compression_algorithm is not None and self.netcdf_complevel >= 0:
+            opts[self.netcdf_compression_algorithm] = True
+            opts['complevel'] = self.netcdf_complevel
+            opts['shuffle'] = self.netcdf_shuffle
+        return opts
 
     @staticmethod
     def is_ra(grid):
