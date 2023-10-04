@@ -127,20 +127,15 @@ class Stack_dem(Stack_reframe):
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
     # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, product='SRTM1', debug=False):
+    def download_dem(self, product='1s', debug=False):
         """
         Download and preprocess digital elevation model (DEM) data.
 
         Parameters
         ----------
-        backend : None, optional
-            Deprecated argument. Ignored.
         product : str, optional
-            Product type of the DEM data. Available options are 'SRTM1' (default) and 'SRTM3'.
-        resolution_meters : int, optional
-            Approximate desired resolution of the DEM data in meters. Default is 60 meters.
-        method : None, optional
-            Deprecated argument. Ignored.
+            Product type of the DEM data. Available options are '1s' or 'SRTM1' (1 arcsec ~= 30m, default)
+            and '3s' or 'SRTM3' (3 arcsec ~= 90m).
         debug : bool, optional
             Enable debug mode. Default is False.
 
@@ -185,12 +180,10 @@ class Stack_dem(Stack_reframe):
             print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
             return
         
-        if product == 'SRTM1':
+        if product in ['SRTM1', '1s', '01s']:
             resolution = '01s'
-        elif product == 'SRTM3':
+        elif product in ['SRTM3', '3s', '03s']:
             resolution = '03s'
-        elif product in ['01s', '03s']:
-            resolution = product
         else:
             # open from user-specified NetCDF or GeoTIF file
             resolution = None
