@@ -55,7 +55,7 @@ class Stack_geocode(Stack_sbas):
     # coarsen=4:
     # nearest: coords [array([596.42352295]), array([16978.65625])]
     # linear:  coords [array([597.1080563]), array([16977.35608873])]
-    def ll2ra(self, data, z_offset=None):
+    def geocode_ll2ra(self, data, z_offset=None):
         """
         Inverse geocode input geodataframe with 2D or 3D points. 
         """
@@ -261,6 +261,150 @@ class Stack_geocode(Stack_sbas):
 ##########################################################################################
 # ll2ra
 ##########################################################################################
+    def ll2ra(self, data):
+        """
+        Perform geocoding from geographic to radar coordinates.
+
+        Parameters
+        ----------
+        grid : xarray.DataArray
+            Grid(s) in geographic coordinates.
+        trans : xarray.DataArray
+            Inverse geocoding transform matrix.
+
+        Returns
+        -------
+        xarray.DataArray
+            The inverse geocoded grid(s) in radar coordinates.
+
+        Examples
+        --------
+        Inverse geocode 2D land mask grid:
+        landmask_ra = stack.ll2ra(stack.get_landmask())
+        """
+        import dask
+        import xarray as xr
+        import numpy as np
+
+        # helper check
+        if not 'lat' in data.dims or not 'lon' in data.dims:
+            print ('NOTE: the input data not in geograophic coordinates, miss inverse geocoding')
+            return data
+
+        # get complete inverse transform table
+        trans_inv = self.get_trans_inv()
+
+        @dask.delayed
+        def geo_block(ys_block, xs_block, stackval=None):
+            from scipy.interpolate import RegularGridInterpolator
+
+            def nangrid():
+                return np.nan * np.zeros((ys_block.size, xs_block.size), dtype=np.float32)
+        
+            # use outer variables
+            block_grid = data.sel({stackvar: stackval}) if stackval is not None else data
+            trans_inv_block = trans_inv.sel(y=ys_block, x=xs_block).compute(n_workers=1)
+
+            # check if the data block exists
+            if not (trans_inv_block.y.size>0 and trans_inv_block.x.size>0):
+                del block_grid, trans_inv_block
+                return nangrid()
+
+            # use trans table subset
+            y = trans_inv_block.lt.values.ravel()
+            x = trans_inv_block.ll.values.ravel()
+            points = np.column_stack([y, x])
+            del trans_inv_block
+
+            # get interferogram full grid
+            ys = data.lat.values
+            xs = data.lon.values
+
+            # this code spends additional time for the checks to exclude warnings
+            if np.all(np.isnan(y)):
+                del block_grid, ys, xs, points
+                return nangrid()
+
+            # calculate trans grid subset extent
+            ymin, ymax = np.nanmin(y), np.nanmax(y)
+            xmin, xmax = np.nanmin(x), np.nanmax(x)
+            del y, x
+            # and spacing
+            dy = ys[1] - ys[0]
+            dx = xs[1] - xs[0]
+
+            # select required interferogram grid subset
+            ys_subset = ys[(ys>ymin-dy)&(ys<ymax+dy)]
+            xs_subset = xs[(xs>xmin-dx)&(xs<xmax+dx)]
+            del ymin, ymax, xmin, xmax, dy, dx, ys, xs
+
+            # for cropped interferogram we can have no valid pixels for the processing
+            if ys_subset.size == 0 or xs_subset.size == 0:
+                del ys_subset, xs_subset, points, block_grid
+                return nangrid()
+
+            # Wall time: 1min 25s
+
+            values = block_grid.sel(lat=ys_subset, lon=xs_subset).compute(n_workers=1).data.astype(np.float64)
+            del block_grid
+
+            # Wall time: 7min 47s
+            # distributed.worker.memory - WARNING - Worker is at 81% memory usage.
+
+            # perform interpolation
+            interp = RegularGridInterpolator((ys_subset, xs_subset), values, method='nearest', bounds_error=False)
+            grid_ra = interp(points).reshape(ys_block.size, xs_block.size).astype(np.float32)
+            del ys_subset, xs_subset, points, values
+            return grid_ra
+
+         # define output geographic coordinates grid
+        lats = trans_inv.y
+        lons = trans_inv.x
+
+        # split to equal chunks and rest
+        lats_blocks = np.array_split(lats, np.arange(0, lats.size, self.chunksize)[1:])
+        lons_blocks = np.array_split(lons, np.arange(0, lons.size, self.chunksize)[1:])
+
+        # find stack dim
+        stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
+        #print ('stackvar', stackvar)
+
+        stack = []
+        for stackval in data[stackvar].values if len(data.dims) == 3 else [None]:
+            # per-block processing
+            blocks_total  = []
+            for lats_block in lats_blocks:
+                blocks = []
+                for lons_block in lons_blocks:
+                    block = dask.array.from_delayed(geo_block(lats_block, lons_block, stackval),
+                                                    shape=(lats_block.size, lons_block.size), dtype=np.float32)
+                    blocks.append(block)
+                    del block
+                blocks_total.append(blocks)
+                del blocks
+            dask_block = dask.array.block(blocks_total)
+            if len(data.dims) == 3:
+                coords = {stackvar: [stackval], 'y': trans_inv.coords['y'], 'x': trans_inv.coords['x']}
+                da = xr.DataArray(dask_block[None, :], coords=coords)
+            else:
+                coords = {'y': trans_inv.coords['y'], 'x': trans_inv.coords['x']}
+                da = xr.DataArray(dask_block, coords=coords)
+            stack.append(da)
+            del blocks_total, dask_block
+
+        # wrap lazy Dask array to Xarray dataarray
+        if len(data.dims) == 2:
+            out = stack[0]
+        else:
+            out = xr.concat(stack, dim=stackvar)
+        del stack
+
+        # append source grid coordinates excluding removed y, x ones
+        for (k,v) in data.coords.items():
+            if k not in ['lat','lon']:
+                out[k] = v
+        return out.rename(data.name)
+
 #     def intf_ll2ra_matrix(self, stack, chunksize=None, interactive=False):
 #         """
 #         Perform parallel computation of the geographic-to-radar coordinate transformation matrix.
