@@ -61,6 +61,7 @@ class Stack_trans_inv(Stack_trans):
         import warnings
         # suppress Dask warning "RuntimeWarning: All-NaN slice encountered return np.nanmin"
         warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
+        warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.array")
 
         # expand simplified definition
         if not isinstance(coarsen, (list,tuple, np.ndarray)):
@@ -73,6 +74,7 @@ class Stack_trans_inv(Stack_trans):
             utils_perf.disable_gc_diagnosis()
             # suppress Dask warning "RuntimeWarning: All-NaN slice encountered return np.nanmin"
             warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
+            warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.array")
         
             # required one delta around for nearest interpolation and two for linear
             dazi = np.diff(azis)[0]
