@@ -761,30 +761,30 @@ class PRM(datagrid, PRM_gmtsar):
     
         return self.set(near_range=near_range, SC_clock_start=SC_clock_start, SC_clock_stop=SC_clock_stop)
 
-    # note: only one dimension chunked due to sequential file writing 
-    def write_SLC_int(self, data):
-        import numpy as np
-        import os
-
-        dirname = os.path.dirname(self.filename)
-        slc_filename = os.path.join(dirname, self.get('SLC_file'))
-        if os.path.exists(slc_filename):
-            os.remove(slc_filename)
-
-        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, self.chunksize)[1:])
-        with open(slc_filename, 'wb') as f:
-            for ys_block in ys_blocks:
-                slc_block = data.isel(y=ys_block)
-                re = slc_block.re.values
-                im = slc_block.im.values
-                buffer = np.zeros((2*re.size), dtype=re.dtype)
-                buffer[::2] = re.ravel()
-                buffer[1::2] = im.ravel()
-                buffer.tofile(f)
-                del buffer, re, im, slc_block
+#     # note: only one dimension chunked due to sequential file writing 
+#     def write_SLC_int(self, data):
+#         import numpy as np
+#         import os
+# 
+#         dirname = os.path.dirname(self.filename)
+#         slc_filename = os.path.join(dirname, self.get('SLC_file'))
+#         if os.path.exists(slc_filename):
+#             os.remove(slc_filename)
+# 
+#         ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, self.chunksize)[1:])
+#         with open(slc_filename, 'wb') as f:
+#             for ys_block in ys_blocks:
+#                 slc_block = data.isel(y=ys_block)
+#                 re = slc_block.re.values
+#                 im = slc_block.im.values
+#                 buffer = np.zeros((2*re.size), dtype=re.dtype)
+#                 buffer[::2] = re.ravel()
+#                 buffer[1::2] = im.ravel()
+#                 buffer.tofile(f)
+#                 del buffer, re, im, slc_block
 
     # note: only one dimension chunked due to sequential file reading 
-    def read_SLC_int(self, intensity=False, scale=2.5e-07):
+    def read_SLC_int(self, scale=2.5e-07):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
         The method reads binary SLC data file, which contains alternating sequences of real and imaginary parts.
@@ -857,102 +857,102 @@ class PRM(datagrid, PRM_gmtsar):
         coords = {'y': np.arange(ydim) + 0.5, 'x': np.arange(xdim) + 0.5}
         re = xr.DataArray(re, coords=coords).rename('re')
         im = xr.DataArray(im, coords=coords).rename('im')
-        if intensity:
-            return ((scale or 1)*re.astype(np.float32))**2 + ((scale or 1)*im.astype(np.float32))**2
+        #if intensity:
+        #    return ((scale or 1)*re.astype(np.float32))**2 + ((scale or 1)*im.astype(np.float32))**2
         if scale is not None:
             return scale * (xr.merge([re, im]).astype(np.float32))
         return xr.merge([re, im])
 
-    @staticmethod
-    def goldstein_filter(data, corr, psize):
-        import xarray as xr
-        import numpy as np
-        import dask
-    
-        def apply_pspec(data, alpha):
-            # NaN is allowed value
-            assert not(alpha < 0), f'Invalid parameter value {alpha} < 0'
-            wgt = np.power(np.abs(data)**2, alpha / 2)
-            data = wgt * data
-            return data
+#     @staticmethod
+#     def goldstein_filter(data, corr, psize):
+#         import xarray as xr
+#         import numpy as np
+#         import dask
+#     
+#         def apply_pspec(data, alpha):
+#             # NaN is allowed value
+#             assert not(alpha < 0), f'Invalid parameter value {alpha} < 0'
+#             wgt = np.power(np.abs(data)**2, alpha / 2)
+#             data = wgt * data
+#             return data
+# 
+#         def make_wgt(nxp, nyp):
+#             # Create arrays of horizontal and vertical weights
+#             wx = 1.0 - np.abs(np.arange(nxp // 2) - (nxp / 2.0 - 1.0)) / (nxp / 2.0 - 1.0)
+#             wy = 1.0 - np.abs(np.arange(nyp // 2) - (nyp / 2.0 - 1.0)) / (nyp / 2.0 - 1.0)
+#             # Compute the outer product of wx and wy to create the top-left quadrant of the weight matrix
+#             quadrant = np.outer(wy, wx)
+#             # Create a full weight matrix by mirroring the quadrant along both axes
+#             wgt = np.block([[quadrant, np.flip(quadrant, axis=1)],
+#                             [np.flip(quadrant, axis=0), np.flip(np.flip(quadrant, axis=0), axis=1)]])
+#             return wgt
+# 
+#         def patch_goldstein_filter(data, corr, wgt, psize):
+#             """
+#             Apply the Goldstein adaptive filter to the given data.
+# 
+#             Args:
+#                 data: 2D numpy array of complex values representing the data to be filtered.
+#                 corr: 2D numpy array of correlation values. Must have the same shape as `data`.
+# 
+#             Returns:
+#                 2D numpy array of filtered data.
+#             """
+#             # Calculate alpha
+#             alpha = 1 - (wgt * corr).sum() / wgt.sum()
+#             data = np.fft.fft2(data, s=(psize,psize))
+#             data = apply_pspec(data, alpha)
+#             data = np.fft.ifft2(data, s=(psize,psize))
+#             return wgt * data
+# 
+#         def apply_goldstein_filter(data, corr, psize):
+#             # Create an empty array for the output
+#             out = np.zeros(data.shape, dtype=np.complex64)
+#             # ignore processing for empty chunks 
+#             if np.all(np.isnan(data)):
+#                 return out
+#             # Create the weight matrix
+#             wgt_matrix = make_wgt(psize, psize)
+#             # Iterate over windows of the data
+#             for i in range(0, data.shape[0] - psize, psize // 2):
+#                 for j in range(0, data.shape[1] - psize, psize // 2):
+#                     # Create proocessing windows
+#                     data_window = data[i:i+psize, j:j+psize]
+#                     corr_window = corr[i:i+psize, j:j+psize]
+#                     wgt_window = wgt_matrix[:data_window.shape[0],:data_window.shape[1]]
+#                     # Apply the filter to the window
+#                     filtered_window = patch_goldstein_filter(data_window, corr_window, wgt_window, psize)
+#                     # Add the result to the output array
+#                     slice_i = slice(i, min(i + psize, out.shape[0]))
+#                     slice_j = slice(j, min(j + psize, out.shape[1]))
+#                     out[slice_i, slice_j] += filtered_window[:slice_i.stop - slice_i.start, :slice_j.stop - slice_j.start]
+#             return out
+# 
+#         # Apply function with overlap; psize//2 overlap is not enough (some empty lines produced)
+#         # use complex data and real correlation
+#         phase_filtered = dask.array.map_overlap(lambda data, corr: apply_goldstein_filter(data, corr, psize),
+#                                        data.data,
+#                                        corr.data,
+#                                        depth=psize//2 + 2,
+#                                        dtype=np.float32, 
+#                                        meta=np.array(()))
+#         # Calculate the phase and fix chunksizes
+#         return xr.DataArray(np.arctan2(phase_filtered.imag, phase_filtered.real),coords=corr.coords)\
+#                 .chunk(corr.chunksizes).rename('phase')
 
-        def make_wgt(nxp, nyp):
-            # Create arrays of horizontal and vertical weights
-            wx = 1.0 - np.abs(np.arange(nxp // 2) - (nxp / 2.0 - 1.0)) / (nxp / 2.0 - 1.0)
-            wy = 1.0 - np.abs(np.arange(nyp // 2) - (nyp / 2.0 - 1.0)) / (nyp / 2.0 - 1.0)
-            # Compute the outer product of wx and wy to create the top-left quadrant of the weight matrix
-            quadrant = np.outer(wy, wx)
-            # Create a full weight matrix by mirroring the quadrant along both axes
-            wgt = np.block([[quadrant, np.flip(quadrant, axis=1)],
-                            [np.flip(quadrant, axis=0), np.flip(np.flip(quadrant, axis=0), axis=1)]])
-            return wgt
-
-        def patch_goldstein_filter(data, corr, wgt, psize):
-            """
-            Apply the Goldstein adaptive filter to the given data.
-
-            Args:
-                data: 2D numpy array of complex values representing the data to be filtered.
-                corr: 2D numpy array of correlation values. Must have the same shape as `data`.
-
-            Returns:
-                2D numpy array of filtered data.
-            """
-            # Calculate alpha
-            alpha = 1 - (wgt * corr).sum() / wgt.sum()
-            data = np.fft.fft2(data, s=(psize,psize))
-            data = apply_pspec(data, alpha)
-            data = np.fft.ifft2(data, s=(psize,psize))
-            return wgt * data
-
-        def apply_goldstein_filter(data, corr, psize):
-            # Create an empty array for the output
-            out = np.zeros(data.shape, dtype=np.complex64)
-            # ignore processing for empty chunks 
-            if np.all(np.isnan(data)):
-                return out
-            # Create the weight matrix
-            wgt_matrix = make_wgt(psize, psize)
-            # Iterate over windows of the data
-            for i in range(0, data.shape[0] - psize, psize // 2):
-                for j in range(0, data.shape[1] - psize, psize // 2):
-                    # Create proocessing windows
-                    data_window = data[i:i+psize, j:j+psize]
-                    corr_window = corr[i:i+psize, j:j+psize]
-                    wgt_window = wgt_matrix[:data_window.shape[0],:data_window.shape[1]]
-                    # Apply the filter to the window
-                    filtered_window = patch_goldstein_filter(data_window, corr_window, wgt_window, psize)
-                    # Add the result to the output array
-                    slice_i = slice(i, min(i + psize, out.shape[0]))
-                    slice_j = slice(j, min(j + psize, out.shape[1]))
-                    out[slice_i, slice_j] += filtered_window[:slice_i.stop - slice_i.start, :slice_j.stop - slice_j.start]
-            return out
-
-        # Apply function with overlap; psize//2 overlap is not enough (some empty lines produced)
-        # use complex data and real correlation
-        phase_filtered = dask.array.map_overlap(lambda data, corr: apply_goldstein_filter(data, corr, psize),
-                                       data.data,
-                                       corr.data,
-                                       depth=psize//2 + 2,
-                                       dtype=np.float32, 
-                                       meta=np.array(()))
-        # Calculate the phase and fix chunksizes
-        return xr.DataArray(np.arctan2(phase_filtered.imag, phase_filtered.real),coords=corr.coords)\
-                .chunk(corr.chunksizes).rename('phase')
-
-    @staticmethod
-    def correlation(A1, A2, amp):
-        import xarray as xr
-        import numpy as np
-        # constant from GMTSAR code
-        thresh = 5.e-21
-        a = A1 * A2
-        corr = xr.where(a > 0, amp / np.sqrt(a), 0)
-        corr = xr.where(corr < 0, 0, corr)
-        corr = xr.where(corr > 1, 1, corr)
-        # mask too low amplitude areas as invalid
-        # amp1 and amp2 chunks are high for SLC, amp has normal chunks for NetCDF
-        return xr.where(a >= thresh, corr, np.nan).chunk(a.chunksizes).rename('phase')
+#     @staticmethod
+#     def correlation(A1, A2, amp):
+#         import xarray as xr
+#         import numpy as np
+#         # constant from GMTSAR code
+#         thresh = 5.e-21
+#         a = A1 * A2
+#         corr = xr.where(a > 0, amp / np.sqrt(a), 0)
+#         corr = xr.where(corr < 0, 0, corr)
+#         corr = xr.where(corr > 1, 1, corr)
+#         # mask too low amplitude areas as invalid
+#         # amp1 and amp2 chunks are high for SLC, amp has normal chunks for NetCDF
+#         return xr.where(a >= thresh, corr, np.nan).chunk(a.chunksizes).rename('phase')
 
 #     # see about correlation filter
 #     # https://github.com/gmtsar/gmtsar/issues/86
@@ -1123,7 +1123,7 @@ class PRM(datagrid, PRM_gmtsar):
 #         return
 
     # see make_gaussian_filter.c for the original code
-    def pixel_size(self, grid=1):
+    def get_spacing(self, grid=1):
         """
         Calculate azimuth and range pixel size in meters.
 
@@ -1176,73 +1176,73 @@ class PRM(datagrid, PRM_gmtsar):
         # ground spacing in meters
         return (dy * azi_px_size, dx * rng_px_size)
 
-    # TODO: use PRM parameters to define config parameters
-    def snaphu_config(self, defomax=0, **kwargs):
-        """
-        Generate a configuration file for Snaphu phase unwrapping.
-
-        Parameters
-        ----------
-        defomax : int, optional
-            Maximum number of deformation cycles allowed. Default is 0.
-        **kwargs
-            Additional configuration parameters in key-value format.
-
-        Returns
-        -------
-        str
-            The generated configuration file as a string.
-
-        Examples
-        --------
-        Get default SNAPHU config:
-        config = sbas.snaphu_config()
-
-        Get custom SNAPHU config with added tiling options:
-        config = sbas.snaphu_config(defomax=DEFOMAX, NTILEROW=1, NTILECOL=2, ROWOVRLP=200, COLOVRLP=200)
-
-        Notes
-        -----
-        This method generates a configuration file for Snaphu, a phase unwrapping software.
-        The configuration file includes basic parameters and allows customization by passing additional parameters.
-
-        Custom Parameters
-        -----------------
-        Additional configuration parameters can be passed as keyword arguments (e.g., `parameter_name=value`).
-        Boolean values should be provided as `True` or `False`.
-        """
-        import os
-        # we already use joblib everywhere
-        import joblib
-
-        tiledir = os.path.splitext(self.filename)[0]
-        n_jobs = joblib.cpu_count()
-
-        conf_basic = f"""
-        # basic config
-        INFILEFORMAT   FLOAT_DATA
-        OUTFILEFORMAT  FLOAT_DATA
-        AMPFILEFORMAT  FLOAT_DATA
-        CORRFILEFORMAT FLOAT_DATA
-        ALTITUDE       693000.0
-        EARTHRADIUS    6378000.0
-        NEARRANGE      831000
-        DR             18.4
-        DA             28.2
-        RANGERES       28
-        AZRES          44
-        LAMBDA         0.0554658
-        NLOOKSRANGE    1
-        NLOOKSAZ       1
-        TILEDIR        {tiledir}_snaphu_tiledir
-        NPROC          {n_jobs}
-        """
-        conf_custom = '# custom config\n'
-        # defomax can be None
-        keyvalues = ([('DEFOMAX_CYCLE', defomax)] if defomax is not None else []) + list(kwargs.items())
-        for key, value in keyvalues:
-            if isinstance(value, bool):
-                value = 'TRUE' if value else 'FALSE'
-            conf_custom += f'        {key} {value}\n'
-        return conf_basic + conf_custom
-
+#     # TODO: use PRM parameters to define config parameters
+#     def snaphu_config(self, defomax=0, **kwargs):
+#         """
+#         Generate a configuration file for Snaphu phase unwrapping.
+# 
+#         Parameters
+#         ----------
+#         defomax : int, optional
+#             Maximum number of deformation cycles allowed. Default is 0.
+#         **kwargs
+#             Additional configuration parameters in key-value format.
+# 
+#         Returns
+#         -------
+#         str
+#             The generated configuration file as a string.
+# 
+#         Examples
+#         --------
+#         Get default SNAPHU config:
+#         config = sbas.snaphu_config()
+# 
+#         Get custom SNAPHU config with added tiling options:
+#         config = sbas.snaphu_config(defomax=DEFOMAX, NTILEROW=1, NTILECOL=2, ROWOVRLP=200, COLOVRLP=200)
+# 
+#         Notes
+#         -----
+#         This method generates a configuration file for Snaphu, a phase unwrapping software.
+#         The configuration file includes basic parameters and allows customization by passing additional parameters.
+# 
+#         Custom Parameters
+#         -----------------
+#         Additional configuration parameters can be passed as keyword arguments (e.g., `parameter_name=value`).
+#         Boolean values should be provided as `True` or `False`.
+#         """
+#         import os
+#         # we already use joblib everywhere
+#         import joblib
+# 
+#         tiledir = os.path.splitext(self.filename)[0]
+#         n_jobs = joblib.cpu_count()
+# 
+#         conf_basic = f"""
+#         # basic config
+#         INFILEFORMAT   FLOAT_DATA
+#         OUTFILEFORMAT  FLOAT_DATA
+#         AMPFILEFORMAT  FLOAT_DATA
+#         CORRFILEFORMAT FLOAT_DATA
+#         ALTITUDE       693000.0
+#         EARTHRADIUS    6378000.0
+#         NEARRANGE      831000
+#         DR             18.4
+#         DA             28.2
+#         RANGERES       28
+#         AZRES          44
+#         LAMBDA         0.0554658
+#         NLOOKSRANGE    1
+#         NLOOKSAZ       1
+#         TILEDIR        {tiledir}_snaphu_tiledir
+#         NPROC          {n_jobs}
+#         """
+#         conf_custom = '# custom config\n'
+#         # defomax can be None
+#         keyvalues = ([('DEFOMAX_CYCLE', defomax)] if defomax is not None else []) + list(kwargs.items())
+#         for key, value in keyvalues:
+#             if isinstance(value, bool):
+#                 value = 'TRUE' if value else 'FALSE'
+#             conf_custom += f'        {key} {value}\n'
+#         return conf_basic + conf_custom
+# 

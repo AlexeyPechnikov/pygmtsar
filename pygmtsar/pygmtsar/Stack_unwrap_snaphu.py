@@ -56,7 +56,7 @@ class Stack_unwrap_snaphu(Stack_landmask):
         timenow = datetime.now().strftime("%F_%T.%f").replace(':', '.')
 
         if conf is None:
-            conf = self.PRM().snaphu_config()
+            conf = self.snaphu_config()
         # set unique processing subdirectory
         conf += f'    TILEDIR snaphu_tiledir_{timenow}'
 
@@ -162,5 +162,37 @@ class Stack_unwrap_snaphu(Stack_landmask):
         Generate a Snaphu configuration file with defomax=5 and additional parameters:
         snaphu_config(defomax=5, param1=10, param2=20)
         """
-        return self.PRM().snaphu_config(defomax, **kwargs)
- 
+        #return self.PRM().snaphu_config(defomax, **kwargs)
+        import os
+        import joblib
+
+        tiledir = os.path.splitext(self.PRM().filename)[0]
+        n_jobs = joblib.cpu_count()
+
+        conf_basic = f"""
+        # basic config
+        INFILEFORMAT   FLOAT_DATA
+        OUTFILEFORMAT  FLOAT_DATA
+        AMPFILEFORMAT  FLOAT_DATA
+        CORRFILEFORMAT FLOAT_DATA
+        ALTITUDE       693000.0
+        EARTHRADIUS    6378000.0
+        NEARRANGE      831000
+        DR             18.4
+        DA             28.2
+        RANGERES       28
+        AZRES          44
+        LAMBDA         0.0554658
+        NLOOKSRANGE    1
+        NLOOKSAZ       1
+        TILEDIR        {tiledir}_snaphu_tiledir
+        NPROC          {n_jobs}
+        """
+        conf_custom = '# custom config\n'
+        # defomax can be None
+        keyvalues = ([('DEFOMAX_CYCLE', defomax)] if defomax is not None else []) + list(kwargs.items())
+        for key, value in keyvalues:
+            if isinstance(value, bool):
+                value = 'TRUE' if value else 'FALSE'
+            conf_custom += f'        {key} {value}\n'
+        return conf_basic + conf_custom

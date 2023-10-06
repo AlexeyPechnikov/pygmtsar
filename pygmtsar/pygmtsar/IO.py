@@ -93,7 +93,6 @@ class IO(datagrid):
         print (f'NOTE: load state from file {stack_pickle}')
         return pickle.load(open(stack_pickle, 'rb'))
 
-
     def backup(self, backup_dir, copy=False, debug=False):
         """
         Backup framed Stack scenes, orbits, DEM, and landmask files to build a minimal reproducible dataset.
@@ -306,7 +305,10 @@ class IO(datagrid):
             # there is no complex int16 datatype, so return two variables for real and imag parts
             return ds
         # scale and return as complex values
-        return (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs)
+        ds_scaled = (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs).rename('data')
+        del ds
+        # zero in np.int16 type means NODATA
+        return ds_scaled.where(ds_scaled != 0)
 
 #     def open_stack(self, dates=None, scale=2.5e-07):
 #         import xarray as xr

@@ -161,7 +161,7 @@ class Stack_detrend(Stack_unwrap):
 #         # build the model and return the input data without the detected trend
 #         return postprocessing(regr_predict(regr_fit()))
 
-    def stack_gaussian2d(self, grid, wavelength, truncate=3.0, resolution_meters=90, interactive=False, debug=False):
+    def gaussian_fast(self, grid, wavelength, truncate=3.0, resolution_meters=90, interactive=False, debug=False):
         """
         Apply a lazy Gaussian filter to an input 2D or 3D data array.
 
@@ -208,7 +208,7 @@ class Stack_detrend(Stack_unwrap):
         assert wavelength is not None, 'ERROR: Gaussian filter cut-off wavelength is not defined'
 
         # ground pixel size
-        dy, dx = self.pixel_size(grid)
+        dy, dx = self.get_spacing(grid)
         # reduction
         yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
         # gaussian kernel

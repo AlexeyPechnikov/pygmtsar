@@ -3,7 +3,7 @@
 # 
 # This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
 # 
-# Copyright (c) 2022, Alexey Pechnikov
+# Copyright (c) 2023, Alexey Pechnikov
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
@@ -23,7 +23,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         return np.mod(data_pairs + np.pi, 2 * np.pi) - np.pi
 
     @staticmethod
-    def unwrap1d(data_pairs, matrix):
+    def unwrap_pairs(data_pairs, matrix):
         import numpy as np
 
         # the data variable will be modified and returned as the function output
@@ -158,7 +158,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         mask = [idx in pairs_ok for idx in range(data_pairs.size)]
         return np.where(mask, data, np.nan)
 
-    def stack_unwrap1d(self, data):
+    def unwrap1d(self, data):
         import xarray as xr
         import numpy as np
         
@@ -167,7 +167,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
 
         # xarray wrapper
         model = xr.apply_ufunc(
-            self.unwrap1d,
+            self.unwrap_pairs,
             data.chunk(dict(pair=-1)),
             dask='parallelized',
             vectorize=True,
@@ -179,12 +179,15 @@ class Stack_unwrap(Stack_unwrap_snaphu):
 
         return model.rename('unwrap')
 
-    def unwrap2d_snaphu(self, phase, corr=None, conf=None, conncomp=False):
+    def unwrap_snaphu(self, phase, corr=None, conf=None, conncomp=False):
         """
-        Use this wrapper for tiled multicore SNAPHU configuration:
+        Limit number of processes for tiled multicore SNAPHU configuration:
         with dask.config.set(scheduler='single-threaded'):
             stack.unwrap2d_snaphu()...).phase.compute()
-        
+        or
+        with dask.config.set(scheduler='threads', num_workers=2):
+            stack.unwrap2d_snaphu()...).phase.plot.imshow()
+        See for reference: https://docs.dask.org/en/stable/scheduler-overview.html
         """
         import xarray as xr
         import numpy as np

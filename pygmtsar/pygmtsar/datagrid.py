@@ -25,6 +25,8 @@ class datagrid:
     """
     import numpy as np
 
+    # Minimum valid Sentinel-1 radar amplitude from GMTSAR code
+    #amplitude_threshold = 5.e-21
     # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
     chunksize = 2048
     netcdf_engine = 'h5netcdf'
@@ -438,7 +440,7 @@ class datagrid:
         assert grid.chunks is not None, 'nearest_grid() output grid chunks are not defined'
         return grid
 
-    def pixel_size(self, grid=(1, 4), average=True):
+    def get_spacing(self, grid=(1, 4), average=True):
         """
         Compute the ground pixel size in meters for the default processing grid or the defined one.
 
@@ -461,11 +463,11 @@ class datagrid:
         Examples
         --------
         Get the default ground pixel size:
-        stack.pixel_size()
+        stack.get_spacing()
         >>> (14.0, 15.7)
 
         Get the ground pixel size for an unwrapped phase grid with a decimation of {'y': 2, 'x': 2}:
-        stack.pixel_size(unwraps)
+        stack.get_spacing(unwraps)
         >>> (27.9, 29.5)
 
         Notes
@@ -475,90 +477,87 @@ class datagrid:
         If a grid is provided, the pixel sizes are adjusted according to the grid decimation coefficients.
         The pixel sizes are rounded to one decimal place.
         """
-        import xarray as xr
-        import numpy as np
-
         # pixel size in meters
-        return self.PRM().pixel_size(grid)
+        return self.PRM().get_spacing(grid)
 
-    #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
-    def pixel_decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
-        """
-        Return function for pixel decimation to the specified output resolution.
-
-        Parameters
-        ----------
-        resolution_meters : int, optional
-            DEM grid resolution in meters. The same grid is used for geocoded results output.
-        grid : tuple, optional
-            Grid size for pixel decimation in the format (vertical, horizontal).
-        debug : bool, optional
-            Boolean flag to print debug information.
-
-        Returns
-        -------
-        callable
-            Post-processing lambda function.
-
-        Examples
-        --------
-        Decimate computed interferograms to default DEM resolution 60 meters:
-        decimator = stack.pixel_decimator()
-        stack.intf(pairs, func=decimator)
-        """
-        import numpy as np
-        import dask
-
-        # special cases: scale factor should be 4*N or 2*N to prevent rounding issues
-        # grid can be defined as [] or () or xarray dataarray
-        grid_as_coeffs = isinstance(grid,(list, tuple))
-        if   (grid_as_coeffs and grid==(1, 1)) or (not grid_as_coeffs and grid.x.diff('x')[0].item()) == 1:
-            xscale0 = 4
-        elif (grid_as_coeffs and grid==(1, 2)) or (not grid_as_coeffs and grid.x.diff('x')[0].item()) == 2:
-            xscale0 = 2
-        else:
-            xscale0 = 1
-        if debug:
-            print (f'DEBUG: scale to square grid: xscale0={xscale0}')
-
-        dy, dx = self.pixel_size(grid)
-        yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
-        if debug:
-            print (f'DEBUG: ground pixel size in meters: y={dy}, x={dx}')
-        if yscale <= 1 and xscale <= 1 and xscale0==1:
-            # decimation impossible
-            if debug:
-                print (f'DEBUG: decimator = lambda da: da')
-            return lambda da: da
-        if debug:
-            print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yscale}, 'x': {xscale0*xscale}}}, boundary='trim').{func}()")
-
-        # decimate function
-        def decimator(da):
-            # workaround for Google Colab when we cannot save grids with x,y coordinate names
-            # also supports geographic coordinates
-            yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
-            xname = [varname for varname in ['x', 'lon', 'r'] if varname in da.dims][0]
-            coarsen_args = {yname: yscale, xname: xscale0*xscale}
-            #if debug:
-            #    print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
-            # avoid creating the large chunks
-            with dask.config.set(**{'array.slicing.split_large_chunks': True}):
-                if func == 'mean':
-                    return da.coarsen(coarsen_args, boundary='trim').mean()
-                elif func == 'min':
-                    return da.coarsen(coarsen_args, boundary='trim').min()
-                elif func == 'max':
-                    return da.coarsen(coarsen_args, boundary='trim').max()
-                elif func == 'count':
-                    return da.coarsen(coarsen_args, boundary='trim').count()
-                elif func == 'sum':
-                    return da.coarsen(coarsen_args, boundary='trim').sum()
-                else:
-                    raise ValueError(f"Unsupported function {func}. Should be 'mean','min','max','count', or 'sum'")
-
-        # return callback function
-        return lambda da: decimator(da)
+#     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
+#     def decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
+#         """
+#         Return function for pixel decimation to the specified output resolution.
+# 
+#         Parameters
+#         ----------
+#         resolution_meters : int, optional
+#             DEM grid resolution in meters. The same grid is used for geocoded results output.
+#         grid : tuple, optional
+#             Grid size for pixel decimation in the format (vertical, horizontal).
+#         debug : bool, optional
+#             Boolean flag to print debug information.
+# 
+#         Returns
+#         -------
+#         callable
+#             Post-processing lambda function.
+# 
+#         Examples
+#         --------
+#         Decimate computed interferograms to default DEM resolution 60 meters:
+#         decimator = stack.decimator()
+#         stack.intf(pairs, func=decimator)
+#         """
+#         import numpy as np
+#         import dask
+# 
+#         # special cases: scale factor should be 4*N or 2*N to prevent rounding issues
+#         # grid can be defined as [] or () or xarray dataarray
+#         grid_as_coeffs = isinstance(grid,(list, tuple))
+#         if   (grid_as_coeffs and grid==(1, 1)) or (not grid_as_coeffs and grid.x.diff('x')[0].item()) == 1:
+#             xscale0 = 4
+#         elif (grid_as_coeffs and grid==(1, 2)) or (not grid_as_coeffs and grid.x.diff('x')[0].item()) == 2:
+#             xscale0 = 2
+#         else:
+#             xscale0 = 1
+#         if debug:
+#             print (f'DEBUG: scale to square grid: xscale0={xscale0}')
+# 
+#         dy, dx = self.get_spacing(grid)
+#         yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
+#         if debug:
+#             print (f'DEBUG: ground pixel size in meters: y={dy}, x={dx}')
+#         if yscale <= 1 and xscale <= 1 and xscale0==1:
+#             # decimation impossible
+#             if debug:
+#                 print (f'DEBUG: decimator = lambda da: da')
+#             return lambda da: da
+#         if debug:
+#             print (f"DEBUG: decimator = lambda da: da.coarsen({{'y': {yscale}, 'x': {xscale0*xscale}}}, boundary='trim').{func}()")
+# 
+#         # decimate function
+#         def decimator(da):
+#             # workaround for Google Colab when we cannot save grids with x,y coordinate names
+#             # also supports geographic coordinates
+#             yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
+#             xname = [varname for varname in ['x', 'lon', 'r'] if varname in da.dims][0]
+#             coarsen_args = {yname: yscale, xname: xscale0*xscale}
+#             #if debug:
+#             #    print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
+#             # avoid creating the large chunks
+#             with dask.config.set(**{'array.slicing.split_large_chunks': True}):
+#                 if func == 'mean':
+#                     return da.coarsen(coarsen_args, boundary='trim').mean()
+#                 elif func == 'min':
+#                     return da.coarsen(coarsen_args, boundary='trim').min()
+#                 elif func == 'max':
+#                     return da.coarsen(coarsen_args, boundary='trim').max()
+#                 elif func == 'count':
+#                     return da.coarsen(coarsen_args, boundary='trim').count()
+#                 elif func == 'sum':
+#                     return da.coarsen(coarsen_args, boundary='trim').sum()
+#                 else:
+#                     raise ValueError(f"Unsupported function {func}. Should be 'mean','min','max','count', or 'sum'")
+# 
+#         # return callback function
+#         return lambda da: decimator(da)
 
 #     # anti-aliasing filter and downscaling, double filter (potentially faster)
 #     def antialiasing_downscale(self, da, wavelength, truncate=3, coarsen=(1,4)):
@@ -573,64 +572,64 @@ class datagrid:
 #         # antialiasing (multi-looking) filter
 #         if wavelength is None:
 #             return da_square
-#         dy, dx = self.pixel_size()
+#         dy, dx = self.get_spacing()
 #         print ('DEBUG dy, dx', dy, dx)
 #         sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx/coarsen[1]))
 #         print ('DEBUG sigmas', sigmas)
 #         conv = dask_gaussian_filter(da_square.data, sigmas, mode='reflect', truncate=2)
 #         return xr.DataArray(conv, coords=da_square.coords, name=da.name)
     # anti-aliasing filter and downscaling, single filter (potentially more accurate)
-    # coarsen = None disables downscaling and uses wavelength to filter
-    # coarsen=1 disables downscaling and use coarsen/cutoff filter
-    def antialiasing_downscale(self, da, weight=None, wavelength=None, coarsen=(1,4), debug=False):
-        import xarray as xr
-        import numpy as np
-        import dask
-        from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
-        # GMTSAR constant 5.3 defines half-gain at filter_wavelength
-        # https://github.com/gmtsar/gmtsar/issues/411
-        cutoff = 5.3
-
-        # expand simplified definition
-        if coarsen is not None and not isinstance(coarsen, (list,tuple, np.ndarray)):
-            coarsen = (coarsen, coarsen)
-
-        # allow this case to save the original grid resolution
-        if wavelength is None and coarsen is None:
-            return da
-
-        # antialiasing (multi-looking) filter
-        if wavelength is None:
-            sigmas = np.round([coarsen[0]/cutoff, coarsen[1]/cutoff], 2)
-        else:
-            dy, dx = self.pixel_size(da)
-            #print ('DEBUG dy, dx', dy, dx)
-            #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
-            sigmas = np.round([wavelength/cutoff/dy, wavelength/cutoff/dx], 2)
-        if debug:
-            print ('DEBUG: antialiasing_downscale sigmas', sigmas, 'for specified wavelength', wavelength)
-
-        # weighted and not weighted convolution
-        if weight is None:
-            if debug:
-                print ('DEBUG: antialiasing_downscale not weighted filtering')
-            conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
-        else:
-            assert da.shape == weight.shape, f'Different shapes for raster {da.shape} and weight {weight.shape}'
-            assert da.dims == weight.dims, f'Different dimension names for raster {da.dims} and weight {weight.dims}'
-            if debug:
-                print ('DEBUG: antialiasing_downscale weighted filtering')
-            #conv = dask_gaussian_filter(((1j + da)*weight).data, sigmas, mode='reflect', truncate=2)
-            # replace nan + 1j to to 0.+0.j
-            da  = ((1j + da) * weight).fillna(0)
-            conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
-            conv = conv.real/conv.imag
-
-        da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
-        # calculate the initial dataarray chunk sizes per dimensions to restore them
-        # it works faster when we prevent small chunks usage
-        chunksizes = (np.max(da.chunksizes['y']), np.max(da.chunksizes['x']))
-        if coarsen is not None:
-            # coarse grid to square cells
-            return da_conv.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(chunksizes)
-        return da_conv.chunk(chunksizes)
+#     # coarsen = None disables downscaling and uses wavelength to filter
+#     # coarsen=1 disables downscaling and use coarsen/cutoff filter
+#     def antialiasing_downscale(self, da, weight=None, wavelength=None, coarsen=(1,4), debug=False):
+#         import xarray as xr
+#         import numpy as np
+#         import dask
+#         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+#         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
+#         # https://github.com/gmtsar/gmtsar/issues/411
+#         cutoff = 5.3
+# 
+#         # expand simplified definition
+#         if coarsen is not None and not isinstance(coarsen, (list,tuple, np.ndarray)):
+#             coarsen = (coarsen, coarsen)
+# 
+#         # allow this case to save the original grid resolution
+#         if wavelength is None and coarsen is None:
+#             return da
+# 
+#         # antialiasing (multi-looking) filter
+#         if wavelength is None:
+#             sigmas = np.round([coarsen[0]/cutoff, coarsen[1]/cutoff], 2)
+#         else:
+#             dy, dx = self.get_spacing(da)
+#             #print ('DEBUG dy, dx', dy, dx)
+#             #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
+#             sigmas = np.round([wavelength/cutoff/dy, wavelength/cutoff/dx], 2)
+#         if debug:
+#             print ('DEBUG: antialiasing_downscale sigmas', sigmas, 'for specified wavelength', wavelength)
+# 
+#         # weighted and not weighted convolution
+#         if weight is None:
+#             if debug:
+#                 print ('DEBUG: antialiasing_downscale not weighted filtering')
+#             conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
+#         else:
+#             assert da.shape == weight.shape, f'Different shapes for raster {da.shape} and weight {weight.shape}'
+#             assert da.dims == weight.dims, f'Different dimension names for raster {da.dims} and weight {weight.dims}'
+#             if debug:
+#                 print ('DEBUG: antialiasing_downscale weighted filtering')
+#             #conv = dask_gaussian_filter(((1j + da)*weight).data, sigmas, mode='reflect', truncate=2)
+#             # replace nan + 1j to to 0.+0.j
+#             da  = ((1j + da) * weight).fillna(0)
+#             conv = dask_gaussian_filter(da.data, sigmas, mode='reflect', truncate=2)
+#             conv = conv.real/conv.imag
+# 
+#         da_conv = xr.DataArray(conv, coords=da.coords, name=da.name)
+#         # calculate the initial dataarray chunk sizes per dimensions to restore them
+#         # it works faster when we prevent small chunks usage
+#         chunksizes = (np.max(da.chunksizes['y']), np.max(da.chunksizes['x']))
+#         if coarsen is not None:
+#             # coarse grid to square cells
+#             return da_conv.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(chunksizes)
+#         return da_conv.chunk(chunksizes)

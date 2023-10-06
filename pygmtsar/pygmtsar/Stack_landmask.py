@@ -7,9 +7,9 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .Stack_phasediff import Stack_phasediff
+from .Stack_gaussian import Stack_gaussian
 
-class Stack_landmask(Stack_phasediff):
+class Stack_landmask(Stack_gaussian):
 
     def set_landmask(self, landmask_filename):
         """

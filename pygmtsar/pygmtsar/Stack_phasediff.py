@@ -3,7 +3,7 @@
 # 
 # This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
 # 
-# Copyright (c) 2021, Alexey Pechnikov
+# Copyright (c) 2023, Alexey Pechnikov
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
@@ -11,6 +11,72 @@ from .Stack_topo import Stack_topo
 from .tqdm_dask import tqdm_dask
 
 class Stack_phasediff(Stack_topo):
+
+    @staticmethod
+    def interferogram(phase):
+        import numpy as np
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings("ignore", module="dask")
+        return np.arctan2(phase.imag, phase.real)
+
+#     @staticmethod
+#     def correlation(I1, I2, amp):
+#         import xarray as xr
+#         import numpy as np
+#         # constant from GMTSAR code
+#         thresh = 5.e-21
+#         i = I1 * I2
+#         corr = xr.where(i > 0, amp / np.sqrt(i), 0)
+#         corr = xr.where(corr < 0, 0, corr)
+#         corr = xr.where(corr > 1, 1, corr)
+#         # mask too low amplitude areas as invalid
+#         # amp1 and amp2 chunks are high for SLC, amp has normal chunks for NetCDF
+#         return xr.where(i >= thresh, corr, np.nan).chunk(a.chunksizes).rename('phase')
+
+    def correlation(self, phase, data):
+        """
+        Example:
+        data_200m = stack.multilooking(np.abs(sbas.open_stack()), wavelength=200, coarsen=(4,16))
+        intf2_200m = stack.multilooking(intf2, wavelength=200, coarsen=(4,16))
+        stack.correlation(intf2_200m, data_200m)
+
+        Note:
+        Multiple interferograms require the same data grids, allowing us to speed up the calculation
+        by saving filtered data to a disk file.
+        """
+        import pandas as pd
+        import dask
+        import xarray as xr
+        import numpy as np
+        # constant from GMTSAR code
+        # apply square root because we compare multiplication of amplitudes instead of intensities
+        thresh = np.sqrt(5.e-21)
+
+        # convert pairs (list, array, dataframe) to 2D numpy array
+        pairs, dates = self.get_pairs(phase, dates=True)
+        pairs = pairs[['ref', 'rep']].astype(str).values
+
+        # check correctness for user-defined data argument
+        assert not np.issubdtype(data.dtype, np.complexfloating), 'Use np.abs(data) to convert complex values to amplitudes before multilooking'
+
+        stack = []
+        for stack_idx, pair in enumerate(pairs):
+            date1, date2 = pair
+            # calculate correlation
+            amps = data.sel(date=date1) * data.sel(date=date2)
+            # mask too low amplitude areas as invalid
+            corr = xr.where(amps >= thresh, np.abs(phase.sel(pair=' '.join(pair))) / amps, np.nan)
+            corr = xr.where(corr < 0, 0, corr)
+            corr = xr.where(corr > 1, 1, corr)
+            del amps
+            # add to stack
+            stack.append(corr)
+            del corr
+        # cleanup
+        del data
+
+        return xr.concat(stack, dim='pair').rename('correlation')
 
     def phasediff(self, pairs, topo='auto', method='cubic'):
         import pandas as pd
@@ -166,7 +232,7 @@ class Stack_phasediff(Stack_topo):
             # calculate phase difference
             intf = block_data1 * phase_shift * np.conj(block_data2)
             del block_data1, block_data2, phase_shift
-            return intf.where(abs(intf)>0).astype(np.complex64)
+            return intf.astype(np.complex64)
 
         # open datafiles required for all the pairs
         data = self.open_stack(dates)
@@ -217,7 +283,7 @@ class Stack_phasediff(Stack_topo):
 
             if topo is None:
                 # calculation is straightforward and does not require delayed wrappers
-                intf = (data1 * np.conj(data2)).where(abs(data1)>0)
+                intf = (data1 * np.conj(data2))
             else:
                 # split to equal chunks and rest
                 #ys_blocks = np.array_split(data[0].y, np.arange(0,data.y.size, self.chunksize)[1:])
