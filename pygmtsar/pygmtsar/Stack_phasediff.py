@@ -316,3 +316,98 @@ class Stack_phasediff(Stack_topo):
         coord_rep = xr.DataArray(pd.to_datetime(pairs[:,1]), coords={'pair': coord_pair})
 
         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
+
+    @staticmethod
+    def goldstein(phase, corr, psize=32):
+        import xarray as xr
+        import numpy as np
+        import dask
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings("ignore", module="dask")
+
+        def apply_pspec(data, alpha):
+            # NaN is allowed value
+            assert not(alpha < 0), f'Invalid parameter value {alpha} < 0'
+            wgt = np.power(np.abs(data)**2, alpha / 2)
+            data = wgt * data
+            return data
+
+        def make_wgt(nxp, nyp):
+            # Create arrays of horizontal and vertical weights
+            wx = 1.0 - np.abs(np.arange(nxp // 2) - (nxp / 2.0 - 1.0)) / (nxp / 2.0 - 1.0)
+            wy = 1.0 - np.abs(np.arange(nyp // 2) - (nyp / 2.0 - 1.0)) / (nyp / 2.0 - 1.0)
+            # Compute the outer product of wx and wy to create the top-left quadrant of the weight matrix
+            quadrant = np.outer(wy, wx)
+            # Create a full weight matrix by mirroring the quadrant along both axes
+            wgt = np.block([[quadrant, np.flip(quadrant, axis=1)],
+                            [np.flip(quadrant, axis=0), np.flip(np.flip(quadrant, axis=0), axis=1)]])
+            return wgt
+
+        def patch_goldstein_filter(data, corr, wgt, psize):
+            """
+            Apply the Goldstein adaptive filter to the given data.
+
+            Args:
+                data: 2D numpy array of complex values representing the data to be filtered.
+                corr: 2D numpy array of correlation values. Must have the same shape as `data`.
+
+            Returns:
+                2D numpy array of filtered data.
+            """
+            # Calculate alpha
+            alpha = 1 - (wgt * corr).sum() / wgt.sum()
+            data = np.fft.fft2(data, s=(psize,psize))
+            data = apply_pspec(data, alpha)
+            data = np.fft.ifft2(data, s=(psize,psize))
+            return wgt * data
+
+        def apply_goldstein_filter(data, corr, psize):
+            # Create an empty array for the output
+            out = np.zeros(data.shape, dtype=np.complex64)
+            # ignore processing for empty chunks 
+            if np.all(np.isnan(data)):
+                return out
+            # Create the weight matrix
+            wgt_matrix = make_wgt(psize, psize)
+            # Iterate over windows of the data
+            for i in range(0, data.shape[0] - psize, psize // 2):
+                for j in range(0, data.shape[1] - psize, psize // 2):
+                    # Create proocessing windows
+                    data_window = data[i:i+psize, j:j+psize]
+                    corr_window = corr[i:i+psize, j:j+psize]
+                    wgt_window = wgt_matrix[:data_window.shape[0],:data_window.shape[1]]
+                    # Apply the filter to the window
+                    filtered_window = patch_goldstein_filter(data_window, corr_window, wgt_window, psize)
+                    # Add the result to the output array
+                    slice_i = slice(i, min(i + psize, out.shape[0]))
+                    slice_j = slice(j, min(j + psize, out.shape[1]))
+                    out[slice_i, slice_j] += filtered_window[:slice_i.stop - slice_i.start, :slice_j.stop - slice_j.start]
+            return out
+
+        assert phase.shape == corr.shape, 'ERROR: phase and correlation variables have different shape'
+        if len(phase.dims) == 2:
+            stackvar = None
+        else:
+            stackvar = phase.dims[0]
+    
+        stack =[]
+        for ind in range(len(phase) if stackvar is not None else 1):
+            # Apply function with overlap; psize//2 overlap is not enough (some empty lines produced)
+            # use complex data and real correlation
+            block = dask.array.map_overlap(lambda phase, corr: apply_goldstein_filter(phase, corr, psize),
+                                           (phase[ind] if stackvar is not None else phase).data,
+                                           (corr[ind]  if stackvar is not None else corr).data,
+                                           depth=psize // 2 + 2,
+                                           dtype=np.complex64, 
+                                           meta=np.array(()))
+            # Calculate the phase
+            stack.append(block)
+            del block
+
+        if stackvar is not None:
+            ds = xr.DataArray(dask.array.stack(stack), coords=phase.coords)
+        else:
+            ds = xr.DataArray(stack[0], coords=phase.coords)
+        del stack
+        return ds.rename('phase')
