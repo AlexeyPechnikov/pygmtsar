@@ -17,7 +17,8 @@ class Stack_phasediff(Stack_topo):
         import numpy as np
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings("ignore", module="dask")
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
         return np.arctan2(phase.imag, phase.real)
 
 #     @staticmethod
@@ -37,7 +38,7 @@ class Stack_phasediff(Stack_topo):
     def correlation(self, phase, data):
         """
         Example:
-        data_200m = stack.multilooking(np.abs(sbas.open_stack()), wavelength=200, coarsen=(4,16))
+        data_200m = stack.multilooking(np.abs(sbas.open_data()), wavelength=200, coarsen=(4,16))
         intf2_200m = stack.multilooking(intf2, wavelength=200, coarsen=(4,16))
         stack.correlation(intf2_200m, data_200m)
 
@@ -49,6 +50,10 @@ class Stack_phasediff(Stack_topo):
         import dask
         import xarray as xr
         import numpy as np
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
         # constant from GMTSAR code
         # apply square root because we compare multiplication of amplitudes instead of intensities
         thresh = np.sqrt(5.e-21)
@@ -78,7 +83,7 @@ class Stack_phasediff(Stack_topo):
 
         return xr.concat(stack, dim='pair').rename('correlation')
 
-    def phasediff(self, pairs, topo='auto', method='cubic'):
+    def phasediff(self, pairs, data='auto', topo='auto', method='cubic'):
         import pandas as pd
         import dask
         import xarray as xr
@@ -234,8 +239,9 @@ class Stack_phasediff(Stack_topo):
             del block_data1, block_data2, phase_shift
             return intf.astype(np.complex64)
 
-        # open datafiles required for all the pairs
-        data = self.open_stack(dates)
+        if data == 'auto':
+            # open datafiles required for all the pairs
+            data = self.open_data(dates)
         # define blocks
         chunks = data.chunks
         ychunks,xchunks = chunks[1], chunks[2]
@@ -324,7 +330,8 @@ class Stack_phasediff(Stack_topo):
         import dask
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings("ignore", module="dask")
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         def apply_pspec(data, alpha):
             # NaN is allowed value
@@ -410,4 +417,5 @@ class Stack_phasediff(Stack_topo):
         else:
             ds = xr.DataArray(stack[0], coords=phase.coords)
         del stack
-        return ds.rename('phase')
+        # replace zeros produces in NODATA areas
+        return ds.where(ds).rename('phase')

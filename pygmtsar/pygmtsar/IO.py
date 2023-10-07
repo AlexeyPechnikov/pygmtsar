@@ -281,7 +281,7 @@ class IO(datagrid):
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
-    def open_stack(self, dates=None, scale=2.5e-07):
+    def open_data(self, dates=None, scale=2.5e-07):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -310,7 +310,7 @@ class IO(datagrid):
         # zero in np.int16 type means NODATA
         return ds_scaled.where(ds_scaled != 0)
 
-#     def open_stack(self, dates=None, scale=2.5e-07):
+#     def open_data(self, dates=None, scale=2.5e-07):
 #         import xarray as xr
 #         import pandas as pd
 #         import numpy as np
@@ -357,7 +357,7 @@ class IO(datagrid):
 #         del dss
 #         return ds
 
-#     def open_stack(self, dates=None, intensity=False, scale=2.5e-07, chunksize=None):
+#     def open_data(self, dates=None, intensity=False, scale=2.5e-07, chunksize=None):
 #         import xarray as xr
 #         import pandas as pd
 #         import numpy as np
@@ -381,9 +381,9 @@ class IO(datagrid):
 #         slcs['date'] = pd.to_datetime(dates)
 #         return slcs
 # 
-#     def open_stack_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
+#     def open_data_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
 #         """
-#         tiffs = stack.open_stack_geotif(['2022-06-16', '2022-06-28'], intensity=True)
+#         tiffs = stack.open_data_geotif(['2022-06-16', '2022-06-28'], intensity=True)
 #         """
 #         import xarray as xr
 #         import rioxarray as rio
@@ -527,3 +527,86 @@ class IO(datagrid):
         tqdm_dask(dask.persist(delayed), desc=caption)
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
+
+    def delete_cube(self, name):
+        import os
+
+        filename = self.get_filename(name, add_subswath=False)
+        #print ('filename', filename)
+        if os.path.exists(filename):
+            os.remove(filename)
+
+    def open_stack(self, name, always_dataset=False):
+        import xarray as xr
+        import pandas as pd
+
+        filenames = self.get_filename(f'{name}_*')
+        ds = xr.open_mfdataset(
+            filenames,
+            engine=self.netcdf_engine,
+            chunks=self.chunksize,
+            parallel=True,
+            concat_dim='stackvar',
+            combine='nested'
+        ).rename({'a': 'y', 'r': 'x'})
+
+        for dim in ['pair', 'date']:
+            if dim in ds.coords:
+                ds = ds.rename({'stackvar': dim})
+    
+        # convert string dates to dates
+        for dim in ['date', 'ref', 'rep']:
+            if dim in ds.dims:
+                ds[dim] = pd.to_datetime(ds[dim])
+
+        if not always_dataset and len(ds.data_vars) == 1:
+            return ds[list(ds.data_vars)[0]]
+        return ds
+
+    def save_stack(self, data, name, caption='Saving 2D grids stack'):
+        import xarray as xr
+        import dask
+        import os
+
+        # cleanup
+        self.delete_stack(name)
+    
+        stackvar = data.dims[0]
+    
+        delayeds = []
+        digits = len(str(len(data)))
+        for ind in range(len(data)):
+            stackval = str(data[stackvar][ind].values).replace(' ', '_')
+            # save to NetCDF file
+            filename = self.get_filename(f'{name}_{stackval}')
+            if os.path.exists(filename):
+                os.remove(filename)
+            if isinstance(data, xr.Dataset):
+                encoding = {varname: self.compression(data[ind][varname].shape,
+                        chunksize=self.netcdf_chunksize) for varname in data.data_vars}
+            elif isinstance(data, xr.DataArray):
+                encoding = {data.name: self.compression(data[ind].shape,
+                            chunksize=self.netcdf_chunksize)}
+            else:
+                raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
+            delayed = data[ind].rename({'y': 'a', 'x': 'r'}).to_netcdf(filename,
+                                  encoding=encoding,
+                                  engine=self.netcdf_engine,
+                                  compute=False)
+            delayeds.append(delayed)
+
+        tqdm_dask(dask.persist(delayeds), desc=caption)
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
+
+    def delete_stack(self, name):
+        import os
+        import glob
+
+        template = self.get_filename(f'{name}_*')
+        #print ('template', template)
+        filenames = glob.glob(template)
+        #print ('filenames', filenames)
+        for filename in filenames:
+            if os.path.exists(filename):
+                os.remove(filename)

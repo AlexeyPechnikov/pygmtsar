@@ -97,6 +97,10 @@ class Stack_gaussian(Stack_phasediff):
         import numpy as np
         import dask
         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
         # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
@@ -122,6 +126,9 @@ class Stack_gaussian(Stack_phasediff):
 
         # weighted and not weighted convolution on float and complex float data
         def apply_filter(data, weight, sigmas, truncate=2):
+            # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+            warnings.filterwarnings('ignore', module='dask')
+            warnings.filterwarnings('ignore', module='dask.core')
             if np.issubdtype(data.dtype, np.complexfloating):
                 parts = []
                 for part in [data.real, data.imag]:
