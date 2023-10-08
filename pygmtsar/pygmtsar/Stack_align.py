@@ -731,6 +731,69 @@ class Stack_align(Stack_dem):
 #         # file always exists, no check required
 #         os.remove(slc_filename)
 
+    def baseline_table(self, n_jobs=-1, debug=False):
+        """
+        Generates a baseline table for Sentinel-1 data, containing dates and baseline components.
+
+        This function creates a baseline table for Sentinel-1 data by processing the PRM files, which
+        contain metadata for each image. The table includes dates and parallel and perpendicular
+        baseline components for each image.
+
+        Parameters
+        ----------
+        n_jobs : int, optional
+            Number of CPU cores to use for parallel processing (default is -1, which means using all available cores).
+        debug : bool, optional
+            If True, print additional information during processing (default is False).
+
+        Returns
+        -------
+        pandas.DataFrame
+            A DataFrame containing the baseline table with date, times, and baseline components.
+
+        Notes
+        -----
+        This function processes Sentinel-1 data by first generating PRM and LED files if they don't exist,
+        then calculating doppler and orbital parameters for each image, and finally computing the baseline
+        components. The routine is suited to be used before alignment to detect the best reference scene.
+
+        """
+        import pandas as pd
+        import numpy as np
+        from tqdm.auto import tqdm
+        import joblib
+        import os
+
+        # use any one subswath in case of many
+        subswath = self.get_subswaths()[0]
+        datetimes = self.df[self.df.subswath==subswath].datetime
+
+        def get_filename(dt):
+            stem = self.multistem_stem(subswath, dt)[1]
+            filename = os.path.join(self.basedir, f'{stem}.PRM')
+            return filename
+
+        def ondemand(date, dt):
+            if not os.path.exists(get_filename(dt)):
+                self.make_s1a_tops(subswath, date, debug=debug)
+
+        # generate PRM, LED if needed
+        #for (date, dt) in datetimes.iteritems():
+        #    #print (dt, date)
+        #    ondemand(dt)
+        with self.tqdm_joblib(tqdm(desc='PRM generation', total=len(datetimes))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in datetimes.items())
+
+        # calc_dop_orb() required for SAT_baseline
+        reference_dt = datetimes[self.reference]
+        prm_ref = PRM().from_file(get_filename(reference_dt)).calc_dop_orb(inplace=True)
+        data = []
+        for (date, dt) in datetimes.items():
+            prm_rep = PRM().from_file(get_filename(dt))
+            BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
+            data.append({'date':date, 'parallel':BPL.round(1), 'perpendicular':BPR.round(1)})
+        return pd.DataFrame(data).set_index('date')
+
     def align(self, dates=None, n_jobs=-1, debug=False):
         """
         Stack and align scenes.
