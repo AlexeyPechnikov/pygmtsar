@@ -117,23 +117,16 @@ class Stack_sbas(Stack_detrend):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def lstsq(self, data=None, weight=None, chunksize=512, debug=False):
+    def lstsq(self, data, weight=None, debug=False):
         """
-        Perform least squares (weighted or unweighted) computation on the input data in parallel.
-
-        This function applies the least squares computation on the input data, taking into account
-        interferogram date pairs, and processes it in parallel using Dask and Joblib.
+        Perform least squares (weighted or unweighted) computation on the input phase data in parallel.
 
         Parameters
         ----------
-        pairs : array-like or pandas.DataFrame, optional
-            Interferogram date pairs.
         data : str or xarray.DataArray, optional
             Input data to compute least squares on.
         weight : str, xarray.DataArray, pd.Series, or np.ndarray, optional
             Weights for the least squares computation.
-        chunksize : int, optional
-            Size of the chunks for processing the data.
 
         Returns
         -------
@@ -142,36 +135,22 @@ class Stack_sbas(Stack_detrend):
 
         Examples:
         -----
-        stack.lstsq(unwraps_detrend, interactive=False)
-        stack.lstsq(unwraps_detrend, corrs, interactive=False)
-        stack.lstsq([unwraps_detrend, corrs], interactive=False)
-        stack.lstsq((unwraps_detrend, corrs), interactive=False)
-        stack.lstsq((unwraps_detrend, corrs.mean(['y', 'x'])), interactive=False)
+        stack.lstsq(unwraps_detrend)
+        stack.lstsq(unwraps_detrend, corrs)
+        stack.lstsq(unwraps_detrend, corrs.mean(['y', 'x']))
 
         Notes
         -----
         This function processes large stacks by splitting them into chunks, performing the computation,
         and then rebuilding and saving the results in a user-friendly format.
-    
+
         """
         import xarray as xr
         import numpy as np
         import pandas as pd
         import dask
 
-        # source grids lazy loading
-        #if isinstance(data, str):
-        #    data = self.open_grids(pairs, data, interactive=True)
-        if data is None:
-            raise ValueError('Argument data should be 3D Xarray object')
-        elif weight is not None and isinstance(data, (list, tuple)):
-            raise ValueErrorlueError('Weight defined twice using weight argument and as the second part in data argument')
-        elif weight is None and isinstance(data, (list, tuple)):
-            assert len(data) == 2, 'Argument data can be a list or a tuple of data and weight arguments'
-            # this case should be processed inside lstq_block function
-            data, weight   = data
-            assert len(data.dims) == 3, 'Argument data should be 3D Xarray object'
-        elif isinstance(data, xr.DataArray) and len(data.dims) == 3:
+        if isinstance(data, xr.DataArray) and len(data.dims) == 3:
             # this case should be processed inside lstq_block function
             pass
         if debug:
@@ -183,8 +162,6 @@ class Stack_sbas(Stack_detrend):
         elif isinstance(weight, np.ndarray):
             # this case should be processed inside lstq_block function
             pass
-        #elif isinstance(weight, str):
-        #    weight = self.open_grids(pairs, weight, interactive=True)
         elif isinstance(weight, pd.Series):
             # vector weight like to average correlation
             weight = weight.values
@@ -232,8 +209,8 @@ class Stack_sbas(Stack_detrend):
         # split to square chunks
         # use indices instead of the coordinate values to prevent the weird error raising occasionally:
         # "Reindexing only valid with uniquely valued Index objects"
-        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, chunksize)[1:])
-        xs_blocks = np.array_split(np.arange(data.x.size), np.arange(0, data.x.size, chunksize)[1:])
+        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, self.netcdf_chunksize)[1:])
+        xs_blocks = np.array_split(np.arange(data.x.size), np.arange(0, data.x.size, self.netcdf_chunksize)[1:])
 
         blocks_total = []
         for ys_block in ys_blocks:
