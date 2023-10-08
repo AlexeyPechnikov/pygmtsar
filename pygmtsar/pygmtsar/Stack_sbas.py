@@ -117,7 +117,7 @@ class Stack_sbas(Stack_detrend):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def lstsq(self, data=None, weight=None, chunksize=None, interactive=False, debug=False):
+    def lstsq(self, data=None, weight=None, chunksize=512, debug=False):
         """
         Perform least squares (weighted or unweighted) computation on the input data in parallel.
 
@@ -134,8 +134,6 @@ class Stack_sbas(Stack_detrend):
             Weights for the least squares computation.
         chunksize : int, optional
             Size of the chunks for processing the data.
-        interactive : bool, optional
-            If True, returns the result as an xarray DataArray (default is False).
 
         Returns
         -------
@@ -160,16 +158,6 @@ class Stack_sbas(Stack_detrend):
         import numpy as np
         import pandas as pd
         import dask
-
-        if chunksize is None:
-            # 3D grids processing chunks
-            # note: pair/date coordinate is not chunked
-            # for base chunksize=1000 64 is slow with garbage collector notices,
-            # 128 ok, 256 is faster, 512 is a bit slowly and requires more RAM
-            # to have good chunks for base chunksize=512 and 1024 divider 4 looks the best   
-            chunksize = self.chunksize // 4
-        if debug:
-            print ('DEBUG: chunksize', chunksize)
 
         # source grids lazy loading
         #if isinstance(data, str):
@@ -263,77 +251,8 @@ class Stack_sbas(Stack_detrend):
         coords = {'date': pd.to_datetime(dates), 'y': data.y.values, 'x': data.x.values}
         model = xr.DataArray(model, coords=coords).rename('displacement')
 
-        if interactive:
-            return model
-
-        self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing', chunksize=chunksize)
-
-    def baseline_table(self, n_jobs=-1, debug=False):
-        """
-        Generates a baseline table for Sentinel-1 data, containing dates, times, and baseline components.
-
-        This function creates a baseline table for Sentinel-1 data by processing the PRM files, which
-        contain metadata for each image. The table includes dates, times, and parallel and perpendicular
-        baseline components for each image.
-
-        Parameters
-        ----------
-        n_jobs : int, optional
-            Number of CPU cores to use for parallel processing (default is -1, which means using all available cores).
-        debug : bool, optional
-            If True, print additional information during processing (default is False).
-
-        Returns
-        -------
-        pandas.DataFrame
-            A DataFrame containing the baseline table with date, times, and baseline components.
-
-        Notes
-        -----
-        This function processes Sentinel-1 data by first generating PRM and LED files if they don't exist,
-        then calculating doppler and orbital parameters for each image, and finally computing the baseline
-        components.
-
-        """
-        import pandas as pd
-        import numpy as np
-        from tqdm.auto import tqdm
-        import joblib
-        import os
-
-        datetimes = self.df.datetime
-
-        def get_filename(dt):
-            _, stem = self.multistem_stem(dt)
-            filename = os.path.join(self.basedir, f'{stem}.PRM')
-            return filename
-    
-        def ondemand(date, dt):
-            if not os.path.exists(get_filename(dt)):
-                self.make_s1a_tops(date, debug=debug)
-
-        # generate PRM, LED if needed
-        #for (date, dt) in datetimes.iteritems():
-        #    #print (dt, date)
-        #    ondemand(dt)
-        with self.tqdm_joblib(tqdm(desc='PRM generation', total=len(datetimes))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in datetimes.items())
-    
-        # calc_dop_orb() required for SAT_baseline
-        reference_dt = datetimes[self.reference]
-        prm_ref = PRM().from_file(get_filename(reference_dt)).calc_dop_orb(inplace=True)
-        data = []
-        for (date, dt) in datetimes.items():
-            prm_rep = PRM().from_file(get_filename(dt))
-            ST0 = prm_rep.get('SC_clock_start')
-            DAY = int(ST0 % 1000)
-            YR = int(ST0/1000) - 2014
-            YDAY = YR * 365 + DAY
-            #print (f'YR={YR}, DAY={DAY}')
-            BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
-            data.append({'date':date, 'ST0':ST0, 'YDAY':YDAY, 'BPL':BPL, 'BPR':BPR})
-            #print (date, ST0, YDAY, BPL, BPR)
-        return pd.DataFrame(data).set_index('date')
+        return model
+        #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
     def baseline_pairs(self, days=100, meters=None, limit=None, invert=False, n_jobs=-1, debug=False):
         """
@@ -368,7 +287,35 @@ class Stack_sbas(Stack_detrend):
         import numpy as np
         import pandas as pd
 
-        tbl = self.baseline_table(n_jobs=n_jobs, debug=debug)
+        def baseline_table():
+            """
+            Generates a baseline table for Sentinel-1 data, containing dates, times, and baseline components.
+
+            This function creates a baseline table for Sentinel-1 data by processing the PRM files, which
+            contain metadata for each image. The table includes dates, times, and parallel and perpendicular
+            baseline components for each image.
+            """
+            import pandas as pd
+            import numpy as np
+
+            datetimes = self.df.datetime
+
+            reference_dt = datetimes[self.reference]
+            prm_ref = self.PRM()
+            data = []
+            for (date, dt) in datetimes.items():
+                prm_rep = self.PRM(date)
+                ST0 = prm_rep.get('SC_clock_start')
+                DAY = int(ST0 % 1000)
+                YR = int(ST0/1000) - 2014
+                YDAY = YR * 365 + DAY
+                #print (f'YR={YR}, DAY={DAY}')
+                BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
+                data.append({'date':date, 'ST0':ST0, 'YDAY':YDAY, 'BPL':BPL, 'BPR':BPR})
+                #print (date, ST0, YDAY, BPL, BPR)
+            return pd.DataFrame(data).set_index('date')
+
+        tbl = baseline_table()
         data = []
         for line1 in tbl.itertuples():
             counter = 0
