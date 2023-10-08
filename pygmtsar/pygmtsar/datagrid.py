@@ -302,41 +302,41 @@ class datagrid:
 #        np.seterr(invalid='ignore')
 #        return np.where(conv.imag >= threshold*np.sum(kernel), np.divide(conv.real, conv.imag), np.nan)
 
-    @staticmethod
-    def nanconvolve2d_gaussian(dataarray, sigmas, truncate):
-        """
-        Apply lazy convolution using Gaussian kernel on a 2D array with NaN values.
-
-        Parameters
-        ----------
-        dataarray : xarray.DataArray
-            The input 2D array with NaN values.
-        sigmas : tuple
-            The standard deviations of the Gaussian kernel in (row_sigma, column_sigma).
-        truncate : float
-            The truncation factor for the Gaussian kernel.
-
-        Returns
-        -------
-        xarray.DataArray
-            The convolved data array with NaN values.
-
-        Examples
-        --------
-        Apply Gaussian convolution with sigmas (2, 2) and truncate factor 3 to a 2D data array:
-        nanconvolve2d_gaussian(dataarray, sigmas=(2, 2), truncate=3)
-        """
-        import xarray as xr
-        import dask
-        from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
-
-        # this command works but it is slow
-        #da = dask.array.where(dask.array.isnan(dataarray), 0, 1j + dataarray)
-        # this command is fast and it replaces nan + 1j to to 0.+0.j
-        da = (dataarray + 1j).fillna(0).data
-        conv = dask_gaussian_filter(da, sigmas, mode='reflect', truncate=truncate)
-        da_conv = xr.DataArray(conv.real/conv.imag, coords=dataarray.coords, name=dataarray.name)
-        return da_conv
+#     @staticmethod
+#     def nanconvolve2d_gaussian(dataarray, sigmas, truncate):
+#         """
+#         Apply lazy convolution using Gaussian kernel on a 2D array with NaN values.
+# 
+#         Parameters
+#         ----------
+#         dataarray : xarray.DataArray
+#             The input 2D array with NaN values.
+#         sigmas : tuple
+#             The standard deviations of the Gaussian kernel in (row_sigma, column_sigma).
+#         truncate : float
+#             The truncation factor for the Gaussian kernel.
+# 
+#         Returns
+#         -------
+#         xarray.DataArray
+#             The convolved data array with NaN values.
+# 
+#         Examples
+#         --------
+#         Apply Gaussian convolution with sigmas (2, 2) and truncate factor 3 to a 2D data array:
+#         nanconvolve2d_gaussian(dataarray, sigmas=(2, 2), truncate=3)
+#         """
+#         import xarray as xr
+#         import dask
+#         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+# 
+#         # this command works but it is slow
+#         #da = dask.array.where(dask.array.isnan(dataarray), 0, 1j + dataarray)
+#         # this command is fast and it replaces nan + 1j to to 0.+0.j
+#         da = (dataarray + 1j).fillna(0).data
+#         conv = dask_gaussian_filter(da, sigmas, mode='reflect', truncate=truncate)
+#         da_conv = xr.DataArray(conv.real/conv.imag, coords=dataarray.coords, name=dataarray.name)
+#         return da_conv
 
     def nearest_grid(self, in_grid, search_radius_pixels=None):
         """
