@@ -254,7 +254,7 @@ class Stack_sbas(Stack_detrend):
         return model
         #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
-    def baseline_pairs(self, days=100, meters=None, limit=None, invert=False, n_jobs=-1, debug=False):
+    def baseline_pairs(self, days=100, meters=None, limit=None, invert=False):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
 
@@ -272,10 +272,6 @@ class Stack_sbas(Stack_detrend):
             Maximum number of pairs to return per reference image (default is None, which means no limit).
         invert : bool, optional
             If True, invert the order of reference and repeat images (default is False).
-        n_jobs : int, optional
-            Number of CPU cores to use for parallel processing (default is -1, which means using all available cores).
-        debug : bool, optional
-            If True, print additional information during processing (default is False).
 
         Returns
         -------
@@ -300,20 +296,15 @@ class Stack_sbas(Stack_detrend):
 
             datetimes = self.df.datetime
 
-            reference_dt = datetimes[self.reference]
             prm_ref = self.PRM()
             data = []
             for (date, dt) in datetimes.items():
                 prm_rep = self.PRM(date)
-                ST0 = prm_rep.get('SC_clock_start')
-                DAY = int(ST0 % 1000)
-                YR = int(ST0/1000) - 2014
-                YDAY = YR * 365 + DAY
-                #print (f'YR={YR}, DAY={DAY}')
                 BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
-                data.append({'date':date, 'ST0':ST0, 'YDAY':YDAY, 'BPL':BPL, 'BPR':BPR})
-                #print (date, ST0, YDAY, BPL, BPR)
-            return pd.DataFrame(data).set_index('date')
+                data.append({'date':date, 'BPL':BPL, 'BPR':BPR})
+            df = pd.DataFrame(data).set_index('date')
+            df.index = pd.DatetimeIndex(df.index)
+            return df
 
         tbl = baseline_table()
         data = []
@@ -323,7 +314,7 @@ class Stack_sbas(Stack_detrend):
                 #print (line1, line2)
                 if limit is not None and counter >= limit:
                     continue
-                if not (line1.YDAY < line2.YDAY and line2.YDAY - line1.YDAY < days):
+                if not (line1.Index < line2.Index and (line2.Index - line1.Index).days < days):
                     continue
                 if meters is not None and not (abs(line1.BPR - line2.BPR)< meters):
                     continue
@@ -331,11 +322,11 @@ class Stack_sbas(Stack_detrend):
                 counter += 1
                 if not invert:
                     data.append({'ref_date':line1.Index, 'rep_date': line2.Index,
-                                 'ref_timeline': np.round(line1.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line1.BPR, 2),
-                                 'rep_timeline': np.round(line2.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line2.BPR, 2)})
+                                 'ref_baseline': np.round(line1.BPR, 2),
+                                 'rep_baseline': np.round(line2.BPR, 2)})
                 else:
                     data.append({'ref_date':line2.Index, 'rep_date': line1.Index,
-                                 'ref_timeline': np.round(line2.YDAY/365.25+2014, 2), 'ref_baseline': np.round(line2.BPR, 2),
-                                 'rep_timeline': np.round(line1.YDAY/365.25+2014, 2), 'rep_baseline': np.round(line1.BPR, 2)})
+                                 'ref_baseline': np.round(line2.BPR, 2),
+                                 'rep_baseline': np.round(line1.BPR, 2)})
 
         return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
