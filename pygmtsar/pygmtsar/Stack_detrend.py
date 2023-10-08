@@ -11,6 +11,111 @@ from .Stack_unwrap import Stack_unwrap
 
 class Stack_detrend(Stack_unwrap):
 
+    def gaussian(self, grid, wavelength, truncate=3.0, resolution_meters=60, debug=False):
+        """
+        Apply a lazy Gaussian filter to an input 2D or 3D data array.
+
+        Parameters
+        ----------
+        dataarray : xarray.DataArray
+            The input data array with NaN values allowed.
+        wavelength : float
+            The cut-off wavelength for the Gaussian filter in meters.
+        truncate : float, optional
+            Size of the Gaussian kernel, defined in terms of standard deviation, or 'sigma'. 
+            It is the number of sigmas at which the window (filter) is truncated. 
+            For example, if truncate = 3.0, the window will cut off at 3 sigma. Default is 3.0.
+        resolution_meters : float, optional
+            The processing resolution for the Gaussian filter in meters.
+        debug : bool, optional
+            Whether to print debug information.
+
+        Returns
+        -------
+        xarray.DataArray
+            The filtered data array with the same coordinates as the input.
+
+        Examples
+        --------
+        Detrend ionospheric effects and solid Earth's tides on a large area and save to disk:
+        stack.stack_gaussian2d(slcs, wavelength=400)
+        For band-pass filtering apply the function twice and save to disk:
+        model = stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
+            - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True)
+        stack.save_cube(model, caption='Gaussian Band-Pass filtering')
+
+        Detrend and return lazy xarray dataarray:
+        stack.stack_gaussian2d(slcs, wavelength=400, interactive=True)
+        For band-pass filtering apply the function twice:
+        stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
+            - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True) 
+
+        """
+        import xarray as xr
+        import numpy as np
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
+
+        assert self.is_ra(grid), 'ERROR: the processing requires grid in radar coordinates'
+        assert np.issubdtype(grid.dtype, np.floating), 'ERROR: expected float datatype input grid'
+        assert wavelength is not None, 'ERROR: Gaussian filter cut-off wavelength is not defined'
+
+        # ground pixel size
+        dy, dx = self.get_spacing(grid)
+        # downscaling
+        yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
+        # gaussian kernel
+        #sigma_y = np.round(wavelength / dy / yscale, 1)
+        #sigma_x = np.round(wavelength / dx / xscale, 1)
+        if debug:
+            print (f'DEBUG: gaussian: ground pixel size in meters: y={dy:.1f}, x={dx:.1f}')
+        if (xscale <=1 and yscale <=1) or (wavelength/resolution_meters <= 3):
+            # decimation is useless
+            return self.multilooking(grid, wavelength=wavelength, coarsen=None, debug=debug)
+
+        # define filter on decimated grid, the correction value is typically small
+        wavelength_dec = np.sqrt(wavelength**2 - resolution_meters**2)
+        if debug:
+            print (f'DEBUG: gaussian: downscaling to resolution {resolution_meters}m using yscale {yscale}, xscale {xscale}')
+            #print (f'DEBUG: gaussian: filtering on {resolution_meters}m grid using sigma_y0 {sigma_y}, sigma_x0 {sigma_x}')
+            print (f'DEBUG: gaussian: filtering on {resolution_meters}m grid using wavelength {wavelength_dec:.1f}')
+
+        # find stack dim
+        stackvar = grid.dims[0] if len(grid.dims) == 3 else 'stack'
+        #print ('stackvar', stackvar)
+
+        # split coordinate grid to equal chunks and rest
+        ys_blocks = np.array_split(grid.y, np.arange(0, grid.y.size, self.chunksize)[1:])
+        xs_blocks = np.array_split(grid.x, np.arange(0, grid.x.size, self.chunksize)[1:])
+
+        grid_dec = self.multilooking(grid, wavelength=resolution_meters, coarsen=(yscale,xscale), debug=debug)
+        grid_dec_gauss = self.multilooking(grid_dec, wavelength=wavelength_dec, debug=debug)
+        del grid_dec
+    
+        stack = []
+        for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
+            grid_in = grid_dec_gauss.sel({stackvar: stackval}) if stackval is not None else grid_dec_gauss
+            grid_out = grid_in.reindex({'y': grid.y, 'x': grid.x}, method='nearest').chunk(self.chunksize)
+            del grid_in
+            stack.append(grid_out)
+            del grid_out
+
+        # wrap lazy Dask array to Xarray dataarray
+        if len(grid.dims) == 2:
+            out = stack[0]
+        else:
+            out = xr.concat(stack, dim=stackvar)
+        del stack
+
+        # append source grid coordinates excluding removed y, x ones
+        for (k,v) in grid.coords.items():
+            if k not in ['y','x']:
+                out[k] = v
+
+        return out
+
 #     def detrend(self, dataarray, fit_intercept=True, fit_dem=True, fit_coords=True,
 #                 resolution_meters=90, debug=False):
 #         """
@@ -161,92 +266,89 @@ class Stack_detrend(Stack_unwrap):
 #         # build the model and return the input data without the detected trend
 #         return postprocessing(regr_predict(regr_fit()))
 
-    def gaussian_fast(self, grid, wavelength, truncate=3.0, resolution_meters=90, interactive=False, debug=False):
-        """
-        Apply a lazy Gaussian filter to an input 2D or 3D data array.
-
-        Parameters
-        ----------
-        dataarray : xarray.DataArray
-            The input data array with NaN values allowed.
-        wavelength : float
-            The cut-off wavelength for the Gaussian filter in meters.
-        truncate : float, optional
-            Size of the Gaussian kernel, defined in terms of standard deviation, or 'sigma'. 
-            It is the number of sigmas at which the window (filter) is truncated. 
-            For example, if truncate = 3.0, the window will cut off at 3 sigma. Default is 3.0.
-        resolution_meters : float, optional
-            The processing resolution for the Gaussian filter in meters.
-        debug : bool, optional
-            Whether to print debug information.
-
-        Returns
-        -------
-        xarray.DataArray
-            The filtered data array with the same coordinates as the input.
-
-        Examples
-        --------
-        Detrend ionospheric effects and solid Earth's tides on a large area and save to disk:
-        stack.stack_gaussian2d(slcs, wavelength=400)
-        For band-pass filtering apply the function twice and save to disk:
-        model = stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
-            - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True)
-        stack.save_cube(model, caption='Gaussian Band-Pass filtering')
-
-        Detrend and return lazy xarray dataarray:
-        stack.stack_gaussian2d(slcs, wavelength=400, interactive=True)
-        For band-pass filtering apply the function twice:
-        stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
-            - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True) 
-
-        """
-        import xarray as xr
-        import numpy as np
-
-        assert self.is_ra(grid), 'ERROR: the processing requires grid in radar coordinates'
-        assert wavelength is not None, 'ERROR: Gaussian filter cut-off wavelength is not defined'
-
-        # ground pixel size
-        dy, dx = self.get_spacing(grid)
-        # reduction
-        yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
-        # gaussian kernel
-        sigma_y = np.round(wavelength / dy / yscale)
-        sigma_x = np.round(wavelength / dx / xscale)
-        if debug:
-            print (f'DEBUG: average ground pixel size in meters: y={dy}, x={dx}')
-            print (f'DEBUG: yscale {yscale}, xscale {xscale} to resolution {resolution_meters} m')
-            print ('DEBUG: Gaussian filtering using resolution, sigma_y, sigma_x', resolution_meters, sigma_y, sigma_x)
-
-        # find stack dim
-        stackvar = grid.dims[0] if len(grid.dims) == 3 else 'stack'
-        #print ('stackvar', stackvar)
-    
-        stack = []
-        for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
-            block = grid.sel({stackvar: stackval}) if stackval is not None else grid
-            block_dec = self.antialiasing_downscale(block, wavelength=resolution_meters, coarsen=(yscale,xscale), debug=debug)
-            gaussian_dec = self.nanconvolve2d_gaussian(block_dec, (sigma_y,sigma_x), truncate=truncate)
-            # interpolate decimated filtered grid to original resolution
-            gaussian = gaussian_dec.interp_like(block, method='nearest')
-            # revert the original chunks
-            gaussian = xr.unify_chunks(block, gaussian)[1]
-            stack.append(gaussian.astype(np.float32).rename('gaussian'))
-
-        # wrap lazy Dask array to Xarray dataarray
-        if len(grid.dims) == 2:
-            out = stack[0]
-        else:
-            out = xr.concat(stack, dim=stackvar)
-        del stack
-
-        # append source grid coordinates excluding removed y, x ones
-        for (k,v) in grid.coords.items():
-            if k not in ['y','x']:
-                out[k] = v
-    
-        if interactive:
-            return out
-
-        self.save_cube(out, caption='Gaussian filtering')
+#     def gaussian(self, grid, wavelength, truncate=3.0, resolution_meters=90, debug=False):
+#         """
+#         Apply a lazy Gaussian filter to an input 2D or 3D data array.
+# 
+#         Parameters
+#         ----------
+#         dataarray : xarray.DataArray
+#             The input data array with NaN values allowed.
+#         wavelength : float
+#             The cut-off wavelength for the Gaussian filter in meters.
+#         truncate : float, optional
+#             Size of the Gaussian kernel, defined in terms of standard deviation, or 'sigma'. 
+#             It is the number of sigmas at which the window (filter) is truncated. 
+#             For example, if truncate = 3.0, the window will cut off at 3 sigma. Default is 3.0.
+#         resolution_meters : float, optional
+#             The processing resolution for the Gaussian filter in meters.
+#         debug : bool, optional
+#             Whether to print debug information.
+# 
+#         Returns
+#         -------
+#         xarray.DataArray
+#             The filtered data array with the same coordinates as the input.
+# 
+#         Examples
+#         --------
+#         Detrend ionospheric effects and solid Earth's tides on a large area and save to disk:
+#         stack.stack_gaussian2d(slcs, wavelength=400)
+#         For band-pass filtering apply the function twice and save to disk:
+#         model = stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
+#             - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True)
+#         stack.save_cube(model, caption='Gaussian Band-Pass filtering')
+# 
+#         Detrend and return lazy xarray dataarray:
+#         stack.stack_gaussian2d(slcs, wavelength=400, interactive=True)
+#         For band-pass filtering apply the function twice:
+#         stack.stack_gaussian2d(slcs, wavelength=400, interactive=True) \
+#             - stack.stack_gaussian2d(slcs, wavelength=2000, interactive=True) 
+# 
+#         """
+#         import xarray as xr
+#         import numpy as np
+# 
+#         assert self.is_ra(grid), 'ERROR: the processing requires grid in radar coordinates'
+#         assert wavelength is not None, 'ERROR: Gaussian filter cut-off wavelength is not defined'
+# 
+#         # ground pixel size
+#         dy, dx = self.get_spacing(grid)
+#         # reduction
+#         yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx))
+#         # gaussian kernel
+#         sigma_y = np.round(wavelength / dy / yscale)
+#         sigma_x = np.round(wavelength / dx / xscale)
+#         if debug:
+#             print (f'DEBUG: average ground pixel size in meters: y={dy}, x={dx}')
+#             print (f'DEBUG: yscale {yscale}, xscale {xscale} to resolution {resolution_meters} m')
+#             print ('DEBUG: Gaussian filtering using resolution, sigma_y, sigma_x', resolution_meters, sigma_y, sigma_x)
+# 
+#         # find stack dim
+#         stackvar = grid.dims[0] if len(grid.dims) == 3 else 'stack'
+#         #print ('stackvar', stackvar)
+#     
+#         stack = []
+#         for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
+#             block = grid.sel({stackvar: stackval}) if stackval is not None else grid
+#             block_dec = self.antialiasing_downscale(block, wavelength=resolution_meters, coarsen=(yscale,xscale), debug=debug)
+#             gaussian_dec = self.nanconvolve2d_gaussian(block_dec, (sigma_y,sigma_x), truncate=truncate)
+#             # interpolate decimated filtered grid to original resolution
+#             gaussian = gaussian_dec.interp_like(block, method='nearest')
+#             # revert the original chunks
+#             gaussian = xr.unify_chunks(block, gaussian)[1]
+#             stack.append(gaussian.astype(np.float32).rename('gaussian'))
+# 
+#         # wrap lazy Dask array to Xarray dataarray
+#         if len(grid.dims) == 2:
+#             out = stack[0]
+#         else:
+#             out = xr.concat(stack, dim=stackvar)
+#         del stack
+# 
+#         # append source grid coordinates excluding removed y, x ones
+#         for (k,v) in grid.coords.items():
+#             if k not in ['y','x']:
+#                 out[k] = v
+#     
+#         return out
