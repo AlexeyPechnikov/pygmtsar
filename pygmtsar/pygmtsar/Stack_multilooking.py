@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------------
 from .Stack_phasediff import Stack_phasediff
 
-class Stack_gaussian(Stack_phasediff):
+class Stack_multilooking(Stack_phasediff):
 
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
     def decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
@@ -87,8 +87,8 @@ class Stack_gaussian(Stack_phasediff):
                 else:
                     raise ValueError(f"Unsupported function {func}. Should be 'mean','min','max','count', or 'sum'")
 
-        # return callback function
-        return lambda da: decimator(da)
+        # return callback function and set common chunk size
+        return lambda da: decimator(da).chunk(self.chunksize)
 
     # coarsen = None disables downscaling and uses wavelength to filter
     # coarsen=1 disables downscaling and use coarsen/cutoff filter
@@ -104,7 +104,7 @@ class Stack_gaussian(Stack_phasediff):
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
         # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
-    
+
         # expand simplified definition
         if coarsen is not None and not isinstance(coarsen, (list, tuple, np.ndarray)):
             coarsen = (coarsen, coarsen)
@@ -115,14 +115,14 @@ class Stack_gaussian(Stack_phasediff):
 
         # antialiasing (multi-looking) filter
         if wavelength is None:
-            sigmas = np.round([coarsen[0]/cutoff, coarsen[1]/cutoff], 2)
+            sigmas = [coarsen[0]/cutoff, coarsen[1]/cutoff]
         else:
             dy, dx = self.get_spacing(data)
             #print ('DEBUG dy, dx', dy, dx)
             #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
-            sigmas = np.round([wavelength/cutoff/dy, wavelength/cutoff/dx], 2)
+            sigmas = [wavelength/cutoff/dy, wavelength/cutoff/dx]
         if debug:
-            print ('DEBUG: antialiasing_downscale sigmas', sigmas, 'for specified wavelength', wavelength)
+            print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified wavelength {wavelength:.1f}')
 
         # weighted and not weighted convolution on float and complex float data
         def apply_filter(data, weight, sigmas, truncate=2):
@@ -159,7 +159,7 @@ class Stack_gaussian(Stack_phasediff):
             stackvar = dims[0]
 
         if weight is not None:
-            assert data.shape == weight.shape, 'ERROR: data and weight variables have different shape'
+            assert data.shape == weight.shape, 'ERROR: multilooking data and weight variables have different shape'
 
         stack =[]
         for ind in range(len(data[stackvar]) if stackvar is not None else 1):
