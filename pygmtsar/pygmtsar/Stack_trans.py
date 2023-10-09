@@ -118,11 +118,15 @@ class Stack_trans(Stack_align):
                 border_zs  = np.concatenate([topo.values[:,0], topo.values[:,-1], topo.values[0,:], topo.values[-1,:]])
                 rae = SAT_llt2rat(border_lts, border_lls, border_zs)
                 del lts, lls, border_lts, border_lls, border_zs
-                mask = (rae[:,0]>=rmin) & (rae[:,0]<=rmax) & (rae[:,1]>=amin) & (rae[:,1]<=amax)
+                # this mask does not work for a single chunk
+                #mask = (rae[:,0]>=rmin) & (rae[:,0]<=rmax) & (rae[:,1]>=amin) & (rae[:,1]<=amax)
+                #del rae
+                #valid_pixels = mask[mask].size > 0
+                #del mask
+                invalid_mask = ((rae[:,0]<rmin) | (rmax<rae[:,0])) & ((rae[:,1]<amin) | (amax<rae[:,1]))
                 del rae
-                #print ('mask[mask].size', mask[mask].size)
-                valid_pixels = mask[mask].size > 0
-                del mask
+                valid_pixels = invalid_mask[~invalid_mask].size > 0
+                del invalid_mask
             else:
                 # continue the processing without empty block check
                 valid_pixels = True
