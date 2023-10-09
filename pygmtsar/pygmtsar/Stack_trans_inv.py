@@ -63,9 +63,7 @@ class Stack_trans_inv(Stack_trans):
         warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
         warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.array")
 
-        # expand simplified definition
-        if not isinstance(coarsen, (list,tuple, np.ndarray)):
-            coarsen = (coarsen, coarsen)
+        coarsen = self.get_coarsen(coarsen)
 
         def trans_inv_block(azis, rngs, chunksize):
             from scipy.spatial import cKDTree

@@ -86,9 +86,7 @@ class Stack_trans(Stack_align):
         # use only 3 values from 5 available ignoring redundant lat, lon
         llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele'}
 
-        # expand simplified definition
-        if not isinstance(coarsen, (list,tuple, np.ndarray)):
-            coarsen = (coarsen, coarsen)
+        coarsen = self.get_coarsen(coarsen)
 
         prm = self.PRM()
         def SAT_llt2rat(lats, lons, zs):

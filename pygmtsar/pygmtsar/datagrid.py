@@ -440,7 +440,7 @@ class datagrid:
         assert grid.chunks is not None, 'nearest_grid() output grid chunks are not defined'
         return grid
 
-    def get_spacing(self, grid=(1, 4), average=True):
+    def get_spacing(self, grid=1):
         """
         Compute the ground pixel size in meters for the default processing grid or the defined one.
 
@@ -449,16 +449,11 @@ class datagrid:
         grid : tuple or xarray.DataArray, optional
             A pair of x, y grid decimation coefficients or a 2D or 3D Xarray DataArray representing the decimation grid.
             The default is (1, 4) for the default processing grid.
-        average : bool, optional
-            Flag indicating whether to calculate the average ground pixel size per subswath resolution.
-            If True, the average pixel size across all subswaths is returned. If False, a list of pixel sizes per subswath
-            is returned. Default is True.
 
         Returns
         -------
-        tuple or list of tuples
-            The ground pixel size(s) in meters. If average is True, a tuple of average pixel sizes is returned.
-            If average is False, a list of tuples containing the pixel sizes per subswath is returned.
+        tuple
+            The ground pixel size(s) in meters.
 
         Examples
         --------
@@ -467,7 +462,7 @@ class datagrid:
         >>> (14.0, 15.7)
 
         Get the ground pixel size for an unwrapped phase grid with a decimation of {'y': 2, 'x': 2}:
-        stack.get_spacing(unwraps)
+        stack.get_spacing(unwrap)
         >>> (27.9, 29.5)
 
         Notes
@@ -479,6 +474,26 @@ class datagrid:
         """
         # pixel size in meters
         return self.PRM().get_spacing(grid)
+
+    def get_coarsen(self, factor):
+        import numpy as np
+
+        # expand simplified definition
+        if not isinstance(factor, (list,tuple, np.ndarray)):
+            coarsens = (factor, factor)
+        else:
+            coarsens = factor
+    
+        types = [type(coarsen) for coarsen in coarsens]
+        assert types[0] == types[1], f'Mixed coarsen datatypes are not allowed: {types}'
+        if types[0] == int:
+            # defined in pixels, as required
+            return coarsens
+    
+        # float coarsen should be defined in meters, convert to pixels
+        psizes = self.get_spacing()
+        coarsens = np.round([coarsens[0]/psizes[0], coarsens[1]/psizes[1]]).astype(int)
+        return coarsens
 
 #     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
 #     def decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
