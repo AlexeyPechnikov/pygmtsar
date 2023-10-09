@@ -69,6 +69,9 @@ class Stack_align(Stack_dem):
         """
         import xarray as xr
         import numpy as np
+        import warnings
+        # supress warnings "UserWarning: The specified chunks separate the stored chunks along dimension"
+        warnings.filterwarnings('ignore')
 
         # add buffer around the cropped area for borders interpolation
         dem_area = self.get_dem(subswath, geoloc=geoloc)
@@ -704,32 +707,32 @@ class Stack_align(Stack_dem):
 #                  .to_file(prm_filename)
 #         #.calc_dop_orb(prm.get('earth_radius'), 0, inplace=True, debug=debug)\
 
-#     def convert_slc2netcdf(self, subswath, date, debug=False):
-#         import xarray as xr
-#         #import numpy as np
-#         import os
-# 
-#         prm = self.PRM(date, subswath=subswath)
-#         slc = prm.read_SLC_int(scale=None)
-#         # add PRM to grid
-#         #slc.attrs['prm'] = str(prm)
-# 
-#         netcdf_filename = prm.filename[:-4] + '.grd'
-#         #print ('netcdf_filename', netcdf_filename)
-#         # cleanup before saving
-#         if os.path.exists(netcdf_filename):
-#             os.remove(netcdf_filename)
-#         # complevel=0 means disabled compression and the fastest saving
-#         encoding = {vn: self.compression(slc[vn].shape, complevel=0, chunksize=(self.chunksize // 4, 4 * self.chunksize)) for vn in slc.data_vars}
-#         # rename dimensions to prevent issue with square output
-#         slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
-# 
-#         # cleanup
-#         slc_filename = os.path.join(self.basedir, prm.get('SLC_file'))
-#         if debug:
-#             print ('DEBUG: remove', slc_filename)
-#         # file always exists, no check required
-#         os.remove(slc_filename)
+    def convert_subswath(self, subswath, date, debug=False):
+        import xarray as xr
+        #import numpy as np
+        import os
+
+        prm = self.PRM(date, subswath=subswath)
+        slc = prm.read_SLC_int(scale=None)
+        # add PRM to grid
+        #slc.attrs['prm'] = str(prm)
+
+        netcdf_filename = prm.filename[:-4] + '.grd'
+        #print ('netcdf_filename', netcdf_filename)
+        # cleanup before saving
+        if os.path.exists(netcdf_filename):
+            os.remove(netcdf_filename)
+        # complevel=0 means disabled compression and the fastest saving
+        encoding = {vn: self.compression(slc[vn].shape) for vn in slc.data_vars}
+        # rename dimensions to prevent issue with square output
+        slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
+
+        # cleanup
+        slc_filename = os.path.join(self.basedir, prm.get('SLC_file'))
+        if debug:
+            print ('DEBUG: remove', slc_filename)
+        # file always exists, no check required
+        os.remove(slc_filename)
 
     def baseline_table(self, n_jobs=-1, debug=False):
         """
@@ -845,6 +848,11 @@ class Stack_align(Stack_dem):
 #            with self.tqdm_joblib(tqdm(desc=f'Virtual Merging', total=len(dates))) as progress_bar:
 #                 joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.aligh_subswaths)(date, offsets, debug=debug) \
 #                                                for date in dates)
+        else:
+            # in case of a single subswath only convert SLC to NetCDF grid
+            with self.tqdm_joblib(tqdm(desc='Convert Subswath', total=len(dates))) as progress_bar:
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.convert_subswath)(subswaths[0], date, debug=debug) \
+                                               for date in dates)
 
         # merge subswaths, datapath and metapath converted to lists even for a single subswath, geometry merges bursts
         df = self.df.groupby(self.df.index).agg({'datetime': min, 'orbit': min, 'mission': min, 'polarization':min,
