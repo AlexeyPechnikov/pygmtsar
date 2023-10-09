@@ -367,10 +367,10 @@ class PRM_gmtsar:
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe[0]],
-                             cwd=cwd, encoding='utf8', bufsize=10*1000*1000)
+                             cwd=cwd, bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=stdin_data)
 
-        stderr_data = stderr_data
+        stderr_data = stderr_data.decode('utf8')
         if stderr_data is not None and len(stderr_data) and debug:
             print ('DEBUG: SAT_look', stderr_data)
             return None
