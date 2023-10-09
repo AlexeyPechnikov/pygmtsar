@@ -54,7 +54,7 @@ class Stack_multilooking(Stack_phasediff):
         dy, dx = self.get_spacing(grid)
         yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
         if debug:
-            print (f'DEBUG: ground pixel size in meters: y={dy}, x={dx}')
+            print (f'DEBUG: ground pixel size in meters: y={dy:.1f}, x={dx:.1f}')
         if yscale <= 1 and xscale <= 1 and xscale0==1:
             # decimation impossible
             if debug:
@@ -193,7 +193,11 @@ class Stack_multilooking(Stack_phasediff):
         del stack
 
         # it works faster when we prevent small chunks usage
+        if stackvar is not None:
+            chunksizes = (1, self.chunksize, self.chunksize)
+        else:
+            chunksizes = (self.chunksize, self.chunksize)
         if coarsen is not None:
             # coarse grid to square cells
-            return ds.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(self.chunksize)
-        return ds.chunk(self.chunksize)
+            return ds.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(chunksizes)
+        return ds.chunk(chunksizes)
