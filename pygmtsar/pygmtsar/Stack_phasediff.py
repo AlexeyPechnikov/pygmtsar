@@ -323,8 +323,7 @@ class Stack_phasediff(Stack_topo):
 
         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
 
-    @staticmethod
-    def goldstein(phase, corr, psize=32):
+    def goldstein(self, phase, corr, psize=32):
         import xarray as xr
         import numpy as np
         import dask
@@ -393,6 +392,9 @@ class Stack_phasediff(Stack_topo):
             return out
 
         assert phase.shape == corr.shape, 'ERROR: phase and correlation variables have different shape'
+        spacing = self.get_spacing(phase)
+        assert np.round(spacing[0]/spacing[1]) == 1, f'ERROR: grid cells should be almost square: {spacing}'
+        
         if len(phase.dims) == 2:
             stackvar = None
         else:
