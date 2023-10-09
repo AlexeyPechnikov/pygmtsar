@@ -333,14 +333,14 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = np.arctan2(np.sqrt(sat_look.look_E**2 + sat_look.look_N**2), sat_look.look_U).rename('incidence_angle')
         return incidence_ll
 
-    def vertical_displacement_mm(self, unwraps):
+    def vertical_displacement_mm(self, unwrap):
         """
-        Compute vertical displacement in millimeters in geographic coordinates.
+        Compute vertical displacement in millimeters in radar coordinates.
 
         Parameters
         ----------
-        unwraps : xarray.DataArray or xarray.Dataset
-            Unwrapped phase grid(s) in geographic coordinates.
+        unwrap : xarray.DataArray or xarray.Dataset
+            Unwrapped phase grid(s) in radar coordinates.
 
         Returns
         -------
@@ -349,21 +349,15 @@ class Stack_incidence(Stack_geocode):
 
         Examples
         --------
-        Calculate vertical displacement for unwrapped phase grids in geographic coordinates:
-        unwraps_ll = stack.open_grids(pairs, 'unwrap', geocode=True)
-        vert_disp_mm = stack.vertical_displacement_mm(unwraps_ll)
-
-        Calculate vertical displacement for detrended unwrapped phase grids in geographic coordinates:
-        vert_disp_mm = stack.open_grids(pairs, 'detrend', geocode=True, func=stack.vertical_displacement_mm)
-        # Note: here "func" argument for open_grids() function reduces the code to a single command.
+        ...
         """
         import numpy as np
-    
-        assert self.is_geo(unwraps), 'ERROR: unwrapped phase defined in radar coordinates'
-        
-        los_disp = self.los_displacement_mm(unwraps)
-        incidence_ll = self.incidence_angle()
-        return los_disp/np.cos(incidence_ll)
+
+        assert self.is_ra(unwrap), 'ERROR: unwrapped phase needs to be defined in radar coordinates'
+
+        los_disp = self.los_displacement_mm(unwrap)
+        incidence = self.incidence_angle()
+        return los_disp/np.cos(incidence)
 
     def eastwest_displacement_mm(self, unwraps):
         """
