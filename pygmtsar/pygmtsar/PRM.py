@@ -251,8 +251,13 @@ class PRM(datagrid, PRM_gmtsar):
             A PRM object.
         """
         import pandas as pd
-        return PRM(pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')\
+        # Google Colab wrapper
+        if float(pd.__version__[:3]) > 2.0:
+            return PRM(pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')\
                     .map(lambda val : pd.to_numeric(val,errors='ignore')))
+        else:
+            return PRM(pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')\
+                    .applymap(lambda val : pd.to_numeric(val,errors='ignore')))
 
     def __init__(self, prm=None):
         """
@@ -275,8 +280,13 @@ class PRM(datagrid, PRM_gmtsar):
             _prm = prm.reset_index()
         else:
             _prm = prm.df.reset_index()
-        self.df = _prm[['name', 'value']].drop_duplicates(keep='last', inplace=False).set_index('name')\
-            .map(lambda val : pd.to_numeric(val,errors='ignore'))
+        # Google Colab wrapper
+        if float(pd.__version__[:3]) > 2.0:
+            self.df = _prm[['name', 'value']].drop_duplicates(keep='last', inplace=False).set_index('name')\
+                .map(lambda val : pd.to_numeric(val,errors='ignore'))
+        else:
+            self.df = _prm[['name', 'value']].drop_duplicates(keep='last', inplace=False).set_index('name')\
+                .applymap(lambda val : pd.to_numeric(val,errors='ignore'))
         self.filename = None
 
     def __eq__(self, other):
