@@ -74,12 +74,12 @@ class Stack_sbas(Stack_detrend):
         except Exception as e:
             # typically, this error handled:
             # LinAlgError: SVD did not converge in Linear Least Squares
-            print ('Stack.lstsq notice:', str(e))
+            #print ('Stack.lstsq notice:', str(e))
             return np.nan * np.zeros(matrix.shape[1])
         #print ('model', model)
         # mask produced cumsum zeroes by NaNs where model[0] is the timeseries values
         return np.where(~np.isnan(model[0]), np.nancumsum(model[0], axis=0), np.nan)
-        
+
     def lstsq_matrix(self, pairs):
         """
         Create a matrix for use in the least squares computation based on interferogram date pairs.
@@ -192,6 +192,8 @@ class Stack_sbas(Stack_detrend):
             if isinstance(weight, xr.DataArray):
                 # 3D array
                 weight_block = weight.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+                # weight=1 is not allowed for the used weighted least squares calculation function 
+                weight_block = np.where(weight_block>=1, 0.999999, weight_block)
                 # Vectorize vec_lstsq
                 vec_lstsq = np.vectorize(lambda x, w: self.lstsq1d(x, w, matrix), signature='(n),(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
