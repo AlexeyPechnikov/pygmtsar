@@ -135,7 +135,7 @@ class Stack_geocode(Stack_sbas):
             from scipy.interpolate import RegularGridInterpolator
         
             # use outer variables
-            block_grid = data.sel({stackvar: stackval}) if stackval is not None else data
+            block_grid = (data.sel({stackvar: stackval}) if stackval is not None else data).compute(n_workers=1)
             trans_block = trans.sel(lat=lats_block, lon=lons_block).compute(n_workers=1)
         
             # check if the data block exists
