@@ -201,7 +201,7 @@ class datagrid:
  
     # da.dropna(dim=dim, how='all') is not fast at all
     @staticmethod
-    def cropna(das):
+    def cropna(das, index=-1):
         """
         Crop the valid extent of a raster by removing rows and columns containing only NODATA values.
 
@@ -234,8 +234,8 @@ class datagrid:
         assert len(dims) == 2, 'ERROR: the input should be 3D array with "pair" or "date" coordinate'
         # slow check using all the grids in the stack
         #da = das.min(dim0)
-        # fast check using the only first grid in the stack
-        da = das.isel({dim0[0]: 0}) if dim0 != [] else das
+        # fast check using the only "index" grid in the stack
+        da = das.isel({dim0[index]: index}) if dim0 != [] else das
         indexer = {}
         for dim in dims:
             da = da.dropna(dim=dim, how='all')
