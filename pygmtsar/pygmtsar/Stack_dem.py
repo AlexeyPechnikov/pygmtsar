@@ -12,8 +12,8 @@ from .PRM import PRM
 
 class Stack_dem(Stack_reframe):
 
-    # Buffer size in degrees to expand the area covered by the DEM. Default is 0.02 degrees.
-    buffer_degrees = 0.02
+    # Buffer size in degrees to expand the area covered by the DEM
+    buffer_degrees = 0.1
     
     def set_dem(self, dem_filename):
         """
@@ -94,6 +94,9 @@ class Stack_dem(Stack_reframe):
         """
         import xarray as xr
         import os
+        import warnings
+        # supress warnings "UserWarning: The specified chunks separate the stored chunks along dimension"
+        warnings.filterwarnings('ignore')
 
         if self.dem_filename is None:
             raise Exception('Set DEM first')
