@@ -34,11 +34,8 @@ class S1():
 
         Examples
         --------
-        Initialize an Stack object with the data directory 'data' and the base directory 'raw':
-        stack = S1('data', basedir='raw')
-
-        Initialize an Stack object with the data directory 'data', DEM filename 'data/DEM_WGS84.nc', and the base directory 'raw':
-        stack = Stack('data', 'data/DEM_WGS84.nc', 'raw')
+        Initialize an Stack object with the data directory 'data':
+        stack = S1('data')
         """
         import os
         import shutil
@@ -271,6 +268,10 @@ class S1():
         geoloc = annotation['product']['geolocationGrid']['geolocationGridPointList']
         # check data consistency
         assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
-        gcps = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
+        # Google Colab wrapper
+        if float(pd.__version__[:3]) > 2.0:
+            gcps = pd.DataFrame(geoloc['geolocationGridPoint']).map(lambda val : pd.to_numeric(val,errors='ignore'))
+        else:
+            gcps = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
         # return approximate location as set of GCP
         return gpd.GeoDataFrame(gcps, geometry=gpd.points_from_xy(x=gcps.longitude, y=gcps.latitude))
