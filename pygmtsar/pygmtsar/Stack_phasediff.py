@@ -93,7 +93,7 @@ class Stack_phasediff(Stack_topo):
         pairs, dates = self.get_pairs(pairs, dates=True)
         pairs = pairs[['ref', 'rep']].astype(str).values
 
-        if topo == 'auto':
+        if isinstance(topo, str) and topo == 'auto':
             topo = self.get_topo()
 
         # calculate the combined earth curvature and topography correction
@@ -239,9 +239,10 @@ class Stack_phasediff(Stack_topo):
             del block_data1, block_data2, phase_shift
             return intf.astype(np.complex64)
 
-        if data == 'auto':
+        if isinstance(data, str) and data == 'auto':
             # open datafiles required for all the pairs
             data = self.open_data(dates)
+
         # define blocks
         chunks = data.chunks
         ychunks,xchunks = chunks[1], chunks[2]
@@ -404,9 +405,10 @@ class Stack_phasediff(Stack_topo):
         for ind in range(len(phase) if stackvar is not None else 1):
             # Apply function with overlap; psize//2 overlap is not enough (some empty lines produced)
             # use complex data and real correlation
+            # fill NaN values in correlation by zeroes to prevent empty output blocks
             block = dask.array.map_overlap(lambda phase, corr: apply_goldstein_filter(phase, corr, psize),
                                            (phase[ind] if stackvar is not None else phase).data,
-                                           (corr[ind]  if stackvar is not None else corr).data,
+                                           (corr[ind]  if stackvar is not None else corr).fillna(0).data,
                                            depth=psize // 2 + 2,
                                            dtype=np.complex64, 
                                            meta=np.array(()))
