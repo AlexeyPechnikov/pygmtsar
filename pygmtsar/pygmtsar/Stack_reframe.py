@@ -43,6 +43,8 @@ class Stack_reframe(Stack_reframe_gmtsar):
         from shapely.geometry import Point, LineString, Polygon, MultiPolygon
         from datetime import datetime
         import os
+        import warnings
+        warnings.filterwarnings('ignore')
 
         # define line covering some bursts to crop them
         if isinstance(geometry, (gpd.GeoDataFrame, gpd.GeoSeries)):
