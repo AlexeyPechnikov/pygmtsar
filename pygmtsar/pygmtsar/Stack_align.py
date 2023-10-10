@@ -819,6 +819,9 @@ class Stack_align(Stack_dem):
         import geopandas as gpd
         from tqdm.auto import tqdm
         import joblib
+        import warnings
+        # supress warnings about unary_union future behaviour to replace None by empty collection 
+        warnings.filterwarnings('ignore')
 
         if dates is None:
             dates = self.df.index.unique()
@@ -835,19 +838,12 @@ class Stack_align(Stack_dem):
         with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.align_rep_subswath)(subswath, date, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
-#         # convert all SLC to NetCDF
-#         with self.tqdm_joblib(tqdm(desc='Converting (TODO)', total=len(dates_rep)*len(subswaths))) as progress_bar:
-#             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.convert_slc2netcdf)(subswath, date, debug=debug) \
-#                                            for date in dates for subswath in subswaths)
 
         if len(subswaths) > 1:
             offsets = self.get_subswaths_offsets(self.reference, debug=debug)
             with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(dates))) as progress_bar:
                 joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge_subswaths)(date, offsets, debug=debug) \
                                                for date in dates)
-#            with self.tqdm_joblib(tqdm(desc=f'Virtual Merging', total=len(dates))) as progress_bar:
-#                 joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.aligh_subswaths)(date, offsets, debug=debug) \
-#                                                for date in dates)
         else:
             # in case of a single subswath only convert SLC to NetCDF grid
             with self.tqdm_joblib(tqdm(desc='Convert Subswath', total=len(dates))) as progress_bar:
@@ -855,11 +851,11 @@ class Stack_align(Stack_dem):
                                                for date in dates)
 
         # merge subswaths, datapath and metapath converted to lists even for a single subswath, geometry merges bursts
-        df = self.df.groupby(self.df.index).agg({'datetime': min, 'orbit': min, 'mission': min, 'polarization':min,
+        df = self.df.groupby(self.df.index).agg({'datetime': 'min', 'orbit': 'min', 'mission': 'min', 'polarization': 'min',
                                             'subswath': lambda s: int(''.join(map(str,list(s)))),
                                             'datapath': lambda p: list(p),
                                             'metapath': lambda p: list(p),
-                                            'orbitpath': min,
+                                            'orbitpath': 'min',
                                             'geometry': lambda g: g.unary_union
                                            })
         # update the main object for the merged subswaths
