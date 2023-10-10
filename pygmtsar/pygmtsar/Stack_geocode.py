@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_geocode(Stack_sbas):
 
-    def geocode(self, coarsen=4):
+    def geocode(self, coarsen=60.):
         """
         Build topography in radar coordinates from WGS84 DEM using parallel computation.
 
@@ -37,6 +37,9 @@ class Stack_geocode(Stack_sbas):
         If 'interactive' is True, the delayed computation handlers will be returned.
         Otherwise, the progress will be displayed using tqdm_dask.
         """
+        import warnings
+        warnings.filterwarnings('ignore')
+
         self.trans(coarsen=coarsen)
         self.trans_inv(coarsen=coarsen)
 
