@@ -80,6 +80,8 @@ class Stack_trans(Stack_align):
         import os
         from tqdm.auto import tqdm
         import joblib
+        import warnings
+        warnings.filterwarnings('ignore')
 
         # range, azimuth, elevation(ref to radius in PRM), lon, lat [ASCII default] 
         #llt2rat_map = {0: 'rng', 1: 'azi', 2: 'ele', 3: 'll', 4: 'lt'}
@@ -101,6 +103,8 @@ class Stack_trans(Stack_align):
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
             from dask.distributed import utils_perf
             utils_perf.disable_gc_diagnosis()
+            import warnings
+            warnings.filterwarnings('ignore')
 
             dlat = dem.yy.diff('yy')[0]
             dlon = dem.xx.diff('xx')[0]

@@ -59,9 +59,7 @@ class Stack_trans_inv(Stack_trans):
         import xarray as xr
         import numpy as np
         import warnings
-        # suppress Dask warning "RuntimeWarning: All-NaN slice encountered return np.nanmin"
-        warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.core")
-        warnings.filterwarnings("ignore", category=RuntimeWarning, module="dask.array")
+        warnings.filterwarnings('ignore')
 
         coarsen = self.get_coarsen(coarsen)
 
@@ -70,9 +68,8 @@ class Stack_trans_inv(Stack_trans):
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
             from dask.distributed import utils_perf
             utils_perf.disable_gc_diagnosis()
-            # suppress Dask warning "RuntimeWarning: All-NaN slice encountered return np.nanmin"
-            warnings.filterwarnings('ignore', category=RuntimeWarning, module='dask')
-            warnings.filterwarnings('ignore', category=RuntimeWarning, module='dask.core')
+            import warnings
+            warnings.filterwarnings('ignore')
         
             # required one delta around for nearest interpolation and two for linear
             dazi = np.diff(azis)[0]
