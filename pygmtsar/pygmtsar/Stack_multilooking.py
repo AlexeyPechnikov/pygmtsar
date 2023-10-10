@@ -38,6 +38,8 @@ class Stack_multilooking(Stack_phasediff):
         """
         import numpy as np
         import dask
+        import warnings
+        warnings.filterwarnings('ignore')
 
         # special cases: scale factor should be 4*N or 2*N to prevent rounding issues
         # grid can be defined as [] or () or xarray dataarray
@@ -98,9 +100,7 @@ class Stack_multilooking(Stack_phasediff):
         import dask
         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
         import warnings
-        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
+        warnings.filterwarnings('ignore')
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
         # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
