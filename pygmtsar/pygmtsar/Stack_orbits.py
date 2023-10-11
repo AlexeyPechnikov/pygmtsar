@@ -12,7 +12,6 @@ from .Stack_prm import Stack_prm
 class Stack_orbits(Stack_prm):
     # for precision orbit there is only single orbit per day
     # for approximate orbit 2 and maybe more orbits per day are possible
-    # so check orbit file for for each subswath
     def download_orbits(self):
         """
         Download missed orbits for all the Stack scenes.
@@ -28,12 +27,12 @@ class Stack_orbits(Stack_prm):
         """
         from eof.download import download_eofs
 
-        subswath = self.df.subswath.iloc[0]
-        df = self.df[self.df['orbitpath'].isna()&(self.df.subswath==subswath)]
-
-        # download all the misssed orbit files
+        # for all (date, mission) unique pairs download the corresponding orbit files
+        df = self.df[self.df['orbitpath'].isna()][['mission']].reset_index().drop_duplicates().sort_values('date')
+        if len(df) == 0:
+            return
+        orbitpaths = download_eofs(df.date.tolist(), df.mission.tolist(), save_dir=self.basedir)
+        # dataframe is already sorted
+        df['orbitpath'] = sorted(orbitpaths, key=lambda x: x[-19:])
         for record in df.itertuples():
-            #print (date, mission)
-            orbitpath = download_eofs([record.datetime], [record.mission], save_dir=self.basedir)[0]
-            #print ('orbitpath', orbitpath)
-            self.df.loc[self.df.datetime == record.datetime,'orbitpath'] = orbitpath
+            self.df.loc[(self.df.index == record.date)&(self.df.mission == record.mission),'orbitpath'] = record.orbitpath
