@@ -74,7 +74,7 @@ class Stack_geocode(Stack_sbas):
         dx = dem.lon.diff('lon')[0]
         points_ll = []
         for geom in data.geometry:
-            subset = dem.sel(lat=slice(geom.y-2*dy, geom.y+2*dy),lon=slice(geom.x-2*dx, geom.x+2*dx)).compute(n_process=1)
+            subset = dem.sel(lat=slice(geom.y-3*dy, geom.y+3*dy),lon=slice(geom.x-3*dx, geom.x+3*dx)).compute(n_process=1)
             #print (subset.shape)
             # perform interpolation
             lats, lons = subset.lat.values, subset.lon.values
