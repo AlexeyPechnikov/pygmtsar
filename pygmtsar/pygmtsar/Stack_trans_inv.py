@@ -136,7 +136,7 @@ class Stack_trans_inv(Stack_trans):
             del block_ll
             grid_ele = block_trans[2][indices]
             #print ('distance range', distances.min().round(2), distances.max().round(2))
-            #assert distances.max() < 2, 'Unexpectedly large distance between radar and geographic coordinate grid pixels (>=2)'
+            #assert distances.max() < 2, f'Unexpectedly large distance between radar and geographic coordinate grid pixels (>=2): {distances.max()}'
             del block_trans, indices, distances
         
             # pack all the outputs into one 3D array
@@ -146,7 +146,7 @@ class Stack_trans_inv(Stack_trans):
         trans = self.get_trans()
 
         # calculate indices on the fly
-        trans_blocks = trans[['azi', 'rng']].coarsen(lat=self.netcdf_chunksize, lon=self.netcdf_chunksize, boundary='trim')
+        trans_blocks = trans[['azi', 'rng']].coarsen(lat=self.netcdf_chunksize, lon=self.netcdf_chunksize, boundary='pad')
         #block_min, block_max = dask.compute(trans_blocks.min(), trans_blocks.max())
         # materialize with progress bar indication
         tqdm_dask(trans_blocks_persist := dask.persist(trans_blocks.min(), trans_blocks.max()), desc='Radar Transform Indexing')
