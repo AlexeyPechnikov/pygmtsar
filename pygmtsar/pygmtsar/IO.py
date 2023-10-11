@@ -17,7 +17,7 @@ class IO(datagrid):
 
     def dump(self, to_path=None):
         """
-        Dump Stack object state to a pickle file (Stack.pickle in the processing directory by default).
+        Dump Stack object state to a pickle file (stack.pickle in the processing directory by default).
 
         Parameters
         ----------
@@ -36,7 +36,7 @@ class IO(datagrid):
         Notes
         -----
         This method serializes the state of the Stack object and saves it to a pickle file. The pickle file can be used to
-        restore the Stack object with its processed data and configuration. By default, the dump file is named "Stack.pickle"
+        restore the Stack object with its processed data and configuration. By default, the dump file is named "stack.pickle"
         and is saved in the processing directory. An alternative file path can be provided using the `to_path` parameter.
         """
         import pickle
@@ -58,7 +58,7 @@ class IO(datagrid):
     @staticmethod
     def restore(from_path):
         """
-        Restore Stack object state from a pickle file (Stack.pickle in the processing directory by default).
+        Restore Stack object state from a pickle file (stack.pickle in the processing directory by default).
 
         Parameters
         ----------
@@ -79,14 +79,14 @@ class IO(datagrid):
         -----
         This static method restores the state of an Stack object from a pickle file. The pickle file should contain the
         serialized state of the Stack object, including its processed data and configuration. By default, the method assumes
-        the input file is named "Stack.pickle" and is located in the processing directory. An alternative file path can be
+        the input file is named "stack.pickle" and is located in the processing directory. An alternative file path can be
         provided using the `from_path` parameter. The method returns the restored Stack object.
         """
         import pickle
         import os
 
         if os.path.isdir(from_path):
-            stack_pickle = os.path.join(from_path, 'Stack.pickle')
+            stack_pickle = os.path.join(from_path, 'stack.pickle')
         else:
             stack_pickle = from_path
 
@@ -136,7 +136,7 @@ class IO(datagrid):
 
         # this optional file is dumped state, copy it if exists
         # auto-generated file can't be a symlink but user-defined symlink target should be copied
-        filename = os.path.join(self.basedir, 'Stack.pickle')
+        filename = os.path.join(self.basedir, 'stack.pickle')
         if os.path.exists(filename):
             if debug:
                 print ('DEBUG: copy', filename, backup_dir)
