@@ -12,8 +12,8 @@ from .S1 import S1
 from .PRM import PRM
 
 class Stack_reframe(Stack_reframe_gmtsar):
-    
-    def reframe_subswath(self, subswath, date, geometry=None, debug=False):
+
+    def reframe_subswath(self, subswath, date, geometry, debug=False):
         """
         Estimate framed area using Sentinel-1 GCPs approximation.
 
@@ -41,6 +41,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
         import numpy as np
         #import shapely
         from shapely.geometry import Point, LineString, Polygon, MultiPolygon
+        from shapely.ops import cascaded_union
         from datetime import datetime
         import os
         import warnings
@@ -67,8 +68,10 @@ class Stack_reframe(Stack_reframe_gmtsar):
                 geometry = diag2
         if debug:
             print ('DEBUG: geometry', geometry)
-    
+
         df = self.get_repeat(subswath, date)
+        if debug:
+            print('DEBUG: reframe scenes: ', len(df))
         stem = self.multistem_stem(subswath, df['datetime'].iloc[0])[1]
         #print ('stem', stem)
 
@@ -76,7 +79,6 @@ class Stack_reframe(Stack_reframe_gmtsar):
         #print ('old_filename', old_filename)
 
         self.make_s1a_tops(subswath, date, debug=debug)
-
         prm = PRM.from_file(old_filename+'.PRM')
         tmpazi_a = prm.SAT_llt2rat([geometry.coords[0][0],  geometry.coords[0][1],  0], precise=1, debug=debug)[1]
         tmpazi_b = prm.SAT_llt2rat([geometry.coords[-1][0], geometry.coords[-1][1], 0], precise=1, debug=debug)[1]
@@ -90,7 +92,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
         azi1 = min(azi_a, azi_b)
         azi2 = max(azi_a, azi_b)
         if debug:
-                print ('DEBUG: ','azi1', azi1, 'azi2', azi2)
+            print ('DEBUG: ','azi1', azi1, 'azi2', azi2)
 
         # Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2)...
         #print ('assemble_tops', subswath, date, azi1, azi2, debug)
@@ -124,15 +126,15 @@ class Stack_reframe(Stack_reframe_gmtsar):
             os.remove(fname)
 
         # update and return only one record
-        df = df.head(1)
+        out = df.head(1)
         #df['datetime'] = self.text2date(f'{date_new}t{t1}', False)
-        df['datetime'] = datetime.strptime(f'{date_new}T{t1}', '%Y%m%dT%H%M%S')
-        df['metapath'] = new_filename + '.xml'
-        df['datapath'] = new_filename + '.tiff'
+        out['datetime'] = datetime.strptime(f'{date_new}T{t1}', '%Y%m%dT%H%M%S')
+        out['metapath'] = new_filename + '.xml'
+        out['datapath'] = new_filename + '.tiff'
         # update approximate location
-        df['geometry'] = MultiPolygon([geom for geom in df['geometry'][0].geoms if geom.intersects(geometry)])
-
-        return df
+        out['geometry'] = cascaded_union([geom for multi_polygon in df.geometry for geom in multi_polygon.geoms
+                                      if geom.intersects(geometry)])
+        return out
 
     def reframe(self, geometry=None, n_jobs=-1, **kwargs):
         """
@@ -168,17 +170,15 @@ class Stack_reframe(Stack_reframe_gmtsar):
         import joblib
         import pandas as pd
 
-        if geometry is None:
-            print ('Reframing is skipped because the geometry argument is not defined.')
-            return
-
         dates = self.df.index.unique().values
-
         subswaths = self.get_subswaths()
+        if geometry is None:
+            geometries = {subswath: self.df[self.df.subswath==subswath].geometry.unary_union for subswath in subswaths}
 
         # process all the scenes
         with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
-            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe_subswath)(subswath, date, geometry, **kwargs) \
+            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe_subswath)\
+                            (subswath, date, geometry if geometry is not None else geometries[subswath], **kwargs) \
                                                      for date in dates for subswath in subswaths)
 
         self.df = pd.concat(records)
