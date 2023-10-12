@@ -109,7 +109,7 @@ class Stack_landmask(Stack_multilooking):
         landmask_filename = os.path.join(self.basedir, 'landmask.nc')
 
         # geographical grid for interferogram area only
-        dem = self.get_dem(geoloc=True)
+        dem = self.get_dem()
         llmin = dem.lon.min().item()
         llmax = dem.lon.max().item()
         ltmin = dem.lat.min().item()

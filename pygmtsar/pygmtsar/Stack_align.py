@@ -47,7 +47,7 @@ class Stack_align(Stack_dem):
 
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
     # use median decimation instead of average
-    def get_topo_llt(self, subswath, degrees, geoloc=True, debug=False):
+    def get_topo_llt(self, subswath, degrees, debug=False):
         """
         Get the topography coordinates (lon, lat, z) for decimated DEM.
 
@@ -57,8 +57,6 @@ class Stack_align(Stack_dem):
             Subswath number.
         degrees : float
             Number of degrees for decimation.
-        geoloc : bool, optional
-            Flag indicating whether to perform geolocation. Default is True.
         debug : bool, optional
             Enable debug mode. Default is False.
 
@@ -74,7 +72,7 @@ class Stack_align(Stack_dem):
         warnings.filterwarnings('ignore')
 
         # add buffer around the cropped area for borders interpolation
-        dem_area = self.get_dem(subswath, geoloc=geoloc)
+        dem_area = self.get_dem(subswath)
         ny = int(np.round(degrees/dem_area.lat.diff('lat')[0]))
         nx = int(np.round(degrees/dem_area.lon.diff('lon')[0]))
         if debug:

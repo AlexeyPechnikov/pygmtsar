@@ -14,7 +14,51 @@ class Stack_dem(Stack_reframe):
 
     # Buffer size in degrees to expand the area covered by the DEM
     buffer_degrees = 0.1
-    
+
+    def get_extent(self, grid=None, subswath=None):
+        import numpy as np
+
+        extent = self.get_reference(subswath).dissolve().envelope.item()
+        if grid is None:
+            return extent
+        bounds = np.round(extent.bounds, 3)
+        #print ('xmin, xmax', xmin, xmax)
+        return grid\
+               .transpose('lat','lon')\
+               .sel(lat=slice(bounds[1] - self.buffer_degrees, bounds[3] + self.buffer_degrees),
+                    lon=slice(bounds[0] - self.buffer_degrees, bounds[2] + self.buffer_degrees))
+
+    def get_geoid(self, grid=None):
+        """
+        Get EGM96 geoid heights.
+
+        Parameters
+        ----------
+        grid : xarray array or dataset, optional
+            Interpolate geoid heights on the grid. Default is None.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        stack.get_geoid()
+
+        Notes
+        -----
+        See EGM96 geoid heights on http://icgem.gfz-potsdam.de/tom_longtime
+        """
+        import xarray as xr
+        import os
+
+        gmtsar_sharedir = PRM().gmtsar_sharedir()
+        geoid_filename = os.path.join(gmtsar_sharedir, 'geoid_egm96_icgem.grd')
+        geoid = xr.open_dataarray(geoid_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize).rename({'y': 'lat', 'x': 'lon'})
+        if grid is not None:
+            geoid = geoid.interp_like(grid, method='cubic')
+        return geoid
+
     def set_dem(self, dem_filename):
         """
         Set the filename of the digital elevation model (DEM) in WGS84 NetCDF grid.
@@ -53,7 +97,7 @@ class Stack_dem(Stack_reframe):
     # 0.02 degrees works well worldwide but not in Siberia
     # minimum buffer size: 8 arc seconds for 90 m DEM
     # subswath argument is required for aligning
-    def get_dem(self, subswath=None, geoloc=False):
+    def get_dem(self, subswath=None):
         """
         Retrieve the digital elevation model (DEM) data.
 
@@ -61,10 +105,6 @@ class Stack_dem(Stack_reframe):
         ----------
         subswath : str, optional
             Subswath name. Default is None.
-        geoloc : bool, optional
-            Flag indicating whether to return geolocated DEM. If True, the returned DEM will be limited to the area covered
-            by the specified subswath, plus an additional buffer around it. If False, the full DEM extent will be returned.
-            Default is False.
 
         Returns
         -------
@@ -88,9 +128,7 @@ class Stack_dem(Stack_reframe):
         -----
         This method retrieves the digital elevation model (DEM) data previously downloaded and stored in a NetCDF file.
         The DEM file is opened, and the elevation variable is extracted. Any missing values in the elevation data are filled
-        with zeros (mostly representing water surfaces). If the `geoloc` parameter is True, the returned DEM is geolocated,
-        limited to the area covered by the specified subswath, plus an additional buffer around it. If `geoloc` is False,
-        the full extent of the DEM will be returned.
+        with zeros (mostly representing water surfaces).
         """
         import xarray as xr
         import os
@@ -100,11 +138,12 @@ class Stack_dem(Stack_reframe):
 
         if self.dem_filename is None:
             raise Exception('Set DEM first')
-        
+
         # open DEM file and find the elevation variable
         # because sometimes grid includes 'crs' or other variables
         dem = xr.open_dataset(self.dem_filename, engine=self.netcdf_engine, chunks=self.chunksize)
-        assert 'lat' in dem.coords and 'lon' in dem.coords, 'DEM should be defined as lat,lon grid'
+        if 'lat' not in dem.coords and 'y' in dem.coords:
+            dem = dem.rename({'y': 'lat', 'x': 'lon'})
         # define latlon array
         z_array_name = [data_var for data_var in dem.data_vars if len(dem.data_vars[data_var].coords)==2]
         assert len(z_array_name) == 1
@@ -114,23 +153,14 @@ class Stack_dem(Stack_reframe):
         dem['lat'] = dem.lat.round(8)
         dem['lon'] = dem.lon.round(8)
 
-        if geoloc is False:
-            return dem
-
-        bounds = self.get_reference(subswath).dissolve().envelope.bounds.values[0].round(3)
-        #print ('xmin, xmax', xmin, xmax)
-        return dem\
-                   .transpose('lat','lon')\
-                   .sel(lat=slice(bounds[1] - self.buffer_degrees, bounds[3] + self.buffer_degrees),
-                        lon=slice(bounds[0] - self.buffer_degrees, bounds[2] + self.buffer_degrees))
-
+        return self.get_extent(dem, subswath)
 
     # buffer required to get correct (binary) results from SAT_llt2rat tool
     # 0.02 degrees works well worldwide but not in Siberia
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
     # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, product='1s', debug=False):
+    def download_dem(self, product='1s'):
         """
         Download and preprocess digital elevation model (DEM) data.
 
@@ -139,8 +169,6 @@ class Stack_dem(Stack_reframe):
         product : str, optional
             Product type of the DEM data. Available options are '1s' or 'SRTM1' (1 arcsec ~= 30m, default)
             and '3s' or 'SRTM3' (3 arcsec ~= 90m).
-        debug : bool, optional
-            Enable debug mode. Default is False.
 
         Returns
         -------
@@ -157,17 +185,10 @@ class Stack_dem(Stack_reframe):
         Download STRM3 DEM with a resolution of 90 meters and convert it to a 120-meter grid:
         stack.download_dem(product='STRM3', resolution_meters=120)
 
-        Load and crop from local NetCDF file:
-        stack.download_dem(product='GEBCO_2020/GEBCO_2020.nc')
-
-        Load and crop from local GeoTIF file:
-        stack.download_dem(product='GEBCO_2019.tif')
-
         Notes
         -----
-        This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then preprocessed
-        by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid. The DEM is regridded to the specified
-        approximate resolution using bicubic interpolation.
+        This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then
+        preprocessed by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid.
         """
         import xarray as xr
         import numpy as np
@@ -178,59 +199,95 @@ class Stack_dem(Stack_reframe):
         import os
         #import subprocess
         from tqdm.auto import tqdm
+        import warnings
+        warnings.filterwarnings('ignore')
+
+        dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
 
         if self.dem_filename is not None:
             print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
             return
-        
+
         if product in ['SRTM1', '1s', '01s']:
             resolution = '01s'
         elif product in ['SRTM3', '3s', '03s']:
             resolution = '03s'
         else:
-            # open from user-specified NetCDF or GeoTIF file
-            resolution = None
-            #print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
-
-        #err, warn = self.validate()
-        #print ('err, warn', err, warn)
-        #assert not err and not warn, 'ERROR: Please fix all the issues listed above to continue'
-
-        # generate DEM for the area using GMT extent as W E S N
-        # round the coordinates up to 1 mm
-        minx, miny, maxx, maxy = self.df.dissolve().envelope.buffer(self.buffer_degrees).bounds.round(8).values[0]
-        # Set the region for the grdcut and grdsample operations
-        region = [minx, maxx, miny, maxy]
-
-        gmtsar_sharedir = PRM().gmtsar_sharedir()
-        geoid_filename = os.path.join(gmtsar_sharedir, 'geoid_egm96_icgem.grd')
-        dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
+            print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
+            return
 
         with tqdm(desc='DEM Downloading', total=1) as pbar:
-            if resolution is not None:
-                # download DEM
-                ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=region)
-            elif os.path.splitext(product)[-1] in ['.tiff', '.tif', '.TIF']:
-                ortho = rio.open_rasterio(product, chunks=self.chunksize).squeeze(drop=True)\
-                    .rename({'y': 'lat', 'x': 'lon'}).sel(lon=slice(minx, maxx))\
-                    .drop('spatial_ref')
-                if ortho.lat.diff('lat')[0].item() > 0:
-                    ortho = ortho.sel(lat=slice(miny, maxy))
-                else:
-                    ortho = ortho.sel(lat=slice(maxy, miny))
-                    ortho = ortho.reindex(lat=ortho.lat[::-1])
-            elif os.path.splitext(product)[-1] in ['.nc', '.netcdf', '.grd']:
-                ortho = xr.open_dataarray(product, engine=self.netcdf_engine, chunks=self.chunksize)\
-                    .sel(lat=slice(miny, maxy), lon=slice(minx, maxx))
-
-            #print ('ortho', ortho)
-            geoid = xr.open_dataarray(geoid_filename).rename({'y': 'lat', 'x': 'lon'}).interp_like(ortho, method='cubic')
-            #print ('geoid', geoid)
+            # generate DEM for the area using GMT extent as W E S N
+            # round the coordinates up to 1m
+            minx, miny, maxx, maxy = np.round(self.get_extent().buffer(self.buffer_degrees).bounds, 5)
+            # download DEM
+            ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=[minx, maxx, miny, maxy])
+            # heights correction
+            geoid = self.get_geoid(ortho)
             if os.path.exists(dem_filename):
                 os.remove(dem_filename)
-            #print ('(ortho + geoid_resamp)', (ortho + geoid))
             encoding = {'dem': self.compression(ortho.shape)}
             (ortho + geoid).rename('dem').to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
             pbar.update(1)
+
+        self.dem_filename = dem_filename
+
+    def load_dem(self, filename):
+        """
+        Load and preprocess digital elevation model (DEM) data from specified datafile.
+
+        Parameters
+        ----------
+        filename : str, optional
+            DEM filename.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        Load and crop from local NetCDF file:
+        stack.load_dem('GEBCO_2020/GEBCO_2020.nc')
+
+        Load and crop from local GeoTIF file:
+        stack.load_dem('GEBCO_2019.tif')
+
+        Notes
+        -----
+        This method loads DEM from the user specified file. The downloaded data is then preprocessed by removing
+        the EGM96 geoid to make the heights relative to the WGS84 ellipsoid.
+        """
+        import xarray as xr
+        import numpy as np
+        import rioxarray as rio
+        import os
+
+        dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
+
+        if self.dem_filename is not None:
+            print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
+            return
+
+        if os.path.splitext(filename)[-1] in ['.tiff', '.tif', '.TIF']:
+            ortho = rio.open_rasterio(filename, chunks=self.chunksize).squeeze(drop=True)\
+                .rename({'y': 'lat', 'x': 'lon'})\
+                .drop('spatial_ref')
+            if ortho.lat.diff('lat')[0].item() < 0:
+                ortho = ortho.reindex(lat=ortho.lat[::-1])
+        elif os.path.splitext(filename)[-1] in ['.nc', '.netcdf', '.grd']:
+            ortho = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=self.chunksize)
+        else:
+            print ('ERROR: filename extension is not recognized. Should be one from .tiff, .tif, .TIF, .nc, .netcdf, .grd')
+
+        # crop
+        ortho = self.get_extent(ortho)
+        # heights correction
+        geoid = self.get_geoid(ortho)
+        if os.path.exists(dem_filename):
+            os.remove(dem_filename)
+        encoding = {'dem': self.compression(ortho.shape)}
+        (ortho + geoid).rename('dem').rename({'lat': 'y', 'lon': 'x'})\
+            .to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
 
         self.dem_filename = dem_filename

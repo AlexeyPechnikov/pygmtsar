@@ -51,7 +51,7 @@ class Stack_trans(Stack_align):
         """
         return self.open_grid('trans')
 
-    def trans(self, coarsen):
+    def trans(self, coarsen, dem='auto'):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
         a NetCDF file for future use.
@@ -159,8 +159,10 @@ class Stack_trans(Stack_align):
             trans.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
             del trans
         
-        # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
-        dem = self.get_dem(geoloc=True).rename({'lat': 'yy', 'lon': 'xx'})
+        if isinstance(dem, str) and dem == 'auto':
+            # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
+            dem = self.get_dem()
+        dem = dem.rename({'lat': 'yy', 'lon': 'xx'})
 
         # check DEM corners
         dem_corners = dem[::dem.yy.size-1, ::dem.xx.size-1].compute()
