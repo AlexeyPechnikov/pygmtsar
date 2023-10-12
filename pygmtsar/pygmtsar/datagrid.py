@@ -483,16 +483,24 @@ class datagrid:
             coarsens = (factor, factor)
         else:
             coarsens = factor
-    
+
         types = [type(coarsen) for coarsen in coarsens]
         assert types[0] == types[1], f'Mixed coarsen datatypes are not allowed: {types}'
         if types[0] == int:
             # defined in pixels, as required
             return coarsens
-    
+
         # float coarsen should be defined in meters, convert to pixels
+        #print ('coarsens', coarsens)
         psizes = self.get_spacing()
-        coarsens = np.round([coarsens[0]/psizes[0], coarsens[1]/psizes[1]]).astype(int)
+        #print ('psizes', psizes)
+        # follow same agreement as Stack.decimator() function for rounding
+        if coarsens[1] > 4*psizes[1]:
+            coarsens = np.round([coarsens[0]/psizes[0], coarsens[1]/psizes[1]/4]).astype(int)
+            coarsens[1] = 4 * coarsens[1]
+        else:
+            coarsens = np.round([coarsens[0]/psizes[0], coarsens[1]/psizes[1]]).astype(int)
+
         return coarsens
 
 #     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
