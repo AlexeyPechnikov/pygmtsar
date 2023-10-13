@@ -489,6 +489,9 @@ class IO(datagrid):
         import xarray as xr
         import dask
         import os
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
 
         if name is None and isinstance(model, xr.DataArray):
             assert model.name is not None, 'Define the grid name or use name argument for the NetCDF filename'
@@ -567,32 +570,41 @@ class IO(datagrid):
         import xarray as xr
         import dask
         import os
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
 
-        # cleanup
-        self.delete_stack(name)
-    
-        stackvar = data.dims[0]
-    
+        if isinstance(data, xr.Dataset):
+            stackvar = data[list(data.data_vars)[0]].dims[0]
+        elif isinstance(data, xr.DataArray):
+            stackvar = data.dims[0]
+        else:
+            raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
+        #print ('stackvar', stackvar)
+        
         delayeds = []
         digits = len(str(len(data)))
         for ind in range(len(data)):
-            stackval = str(data[stackvar][ind].values).replace(' ', '_')
+            #print ('ind', ind)
+            data_slice = data.isel(pair=ind)
+            stackval = str(data_slice[stackvar].values).replace(' ', '_')
             # save to NetCDF file
             filename = self.get_filename(f'{name}_{stackval}')
             if os.path.exists(filename):
                 os.remove(filename)
             if isinstance(data, xr.Dataset):
-                encoding = {varname: self.compression(data[ind][varname].shape,
+                encoding = {varname: self.compression(data_slice[varname].shape,
                         chunksize=self.netcdf_chunksize) for varname in data.data_vars}
             elif isinstance(data, xr.DataArray):
-                encoding = {data.name: self.compression(data[ind].shape,
+                encoding = {data.name: self.compression(data_slice.shape,
                             chunksize=self.netcdf_chunksize)}
             else:
                 raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
-            delayed = data[ind].rename({'y': 'a', 'x': 'r'}).to_netcdf(filename,
+            delayed = data_slice.rename({'y': 'a', 'x': 'r'}).to_netcdf(filename,
                                   encoding=encoding,
                                   engine=self.netcdf_engine,
                                   compute=False)
+            del data_slice
             delayeds.append(delayed)
 
         tqdm_dask(dask.persist(delayeds), desc=caption)
@@ -603,7 +615,7 @@ class IO(datagrid):
         import os
         import glob
 
-        template = self.get_filename(f'{name}_*')
+        template = self.get_filename(f'{name}_????-??-??_????-??-??')
         #print ('template', template)
         filenames = glob.glob(template)
         #print ('filenames', filenames)
