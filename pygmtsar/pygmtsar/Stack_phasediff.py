@@ -17,8 +17,7 @@ class Stack_phasediff(Stack_topo):
         import numpy as np
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
+        warnings.filterwarnings('ignore')
         return np.arctan2(phase.imag, phase.real)
 
 #     @staticmethod
@@ -51,9 +50,9 @@ class Stack_phasediff(Stack_topo):
         import xarray as xr
         import numpy as np
         import warnings
+        import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
+        warnings.filterwarnings('ignore')
         # constant from GMTSAR code
         # apply square root because we compare multiplication of amplitudes instead of intensities
         thresh = np.sqrt(5.e-21)
@@ -88,6 +87,9 @@ class Stack_phasediff(Stack_topo):
         import dask
         import xarray as xr
         import numpy as np
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(pairs, dates=True)
@@ -278,10 +280,9 @@ class Stack_phasediff(Stack_topo):
 
             # update and add required parameters
             prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
-            # TEST - remove PRMs cross-linking
-            #prm2.set(prm2.SAT_baseline(prm2, tail=9)).fix_aligned()
             prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
             stack_prm.append((prm1, prm2))
+            #print ('.', end='')
 
             # check the grids
             #assert prm1.get('num_rng_bins') == prm2.get('num_rng_bins'), 'The dimensions of range do not match'
@@ -330,8 +331,8 @@ class Stack_phasediff(Stack_topo):
         import dask
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
+        import warnings
+        warnings.filterwarnings('ignore')
 
         def apply_pspec(data, alpha):
             # NaN is allowed value
