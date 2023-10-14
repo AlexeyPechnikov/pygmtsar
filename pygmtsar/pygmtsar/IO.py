@@ -258,6 +258,11 @@ class IO(datagrid):
         import xarray as xr
         import dask
         import os
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         # save to NetCDF file
         filename = self.get_filename(name)
@@ -492,6 +497,8 @@ class IO(datagrid):
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         if name is None and isinstance(model, xr.DataArray):
             assert model.name is not None, 'Define the grid name or use name argument for the NetCDF filename'
@@ -573,6 +580,8 @@ class IO(datagrid):
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         if isinstance(data, xr.Dataset):
             stackvar = data[list(data.data_vars)[0]].dims[0]
@@ -581,11 +590,11 @@ class IO(datagrid):
         else:
             raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
         #print ('stackvar', stackvar)
-        
+        stacksize = data[stackvar].size
+
         delayeds = []
-        digits = len(str(len(data)))
-        for ind in range(len(data)):
-            #print ('ind', ind)
+        digits = len(str(stacksize))
+        for ind in range(stacksize):
             data_slice = data.isel(pair=ind)
             stackval = str(data_slice[stackvar].values).replace(' ', '_')
             # save to NetCDF file
