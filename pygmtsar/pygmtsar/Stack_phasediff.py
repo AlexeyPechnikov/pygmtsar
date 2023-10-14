@@ -18,6 +18,9 @@ class Stack_phasediff(Stack_topo):
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
+
         return np.arctan2(phase.imag, phase.real)
 
 #     @staticmethod
@@ -53,6 +56,8 @@ class Stack_phasediff(Stack_topo):
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
         # constant from GMTSAR code
         # apply square root because we compare multiplication of amplitudes instead of intensities
         thresh = np.sqrt(5.e-21)
@@ -90,6 +95,8 @@ class Stack_phasediff(Stack_topo):
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(pairs, dates=True)
@@ -333,6 +340,8 @@ class Stack_phasediff(Stack_topo):
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         import warnings
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         def apply_pspec(data, alpha):
             # NaN is allowed value
