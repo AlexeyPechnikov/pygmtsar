@@ -286,11 +286,14 @@ class IO(datagrid):
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
         import gc; gc.collect()
 
-    def open_data(self, dates=None, scale=2.5e-07):
+    def open_data(self, dates=None, scale=2.5e-07, debug=False):
         import xarray as xr
         import pandas as pd
         import numpy as np
         import os
+        
+        if debug:
+            print ('DEBUG: open_data: apply scale:', scale)
 
         if dates is None:
             dates = self.df.index.values
@@ -562,8 +565,8 @@ class IO(datagrid):
 
         for dim in ['pair', 'date']:
             if dim in ds.coords:
-                ds = ds.rename({'stackvar': dim})
-    
+                ds = ds.swap_dims({'stackvar': dim})
+
         # convert string dates to dates
         for dim in ['date', 'ref', 'rep']:
             if dim in ds.dims:
