@@ -15,6 +15,8 @@ class Stack_phasediff(Stack_topo):
     def intf_multilook_save_stack(self, pairs, name, resolution=60., wavelength=None, psize=None, n_chunks=16, debug=False):
         import xarray as xr
         import numpy as np
+        # cleanup unused resources before start
+        import gc; gc.collect()
 
         # define anti-aliasing filter for the specified output resolution
         if wavelength is None:
