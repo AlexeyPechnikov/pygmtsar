@@ -12,13 +12,13 @@ from .Stack_phasediff import Stack_phasediff
 class Stack_multilooking(Stack_phasediff):
 
     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
-    def decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
+    def decimator(self, resolution=60, grid=(1, 4), func='mean', debug=False):
         """
         Return function for pixel decimation to the specified output resolution.
 
         Parameters
         ----------
-        resolution_meters : int, optional
+        resolution : int, optional
             DEM grid resolution in meters. The same grid is used for geocoded results output.
         grid : tuple, optional
             Grid size for pixel decimation in the format (vertical, horizontal).
@@ -39,7 +39,10 @@ class Stack_multilooking(Stack_phasediff):
         import numpy as np
         import dask
         import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         # special cases: scale factor should be 4*N or 2*N to prevent rounding issues
         # grid can be defined as [] or () or xarray dataarray
@@ -54,7 +57,7 @@ class Stack_multilooking(Stack_phasediff):
             print (f'DEBUG: scale to square grid: xscale0={xscale0}')
 
         dy, dx = self.get_spacing(grid)
-        yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
+        yscale, xscale = int(np.round(resolution/dy)), int(np.round(resolution/dx/xscale0))
         if debug:
             print (f'DEBUG: ground pixel size in meters: y={dy:.1f}, x={dx:.1f}')
         if yscale <= 1 and xscale <= 1 and xscale0==1:
@@ -67,6 +70,11 @@ class Stack_multilooking(Stack_phasediff):
 
         # decimate function
         def decimator(da):
+            import warnings
+            # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+            warnings.filterwarnings('ignore')
+            warnings.filterwarnings('ignore', module='dask')
+            warnings.filterwarnings('ignore', module='dask.core')
             # workaround for Google Colab when we cannot save grids with x,y coordinate names
             # also supports geographic coordinates
             yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
@@ -100,7 +108,10 @@ class Stack_multilooking(Stack_phasediff):
         import dask
         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
         import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
         # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
@@ -126,7 +137,9 @@ class Stack_multilooking(Stack_phasediff):
 
         # weighted and not weighted convolution on float and complex float data
         def apply_filter(data, weight, sigmas, truncate=2):
+            import warnings
             # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+            warnings.filterwarnings('ignore')
             warnings.filterwarnings('ignore', module='dask')
             warnings.filterwarnings('ignore', module='dask.core')
             if np.issubdtype(data.dtype, np.complexfloating):

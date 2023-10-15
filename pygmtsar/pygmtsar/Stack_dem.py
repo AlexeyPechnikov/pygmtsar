@@ -176,14 +176,11 @@ class Stack_dem(Stack_reframe):
 
         Examples
         --------
-        Download STRM1 DEM with a resolution of 30 meters and convert it to the default 60-meter grid:
+        Download default STRM1 DEM (~30 meters):
         stack.download_dem()
 
-        Download STRM1 DEM with a resolution of 30 meters and convert it to a 60-meter grid:
-        stack.download_dem(resolution_meters=60)
-
-        Download STRM3 DEM with a resolution of 90 meters and convert it to a 120-meter grid:
-        stack.download_dem(product='STRM3', resolution_meters=120)
+        Download STRM3 DEM (~90 meters):
+        stack.download_dem(product='STRM3')
 
         Notes
         -----

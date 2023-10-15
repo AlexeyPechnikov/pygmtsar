@@ -21,7 +21,7 @@ class Stack_ps(Stack_stl):
     #stack.ps()
     #adi = stack.open_grids(None, 'ps')
     #adi
-    #ps_decimator = stack.pixel_decimator(resolution_meters=60, grid=adi, debug=True)
+    #ps_decimator = stack.pixel_decimator(resolution=60, grid=adi, debug=True)
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)

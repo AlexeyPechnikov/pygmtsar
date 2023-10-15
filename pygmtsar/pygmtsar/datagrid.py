@@ -504,13 +504,13 @@ class datagrid:
         return coarsens
 
 #     #decimator = lambda da: da.coarsen({'y': 2, 'x': 2}, boundary='trim').mean()
-#     def decimator(self, resolution_meters=60, grid=(1, 4), func='mean', debug=False):
+#     def decimator(self, resolution=60, grid=(1, 4), func='mean', debug=False):
 #         """
 #         Return function for pixel decimation to the specified output resolution.
 # 
 #         Parameters
 #         ----------
-#         resolution_meters : int, optional
+#         resolution : int, optional
 #             DEM grid resolution in meters. The same grid is used for geocoded results output.
 #         grid : tuple, optional
 #             Grid size for pixel decimation in the format (vertical, horizontal).
@@ -544,7 +544,7 @@ class datagrid:
 #             print (f'DEBUG: scale to square grid: xscale0={xscale0}')
 # 
 #         dy, dx = self.get_spacing(grid)
-#         yscale, xscale = int(np.round(resolution_meters/dy)), int(np.round(resolution_meters/dx/xscale0))
+#         yscale, xscale = int(np.round(resolution/dy)), int(np.round(resolution/dx/xscale0))
 #         if debug:
 #             print (f'DEBUG: ground pixel size in meters: y={dy}, x={dx}')
 #         if yscale <= 1 and xscale <= 1 and xscale0==1:
