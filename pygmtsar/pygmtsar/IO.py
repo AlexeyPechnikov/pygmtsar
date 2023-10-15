@@ -282,8 +282,9 @@ class IO(datagrid):
                               engine=self.netcdf_engine,
                               compute=False)
 
-        tqdm_dask(dask.persist(delayed), desc=caption)
+        tqdm_dask(result := dask.persist(delayed), desc=caption)
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        del delayed, result
         import gc; gc.collect()
 
     def open_data(self, dates=None, scale=2.5e-07, debug=False):
@@ -537,8 +538,9 @@ class IO(datagrid):
                          engine=self.netcdf_engine,
                          encoding=encoding,
                          compute=False)
-        tqdm_dask(dask.persist(delayed), desc=caption)
+        tqdm_dask(result := dask.persist(delayed), desc=caption)
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        del delayed, result
         import gc; gc.collect()
 
     def delete_cube(self, name):
@@ -616,11 +618,12 @@ class IO(datagrid):
                                   encoding=encoding,
                                   engine=self.netcdf_engine,
                                   compute=False)
-            del data_slice
             delayeds.append(delayed)
+            del data_slice, delayed
 
-        tqdm_dask(dask.persist(delayeds), desc=caption)
+        tqdm_dask(result := dask.persist(*delayeds), desc=caption)
         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        del delayeds, result
         import gc; gc.collect()
 
     def delete_stack(self, name):
