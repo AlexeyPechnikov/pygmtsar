@@ -12,14 +12,66 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_phasediff(Stack_topo):
 
+    def intf_multilook_save_stack(self, pairs, name, resolution=60., wavelength=None, psize=None, n_chunks=16, debug=False):
+        import xarray as xr
+
+        # define anti-aliasing filter for the specified output resolution
+        if wavelength is None:
+            wavelength = resolution
+
+        # Goldstein filter requires square grid cells means 1:4 range multilooking.
+        # For multilooking interferogram we can use square grid always.
+        coarsen = (1,4)
+        
+        # decimate the 1:4 multilooking grids to specified resolution
+        decimator = self.decimator(resolution=resolution, grid=coarsen, debug=debug)
+
+        # Applying iterative processing to prevent Dask scheduler deadlocks.
+        counter = 0
+        # Splitting all the pairs into chunks, each containing approximately n_chunks pairs.
+        for chunk_pairs in np.array_split(pairs, len(pairs) // n_chunks):
+            #print (f'Interferogram pairs: {len(pairs)}')
+            chunk_pairs, chunk_dates = self.get_pairs(chunk_pairs, dates=True)
+            # load Sentinel-1 data
+            data = self.open_data(chunk_dates, debug=debug)
+            # Gaussian filtering 200m cut-off wavelength with optional range multilooking on Sentinel-1 amplitudes
+            amp_wavelength = self.multilooking(np.abs(data), wavelength=wavelength, coarsen=coarsen, debug=debug)
+            # calculate phase difference with topography correction
+            phase = self.phasediff(chunk_pairs, data, debug=debug)
+            # Gaussian filtering 200m cut-off wavelength with optional range multilooking
+            phase_wavelength = self.multilooking(phase, wavelength=wavelength, coarsen=coarsen, debug=debug)
+            # correlation with optional range decimation
+            corr_wavelength = self.correlation(phase_wavelength, amp_wavelength, debug=debug)
+            if psize is not None:
+                # Goldstein filter in psize pixel patch size on square grid cells produced using 1:4 range multilooking
+                phase_wavelength_goldstein = self.goldstein(phase_wavelength, corr_wavelength, psize, debug=debug)
+            else:
+                # here is no additional filtering step
+                phase_wavelength_goldstein = phase_wavelength
+            # convert complex phase difference to interferogram 
+            intf_wavelength = self.interferogram(phase_wavelength_goldstein, debug=debug)
+            # compute together because correlation depends on phase, and filtered phase depends on correlation.
+            #tqdm_dask(result := dask.persist(decimator(corr15m), decimator(intf15m)), desc='Compute Phase and Correlation')
+            # unpack results for a single interferogram
+            #corr90m, intf90m = [grid[0] for grid in result]
+            # anti-aliasing filter for the output resolution is applied above
+            intf = decimator(intf_wavelength)
+            corr = decimator(corr_wavelength)
+            chunk_out =xr.merge([corr, intf])
+            # Allowing cleanup for Dask objects.
+            del data, phase, amp_wavelength, phase_wavelength, phase_wavelength_goldstein, corr_wavelength, intf_wavelength
+            self.save_stack(chunk_out, name,
+                            caption=f'Saving interferograms {counter+1}...{counter+len(chunk_pairs)} from {len(pairs)}')
+            counter += len(chunk_pairs)
+            # cleanup output variables too
+            del intf, corr, chunk_out, chunk_pairs, chunk_dates
+
     @staticmethod
-    def interferogram(phase):
+    def interferogram(phase, debug=False):
         import numpy as np
-        import warnings
-        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore')
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
+
+        if debug:
+            print ('DEBUG: interferogram')
 
         return np.arctan2(phase.imag, phase.real)
 
@@ -37,7 +89,7 @@ class Stack_phasediff(Stack_topo):
 #         # amp1 and amp2 chunks are high for SLC, amp has normal chunks for NetCDF
 #         return xr.where(i >= thresh, corr, np.nan).chunk(a.chunksizes).rename('phase')
 
-    def correlation(self, phase, data):
+    def correlation(self, phase, data, debug=False):
         """
         Example:
         data_200m = stack.multilooking(np.abs(sbas.open_data()), wavelength=200, coarsen=(4,16))
@@ -52,15 +104,12 @@ class Stack_phasediff(Stack_topo):
         import dask
         import xarray as xr
         import numpy as np
-        import warnings
-        import warnings
-        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore')
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
         # constant from GMTSAR code
         # apply square root because we compare multiplication of amplitudes instead of intensities
         thresh = np.sqrt(5.e-21)
+
+        if debug:
+            print ('DEBUG: correlation')
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(phase, dates=True)
@@ -87,7 +136,7 @@ class Stack_phasediff(Stack_topo):
 
         return xr.concat(stack, dim='pair').rename('correlation')
 
-    def phasediff(self, pairs, data='auto', topo='auto', method='cubic'):
+    def phasediff(self, pairs, data='auto', topo='auto', method='cubic', debug=False):
         import pandas as pd
         import dask
         import xarray as xr
@@ -97,6 +146,9 @@ class Stack_phasediff(Stack_topo):
         warnings.filterwarnings('ignore')
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
+
+        if debug:
+            print ('DEBUG: phasediff')
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(pairs, dates=True)
@@ -128,6 +180,11 @@ class Stack_phasediff(Stack_topo):
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
             from dask.distributed import utils_perf
             utils_perf.disable_gc_diagnosis()
+            import warnings
+            # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+            warnings.filterwarnings('ignore')
+            warnings.filterwarnings('ignore', module='dask')
+            warnings.filterwarnings('ignore', module='dask.core')
 
             # unpack input stacks
             prm1,  prm2  = stack_prm[stack_idx]
@@ -332,16 +389,18 @@ class Stack_phasediff(Stack_topo):
 
         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
 
-    def goldstein(self, phase, corr, psize=32):
+    def goldstein(self, phase, corr, psize=32, debug=False):
         import xarray as xr
         import numpy as np
         import dask
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        import warnings
         warnings.filterwarnings('ignore')
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
+
+        if debug:
+            print ('DEBUG: goldstein')
 
         def apply_pspec(data, alpha):
             # NaN is allowed value
