@@ -49,7 +49,7 @@ setup(
                       'xmltodict',
                       'rioxarray',
                       'ipywidgets',
-                      'h5netcdf==1.0.2',
+                      'h5netcdf',
                       'h5py',
                       'nc-time-axis',
                       'statsmodels>=0.13.5',
