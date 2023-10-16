@@ -234,7 +234,7 @@ class IO(datagrid):
         elif len(pairs.shape) == 2:
             # read all the grids from files
             for pair in pairs:
-                filename = os.path.join(self.basedir, f'{prefix}{pair[0]}_{pair[1]}_{name}.grd'.replace('-',''))
+                filename = os.path.join(self.basedir, f'{prefix}{name}_{pair[0]}_{pair[1]}.grd'.replace('-',''))
                 filenames.append(filename)
         return filenames
 
@@ -270,21 +270,29 @@ class IO(datagrid):
             os.remove(filename)
 
         if isinstance(data, xr.Dataset):
-            encoding = {varname: self.compression(data[varname].shape,
+            is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
+            encoding = {varname: self._compression(data[varname].shape,
                         chunksize=self.netcdf_chunksize) for varname in data.data_vars}
         elif isinstance(data, xr.DataArray):
-            encoding = {data.name: self.compression(data.shape,
+            is_dask = isinstance(data.data, dask.array.Array)
+            encoding = {data.name: self._compression(data.shape,
                         chunksize=self.netcdf_chunksize)}
         else:
             raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
-        delayed = data.to_netcdf(filename,
-                              encoding=encoding,
-                              engine=self.netcdf_engine,
-                              compute=False)
-
-        tqdm_dask(result := dask.persist(delayed), desc=caption)
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        del delayed, result
+        #print ('is_dask', is_dask, 'encoding', encoding)
+    
+        if not is_dask:
+            data.to_netcdf(filename,
+                           encoding=encoding,
+                           engine=self.netcdf_engine)
+        else:
+            delayed = data.to_netcdf(filename,
+                                     encoding=encoding,
+                                     engine=self.netcdf_engine,
+                                     compute=False)
+            tqdm_dask(result := dask.persist(delayed), desc=caption)
+            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+            del delayed, result
         import gc; gc.collect()
 
     def open_data(self, dates=None, scale=2.5e-07, debug=False):
@@ -517,17 +525,17 @@ class IO(datagrid):
         if isinstance(model, xr.DataArray):
             if debug:
                 print ('DEBUG: DataArray')
-            netcdf_compression = self.compression(model.shape,
+            netcdf_compression = self._compression(model.shape,
                                     chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize))
             encoding = {model.name: netcdf_compression}
         elif isinstance(model, xr.Dataset):
             if debug:
                 print ('DEBUG: Dataset')
             if len(model.dims) == 3:
-                encoding = {varname: self.compression(model[varname].shape,
+                encoding = {varname: self._compression(model[varname].shape,
                                 chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize)) for varname in model.data_vars}
             else:
-                encoding = {varname: self.compression(model[varname].shape,
+                encoding = {varname: self._compression(model[varname].shape,
                                 chunksize=self.netcdf_chunksize) for varname in model.data_vars}
     
         # prevent Xarray Dask saving issue
@@ -551,11 +559,31 @@ class IO(datagrid):
         if os.path.exists(filename):
             os.remove(filename)
 
-    def open_stack(self, name, always_dataset=False):
+    def open_stack(self, name, stack=None, always_dataset=False):
+        """
+        Examples:
+        stack.open_stack('data')
+        stack.open_stack('data', ['2018-03-23'])
+        stack.open_stack('data', ['2018-03-23', '2018-03-11'])
+        stack.open_stack('phase15m')
+        stack.open_stack('intf90m',[['2018-02-21','2018-03-11']])
+        stack.open_stack('intf90m', stack.get_pairs([['2018-02-21','2018-03-11']]))
+        """
         import xarray as xr
         import pandas as pd
+        import numpy as np
 
-        filenames = self.get_filename(f'{name}_*')
+        if stack is None:
+            # look for all stack files
+            filenames = self.get_filenames(['*'], name)[0]
+        elif isinstance(stack, (list, tuple, np.ndarray)) and len(np.asarray(stack).shape) == 1:
+            # dates
+            filenames = self.get_filenames(np.asarray(stack), name)
+        else:
+            # pairs
+            filenames = self.get_filenames(stack, name)
+        #print ('filenames', filenames)
+    
         ds = xr.open_mfdataset(
             filenames,
             engine=self.netcdf_engine,
@@ -567,12 +595,18 @@ class IO(datagrid):
 
         for dim in ['pair', 'date']:
             if dim in ds.coords:
-                ds = ds.swap_dims({'stackvar': dim})
+                if ds[dim].shape == ():
+                    ds = ds.rename({'stackvar': dim})
+                else:
+                    ds = ds.swap_dims({'stackvar': dim})
 
-        # convert string dates to dates
+        # convert string (or already timestamp) dates to dates
         for dim in ['date', 'ref', 'rep']:
             if dim in ds.dims:
-                ds[dim] = pd.to_datetime(ds[dim])
+                if not ds[dim].shape == ():
+                    ds[dim] = pd.to_datetime(ds[dim])
+                else:
+                    ds[dim].values = pd.to_datetime(ds['date'].values)
 
         if not always_dataset and len(ds.data_vars) == 1:
             return ds[list(ds.data_vars)[0]]
@@ -600,17 +634,22 @@ class IO(datagrid):
         delayeds = []
         digits = len(str(stacksize))
         for ind in range(stacksize):
-            data_slice = data.isel(pair=ind)
-            stackval = str(data_slice[stackvar].values).replace(' ', '_')
+            data_slice = data.isel({stackvar: ind})
+            if stackvar == 'date':
+                stackval = str(data_slice[stackvar].dt.date.values)
+            else:
+                stackval = data_slice[stackvar].item().split(' ')
+            #print ('stackval', stackval)
             # save to NetCDF file
-            filename = self.get_filename(f'{name}_{stackval}')
+            filename = self.get_filenames([stackval], name)[0]
+            #print ('filename', filename)
             if os.path.exists(filename):
                 os.remove(filename)
             if isinstance(data, xr.Dataset):
-                encoding = {varname: self.compression(data_slice[varname].shape,
+                encoding = {varname: self._compression(data_slice[varname].shape,
                         chunksize=self.netcdf_chunksize) for varname in data.data_vars}
             elif isinstance(data, xr.DataArray):
-                encoding = {data.name: self.compression(data_slice.shape,
+                encoding = {data.name: self._compression(data_slice.shape,
                             chunksize=self.netcdf_chunksize)}
             else:
                 raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')

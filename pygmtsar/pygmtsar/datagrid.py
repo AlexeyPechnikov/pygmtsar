@@ -36,7 +36,7 @@ class datagrid:
     netcdf_shuffle = True
 
     # define lost class variables due to joblib via arguments
-    def compression(self, shape=None, chunksize=None):
+    def _compression(self, shape=None, chunksize=None):
         """
         Return the compression options for a data grid.
 

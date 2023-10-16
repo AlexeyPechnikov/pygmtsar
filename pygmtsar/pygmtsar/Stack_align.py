@@ -12,7 +12,7 @@ from .PRM import PRM
 
 class Stack_align(Stack_dem):
 
-    def offset2shift(self, xyz, rmax, amax, method='linear'):
+    def _offset2shift(self, xyz, rmax, amax, method='linear'):
         """
         Convert offset coordinates to shift values on a grid.
 
@@ -47,7 +47,7 @@ class Stack_align(Stack_dem):
 
     # replacement for gmt grdfilter ../topo/dem.grd -D2 -Fg2 -I12s -Gflt.grd
     # use median decimation instead of average
-    def get_topo_llt(self, subswath, degrees, debug=False):
+    def _get_topo_llt(self, subswath, degrees, debug=False):
         """
         Get the topography coordinates (lon, lat, z) for decimated DEM.
 
@@ -84,7 +84,7 @@ class Stack_align(Stack_dem):
         return topo_llt
 
     # aligning for reference image
-    def align_ref_subswath(self, subswath, debug=False):
+    def _align_ref_subswath(self, subswath, debug=False):
         """
         Align and stack the reference scene.
 
@@ -116,20 +116,20 @@ class Stack_align(Stack_dem):
         path_multistem = os.path.join(self.basedir, multistem)
 
         # generate PRM, LED, SLC
-        self.make_s1a_tops(subswath, debug=debug)
+        self._make_s1a_tops(subswath, debug=debug)
 
         PRM.from_file(path_stem + '.PRM')\
             .set(input_file = path_multistem + '.raw')\
             .update(path_multistem + '.PRM', safe=True)
 
-        self.ext_orb_s1a(subswath, multistem, debug=debug)
+        self._ext_orb_s1a(subswath, multistem, debug=debug)
 
-        # recalculate after ext_orb_s1a
+        # recalculate after _ext_orb_s1a
         earth_radius = PRM.from_file(path_multistem + '.PRM')\
             .calc_dop_orb(inplace=True).update().get('earth_radius')
 
     # aligning for secondary image
-    def align_rep_subswath(self, subswath, date=None, degrees=12.0/3600, debug=False):
+    def _align_rep_subswath(self, subswath, date=None, degrees=12.0/3600, debug=False):
         """
         Align and stack secondary images.
 
@@ -169,7 +169,7 @@ class Stack_align(Stack_dem):
 
         # prepare coarse DEM for alignment
         # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
-        topo_llt = self.get_topo_llt(subswath, degrees=degrees)
+        topo_llt = self._get_topo_llt(subswath, degrees=degrees)
         #topo_llt.shape
 
         line = list(self.get_repeat(subswath, date).itertuples())[0]
@@ -186,7 +186,7 @@ class Stack_align(Stack_dem):
         tmp_da = 0
 
         # generate PRM, LED
-        self.make_s1a_tops(subswath, date, debug=debug)
+        self._make_s1a_tops(subswath, date, debug=debug)
 
         # compute the time difference between first frame and the rest frames
         t1, prf = PRM.from_file(stem_prm).get('clock_start', 'PRF')
@@ -246,13 +246,13 @@ class Stack_align(Stack_dem):
         r_xyz = offset_dat[:,[0,2,1]]
         a_xyz = offset_dat[:,[0,2,3]]
 
-        r_grd = self.offset2shift(r_xyz, rmax, amax)
+        r_grd = self._offset2shift(r_xyz, rmax, amax)
         r_grd_filename = stem_prm[:-4]+'_r.grd'
         r_grd.to_netcdf(r_grd_filename, engine=self.netcdf_engine)
         # drop the temporary file at the end of the function
         cleanup.append(r_grd_filename)
 
-        a_grd = self.offset2shift(a_xyz, rmax, amax)
+        a_grd = self._offset2shift(a_xyz, rmax, amax)
         a_grd_filename = stem_prm[:-4]+'_a.grd'
         a_grd.to_netcdf(a_grd_filename, engine=self.netcdf_engine)
         # drop the temporary file at the end of the function
@@ -261,7 +261,7 @@ class Stack_align(Stack_dem):
         # generate the image with point-by-point shifts
         # note: it removes calc_dop_orb parameters from PRM file
         # generate PRM, LED
-        self.make_s1a_tops(subswath,
+        self._make_s1a_tops(subswath,
                            date=line.Index, mode=1,
                            rshift_fromfile=f'{stem}_r.grd',
                            ashift_fromfile=f'{stem}_a.grd',
@@ -278,7 +278,7 @@ class Stack_align(Stack_dem):
             .set(input_file = f'{multistem}.raw')\
             .update(mstem_prm, safe=True)
 
-        self.ext_orb_s1a(subswath, multistem, date=line.Index, debug=debug)
+        self._ext_orb_s1a(subswath, multistem, date=line.Index, debug=debug)
 
         # Restoring $tmp_da lines shift to the image... 
         PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
@@ -633,9 +633,9 @@ class Stack_align(Stack_dem):
 
         # save merged SLC
         #prm.write_SLC_int(slc, chunksize=chunksize)
-        # encoding = {vn: self.compression(slc[vn].shape, complevel=0,
+        # encoding = {vn: self._compression(slc[vn].shape, complevel=0,
 #                     chunksize=(self.chunksize, 4*self.chunksize)) for vn in slc.data_vars}
-        encoding = {vn: self.compression(slc[vn].shape) for vn in slc.data_vars}
+        encoding = {vn: self._compression(slc[vn].shape) for vn in slc.data_vars}
         # add directory name
         netcdf_filename = os.path.join(self.basedir, netcdf_filename)
         # rename dimensions to prevent issue with square output
@@ -705,7 +705,7 @@ class Stack_align(Stack_dem):
 #                  .to_file(prm_filename)
 #         #.calc_dop_orb(prm.get('earth_radius'), 0, inplace=True, debug=debug)\
 
-    def convert_subswath(self, subswath, date, debug=False):
+    def _convert_subswath(self, subswath, date, debug=False):
         import xarray as xr
         #import numpy as np
         import os
@@ -721,7 +721,7 @@ class Stack_align(Stack_dem):
         if os.path.exists(netcdf_filename):
             os.remove(netcdf_filename)
         # complevel=0 means disabled compression and the fastest saving
-        encoding = {vn: self.compression(slc[vn].shape) for vn in slc.data_vars}
+        encoding = {vn: self._compression(slc[vn].shape) for vn in slc.data_vars}
         # rename dimensions to prevent issue with square output
         slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
 
@@ -776,7 +776,7 @@ class Stack_align(Stack_dem):
 
         def ondemand(date, dt):
             if not os.path.exists(get_filename(dt)):
-                self.make_s1a_tops(subswath, date, debug=debug)
+                self._make_s1a_tops(subswath, date, debug=debug)
 
         # generate PRM, LED if needed
         #for (date, dt) in datetimes.iteritems():
@@ -795,7 +795,7 @@ class Stack_align(Stack_dem):
             data.append({'date':date, 'parallel':BPL.round(1), 'perpendicular':BPR.round(1)})
         return pd.DataFrame(data).set_index('date')
 
-    def align(self, dates=None, n_jobs=-1, debug=False):
+    def compute_align(self, dates=None, n_jobs=-1, debug=False):
         """
         Stack and align scenes.
 
@@ -830,11 +830,11 @@ class Stack_align(Stack_dem):
         # prepare reference scene
         #self.stack_ref()
         with self.tqdm_joblib(tqdm(desc='Aligning Reference', total=len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.align_ref_subswath)(subswath, debug=debug) for subswath in subswaths)
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_ref_subswath)(subswath, debug=debug) for subswath in subswaths)
 
         # prepare secondary images
         with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.align_rep_subswath)(subswath, date, debug=debug) \
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_rep_subswath)(subswath, date, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
 
         if len(subswaths) > 1:
@@ -845,7 +845,7 @@ class Stack_align(Stack_dem):
         else:
             # in case of a single subswath only convert SLC to NetCDF grid
             with self.tqdm_joblib(tqdm(desc='Convert Subswath', total=len(dates))) as progress_bar:
-                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.convert_subswath)(subswaths[0], date, debug=debug) \
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._convert_subswath)(subswaths[0], date, debug=debug) \
                                                for date in dates)
 
         # merge subswaths, datapath and metapath converted to lists even for a single subswath, geometry merges bursts

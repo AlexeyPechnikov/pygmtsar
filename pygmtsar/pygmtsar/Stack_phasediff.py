@@ -12,7 +12,7 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_phasediff(Stack_topo):
 
-    def intf_multilook_save_stack(self, pairs, name, resolution=60., wavelength=None, psize=None, n_chunks=16, debug=False):
+    def compute_interferogram_multilook(self, pairs, name, resolution=60., wavelength=None, psize=None, n_chunks=16, debug=False):
         import xarray as xr
         import numpy as np
         # cleanup unused resources before start

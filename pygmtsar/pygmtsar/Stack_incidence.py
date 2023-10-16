@@ -59,7 +59,7 @@ class Stack_incidence(Stack_geocode):
         import xarray as xr
         import numpy as np
 
-        sat_look = self.get_sat_look()
+        sat_look = self.get_satellite_look_vector()
 
         if isinstance(data, xr.Dataset):
             look = sat_look.interp_like(data, method='linear', assume_sorted=True)
@@ -239,7 +239,7 @@ class Stack_incidence(Stack_geocode):
 #         los = np.dot(np.column_stack([data.dx, data.dy, data.dz]), [look.look_E, look.look_N, look.look_U])
 #         return data.assign(los=scale*los)
 
-    def get_sat_look(self):
+    def get_satellite_look_vector(self):
         """
         Return satellite look vectors in geographic coordinates as Xarray Dataset.
 
@@ -251,7 +251,7 @@ class Stack_incidence(Stack_geocode):
         Examples
         --------
         Get satellite look vectors:
-        sat_look_ll = stack.get_sat_look()
+        sat_look_ll = stack.get_satellite_look_vector()
 
         Notes
         -----
@@ -329,7 +329,7 @@ class Stack_incidence(Stack_geocode):
         import xarray as xr
         import numpy as np
 
-        sat_look = self.get_sat_look()
+        sat_look = self.get_satellite_look_vector()
         incidence_ll = np.arctan2(np.sqrt(sat_look.look_E**2 + sat_look.look_N**2), sat_look.look_U).rename('incidence_angle')
         return incidence_ll
 
@@ -392,7 +392,7 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = self.incidence_angle()
         return sign * los_disp/np.sin(incidence_ll)
 
-    def sat_look(self, interactive=False):
+    def compute_satellite_look_vector(self, interactive=False):
         #import dask
         import xarray as xr
         import numpy as np

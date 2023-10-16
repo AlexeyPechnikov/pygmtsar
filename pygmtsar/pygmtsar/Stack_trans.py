@@ -51,7 +51,7 @@ class Stack_trans(Stack_align):
         """
         return self.open_grid('trans')
 
-    def trans(self, coarsen, dem='auto'):
+    def compute_trans(self, coarsen, dem='auto'):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
         a NetCDF file for future use.
@@ -72,7 +72,7 @@ class Stack_trans(Stack_align):
         Examples
         --------
         Calculate and get the transform data:
-        >>> trans_dat(1)
+        >>> Stack.compute_trans_dat(1)
         """
         import dask
         import xarray as xr
@@ -153,7 +153,7 @@ class Stack_trans(Stack_align):
             # transform to separate variables, round for better compression
             trans = xr.Dataset({val: xr.DataArray(rae[key],
                             coords={'lat': lats,'lon': lons}) for (key, val) in llt2rat_map.items()})
-            encoding = {vn: self.compression(trans[vn].shape, chunksize=self.netcdf_chunksize) for vn in trans.data_vars}
+            encoding = {vn: self._compression(trans[vn].shape, chunksize=self.netcdf_chunksize) for vn in trans.data_vars}
             if os.path.exists(filename):
                 os.remove(filename)
             trans.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)

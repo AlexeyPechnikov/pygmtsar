@@ -1106,7 +1106,7 @@ class PRM(datagrid, PRM_gmtsar):
 #         corr_filename = fullname(f'{corr_tofile}.grd')
 #         if os.path.exists(corr_filename):
 #             os.remove(corr_filename)
-#         encoding = {'corr': self.compression(corr.shape)}
+#         encoding = {'corr': self._compression(corr.shape)}
 #         #print ('DEBUG X2', corr_da)
 #         # rename to save lazy NetCDF preventing broken coordinates (y,y) 
 #         corr.rename('corr').rename({'y': 'a', 'x': 'r'}).to_netcdf(corr_filename, encoding=encoding, engine=self.engine)
@@ -1116,7 +1116,7 @@ class PRM(datagrid, PRM_gmtsar):
 #         phase_filename = fullname(f'{phase_tofile}.grd')
 #         if os.path.exists(phase_filename):
 #             os.remove(phase_filename)
-#         encoding = {'phase': self.compression(phase.shape)}
+#         encoding = {'phase': self._compression(phase.shape)}
 #         #print ('DEBUG X3', phase_da)
 #         # mask phase using masked correlation
 #         # rename to save lazy NetCDF preventing broken coordinates (y,y)

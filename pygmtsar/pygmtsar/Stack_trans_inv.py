@@ -33,7 +33,7 @@ class Stack_trans_inv(Stack_trans):
         """
         return self.open_grid('trans_inv')
 
-    def trans_inv(self, coarsen, trans='auto', interactive=False):
+    def compute_trans_inv(self, coarsen, trans='auto', interactive=False):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
             a NetCDF file for future use.

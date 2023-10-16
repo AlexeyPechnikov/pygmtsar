@@ -12,7 +12,7 @@ from .PRM import PRM
 
 class Stack_reframe_gmtsar(Stack_orbits):
 
-    def ext_orb_s1a(self, subswath, stem, date=None, debug=False):
+    def _ext_orb_s1a(self, subswath, stem, date=None, debug=False):
         """
         Extracts orbital data for the Sentinel-1A satellite by running GMTSAR binary `ext_orb_s1a`.
 
@@ -28,13 +28,9 @@ class Stack_reframe_gmtsar(Stack_orbits):
         debug : bool, optional
             If True, prints debug information. Defaults to False.
 
-        Notes
-        -----
-        The function executes an external script `ext_orb_s1a` likely a shell script or compiled binary.
-
         Examples
         --------
-        ext_orb_s1a(1, 'stem_name', '2023-05-24', True)
+        _ext_orb_s1a(1, 'stem_name', '2023-05-24', True)
         """
         import os
         import subprocess
@@ -60,7 +56,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
 
     # produce LED and PRM in basedir
     # when date=None work on reference scene
-    def make_s1a_tops(self, subswath, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
+    def _make_s1a_tops(self, subswath, date=None, mode=0, rshift_fromfile=None, ashift_fromfile=None, debug=False):
         """
         Produces LED and PRM in the base directory by executing GMTSAR binary `make_s1a_tops`.
 
@@ -92,7 +88,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
 
         Examples
         --------
-        make_s1a_tops(1, '2023-05-24', 1, '/path/to/rshift.grd', '/path/to/ashift.grd', True)
+        _make_s1a_tops(1, '2023-05-24', 1, '/path/to/rshift.grd', '/path/to/ashift.grd', True)
         """
         import os
         import subprocess
@@ -124,11 +120,11 @@ class Stack_reframe_gmtsar(Stack_orbits):
         if len(stdout_data) > 0 and debug:
             print ('DEBUG: make_s1a_tops', stdout_data)
 
-        self.ext_orb_s1a(subswath, stem, date, debug=debug)
+        self._ext_orb_s1a(subswath, stem, date, debug=debug)
 
         return
 
-    def assemble_tops(self, subswath, date, azi_1, azi_2, debug=False):
+    def _assemble_tops(self, subswath, date, azi_1, azi_2, debug=False):
         """
         Assemble Sentinel-1 TOPS products for a given date and swath using GMTSAR binary `assemble_tops`.
 
@@ -145,14 +141,9 @@ class Stack_reframe_gmtsar(Stack_orbits):
         debug : bool, optional
             If True, prints debug information. Defaults to False.
 
-        Notes
-        -----
-        The function executes an external script `assemble_tops` which is likely a shell script or compiled binary.
-        The output files are bursts that cover area between azi_1 and azi_2. If these are set to zero, all bursts will be output.
-
         Examples
         --------
-        assemble_tops(1, '2023-05-24', 1685, 9732, True)
+        _assemble_tops(1, '2023-05-24', 1685, 9732, True)
         """
         import numpy as np
         import os

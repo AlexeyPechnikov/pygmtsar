@@ -13,7 +13,7 @@ from .PRM import PRM
 
 class Stack_reframe(Stack_reframe_gmtsar):
 
-    def reframe_subswath(self, subswath, date, geometry, debug=False):
+    def _reframe_subswath(self, subswath, date, geometry, debug=False):
         """
         Estimate framed area using Sentinel-1 GCPs approximation.
 
@@ -78,7 +78,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
         old_filename = os.path.join(self.basedir, f'{stem}')
         #print ('old_filename', old_filename)
 
-        self.make_s1a_tops(subswath, date, debug=debug)
+        self._make_s1a_tops(subswath, date, debug=debug)
         prm = PRM.from_file(old_filename+'.PRM')
         tmpazi_a = prm.SAT_llt2rat([geometry.coords[0][0],  geometry.coords[0][1],  0], precise=1, debug=debug)[1]
         tmpazi_b = prm.SAT_llt2rat([geometry.coords[-1][0], geometry.coords[-1][1], 0], precise=1, debug=debug)[1]
@@ -95,8 +95,8 @@ class Stack_reframe(Stack_reframe_gmtsar):
             print ('DEBUG: ','azi1', azi1, 'azi2', azi2)
 
         # Working on bursts covering $azi1 ($ll1) - $azi2 ($ll2)...
-        #print ('assemble_tops', subswath, date, azi1, azi2, debug)
-        self.assemble_tops(subswath, date, azi1, azi2, debug=debug)
+        #print ('_assemble_tops', subswath, date, azi1, azi2, debug)
+        self._assemble_tops(subswath, date, azi1, azi2, debug=debug)
 
         # Parse new .xml to define new scene name
         # like to 's1b-iw3-slc-vv-20171117t145922-20171117t145944-008323-00ebab-006'
@@ -136,7 +136,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
                                       if geom.intersects(geometry)])
         return out
 
-    def reframe(self, geometry=None, n_jobs=-1, **kwargs):
+    def compute_reframe(self, geometry=None, n_jobs=-1, **kwargs):
         """
         Reorder bursts from sequential scenes to cover the full orbit area or some bursts only.
 
@@ -177,7 +177,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
 
         # process all the scenes
         with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
-            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.reframe_subswath)\
+            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._reframe_subswath)\
                             (subswath, date, geometry if geometry is not None else geometries[subswath], **kwargs) \
                                                      for date in dates for subswath in subswaths)
 
