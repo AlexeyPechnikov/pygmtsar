@@ -238,7 +238,7 @@ class IO(datagrid):
                 filenames.append(filename)
         return filenames
 
-    def open_grid(self, name, add_subswath=True):
+    def open_grid(self, name, chunksize=None, add_subswath=True):
         """
         stack.open_grid('intf_ll2ra')
         stack.open_grid('intf_ra2ll')
@@ -246,8 +246,13 @@ class IO(datagrid):
         """
         import xarray as xr
 
+        if chunksize is None:
+            chunks = self.chunksize
+        else:
+            chunks = chunksize
+
         filename = self.get_filename(name, add_subswath=add_subswath)
-        ds = xr.open_dataset(filename, engine=self.netcdf_engine, chunks=self.chunksize)
+        ds = xr.open_dataset(filename, engine=self.netcdf_engine, chunks=chunks)
         if 'a' in ds.dims and 'r' in ds.dims:
             ds = ds.rename({'a': 'y', 'r': 'x'})
         if len(ds.data_vars) == 1:
@@ -271,16 +276,14 @@ class IO(datagrid):
 
         if isinstance(data, xr.Dataset):
             is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
-            encoding = {varname: self._compression(data[varname].shape,
-                        chunksize=self.netcdf_chunksize) for varname in data.data_vars}
+            encoding = {varname: self._compression(data[varname].shape) for varname in data.data_vars}
         elif isinstance(data, xr.DataArray):
             is_dask = isinstance(data.data, dask.array.Array)
-            encoding = {data.name: self._compression(data.shape,
-                        chunksize=self.netcdf_chunksize)}
+            encoding = {data.name: self._compression(data.shape)}
         else:
             raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
         #print ('is_dask', is_dask, 'encoding', encoding)
-    
+
         if not is_dask:
             data.to_netcdf(filename,
                            encoding=encoding,
@@ -523,32 +526,40 @@ class IO(datagrid):
         if os.path.exists(model_filename):
             os.remove(model_filename)
         if isinstance(model, xr.DataArray):
+            is_dask = isinstance(model.data, dask.array.Array)
             if debug:
-                print ('DEBUG: DataArray')
+                print ('DEBUG: DataArray is lazy:', is_dask)
             netcdf_compression = self._compression(model.shape,
                                     chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize))
             encoding = {model.name: netcdf_compression}
         elif isinstance(model, xr.Dataset):
+            is_dask = isinstance(model[list(model.data_vars)[0]].data, dask.array.Array)
             if debug:
-                print ('DEBUG: Dataset')
+                print ('DEBUG: Dataset is lazy:', is_dask)
             if len(model.dims) == 3:
                 encoding = {varname: self._compression(model[varname].shape,
                                 chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize)) for varname in model.data_vars}
             else:
                 encoding = {varname: self._compression(model[varname].shape,
                                 chunksize=self.netcdf_chunksize) for varname in model.data_vars}
-    
+        #print ('is_dask', is_dask, 'encoding', encoding)
+
         # prevent Xarray Dask saving issue
         if 'y' in model.dims and 'x' in model.dims:
             model = model.rename({'y': 'a', 'x': 'r'})
-    
-        delayed = model.to_netcdf(model_filename,
-                         engine=self.netcdf_engine,
-                         encoding=encoding,
-                         compute=False)
-        tqdm_dask(result := dask.persist(delayed), desc=caption)
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        del delayed, result
+
+        if not is_dask:
+            model.to_netcdf(model_filename,
+                             engine=self.netcdf_engine,
+                             encoding=encoding)
+        else:
+            delayed = model.to_netcdf(model_filename,
+                             engine=self.netcdf_engine,
+                             encoding=encoding,
+                             compute=False)
+            tqdm_dask(result := dask.persist(delayed), desc=caption)
+            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+            del delayed, result
         import gc; gc.collect()
 
     def delete_cube(self, name):

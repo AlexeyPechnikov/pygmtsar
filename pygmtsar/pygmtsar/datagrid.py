@@ -83,6 +83,9 @@ class datagrid:
                 chunksizes = []
                 for idim in range(len(shape)):
                     chunksizes.append(chunksize if chunksize<shape[idim] else shape[idim])
+                # set first dimension chunksize to 1 for 3D array
+                if len(chunksizes) == 3:
+                    chunksizes[0] = 1
                 chunksizes = tuple(chunksizes)
             else:
                 chunksizes=(chunksize, chunksize)
