@@ -75,12 +75,13 @@ class Stack_unwrap_snaphu(Stack_landmask):
         # prepare SNAPHU input files
         # NaN values are not allowed for SNAPHU phase input file
         # interpolate when exist valid values around and fill zero pixels far away from valid ones
-        self.nearest_grid(phase).fillna(0).values.astype(np.float32).tofile(phase_in)
+        # convert to lazy array setting the chunk size
+        self.nearest_grid(phase.chunk(self.chunksize)).fillna(0).compute(n_workers=1).values.astype(np.float32).tofile(phase_in)
 
         if corr is not None:
             # NaN values are not allowed for SNAPHU correlation input file
             # just fill NaNs by zeroes because the main trick is phase filling
-            corr.fillna(0).values.astype(np.float32).tofile(corr_in)
+            corr.fillna(0).compute(n_workers=1).values.astype(np.float32).tofile(corr_in)
 
         # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
         argv = ['snaphu', phase_in, str(phase.shape[1]), '-f', '/dev/stdin', '-o', unwrap_out, '-d']

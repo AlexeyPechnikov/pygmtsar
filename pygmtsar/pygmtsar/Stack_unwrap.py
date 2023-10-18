@@ -204,15 +204,15 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         if corr is not None:
             assert phase.shape == corr.shape, 'ERROR: phase and correlation variables have different shape'
 
-        def snaphu(ind):
+        def _snaphu(ind):
             ds = self.snaphu(phase[ind] if stackvar is not None else phase,
                              corr[ind]  if stackvar is not None and corr is not None else corr,
                              conf=conf, conncomp=conncomp)
-            return ds.to_array()
+            return ds.to_array().values
 
         stack =[]
         for ind in range(len(phase) if stackvar is not None else 1):
-            block = dask.array.from_delayed(dask.delayed(snaphu)(ind),
+            block = dask.array.from_delayed(dask.delayed(_snaphu)(ind),
                         shape=(2 if conncomp else 1, *(phase.shape[1:] if stackvar is not None else phase.shape)),
                         dtype=np.float32)
             stack.append(block)
