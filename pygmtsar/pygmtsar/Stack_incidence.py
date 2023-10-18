@@ -258,7 +258,7 @@ class Stack_incidence(Stack_geocode):
         This function returns the satellite look vectors in geographic coordinates as Xarray Dataset. The satellite look vectors
         should be computed and saved prior to calling this function using the `sat_look` method.
         """
-        return self.open_grid('sat_look')
+        return self.open_cube('sat_look')
 
     #gmt grdmath unwrap_mask.grd $wavel MUL -79.58 MUL = los.grd
     def los_displacement_mm(self, data):
@@ -431,4 +431,4 @@ class Stack_incidence(Stack_geocode):
         if interactive:
             return sat_look
 
-        return self.save_grid(sat_look, 'sat_look', f'Satellite Look Vector Computing')
+        return self.save_cube(sat_look, 'sat_look', 'Satellite Look Vector Computing')

@@ -189,7 +189,7 @@ class IO(datagrid):
         filename = os.path.join(self.basedir, f'{prefix}{name}.grd')
         return filename
 
-    def get_filenames(self, pairs, name, add_subswath=True):
+    def get_filenames(self, pairs, name, add_subswath=False):
         """
         Get the filenames of the data grids. The filenames are determined by the subswath, pairs, and name parameters.
 
@@ -238,66 +238,6 @@ class IO(datagrid):
                 filenames.append(filename)
         return filenames
 
-    def open_grid(self, name, chunksize=None, add_subswath=True):
-        """
-        stack.open_grid('intf_ll2ra')
-        stack.open_grid('intf_ra2ll')
-        stack.open_grid('intfweight')
-        """
-        import xarray as xr
-
-        if chunksize is None:
-            chunks = self.chunksize
-        else:
-            chunks = chunksize
-
-        filename = self.get_filename(name, add_subswath=add_subswath)
-        ds = xr.open_dataset(filename, engine=self.netcdf_engine, chunks=chunks)
-        if 'a' in ds.dims and 'r' in ds.dims:
-            ds = ds.rename({'a': 'y', 'r': 'x'})
-        if len(ds.data_vars) == 1:
-            return ds[list(ds.data_vars)[0]]
-        return ds
-
-    def save_grid(self, data, name, caption='Saving 2D grid'):
-        import xarray as xr
-        import dask
-        import os
-        import warnings
-        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore')
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
-
-        # save to NetCDF file
-        filename = self.get_filename(name)
-        if os.path.exists(filename):
-            os.remove(filename)
-
-        if isinstance(data, xr.Dataset):
-            is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
-            encoding = {varname: self._compression(data[varname].shape) for varname in data.data_vars}
-        elif isinstance(data, xr.DataArray):
-            is_dask = isinstance(data.data, dask.array.Array)
-            encoding = {data.name: self._compression(data.shape)}
-        else:
-            raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
-        #print ('is_dask', is_dask, 'encoding', encoding)
-
-        if not is_dask:
-            data.to_netcdf(filename,
-                           encoding=encoding,
-                           engine=self.netcdf_engine)
-        else:
-            delayed = data.to_netcdf(filename,
-                                     encoding=encoding,
-                                     engine=self.netcdf_engine,
-                                     compute=False)
-            tqdm_dask(result := dask.persist(delayed), desc=caption)
-            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-            del delayed, result
-        import gc; gc.collect()
-
     def open_data(self, dates=None, scale=2.5e-07, debug=False):
         import xarray as xr
         import pandas as pd
@@ -330,78 +270,7 @@ class IO(datagrid):
         # zero in np.int16 type means NODATA
         return ds_scaled.where(ds_scaled != 0)
 
-#     def open_data(self, dates=None, scale=2.5e-07):
-#         import xarray as xr
-#         import pandas as pd
-#         import numpy as np
-#         import os
-# 
-#         if dates is None:
-#             dates = self.df.index.values
-#         #print ('dates', dates)
-#     
-#         subswath = self.get_subswath()
-#         #print ('subswath', subswath)
-# 
-#         def open_subswath(sw):
-#             filenames = [self.PRM(date).filename[:-4-len(str(subswath))] + str(sw) + '.grd' for date in dates]
-#             #print ('filenames', filenames)
-#             ds = xr.open_mfdataset(
-#                 filenames,
-#                 engine=self.engine,
-#                 chunks=self.chunksize,
-#                 parallel=True,
-#                 concat_dim='date',
-#                 combine='nested'
-#             ).assign(date=pd.to_datetime(dates)).rename({'a': 'y', 'r': 'x'})
-#             if scale is None:
-#                 # there is no complex int16 datatype, so return two variables for real and imag parts
-#                 return ds
-#             # scale and return as complex values
-#             return (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs)
-#     
-#         if len(str(subswath)) == 1:
-#             return open_subswath(subswath)
-#     
-#         # merge subswaths to single virtual raster
-#         prm = self.PRM()
-#         bottoms, lefts, rights = [list(map(int, param.split(';'))) for param in prm.get('swath_bottom', 'swath_left', 'swath_right')]
-#         maxx = sum([right-left for right, left in zip(rights, lefts)])
-#         dss = []
-#         for (sw, bottom, left, right) in zip(str(subswath), bottoms, lefts, rights):
-#             ds = open_subswath(sw)
-#             dss.append(ds.isel(x=slice(left, right)).assign_coords(y=ds.y + bottom))
-#             del ds
-#         ds = xr.concat(dss, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
-#         #.chunk(chunksize)
-#         del dss
-#         return ds
-
-#     def open_data(self, dates=None, intensity=False, scale=2.5e-07, chunksize=None):
-#         import xarray as xr
-#         import pandas as pd
-#         import numpy as np
-#         import dask
-# 
-#         if chunksize is None:
-#             chunksize = self.chunksize
-# 
-#         if dates is None:
-#             dates = self.df.index.values
-#         #print ('dates', dates)
-#         # select radar coordinates extent
-#         rng_max = self.PRM().get('num_rng_bins')
-#         #print ('azi_max', azi_max, 'rng_max', rng_max)
-#         # use SLC-related chunks for faster processing
-#         minichunksize = int(np.round(chunksize**2/rng_max))
-#         #print (minichunksize)
-#         slcs = [self.PRM(date).read_SLC_int(intensity=intensity, scale=scale, chunksize=minichunksize) for date in dates]
-#         # build stack
-#         slcs = xr.concat(slcs, dim='date')
-#         slcs['date'] = pd.to_datetime(dates)
-#         return slcs
-# 
-#     def open_data_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
+#     def open_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
 #         """
 #         tiffs = stack.open_data_geotif(['2022-06-16', '2022-06-28'], intensity=True)
 #         """
@@ -440,7 +309,7 @@ class IO(datagrid):
 
     def open_cube(self, name):
         """
-        Opens an xarray 3D Dataset from a NetCDF file.
+        Opens an xarray 2D/3D Dataset or dataArray from a NetCDF file.
 
         This function takes the name of the model to be opened, reads the NetCDF file, and re-chunks
         the dataset according to the provided chunksize or the default value from the 'stack' object.
@@ -459,43 +328,59 @@ class IO(datagrid):
         """
         import xarray as xr
         import pandas as pd
+        import numpy as np
         import os
 
-        model_filename = self.get_filename(name, add_subswath=False)
-        assert os.path.exists(model_filename), f'ERROR: The NetCDF file is missed: {model_filename}'
+        filename = self.get_filename(name, add_subswath=False)
+        assert os.path.exists(filename), f'ERROR: The NetCDF file is missed: {filename}'
 
         # Workaround: open the dataset without chunking
-        model = xr.open_dataset(model_filename, engine=self.netcdf_engine)
+        data = xr.open_dataset(filename, engine=self.netcdf_engine)
         # Determine the proper chunk sizes
-        chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in model.dims}
+        chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
         # Re-chunk the dataset using the chunks dictionary
-        model = model.chunk(chunks)
+        data = data.chunk(chunks)
 
         # convert string dates to dates
         for dim in ['date', 'ref', 'rep']:
-            if dim in model.dims:
-                model[dim] = pd.to_datetime(model[dim])
+            if dim in data.dims:
+                data[dim] = pd.to_datetime(data[dim])
 
-        if 'yy' in model.dims and 'xx' in model.dims:
-            model = model.rename({'yy': 'lat', 'xx': 'lon'})
-
-        if 'a' in model.dims and 'r' in model.dims:
-            model = model.rename({'a': 'y', 'r': 'x'})
+        # restore missed coordinates
+        for dim in ['y', 'x', 'lat', 'lon']:
+            if dim not in data.coords \
+                and f'start_{dim}' in data.attrs \
+                and f'step_{dim}' in data.attrs \
+                and f'stop_{dim}' in data.attrs \
+                and f'size_{dim}' in data.attrs:
+                start = data.attrs[f'start_{dim}']
+                step  = data.attrs[f'step_{dim}']
+                stop  = data.attrs[f'stop_{dim}']
+                size  = data.attrs[f'size_{dim}']
+                coords = np.arange(start, stop+step/2, step)
+                assert coords.size == size, 'Restored dimension has invalid size'
+                #print (dim, start, step, stop, coords)
+                data = data.assign_coords({dim: coords})
+                # remove the system attributes
+                del data.attrs[f'start_{dim}']
+                del data.attrs[f'step_{dim}']
+                del data.attrs[f'stop_{dim}']
+                del data.attrs[f'size_{dim}']
 
         # in case of a single variable return DataArray
-        if len(model.data_vars) == 1:
-            return model[list(model.data_vars)[0]]
-        return model
+        if len(data.data_vars) == 1:
+            return data[list(data.data_vars)[0]]
+        return data
 
-    def save_cube(self, model, name=None, caption='Saving 3D DataCube', debug=False):
+    def save_cube(self, data, name=None, caption='Saving NetCDF 2D/3D Dataset'):
         """
-        Save an xarray 3D Dataset to a NetCDF file.
+        Save a lazy and not lazy 2D/3D xarray Dataset or DataArray to a NetCDF file.
 
-        The 'date' dimension is always chunked with a size of 1.
+        The 'date' or 'pair' dimension is always chunked with a size of 1.
 
         Parameters
         ----------
-        model : xarray.Dataset
+        data : xarray.Dataset or xarray.DataArray
             The model to be saved.
         name : str
             The text name for the output NetCDF file.
@@ -505,6 +390,17 @@ class IO(datagrid):
         Returns
         -------
         None
+
+        Examples
+        -------
+        stack.save_cube(intf90m, 'intf90m')                              # save lazy 3d dataset
+        stack.save_cube(intf90m.phase, 'intf90m')                        # save lazy 3d dataarray
+        stack.save_cube(intf90m.isel(pair=0), 'intf90m')                 # save lazy 2d dataset
+        stack.save_cube(intf90m.isel(pair=0).phase, 'intf90m')           # save lazy 2d dataarray
+        stack.save_cube(intf90m.compute(), 'intf90m')                    # save 3d dataset     
+        stack.save_cube(intf90m.phase.compute(), 'intf90m')              # save 3d dataarray
+        stack.save_cube(intf90m.isel(pair=0).compute(), 'intf90m')       # save 2d dataset
+        stack.save_cube(intf90m.isel(pair=0).phase.compute(), 'intf90m') # save 2d dataarray
         """
         import xarray as xr
         import dask
@@ -515,52 +411,43 @@ class IO(datagrid):
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
 
-        if name is None and isinstance(model, xr.DataArray):
-            assert model.name is not None, 'Define the grid name or use name argument for the NetCDF filename'
-            name = model.name
+        if name is None and isinstance(data, xr.DataArray):
+            assert data.name is not None, 'Define data name or use name argument for the NetCDF filename'
+            name = data.name
         elif name is None:
             raise ValueError('Specify name for the output NetCDF file')
 
+        for dim in ['y', 'x', 'lat', 'lon']:
+            if dim in data.dims:
+                # use attributes to hold grid spacing to prevent xarray Dask saving issues
+                data = data.drop(dim, dim=None).assign_attrs({
+                    f'start_{dim}': data[dim].values[0],
+                    f'step_{dim}': data[dim].diff(dim).values[0],
+                    f'stop_{dim}': data[dim].values[-1],
+                    f'size_{dim}': data[dim].size
+                })
+
         # save to NetCDF file
-        model_filename = self.get_filename(name, add_subswath=False)
-        if os.path.exists(model_filename):
-            os.remove(model_filename)
-        if isinstance(model, xr.DataArray):
-            is_dask = isinstance(model.data, dask.array.Array)
-            if debug:
-                print ('DEBUG: DataArray is lazy:', is_dask)
-            netcdf_compression = self._compression(model.shape,
-                                    chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize))
-            encoding = {model.name: netcdf_compression}
-        elif isinstance(model, xr.Dataset):
-            is_dask = isinstance(model[list(model.data_vars)[0]].data, dask.array.Array)
-            if debug:
-                print ('DEBUG: Dataset is lazy:', is_dask)
-            if len(model.dims) == 3:
-                encoding = {varname: self._compression(model[varname].shape,
-                                chunksize=(1, self.netcdf_chunksize, self.netcdf_chunksize)) for varname in model.data_vars}
-            else:
-                encoding = {varname: self._compression(model[varname].shape,
-                                chunksize=self.netcdf_chunksize) for varname in model.data_vars}
+        filename = self.get_filename(name, add_subswath=False)
+        if os.path.exists(filename):
+            os.remove(filename)
+        if isinstance(data, xr.DataArray):
+            is_dask = isinstance(data.data, dask.array.Array)
+            encoding = {data.name: self._compression(data.shape)}
+        elif isinstance(data, xr.Dataset):
+            is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
+            encoding = {varname: self._compression(data[varname].shape) for varname in data.data_vars}
         #print ('is_dask', is_dask, 'encoding', encoding)
 
-        # prevent Xarray Dask saving issue
-        if 'y' in model.dims and 'x' in model.dims:
-            model = model.rename({'y': 'a', 'x': 'r'})
-
-        if not is_dask:
-            model.to_netcdf(model_filename,
-                             engine=self.netcdf_engine,
-                             encoding=encoding)
-        else:
-            delayed = model.to_netcdf(model_filename,
-                             engine=self.netcdf_engine,
-                             encoding=encoding,
-                             compute=False)
+        delayed = data.to_netcdf(filename,
+                                 engine=self.netcdf_engine,
+                                 encoding=encoding,
+                                 compute=not is_dask)
+        if is_dask:
             tqdm_dask(result := dask.persist(delayed), desc=caption)
             # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
             del delayed, result
-        import gc; gc.collect()
+            import gc; gc.collect()
 
     def delete_cube(self, name):
         import os
@@ -594,34 +481,114 @@ class IO(datagrid):
             # pairs
             filenames = self.get_filenames(stack, name)
         #print ('filenames', filenames)
-    
-        ds = xr.open_mfdataset(
+
+        data = xr.open_mfdataset(
             filenames,
             engine=self.netcdf_engine,
             chunks=self.chunksize,
             parallel=True,
             concat_dim='stackvar',
             combine='nested'
-        ).rename({'a': 'y', 'r': 'x'})
+        )
+    
+        # attributes are empty when dataarray is prezented as datatset
+        if not always_dataset and len(data.data_vars) == 1:
+            data = data[list(data.data_vars)[0]]
+        
+        # restore missed coordinates
+        for dim in ['y', 'x', 'lat', 'lon']:
+            if dim not in data.coords \
+                and f'start_{dim}' in data.attrs \
+                and f'step_{dim}' in data.attrs \
+                and f'stop_{dim}' in data.attrs \
+                and f'size_{dim}' in data.attrs:
+                start = data.attrs[f'start_{dim}']
+                step  = data.attrs[f'step_{dim}']
+                stop  = data.attrs[f'stop_{dim}']
+                size  = data.attrs[f'size_{dim}']
+                coords = np.arange(start, stop+step/2, step)
+                assert coords.size == size, 'Restored dimension has invalid size'
+                #print (dim, start, step, stop, coords)
+                data = data.assign_coords({dim: coords})
+                # remove the system attributes
+                del data.attrs[f'start_{dim}']
+                del data.attrs[f'step_{dim}']
+                del data.attrs[f'stop_{dim}']
+                del data.attrs[f'size_{dim}']
 
         for dim in ['pair', 'date']:
-            if dim in ds.coords:
-                if ds[dim].shape == ():
-                    ds = ds.rename({'stackvar': dim})
+            if dim in data.coords:
+                if data[dim].shape == ():
+                    data = data.rename({'stackvar': dim})
                 else:
-                    ds = ds.swap_dims({'stackvar': dim})
+                    data = data.swap_dims({'stackvar': dim})
 
         # convert string (or already timestamp) dates to dates
         for dim in ['date', 'ref', 'rep']:
-            if dim in ds.dims:
-                if not ds[dim].shape == ():
-                    ds[dim] = pd.to_datetime(ds[dim])
+            if dim in data.dims:
+                if not data[dim].shape == ():
+                    data[dim] = pd.to_datetime(data[dim])
                 else:
-                    ds[dim].values = pd.to_datetime(ds['date'].values)
+                    data[dim].values = pd.to_datetime(data['date'].values)
 
-        if not always_dataset and len(ds.data_vars) == 1:
-            return ds[list(ds.data_vars)[0]]
-        return ds
+        return data
+
+#     def save_stack_isolate(self, data, name, caption='Saving NetCDF Stack'):
+#         import xarray as xr
+#         import dask
+#         import os
+#         from tqdm.auto import tqdm
+#         import joblib
+#         import warnings
+#         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+#         warnings.filterwarnings('ignore')
+#         warnings.filterwarnings('ignore', module='dask')
+#         warnings.filterwarnings('ignore', module='dask.core')
+#     
+#         # detect number of Dask workers
+#         from dask.distributed import get_client
+#         n_jobs = len(get_client().ncores())
+# 
+#         if isinstance(data, xr.Dataset):
+#             stackvar = data[list(data.data_vars)[0]].dims[0]
+#         elif isinstance(data, xr.DataArray):
+#             stackvar = data.dims[0]
+#         else:
+#             raise Exception('Argument data is not xr.Dataset or xr.DataArray object')
+#         #print ('stackvar', stackvar)
+#         stacksize = data[stackvar].size
+# 
+#         def save_slice(ind):
+#             # use outer variable data
+#             data_slice = data.isel({stackvar: ind})
+#             if stackvar == 'date':
+#                 stackval = str(data_slice[stackvar].dt.date.values)
+#             else:
+#                 stackval = data_slice[stackvar].item().split(' ')
+#             #print ('stackval', stackval)
+#             # save to NetCDF file
+#             filename = self.get_filenames([stackval], name)[0]
+#             #print ('filename', filename)
+#             if os.path.exists(filename):
+#                 os.remove(filename)
+#             if isinstance(data, xr.Dataset):
+#                 encoding = {varname: self._compression(data_slice[varname].shape) for varname in data.data_vars}
+#                 is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
+#             elif isinstance(data, xr.DataArray):
+#                 encoding = {data.name: self._compression(data_slice.shape)}
+#                 is_dask = isinstance(data.data, dask.array.Array)
+#             else:
+#                 raise Exception('Argument data is not xr.Dataset or xr.DataArray object')
+# 
+#             #if is_dask:
+#             #    data_slice = data_slice.compute(n_workers=1)
+#             data_slice.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
+#             del data_slice
+# 
+#         with self.tqdm_joblib(tqdm(desc=caption, total=stacksize)) as progress_bar:
+#             outs = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(save_slice)(ind) for ind in range(stacksize))
+# 
+#         import gc; gc.collect()
 
     def save_stack(self, data, name, caption='Saving 2D grids stack'):
         import xarray as xr
@@ -635,12 +602,24 @@ class IO(datagrid):
 
         if isinstance(data, xr.Dataset):
             stackvar = data[list(data.data_vars)[0]].dims[0]
+            is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
         elif isinstance(data, xr.DataArray):
             stackvar = data.dims[0]
+            is_dask = isinstance(data.data, dask.array.Array)
         else:
             raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
-        #print ('stackvar', stackvar)
+        #print ('is_dask', is_dask, 'stackvar', stackvar)
         stacksize = data[stackvar].size
+
+        for dim in ['y', 'x', 'lat', 'lon']:
+            if dim in data.dims:
+                # use attributes to hold grid spacing to prevent xarray Dask saving issues
+                data = data.drop(dim, dim=None).assign_attrs({
+                    f'start_{dim}': data[dim].values[0],
+                    f'step_{dim}':  data[dim].diff(dim).values[0],
+                    f'stop_{dim}':  data[dim].values[-1],
+                    f'size_{dim}':  data[dim].size
+                })
 
         delayeds = []
         digits = len(str(stacksize))
@@ -657,30 +636,33 @@ class IO(datagrid):
             if os.path.exists(filename):
                 os.remove(filename)
             if isinstance(data, xr.Dataset):
-                encoding = {varname: self._compression(data_slice[varname].shape,
-                        chunksize=self.netcdf_chunksize) for varname in data.data_vars}
+                encoding = {varname: self._compression(data_slice[varname].shape) for varname in data.data_vars}
             elif isinstance(data, xr.DataArray):
-                encoding = {data.name: self._compression(data_slice.shape,
-                            chunksize=self.netcdf_chunksize)}
+                encoding = {data.name: self._compression(data_slice.shape)}
             else:
                 raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
-            delayed = data_slice.rename({'y': 'a', 'x': 'r'}).to_netcdf(filename,
+
+            delayed = data_slice.to_netcdf(filename,
                                   encoding=encoding,
                                   engine=self.netcdf_engine,
-                                  compute=False)
-            delayeds.append(delayed)
-            del data_slice, delayed
+                                  compute=not is_dask)
+            if is_dask:
+                delayeds.append(delayed)
+                del delayed
+            del data_slice
 
-        tqdm_dask(result := dask.persist(*delayeds), desc=caption)
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        del delayeds, result
-        import gc; gc.collect()
+        if is_dask:
+            tqdm_dask(result := dask.persist(*delayeds), desc=caption)
+            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+            del delayeds, result
+            import gc; gc.collect()
 
     def delete_stack(self, name):
         import os
         import glob
 
-        template = self.get_filename(f'{name}_????-??-??_????-??-??')
+        #template = self.get_filename(f'{name}_????-??-??_????-??-??')
+        template = self.get_filename(f'{name}_????????_????????')
         #print ('template', template)
         filenames = glob.glob(template)
         #print ('filenames', filenames)

@@ -49,9 +49,9 @@ class Stack_trans(Stack_align):
         Get the inverse transform data:
         get_trans()
         """
-        return self.open_grid('trans')
+        return self.open_cube('trans')
 
-    def compute_trans(self, coarsen, dem='auto'):
+    def compute_trans(self, coarsen, dem='auto', interactive=False):
         """
         Retrieve or calculate the transform data. This transform data is then saved as
         a NetCDF file for future use.
@@ -106,15 +106,15 @@ class Stack_trans(Stack_align):
             import warnings
             warnings.filterwarnings('ignore')
 
-            dlat = dem.yy.diff('yy')[0]
-            dlon = dem.xx.diff('xx')[0]
-            topo = dem.sel(yy=slice(lats[0]-dlat, lats[-1]+dlat), xx=slice(lons[0]-dlon, lons[-1]+dlon))\
+            dlat = dem.lat.diff('lat')[0]
+            dlon = dem.lon.diff('lon')[0]
+            topo = dem.sel(lat=slice(lats[0]-dlat, lats[-1]+dlat), lon=slice(lons[0]-dlon, lons[-1]+dlon))\
                       .compute(n_workers=1)
             #print ('topo.shape', topo.shape, 'lats.size', lats.size, 'lons', lons.size)
             if np.isfinite(amin):
                 # check if the topo block is empty or not
-                lts = topo.yy.values
-                lls = topo.xx.values
+                lts = topo.lat.values
+                lls = topo.lon.values
                 border_lts = np.concatenate([lts, lts, np.repeat(lts[0], lls.size), np.repeat(lts[-1], lls.size)])
                 border_lls = np.concatenate([np.repeat(lls[0], lts.size), np.repeat(lls[-1], lts.size), lls, lls])
                 border_zs  = np.concatenate([topo.values[:,0], topo.values[:,-1], topo.values[0,:], topo.values[-1,:]])
@@ -132,7 +132,7 @@ class Stack_trans(Stack_align):
             else:
                 # continue the processing without empty block check
                 valid_pixels = True
-        
+
             if valid_pixels:
                 grid = topo.interp({topo.dims[0]: lats, topo.dims[1]: lons})
                 del topo
@@ -147,7 +147,7 @@ class Stack_trans(Stack_align):
                 rae = rae.reshape(lats.size, lons.size, -1).transpose(2,0,1)
             else:
                 rae = np.nan * np.zeros((3, lats.size, lons.size), np.float32)
-        
+
             if filename is None:
                 return rae
             # transform to separate variables, round for better compression
@@ -158,15 +158,15 @@ class Stack_trans(Stack_align):
                 os.remove(filename)
             trans.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
             del trans
-        
+
         if isinstance(dem, str) and dem == 'auto':
             # do not use coordinate names lat,lon because the output grid saved as (lon,lon) in this case...
             dem = self.get_dem()
-        dem = dem.rename({'lat': 'yy', 'lon': 'xx'})
+        #dem = dem.rename({'lat': 'yy', 'lon': 'xx'})
 
         # check DEM corners
-        dem_corners = dem[::dem.yy.size-1, ::dem.xx.size-1].compute()
-        rngs, azis, _ = trans_block(dem_corners.yy.values, dem_corners.xx.values)
+        dem_corners = dem[::dem.lat.size-1, ::dem.lon.size-1].compute()
+        rngs, azis, _ = trans_block(dem_corners.lat.values, dem_corners.lon.values)
         azi_size = abs(np.diff(azis, axis=0).mean())
         rng_size = abs(np.diff(rngs, axis=1).mean())
         del rngs, azis, _
@@ -185,8 +185,8 @@ class Stack_trans(Stack_align):
         #print ('borders', borders)
 
         # process the area
-        lats = np.linspace(dem.yy[0], dem.yy[-1], azi_steps)
-        lons = np.linspace(dem.xx[0], dem.xx[-1], rng_steps)
+        lats = np.linspace(dem.lat[0], dem.lat[-1], azi_steps)
+        lons = np.linspace(dem.lon[0], dem.lon[-1], rng_steps)
         #print ('lats', lats, 'lons', lons)
         #print ('lats.size', lats.size, 'lons.size', lons.size)
 
@@ -217,14 +217,22 @@ class Stack_trans(Stack_align):
             concat_dim=['lat','lon'],
             combine='nested'
         )
+        # fix geographic coordinates
+        #print ('lats', np.diff(lats)[:10])
+        #print ('trans.lat', np.diff(trans.lat)[10])
         # add target radar coordinate grid for the user defined spacing (coarsen)
         azis, rngs = self.define_trans_grid(coarsen)
         trans['y'] = azis
         trans['x'] = rngs
-        self.save_grid(trans, 'trans', 'Radar Transform Saving')
-        del lats_blocks, lons_blocks, trans
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        import gc; gc.collect()
+
+        if interactive:
+            return trans
+        else:
+            # use safe=False attribute to save y,x coordinates as is
+            self.save_cube(trans, 'trans', 'Radar Transform Saving')
+            del lats_blocks, lons_blocks, trans
+            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+            import gc; gc.collect()
         # cleanup
         for filename in filenames:
             os.remove(filename)

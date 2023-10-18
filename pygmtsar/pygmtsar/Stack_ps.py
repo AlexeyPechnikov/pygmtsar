@@ -12,8 +12,8 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_ps(Stack_stl):
 
-    def get_ps(self, subswath=None):
-        return self.open_grid('ps', subswath)
+    def get_ps(self):
+        return self.open_cube('ps')
 
     #from pygmtsar import tqdm_dask
     #Stack.ps = ps    
@@ -31,28 +31,28 @@ class Stack_ps(Stack_stl):
         import dask
         import os
 
-        for subswath in self.get_subswaths():
-            if dates is None:
-                dates = self.df[self.df['subswath']==subswath].index.values
-            #print ('dates', dates)
-            # intensity=False means complex data
-            slcs = self.open_data(dates=dates, subswath=subswath, intensity=True, dfact=dfact)
-            # convert to amplitude for GMTSAR compatible calculations
-            if not intensity:
-                slcs = np.sqrt(slcs)
-            # normalize image intensities
-            tqdm_dask(mean := dask.persist(slcs.mean(dim=['y','x'])), desc=f'Amplitude Normalization sw{subswath}')
-            # dask.persist returns tuple
-            norm = mean[0].mean(dim='date') / mean[0]
-            # compute average and std.dev.
-            stats = (norm * slcs).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
-            del slcs
-            ds = xr.merge([stats[0].rename('average'), stats[1].rename('deviation'), mean[0].rename('stack_average')])
-            del stats, norm
-            self.save_grid(ds.rename({'y': 'a', 'x': 'r'}), 'ps', subswath, f'Persistent Scatterers sw{subswath}')
-            del ds
+        if dates is None:
+            dates = self.df.index.values
 
-    def get_adi_threshold(self, subswath, threshold):
+        #print ('dates', dates)
+        # intensity=False means complex data
+        slcs = self.open_data(dates=dates, dfact=dfact)
+        # convert to amplitude for GMTSAR compatible calculations
+        if intensity:
+            slcs = slcs.re**2 + slcs.im**2
+        # normalize image intensities
+        tqdm_dask(mean := dask.persist(slcs.mean(dim=['y','x'])), desc='Amplitude Normalization')
+        # dask.persist returns tuple
+        norm = mean[0].mean(dim='date') / mean[0]
+        # compute average and std.dev.
+        stats = (norm * slcs).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
+        del slcs
+        ds = xr.merge([stats[0].rename('average'), stats[1].rename('deviation'), mean[0].rename('stack_average')])
+        del stats, norm
+        self.save_cube(ds, 'ps', 'Compute Persistent Scatterers')
+        del ds
+
+    def get_adi_threshold(self, threshold):
         """
         Vectorize Amplitude Dispersion Index (ADI) raster values selected using the specified threshold.
         """
@@ -85,8 +85,8 @@ class Stack_ps(Stack_stl):
             return np.column_stack([grid_lt, grid_ll, adi_block_value])
     
         # data grid and transform table
-        adi = self.get_adi(subswath)
-        trans_inv = self.get_trans_dat_inv(subswath)
+        adi = self.get_adi()
+        trans_inv = self.get_trans_inv()
     
         # split to equal chunks and rest
         ys_blocks = np.array_split(np.arange(adi.y.size), np.arange(0, adi.y.size, self.chunksize)[1:])
@@ -100,7 +100,7 @@ class Stack_ps(Stack_stl):
                 del block
     
         # materialize the result as a set of numpy arrays
-        tqdm_dask(model := dask.persist(blocks), desc=f'Amplitude Dispersion Index (ADI) Threshold sw{subswath}')
+        tqdm_dask(model := dask.persist(blocks), desc='Amplitude Dispersion Index (ADI) Threshold')
         del blocks
         # the result is already calculated and compute() returns the result immediately
         model = np.concatenate(dask.compute(model)[0][0])
@@ -109,10 +109,3 @@ class Stack_ps(Stack_stl):
         df = gpd.GeoDataFrame(columns, crs="EPSG:4326")
         del columns
         return df
-
-    #df.to_file('adi.sqlite', driver='GPKG')
-    def get_adi_threshold(self, threshold, **kwargs):
-        subswaths = self.get_subswaths()
-    
-        adis = [self.get_adi_threshold(subswath, threshold, **kwargs) for subswath in subswaths]
-        return adis[0] if len(adis)==1 else adis

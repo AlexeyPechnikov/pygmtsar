@@ -31,7 +31,7 @@ class Stack_trans_inv(Stack_trans):
         Get the inverse transform data:
         get_trans_inv()
         """
-        return self.open_grid('trans_inv')
+        return self.open_cube('trans_inv')
 
     def compute_trans_inv(self, coarsen, trans='auto', interactive=False):
         """
@@ -201,5 +201,4 @@ class Stack_trans_inv(Stack_trans):
         if interactive:
             return trans_inv
         # rename to save lazy NetCDF preventing broken coordinates (y,y)
-        return self.save_grid(trans_inv.rename({'y': 'a', 'x': 'r'}), 
-                              'trans_inv', f'Radar Inverse Transform Computing')
+        return self.save_cube(trans_inv, 'trans_inv', f'Radar Inverse Transform Computing')
