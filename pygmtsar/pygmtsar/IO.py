@@ -340,7 +340,12 @@ class IO(datagrid):
         chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
         # Re-chunk the dataset using the chunks dictionary
         data = data.chunk(chunks)
-
+        
+        # attributes are empty when dataarray is prezented as dataset
+        if len(data.data_vars) == 1:
+            # in case of a single variable return DataArray
+            data = data[list(data.data_vars)[0]]
+            
         # convert string dates to dates
         for dim in ['date', 'ref', 'rep']:
             if dim in data.dims:
@@ -367,9 +372,6 @@ class IO(datagrid):
                 del data.attrs[f'stop_{dim}']
                 del data.attrs[f'size_{dim}']
 
-        # in case of a single variable return DataArray
-        if len(data.data_vars) == 1:
-            return data[list(data.data_vars)[0]]
         return data
 
     def save_cube(self, data, name=None, caption='Saving NetCDF 2D/3D Dataset'):
