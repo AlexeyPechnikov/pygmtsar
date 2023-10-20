@@ -134,6 +134,10 @@ class IO(datagrid):
 
         os.makedirs(backup_dir, exist_ok=True)
 
+        # save the geometry
+        filename = os.path.join(backup_dir, 'stack.geojson')
+        self.df[['datetime', 'orbit','mission','polarization', 'subswath','geometry']].to_file(filename, driver='GeoJSON')
+
         # this optional file is dumped state, copy it if exists
         # auto-generated file can't be a symlink but user-defined symlink target should be copied
         filename = os.path.join(self.basedir, 'stack.pickle')
