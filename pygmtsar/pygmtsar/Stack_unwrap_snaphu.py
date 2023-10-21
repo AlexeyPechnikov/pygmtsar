@@ -51,6 +51,9 @@ class Stack_unwrap_snaphu(Stack_landmask):
         import os
         import subprocess
         from datetime import datetime
+        # disable "distributed.utils_perf - WARNING - full garbage collections ..."
+        from dask.distributed import utils_perf
+        utils_perf.disable_gc_diagnosis()
 
         # unique filenames specifier
         timenow = datetime.now().strftime("%F_%T.%f").replace(':', '.')
