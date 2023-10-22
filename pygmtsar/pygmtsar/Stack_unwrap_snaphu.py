@@ -56,7 +56,7 @@ class Stack_unwrap_snaphu(Stack_landmask):
         utils_perf.disable_gc_diagnosis()
 
         # unique filenames specifier
-        timenow = datetime.now().strftime("%F_%T.%f").replace(':', '.')
+        timenow = datetime.now().strftime("%F_%T.%f").replace(':', '.').replace('-', '')
 
         if conf is None:
             conf = self.snaphu_config()
