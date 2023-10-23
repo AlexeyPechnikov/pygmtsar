@@ -51,21 +51,19 @@ class Stack_unwrap_snaphu(Stack_landmask):
         import os
         import subprocess
         from datetime import datetime
+        import uuid
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
         from dask.distributed import utils_perf
         utils_perf.disable_gc_diagnosis()
 
-        # unique filenames specifier
-        timenow = datetime.now().strftime("%F_%T.%f").replace(':', '.').replace('-', '')
-
         if conf is None:
             conf = self.snaphu_config()
         # set unique processing subdirectory
-        conf += f'    TILEDIR snaphu_tiledir_{timenow}'
+        conf += f'    TILEDIR snaphu_tiledir_{str(uuid.uuid4())}'
 
         # define basename for SNAPHU temp files
         # crop .grd from filename
-        basename = self.get_filename(f'snaphu_{timenow}', '')[:-4]
+        basename = self.get_filename(f'snaphu_{str(uuid.uuid4())}', '')[:-4]
         #print ('basename', basename)
 
         # SNAPHU input files
@@ -104,9 +102,8 @@ class Stack_unwrap_snaphu(Stack_landmask):
                              encoding='utf8', bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=conf)
 
+        outs = []
         if os.path.exists(unwrap_out):
-            outs = []
-
             # convert to grid unwrapped phase from SNAPHU output applying postprocessing
             values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
             #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
@@ -121,11 +118,12 @@ class Stack_unwrap_snaphu(Stack_landmask):
                 conn = xr.DataArray(values, phase.coords, name='conncomp').chunk(self.chunksize)
                 outs.append(conn)
                 del values, conn
-
-            out = xr.merge(outs)
-            del outs
         else:
-            out = xr.Dataset()
+            outs.append(xr.full_like(phase, np.nan).rename('phase'))
+            if conncomp:
+                outs.append(xr.full_like(phase, np.nan).rename('conncomp'))
+        out = xr.merge(outs)
+        del outs
 
         # add processing log
         out.attrs['snaphu'] = stdout_data + '\n' + stderr_data
