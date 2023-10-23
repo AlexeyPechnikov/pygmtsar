@@ -539,63 +539,7 @@ class IO(datagrid):
 
         return data
 
-#     def save_stack_isolate(self, data, name, caption='Saving NetCDF Stack'):
-#         import xarray as xr
-#         import dask
-#         import os
-#         from tqdm.auto import tqdm
-#         import joblib
-#         import warnings
-#         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-#         warnings.filterwarnings('ignore')
-#         warnings.filterwarnings('ignore', module='dask')
-#         warnings.filterwarnings('ignore', module='dask.core')
-#     
-#         # detect number of Dask workers
-#         from dask.distributed import get_client
-#         n_jobs = len(get_client().ncores())
-# 
-#         if isinstance(data, xr.Dataset):
-#             stackvar = data[list(data.data_vars)[0]].dims[0]
-#         elif isinstance(data, xr.DataArray):
-#             stackvar = data.dims[0]
-#         else:
-#             raise Exception('Argument data is not xr.Dataset or xr.DataArray object')
-#         #print ('stackvar', stackvar)
-#         stacksize = data[stackvar].size
-# 
-#         def save_slice(ind):
-#             # use outer variable data
-#             data_slice = data.isel({stackvar: ind})
-#             if stackvar == 'date':
-#                 stackval = str(data_slice[stackvar].dt.date.values)
-#             else:
-#                 stackval = data_slice[stackvar].item().split(' ')
-#             #print ('stackval', stackval)
-#             # save to NetCDF file
-#             filename = self.get_filenames([stackval], name)[0]
-#             #print ('filename', filename)
-#             if os.path.exists(filename):
-#                 os.remove(filename)
-#             if isinstance(data, xr.Dataset):
-#                 encoding = {varname: self._compression(data_slice[varname].shape) for varname in data.data_vars}
-#                 is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
-#             elif isinstance(data, xr.DataArray):
-#                 encoding = {data.name: self._compression(data_slice.shape)}
-#                 is_dask = isinstance(data.data, dask.array.Array)
-#             else:
-#                 raise Exception('Argument data is not xr.Dataset or xr.DataArray object')
-# 
-#             #if is_dask:
-#             #    data_slice = data_slice.compute(n_workers=1)
-#             data_slice.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
-#             del data_slice
-# 
-#         with self.tqdm_joblib(tqdm(desc=caption, total=stacksize)) as progress_bar:
-#             outs = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(save_slice)(ind) for ind in range(stacksize))
-# 
-#         import gc; gc.collect()
-
+#     # simple sequential realization is not suitable for a large stack
 #     def save_stack(self, data, name, caption='Saving 2D grids stack'):
 #         import xarray as xr
 #         import dask
@@ -663,6 +607,7 @@ class IO(datagrid):
 #             del delayeds, result
 #             import gc; gc.collect()
 
+    # use save_mfdataset
     def save_stack(self, data, name, caption='Saving 2D Stack', queue=50):
         import numpy as np
         import xarray as xr
@@ -675,7 +620,7 @@ class IO(datagrid):
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
         # Filter out Dask "Restarting worker" warnings
-        warnings.filterwarnings("ignore", category=UserWarning, module="distributed.nanny")
+        warnings.filterwarnings("ignore", module="distributed.nanny")
         import logging
         # Suppress Dask "Restarting worker" warnings
         logging.getLogger('distributed.nanny').setLevel(logging.ERROR)
@@ -708,12 +653,9 @@ class IO(datagrid):
                     f'size_{dim}':  data[dim].size
                 })
 
-        if isinstance(data, xr.Dataset):
-            encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
-        elif isinstance(data, xr.DataArray):
-            encoding = {data.name: self._compression(data.shape[1:])}
-        else:
-            raise Exception('Argument data is not 3D xr.Dataset or xr.DataArray object')
+        if isinstance(data, xr.DataArray):
+            data = data.to_dataset()
+        encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
         #print ('encoding', encoding)
 
         # Applying iterative processing to prevent Dask scheduler deadlocks.
@@ -722,41 +664,35 @@ class IO(datagrid):
         # Splitting all the pairs into chunks, each containing approximately queue pairs.
         n_chunks = stacksize // queue if stacksize >= queue else 1
         for chunk in np.array_split(range(stacksize), n_chunks):
-            #stack = data.isel({stackvar: slice(chunk[0], chunk[-1]+1)})
-            stack = [data.isel({stackvar: ind}) for ind in chunk]
-            assert len(stack) == len(chunk), 'ERROR: incorrect queue size'
+            dss = [data.isel({stackvar: ind}) for ind in chunk]
             if stackvar == 'date':
-                stackvals = [ds[stackvar].dt.date.values for ds in stack]
+                stackvals = [ds[stackvar].dt.date.values for ds in dss]
             else:
-                stackvals = [ds[stackvar].item().split(' ') for ds in stack]
-            # NetCDF files
+                stackvals = [ds[stackvar].item().split(' ') for ds in dss]
+            # save to NetCDF file
             filenames = self.get_filenames(stackvals, name)
-
-            delayeds = []
-            # prepare lazy chunk or process not lazy chunk
-            for data_slice, filename in zip(stack, filenames):
-                #print ('filename', filename)
-                if os.path.exists(filename):
-                    os.remove(filename)
-                delayed = data_slice.to_netcdf(filename,
-                                      encoding=encoding,
-                                      engine=self.netcdf_engine,
-                                      compute=not is_dask)
-                delayeds.append(delayed)
-                del delayed, data_slice, filename
+            #[os.remove(filename) for filename in filenames if os.path.exists(filename)]
+            delayeds = xr.save_mfdataset(dss,
+                                         filenames,
+                                         encoding=encoding,
+                                         engine=self.netcdf_engine,
+                                         compute=not is_dask)
             # process lazy chunk
             if is_dask:
-                chunk_caption = f'{caption}: {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {stacksize}'
-                tqdm_dask(dask.persist(delayeds), desc=chunk_caption)
+                if n_chunks > 1:
+                    chunk_caption = f'{caption}: {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {stacksize}'
+                else:
+                    chunk_caption = caption
+                tqdm_dask(result := dask.persist(delayeds), desc=chunk_caption)
+                del delayeds, result
+                # cleanup - release all memory
+                get_client().restart()
             # update chunks counter
             counter += len(chunk)
-            # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-            del delayeds, stack
-            get_client().restart()
-            import gc; gc.collect()
+        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+        import gc; gc.collect()
 
-#     # it does not work stable because probably race condition error fires sometimes:
-#     # Exception: "IndexError('list index out of range')"
+#     # alternative realization
 #     def save_stack(self, data, name, caption='Saving 2D Stack', queue=50):
 #         import numpy as np
 #         import xarray as xr
@@ -802,9 +738,12 @@ class IO(datagrid):
 #                     f'size_{dim}':  data[dim].size
 #                 })
 # 
-#         if isinstance(data, xr.DataArray):
-#             data = data.to_dataset()
-#         encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
+#         if isinstance(data, xr.Dataset):
+#             encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
+#         elif isinstance(data, xr.DataArray):
+#             encoding = {data.name: self._compression(data.shape[1:])}
+#         else:
+#             raise Exception('Argument data is not 3D xr.Dataset or xr.DataArray object')
 #         #print ('encoding', encoding)
 # 
 #         # Applying iterative processing to prevent Dask scheduler deadlocks.
@@ -813,125 +752,38 @@ class IO(datagrid):
 #         # Splitting all the pairs into chunks, each containing approximately queue pairs.
 #         n_chunks = stacksize // queue if stacksize >= queue else 1
 #         for chunk in np.array_split(range(stacksize), n_chunks):
-#             dss = [data.isel({stackvar: ind}) for ind in chunk]
+#             stack = [data.isel({stackvar: ind}) for ind in chunk]
+#             assert len(stack) == len(chunk), 'ERROR: incorrect queue size'
 #             if stackvar == 'date':
-#                 stackvals = [ds[stackvar].dt.date.values for ds in dss]
+#                 stackvals = [ds[stackvar].dt.date.values for ds in stack]
 #             else:
-#                 stackvals = [ds[stackvar].item().split(' ') for ds in dss]
-#             # save to NetCDF file
+#                 stackvals = [ds[stackvar].item().split(' ') for ds in stack]
+#             # NetCDF files
 #             filenames = self.get_filenames(stackvals, name)
-#             #[os.remove(filename) for filename in filenames if os.path.exists(filename)]
-#             delayeds = xr.save_mfdataset(dss,
-#                                          filenames,
-#                                          encoding=encoding,
-#                                          engine=self.netcdf_engine,
-#                                          compute=not is_dask)
+# 
+#             delayeds = []
+#             # prepare lazy chunk or process not lazy chunk
+#             for data_slice, filename in zip(stack, filenames):
+#                 #print ('filename', filename)
+#                 if os.path.exists(filename):
+#                     os.remove(filename)
+#                 delayed = data_slice.to_netcdf(filename,
+#                                       encoding=encoding,
+#                                       engine=self.netcdf_engine,
+#                                       compute=not is_dask)
+#                 delayeds.append(delayed)
+#                 del delayed, data_slice, filename
 #             # process lazy chunk
 #             if is_dask:
-#                 if n_chunks > 1:
-#                     chunk_caption = f'{caption}: {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {stacksize}'
-#                 else:
-#                     chunk_caption = caption
-#                 tqdm_dask(dask.persist(delayeds), desc=chunk_caption)
-#                 # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-#                 del delayeds
-#                 get_client().restart()
-#                 import gc; gc.collect()
-#             # update chunks counter
-#             counter += len(chunk)
-
-#     # joblib wrapper is faster for independant tasks but cannot process dependent ones
-#     def save_stack(se# lf, data, name, caption='Saving 2D Stack', queue=50, n_jobs='auto'):
-#         import numpy as np
-#         import xarray as xr
-#         import dask
-#         import os
-#         from tqdm.auto import tqdm
-#         import joblib
-#         from dask.distributed import get_client
-#         import warnings
-#         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-#         warnings.filterwarnings('ignore')
-#         warnings.filterwarnings('ignore', module='dask')
-#         warnings.filterwarnings('ignore', module='dask.core')
-#         # Filter out Dask "Restarting worker" warnings
-#         warnings.filterwarnings("ignore", category=UserWarning, module="distributed.nanny")
-#         import logging
-#         # Suppress Dask "Restarting worker" warnings
-#         logging.getLogger('distributed.nanny').setLevel(logging.ERROR)
-#         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-#         from dask.distributed import utils_perf
-#         utils_perf.disable_gc_diagnosis()
-# 
-#         if isinstance(data, xr.Dataset):
-#             stackvar = data[list(data.data_vars)[0]].dims[0]
-#             is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
-#         elif isinstance(data, xr.DataArray):
-#             stackvar = data.dims[0]
-#             is_dask = isinstance(data.data, dask.array.Array)
-#         else:
-#             raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
-#         #print ('is_dask', is_dask, 'stackvar', stackvar)
-#         stacksize = data[stackvar].size
-# 
-#         if n_jobs == 'auto':
-#             # detect number of Dask workers
-#             from dask.distributed import get_client
-#             n_jobs = len(get_client().ncores())
-# 
-#         if queue is None:
-#             # process all the stack items in a single operation
-#             queue = stacksize
-# 
-#         for dim in ['y', 'x', 'lat', 'lon']:
-#             if dim in data.dims:
-#                 # use attributes to hold grid spacing to prevent xarray Dask saving issues
-#                 data = data.drop(dim, dim=None).assign_attrs({
-#                     f'start_{dim}': data[dim].values[0],
-#                     f'step_{dim}':  data[dim].diff(dim).values[0],
-#                     f'stop_{dim}':  data[dim].values[-1],
-#                     f'size_{dim}':  data[dim].size
-#                 })
-# 
-#         if isinstance(data, xr.DataArray):
-#             data = data.to_dataset()
-#         encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
-#         #print ('encoding', encoding)
-# 
-#         def save_chunk_ind(ind, filename):
-#             data_slice = data.isel({stackvar: ind})
-#             if stackvar == 'date':
-#                 stackval = str(data_slice[stackvar].dt.date.values)
-#             else:
-#                 stackval = data_slice[stackvar].item().split(' ')
-#             if os.path.exists(filename):
-#                 os.remove(filename)
-#             data_slice.to_netcdf(filename,
-#                                           encoding=encoding,
-#                                           engine=self.netcdf_engine)
-# 
-#         # Applying iterative processing to prevent Dask scheduler deadlocks.
-#         counter = 0
-#         digits = len(str(stacksize))
-#         # Splitting all the pairs into chunks, each containing approximately queue pairs.
-#         n_chunks = stacksize // queue if stacksize >= queue else 1
-#         for chunk in np.array_split(range(stacksize), n_chunks):
-#             dss = [data.isel({stackvar: ind}) for ind in chunk]
-#             if stackvar == 'date':
-#                 stackvals = [ds[stackvar].dt.date.values for ds in dss]
-#             else:
-#                 stackvals = [ds[stackvar].item().split(' ') for ds in dss]
-#             # save to NetCDF file
-#             filenames = self.get_filenames(stackvals, name)
-#             if n_chunks > 1:
 #                 chunk_caption = f'{caption}: {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {stacksize}'
-#             else:
-#                 chunk_caption = caption
-#             with self.tqdm_joblib(tqdm(desc=chunk_caption, total=len(chunk))) as progress_bar:
-#                 joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(save_chunk_ind)(ind, filename) \
-#                                            for ind, filename in zip(chunk, filenames))
+#                 tqdm_dask(dask.persist(delayeds), desc=chunk_caption)
 #             # update chunks counter
 #             counter += len(chunk)
+#             del delayeds, stack
+#             # cleanup - release all memory
+#             get_client().restart()
+#         # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+#         import gc; gc.collect()
 
     def delete_stack(self, name):
         import os
