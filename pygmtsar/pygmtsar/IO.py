@@ -242,12 +242,18 @@ class IO(datagrid):
                 filenames.append(filename)
         return filenames
 
-    def open_data(self, dates=None, scale=2.5e-07, debug=False):
+    def open_data(self, dates=None, scale='auto', intensity=False, debug=False):
         import xarray as xr
         import pandas as pd
         import numpy as np
         import os
-        
+
+        # manage Sentinel-1 scale factor in a single place
+        if scale == 'auto' and intensity:
+            scale = np.sqrt(2.5e-07)
+        elif scale == 'auto':
+            scale = 2.5e-07
+
         if debug:
             print ('DEBUG: open_data: apply scale:', scale)
 
@@ -271,6 +277,9 @@ class IO(datagrid):
         # scale and return as complex values
         ds_scaled = (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs).rename('data')
         del ds
+        if intensity:
+            # zero in np.int16 type means NODATA
+            return (np.abs(ds_scaled)**2).where(ds_scaled != 0)
         # zero in np.int16 type means NODATA
         return ds_scaled.where(ds_scaled != 0)
 
