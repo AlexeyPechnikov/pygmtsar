@@ -25,87 +25,89 @@ class Stack_ps(Stack_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def ps(self, dates=None, intensity=True, dfact=2.5e-07):
+    def compute_ps(self, dates=None, intensity=True, scale='auto'):
         import xarray as xr
         import numpy as np
         import dask
         import os
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
-        if dates is None:
-            dates = self.df.index.values
-
-        #print ('dates', dates)
-        # intensity=False means complex data
-        slcs = self.open_data(dates=dates, dfact=dfact)
-        # convert to amplitude for GMTSAR compatible calculations
-        if intensity:
-            slcs = slcs.re**2 + slcs.im**2
-        # normalize image intensities
-        tqdm_dask(mean := dask.persist(slcs.mean(dim=['y','x'])), desc='Amplitude Normalization')
+        # open SLC data as amplitudes
+        amp = np.abs(self.open_data(dates=dates, scale=scale))
+        # convert to intensity for GMTSAR compatible calculations when intensity=True
+        data = amp**2 if intensity else amp
+        del amp
+        # normalize image amplitudes (intensities)
+        stat = 'Intensity' if intensity else 'Amplitude'
+        tqdm_dask(mean := dask.persist(data.mean(dim=['y','x'])), desc=f'{stat} Normalization')
         # dask.persist returns tuple
         norm = mean[0].mean(dim='date') / mean[0]
         # compute average and std.dev.
-        stats = (norm * slcs).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
-        del slcs
+        stats = (norm * data).pipe(lambda x: (x.mean(dim='date'), x.std(dim='date')))
+        del data, norm
         ds = xr.merge([stats[0].rename('average'), stats[1].rename('deviation'), mean[0].rename('stack_average')])
-        del stats, norm
-        self.save_cube(ds, 'ps', 'Compute Persistent Scatterers')
+        del stats, mean
+        self.save_cube(ds, 'ps', 'Compute Stability Measures')
         del ds
 
-    def get_adi_threshold(self, threshold):
-        """
-        Vectorize Amplitude Dispersion Index (ADI) raster values selected using the specified threshold.
-        """
-        import numpy as np
-        import dask
-        import pandas as pd
-        import geopandas as gpd
-
-        def adi_block(ys, xs):
-            from scipy.interpolate import griddata
-            # we can calculate more accurate later
-            dy = dx = 10
-            trans_inv_block = trans_inv.sel(y=slice(min(ys)-dy,max(ys)+dy), x=slice(min(xs)-dx,max(xs)+dx))
-            lt_block = trans_inv_block.lt.compute(n_workers=1).data.ravel()
-            ll_block = trans_inv_block.ll.compute(n_workers=1).data.ravel()
-            block_y, block_x = np.meshgrid(trans_inv_block.y.data, trans_inv_block.x.data)
-            points = np.column_stack([block_y.ravel(), block_x.ravel()])
-            # following NetCDF indices 0.5,1.5,...
-            adi_block = adi.sel(y=slice(min(ys),max(ys)+1), x=slice(min(xs),max(xs)+1))
-            adi_block_value = adi_block.compute(n_workers=1).data.ravel()
-            adi_block_mask = adi_block_value<=threshold
-            adi_block_value = adi_block_value[adi_block_mask]
-            adi_block_y, adi_block_x = np.meshgrid(adi_block.y, adi_block.x)
-            adi_block_y = adi_block_y.ravel()[adi_block_mask]
-            adi_block_x = adi_block_x.ravel()[adi_block_mask]
-            # interpolate geographic coordinates, coarsen=2 grid is required for the best accuracy
-            grid_lt = griddata(points, lt_block, (adi_block_y, adi_block_x), method='linear').astype(np.float32)
-            grid_ll = griddata(points, ll_block, (adi_block_y, adi_block_x), method='linear').astype(np.float32)
-            # return geographic coordinates and values
-            return np.column_stack([grid_lt, grid_ll, adi_block_value])
-    
-        # data grid and transform table
-        adi = self.get_adi()
-        trans_inv = self.get_trans_inv()
-    
-        # split to equal chunks and rest
-        ys_blocks = np.array_split(np.arange(adi.y.size), np.arange(0, adi.y.size, self.chunksize)[1:])
-        xs_blocks = np.array_split(np.arange(adi.x.size), np.arange(0, adi.x.size, self.chunksize)[1:])
-        # arrays size is unknown so we cannot construct dask array
-        blocks = []
-        for ys_block in ys_blocks:
-            for xs_block in xs_blocks:
-                block = dask.delayed(adi_block)(ys_block, xs_block)
-                blocks.append(block)
-                del block
-    
-        # materialize the result as a set of numpy arrays
-        tqdm_dask(model := dask.persist(blocks), desc='Amplitude Dispersion Index (ADI) Threshold')
-        del blocks
-        # the result is already calculated and compute() returns the result immediately
-        model = np.concatenate(dask.compute(model)[0][0])
-        # convert to geopandas object
-        columns = {'adi': model[:,2], 'geometry': gpd.points_from_xy(model[:,1], model[:,0])}
-        df = gpd.GeoDataFrame(columns, crs="EPSG:4326")
-        del columns
-        return df
+#     def get_adi_threshold(self, threshold):
+#         """
+#         Vectorize Amplitude Dispersion Index (ADI) raster values selected using the specified threshold.
+#         """
+#         import numpy as np
+#         import dask
+#         import pandas as pd
+#         import geopandas as gpd
+# 
+#         def adi_block(ys, xs):
+#             from scipy.interpolate import griddata
+#             # we can calculate more accurate later
+#             dy = dx = 10
+#             trans_inv_block = trans_inv.sel(y=slice(min(ys)-dy,max(ys)+dy), x=slice(min(xs)-dx,max(xs)+dx))
+#             lt_block = trans_inv_block.lt.compute(n_workers=1).data.ravel()
+#             ll_block = trans_inv_block.ll.compute(n_workers=1).data.ravel()
+#             block_y, block_x = np.meshgrid(trans_inv_block.y.data, trans_inv_block.x.data)
+#             points = np.column_stack([block_y.ravel(), block_x.ravel()])
+#             # following NetCDF indices 0.5,1.5,...
+#             adi_block = adi.sel(y=slice(min(ys),max(ys)+1), x=slice(min(xs),max(xs)+1))
+#             adi_block_value = adi_block.compute(n_workers=1).data.ravel()
+#             adi_block_mask = adi_block_value<=threshold
+#             adi_block_value = adi_block_value[adi_block_mask]
+#             adi_block_y, adi_block_x = np.meshgrid(adi_block.y, adi_block.x)
+#             adi_block_y = adi_block_y.ravel()[adi_block_mask]
+#             adi_block_x = adi_block_x.ravel()[adi_block_mask]
+#             # interpolate geographic coordinates, coarsen=2 grid is required for the best accuracy
+#             grid_lt = griddata(points, lt_block, (adi_block_y, adi_block_x), method='linear').astype(np.float32)
+#             grid_ll = griddata(points, ll_block, (adi_block_y, adi_block_x), method='linear').astype(np.float32)
+#             # return geographic coordinates and values
+#             return np.column_stack([grid_lt, grid_ll, adi_block_value])
+#     
+#         # data grid and transform table
+#         adi = self.get_adi()
+#         trans_inv = self.get_trans_inv()
+#     
+#         # split to equal chunks and rest
+#         ys_blocks = np.array_split(np.arange(adi.y.size), np.arange(0, adi.y.size, self.chunksize)[1:])
+#         xs_blocks = np.array_split(np.arange(adi.x.size), np.arange(0, adi.x.size, self.chunksize)[1:])
+#         # arrays size is unknown so we cannot construct dask array
+#         blocks = []
+#         for ys_block in ys_blocks:
+#             for xs_block in xs_blocks:
+#                 block = dask.delayed(adi_block)(ys_block, xs_block)
+#                 blocks.append(block)
+#                 del block
+#     
+#         # materialize the result as a set of numpy arrays
+#         tqdm_dask(model := dask.persist(blocks), desc='Amplitude Dispersion Index (ADI) Threshold')
+#         del blocks
+#         # the result is already calculated and compute() returns the result immediately
+#         model = np.concatenate(dask.compute(model)[0][0])
+#         # convert to geopandas object
+#         columns = {'adi': model[:,2], 'geometry': gpd.points_from_xy(model[:,1], model[:,0])}
+#         df = gpd.GeoDataFrame(columns, crs="EPSG:4326")
+#         del columns
+#         return df
