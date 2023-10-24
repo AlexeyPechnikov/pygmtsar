@@ -662,6 +662,10 @@ class Stack_phasediff(Stack_topo):
         if debug:
             print ('DEBUG: goldstein')
 
+        if psize is None:
+            # miss the processing
+            return phase
+
         def apply_pspec(data, alpha):
             # NaN is allowed value
             assert not(alpha < 0), f'Invalid parameter value {alpha} < 0'
