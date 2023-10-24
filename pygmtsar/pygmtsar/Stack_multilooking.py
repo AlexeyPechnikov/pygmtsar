@@ -127,13 +127,15 @@ class Stack_multilooking(Stack_phasediff):
         # antialiasing (multi-looking) filter
         if wavelength is None:
             sigmas = [coarsen[0]/cutoff, coarsen[1]/cutoff]
+            if debug:
+                print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified coarsen {coarsen}')
         else:
             dy, dx = self.get_spacing(data)
             #print ('DEBUG dy, dx', dy, dx)
             #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
             sigmas = [wavelength/cutoff/dy, wavelength/cutoff/dx]
-        if debug:
-            print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified wavelength {wavelength:.1f}')
+            if debug:
+                print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified wavelength {wavelength:.1f}')
 
         # weighted and not weighted convolution on float and complex float data
         def apply_filter(data, weight, sigmas, truncate=2):
@@ -171,8 +173,12 @@ class Stack_multilooking(Stack_phasediff):
         else:
             stackvar = dims[0]
 
-        if weight is not None:
+        if weight is not None and len(data.dims) == len(weight.dims):
+            # single 2D grid processing
             assert data.shape == weight.shape, 'ERROR: multilooking data and weight variables have different shape'
+        elif weight is not None and len(data.dims) + 1 == len(weight.dims):
+            # stack of 2D grids processing
+            assert data.shape[1:] == weight.shape, 'ERROR: multilooking data and weight variables have different shape'
 
         stack =[]
         for ind in range(len(data[stackvar]) if stackvar is not None else 1):
