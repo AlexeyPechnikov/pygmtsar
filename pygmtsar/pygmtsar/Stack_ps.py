@@ -36,11 +36,11 @@ class Stack_ps(Stack_stl):
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
 
-        # open SLC data as amplitudes
-        amp = np.abs(self.open_data(dates=dates, scale=scale))
-        # convert to intensity for GMTSAR compatible calculations when intensity=True
-        data = amp**2 if intensity else amp
-        del amp
+        # open SLC data as complex amplitudes or real intensities
+        if intensity:
+            data = self.open_data(dates=dates, intensity=intensity, scale=scale)
+        else:
+            data = np.abs(self.open_data(dates=dates, intensity=intensity, scale=scale))
         # normalize image amplitudes (intensities)
         stat = 'Intensity' if intensity else 'Amplitude'
         tqdm_dask(mean := dask.persist(data.mean(dim=['y','x'])), desc=f'{stat} Normalization')
@@ -53,6 +53,7 @@ class Stack_ps(Stack_stl):
         del stats, mean
         self.save_cube(ds, 'ps', 'Compute Stability Measures')
         del ds
+
 
 #     def get_adi_threshold(self, threshold):
 #         """
