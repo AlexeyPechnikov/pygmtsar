@@ -53,10 +53,11 @@ class Stack_detrend(Stack_unwrap):
         """
         import xarray as xr
         import numpy as np
-        import warnings
-        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
+#         import warnings
+#         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+#         warnings.filterwarnings('ignore')
+#         warnings.filterwarnings('ignore', module='dask')
+#         warnings.filterwarnings('ignore', module='dask.core')
 
         assert self.is_ra(grid), 'ERROR: the processing requires grid in radar coordinates'
         assert np.issubdtype(grid.dtype, np.floating), 'ERROR: expected float datatype input grid'

@@ -107,11 +107,11 @@ class Stack_multilooking(Stack_phasediff):
         import numpy as np
         import dask
         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
-        import warnings
-        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-        warnings.filterwarnings('ignore')
-        warnings.filterwarnings('ignore', module='dask')
-        warnings.filterwarnings('ignore', module='dask.core')
+#         import warnings
+#         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+#         warnings.filterwarnings('ignore')
+#         warnings.filterwarnings('ignore', module='dask')
+#         warnings.filterwarnings('ignore', module='dask.core')
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
         # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
@@ -139,17 +139,19 @@ class Stack_multilooking(Stack_phasediff):
 
         # weighted and not weighted convolution on float and complex float data
         def apply_filter(data, weight, sigmas, truncate=2):
-            import warnings
-            # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-            warnings.filterwarnings('ignore')
-            warnings.filterwarnings('ignore', module='dask')
-            warnings.filterwarnings('ignore', module='dask.core')
+#             import warnings
+#             # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+#             warnings.filterwarnings('ignore')
+#             warnings.filterwarnings('ignore', module='dask')
+#             warnings.filterwarnings('ignore', module='dask.core')
             if np.issubdtype(data.dtype, np.complexfloating):
                 parts = []
                 for part in [data.real, data.imag]:
                     data_complex  = ((1j + part) * (weight if weight is not None else 1)).fillna(0)
                     conv_complex = dask_gaussian_filter(data_complex.data, sigmas, mode='reflect', truncate=truncate)
-                    conv = conv_complex.real/conv_complex.imag
+                    #conv = conv_complex.real/conv_complex.imag
+                    # to prevent "RuntimeWarning: invalid value encountered in divide" even when warning filter is defined
+                    conv = dask.array.where(conv_complex.imag == 0, np.nan, conv_complex.real/(conv_complex.imag + 1e-17))
                     del data_complex, conv_complex
                     parts.append(conv)
                     del conv
@@ -159,7 +161,9 @@ class Stack_multilooking(Stack_phasediff):
                 # replace nan + 1j to to 0.+0.j
                 data_complex  = ((1j + data) * (weight if weight is not None else 1)).fillna(0)
                 conv_complex = dask_gaussian_filter(data_complex.data, sigmas, mode='reflect', truncate=truncate)
-                conv = conv_complex.real/conv_complex.imag
+                #conv = conv_complex.real/conv_complex.imag
+                # to prevent "RuntimeWarning: invalid value encountered in divide" even when warning filter is defined
+                conv = dask.array.where(conv_complex.imag == 0, np.nan, conv_complex.real/(conv_complex.imag + 1e-17))
                 del data_complex, conv_complex
             return conv
 
