@@ -344,7 +344,7 @@ class IO(datagrid):
         import numpy as np
         import os
 
-        filename = self.get_filename(name, add_subswath=False)
+        filename = self.get_filename(name)
         assert os.path.exists(filename), f'ERROR: The NetCDF file is missed: {filename}'
 
         # Workaround: open the dataset without chunking
@@ -443,7 +443,7 @@ class IO(datagrid):
                 })
 
         # save to NetCDF file
-        filename = self.get_filename(name, add_subswath=False)
+        filename = self.get_filename(name)
         if os.path.exists(filename):
             os.remove(filename)
         if isinstance(data, xr.DataArray):
@@ -467,7 +467,7 @@ class IO(datagrid):
     def delete_cube(self, name):
         import os
 
-        filename = self.get_filename(name, add_subswath=False)
+        filename = self.get_filename(name)
         #print ('filename', filename)
         if os.path.exists(filename):
             os.remove(filename)
@@ -488,7 +488,8 @@ class IO(datagrid):
 
         if stack is None:
             # look for all stack files
-            filenames = self.get_filenames(['*'], name)[0]
+            #filenames = self.get_filenames(['*'], name)[0]
+            filenames = self.get_filename(f'{name}_????????_????????')
         elif isinstance(stack, (list, tuple, np.ndarray)) and len(np.asarray(stack).shape) == 1:
             # dates
             filenames = self.get_filenames(np.asarray(stack), name)
