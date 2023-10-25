@@ -205,10 +205,12 @@ class Stack_unwrap(Stack_unwrap_snaphu):
             assert phase.shape == corr.shape, 'ERROR: phase and correlation variables have different shape'
 
         def _snaphu(ind):
-            ds = self.snaphu(phase[ind] if stackvar is not None else phase,
-                             corr[ind]  if stackvar is not None and corr is not None else corr,
+            ds = self.snaphu(phase.isel({stackvar: ind}) if stackvar is not None else phase,
+                             corr.isel({stackvar: ind})  if stackvar is not None and corr is not None else corr,
                              conf=conf, conncomp=conncomp)
-            return ds.to_array().values
+            if conncomp:
+                return np.stack([ds.phase.values, ds.conncomp.values])
+            return ds.phase.values[None,]
 
         stack =[]
         for ind in range(len(phase) if stackvar is not None else 1):
