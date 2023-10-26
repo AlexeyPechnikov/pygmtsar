@@ -618,7 +618,7 @@ class IO(datagrid):
 #             import gc; gc.collect()
 
     # use save_mfdataset
-    def save_stack(self, data, name, caption='Saving 2D Stack', queue=50):
+    def save_stack(self, data, name, caption='Saving 2D Stack', queue=50, timeout=300):
         import numpy as np
         import xarray as xr
         import dask
@@ -638,6 +638,9 @@ class IO(datagrid):
         from dask.distributed import utils_perf
         utils_perf.disable_gc_diagnosis()
 
+        # Dask cluster client
+        client = get_client()
+        
         if isinstance(data, xr.Dataset):
             stackvar = data[list(data.data_vars)[0]].dims[0]
             is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
@@ -695,12 +698,17 @@ class IO(datagrid):
                     chunk_caption = caption
                 tqdm_dask(result := dask.persist(delayeds), desc=chunk_caption)
                 del delayeds, result
-                # cleanup - release all memory
-                get_client().restart()
+                # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
+                import gc; gc.collect()
+                # cleanup - release all workers memory, call garbage collector before to prevent heartbeat errors
+                if timeout is not None:
+                    client.restart(timeout=timeout, wait_for_workers=True)
+#                 # more granular control
+#                 n_workers = len(client.nthreads())
+#                 client.restart(wait_for_workers=False)
+#                 client.wait_for_workers(n_workers, timeout=timeout)
             # update chunks counter
             counter += len(chunk)
-        # cleanup - sometimes writing NetCDF handlers are not closed immediately and block reading access
-        import gc; gc.collect()
 
 #     # alternative realization
 #     def save_stack(self, data, name, caption='Saving 2D Stack', queue=50):
