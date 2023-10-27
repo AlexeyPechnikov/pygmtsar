@@ -156,6 +156,13 @@ class Stack_sbas(Stack_detrend):
         if debug:
             print ('DEBUG: data', data)
 
+        chunks_z, chunks_y, chunks_x = data.chunks
+        if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+            print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
+            chunks_y = chunks_x = self.netcdf_chunksize//2
+            print ('Note: auto tune data chunk size to a half of NetCDF chunk')
+            data = data.chunk({'y': chunks_y, 'x': chunks_x})
+
         if weight is None:
             # this case should be processed inside lstq_block function
             pass
@@ -173,6 +180,9 @@ class Stack_sbas(Stack_detrend):
         elif isinstance(weight, xr.DataArray) and len(weight.dims) == 3:
             # this case should be processed inside lstq_block function
             assert weight.shape == data.shape, 'ERROR: data and weight dataarrays should have the same dimensions'
+            if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+                print ('Note: auto tune weight chunk size to a half of NetCDF chunk')
+                weight = weight.chunk({'y': chunks_y, 'x': chunks_x})
         else:
             raise ValueError(f"Argument weight can be 1D or 3D Xarray object or Pandas Series or Numpy array or Python list")
         if debug:
@@ -187,11 +197,11 @@ class Stack_sbas(Stack_detrend):
 
         def lstq_block(ys, xs):
             # 3D array
-            data_block = data.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            data_block = data.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
             # weights can be defined by multiple ways or be set to None
             if isinstance(weight, xr.DataArray):
                 # 3D array
-                weight_block = weight.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+                weight_block = weight.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
                 # weight=1 is not allowed for the used weighted least squares calculation function 
                 weight_block = np.where(weight_block>=1, 0.999999, weight_block)
                 # Vectorize vec_lstsq
@@ -208,11 +218,13 @@ class Stack_sbas(Stack_detrend):
             del data_block
             return block
 
-        # split to square chunks
+        # split to chunks
         # use indices instead of the coordinate values to prevent the weird error raising occasionally:
         # "Reindexing only valid with uniquely valued Index objects"
-        ys_blocks = np.array_split(np.arange(data.y.size), np.arange(0, data.y.size, self.netcdf_chunksize)[1:])
-        xs_blocks = np.array_split(np.arange(data.x.size), np.arange(0, data.x.size, self.netcdf_chunksize)[1:])
+        # re-check the chunk sizes as it can be tunned above
+        chunks_z, chunks_y, chunks_x = data.chunks
+        ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
+        xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
 
         blocks_total = []
         for ys_block in ys_blocks:
