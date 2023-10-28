@@ -95,7 +95,7 @@ class Stack_stl(Stack_tidal):
 
     # Aggregate data for varying frequencies (e.g., 12+ days for 6 days S1AB images interval)
     # Use frequency strings like '1W' for 1 week, '2W' for 2 weeks, '10d' for 10 days, '1M' for 1 month, etc.
-    def stl(self, data, freq='W', periods=52, robust=False, chunksize=None, interactive=False):
+    def stl(self, data, freq='W', periods=52, robust=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data in parallel.
 
@@ -110,8 +110,6 @@ class Stack_stl(Stack_tidal):
         ----------
         self : Stack
             Instance of the Stack class.
-        dates : numpy.ndarray
-            Array of datetime64 values corresponding to the input time series data.
         data : xarray.DataArray
             Input time series data as an xarray DataArray.
         freq : str, optional
@@ -120,22 +118,12 @@ class Stack_stl(Stack_tidal):
             Number of periods for seasonal decomposition (default is 52).
         robust : bool, optional
             Whether to use a slower robust fitting procedure for the STL decomposition (default is False).
-        chunksize : int, optional
-            The chunk size to be used for dimensions (default is None, which will use the class-level chunksize).
-        interactive : bool, optional
-            Whether to return the model interactively or save it to NetCDF file (default is False).
 
         Returns
         -------
         xarray.Dataset or None
             An xarray Dataset containing the trend, seasonal, and residual components of the decomposed time series,
             or None if the results are saved to a file.
-
-        Examples
-        --------
-        Use on (date,lat,lon) and (date,y,x) grids to return the results or store them on disk:
-        stack.stl(disp, interactive=True)
-        stack.stl(disp)
 
         See Also
         --------
@@ -146,23 +134,27 @@ class Stack_stl(Stack_tidal):
         import numpy as np
         import pandas as pd
         import dask
-        import os
+        # disable "distributed.utils_perf - WARNING - full garbage collections ..."
+        from dask.distributed import utils_perf
+        utils_perf.disable_gc_diagnosis()
 
-        if chunksize is None:
-            # see lstsq() for details
-            chunksize = self.chunksize // 4
+        assert data.dims[0] == 'date', 'The first data dimension should be date'
+
+        chunks_z, chunks_y, chunks_x = data.chunks
+        if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+            print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
+            chunks_y = chunks_x = self.netcdf_chunksize//2
+            print ('Note: auto tune data chunk size to a half of NetCDF chunk')
+            data = data.chunk({'y': chunks_y, 'x': chunks_x})
 
         if isinstance(data, xr.DataArray):
             pass
         else:
             raise Exception('Invalid input: The "data" parameter should be of type xarray.DataArray.')
-    
+
         # convert coordinate to valid dates
         dates = pd.to_datetime(data.date)
 
-        dim0, dim1, dim2 = data.dims
-        assert dim0 == 'date', 'The first data dimension should be date'
-    
         # original dates
         dt = pd.to_datetime(data.date).astype(np.int64)
         # Unify date intervals; using weekly intervals should be suitable for a mix of 6 and 12 days intervals
@@ -173,10 +165,10 @@ class Stack_stl(Stack_tidal):
         # Note: The bottleneck library should be installed for this line of code to work
         # disp_weekly = data.interp(date=dates_weekly, method='nearest', assume_sorted=True)
 
-        def stl_block(lats, lons):
+        def stl_block(ys, xs):
             # use external variables dt, dt_periodic, periods, robust
             # 3D array
-            data_block = data.isel({dim1: lats, dim2: lons}).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            data_block = data.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
             # Vectorize vec_lstsq
             #vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(3,m)')
             vec_stl = np.vectorize(lambda data: self.stl1d(data, dt, dt_periodic, periods, robust), signature='(n)->(m),(m),(m)')
@@ -185,18 +177,20 @@ class Stack_stl(Stack_tidal):
             del vec_stl, data_block
             return np.asarray(block).transpose(0,3,1,2)
 
-        # split to square chunks
+        # split to chunks
         # use indices instead of the coordinate values to prevent the weird error raising occasionally:
         # "Reindexing only valid with uniquely valued Index objects"
-        lats_blocks = np.array_split(np.arange(data[dim1].size), np.arange(0, data[dim1].size, chunksize)[1:])
-        lons_blocks = np.array_split(np.arange(data[dim2].size), np.arange(0, data[dim2].size, chunksize)[1:])
+        # re-check the chunk sizes as it can be tunned above
+        chunks_z, chunks_y, chunks_x = data.chunks
+        ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
+        xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
 
         blocks_total = []
-        for lats_block in lats_blocks:
+        for ys_block in ys_blocks:
             blocks = []
-            for lons_block in lons_blocks:
-                block = dask.array.from_delayed(dask.delayed(stl_block)(lats_block, lons_block),
-                                                shape=(3, len(dates_weekly), lats_block.size, lons_block.size),
+            for xs_block in xs_blocks:
+                block = dask.array.from_delayed(dask.delayed(stl_block)(ys_block, xs_block),
+                                                shape=(3, len(dates_weekly), ys_block.size, xs_block.size),
                                                 dtype=np.float32)
                 blocks.append(block)
                 del block
@@ -206,14 +200,12 @@ class Stack_stl(Stack_tidal):
         del blocks_total
 
         # transform to separate variables
-        coords = {'date': dt_weekly.values, dim1: data[dim1], dim2: data[dim2]}
+        coords = {'date': dt_weekly.values, 'y': data.y, 'x': data.x}
         # transform to separate variables variables returned from Stack.stl() function
         varnames = ['trend', 'seasonal', 'resid']
         keys_vars = {varname: xr.DataArray(models[varidx], coords=coords) for (varidx, varname) in enumerate(varnames)}
         model = xr.Dataset({**keys_vars})
         del models
 
-        if interactive:
-            return model
-
-        self.save_cube(model, name='stl', caption='Seasonal-Trend decomposition using LOESS', chunksize=chunksize)
+        return model
+        #self.save_cube(model, name='stl', caption='Seasonal-Trend decomposition using LOESS')
