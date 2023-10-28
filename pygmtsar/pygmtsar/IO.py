@@ -433,6 +433,9 @@ class IO(datagrid):
         warnings.filterwarnings('ignore')
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
+        # disable "distributed.utils_perf - WARNING - full garbage collections ..."
+        from dask.distributed import utils_perf
+        utils_perf.disable_gc_diagnosis()
 
         if name is None and isinstance(data, xr.DataArray):
             assert data.name is not None, 'Define data name or use name argument for the NetCDF filename'
