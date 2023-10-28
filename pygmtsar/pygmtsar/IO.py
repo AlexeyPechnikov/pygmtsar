@@ -15,6 +15,12 @@ class IO(datagrid):
     # processing directory
     basedir = '.'
 
+    def _glob_re(self, pathname):
+        import os
+        import re
+        filenames = filter(re.compile(pathname).match, os.listdir(self.basedir))
+        return sorted([os.path.join(self.basedir, filename) for filename in filenames])
+
     def dump(self, to_path=None):
         """
         Dump Stack object state to a pickle file (stack.pickle in the processing directory by default).
@@ -472,7 +478,7 @@ class IO(datagrid):
         if os.path.exists(filename):
             os.remove(filename)
 
-    def open_stack(self, name, stack=None, always_dataset=False):
+    def open_stack(self, name, stack=None):
         """
         Examples:
         stack.open_stack('data')
@@ -485,11 +491,14 @@ class IO(datagrid):
         import xarray as xr
         import pandas as pd
         import numpy as np
+        import glob
 
         if stack is None:
             # look for all stack files
             #filenames = self.get_filenames(['*'], name)[0]
-            filenames = self.get_filename(f'{name}_????????_????????')
+            #filenames = self.get_filename(f'{name}_????????_????????')
+            # like data_20180323.grd or intf60m_20230114_20230219.grd
+            filenames = self._glob_re(name + '_[0-9]{8}(_[0-9]{8})*.grd')
         elif isinstance(stack, (list, tuple, np.ndarray)) and len(np.asarray(stack).shape) == 1:
             # dates
             filenames = self.get_filenames(np.asarray(stack), name)
@@ -506,11 +515,14 @@ class IO(datagrid):
             concat_dim='stackvar',
             combine='nested'
         )
-    
-        # attributes are empty when dataarray is prezented as datatset
-        if not always_dataset and len(data.data_vars) == 1:
-            data = data[list(data.data_vars)[0]]
-        
+
+        # revert dataarray converted to dataset
+        data_vars = list(data.data_vars)
+        if len(data_vars) == 1 and 'dataarray' in data.attrs:
+            assert data.attrs['dataarray'] == data_vars[0]
+            data = data[data_vars[0]]
+
+        # attributes are empty when dataarray is prezented as dataset, convert it first
         # restore missed coordinates
         for dim in ['y', 'x', 'lat', 'lon']:
             if dim not in data.coords \
@@ -667,7 +679,7 @@ class IO(datagrid):
                 })
 
         if isinstance(data, xr.DataArray):
-            data = data.to_dataset()
+            data = data.to_dataset().assign_attrs({'dataarray': data.name})
         encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
         #print ('encoding', encoding)
 
@@ -805,12 +817,8 @@ class IO(datagrid):
 
     def delete_stack(self, name):
         import os
-        import glob
 
-        #template = self.get_filename(f'{name}_????-??-??_????-??-??')
-        template = self.get_filename(f'{name}_????????_????????')
-        #print ('template', template)
-        filenames = glob.glob(template)
+        filenames = self._glob_re(name + '_[0-9]{8}(_[0-9]{8})*.grd')
         #print ('filenames', filenames)
         for filename in filenames:
             if os.path.exists(filename):
