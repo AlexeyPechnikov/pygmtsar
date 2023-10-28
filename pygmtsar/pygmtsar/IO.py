@@ -356,7 +356,7 @@ class IO(datagrid):
         # Workaround: open the dataset without chunking
         data = xr.open_dataset(filename, engine=self.netcdf_engine)
         # Determine the proper chunk sizes
-        chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
+        chunks = {dim: 1 if dim in ['pair', 'date'] else self.netcdf_chunksize for dim in data.dims}
         # Re-chunk the dataset using the chunks dictionary
         data = data.chunk(chunks)
 
