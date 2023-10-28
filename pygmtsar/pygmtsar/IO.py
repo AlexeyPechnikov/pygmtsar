@@ -359,12 +359,14 @@ class IO(datagrid):
         chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
         # Re-chunk the dataset using the chunks dictionary
         data = data.chunk(chunks)
-        
+
         # attributes are empty when dataarray is prezented as dataset
-        if len(data.data_vars) == 1:
-            # in case of a single variable return DataArray
-            data = data[list(data.data_vars)[0]]
-            
+        # revert dataarray converted to dataset
+        data_vars = list(data.data_vars)
+        if len(data_vars) == 1 and 'dataarray' in data.attrs:
+            assert data.attrs['dataarray'] == data_vars[0]
+            data = data[data_vars[0]]
+
         # convert string dates to dates
         for dim in ['date', 'ref', 'rep']:
             if dim in data.dims:
@@ -448,18 +450,17 @@ class IO(datagrid):
                     f'size_{dim}': data[dim].size
                 })
 
+        if isinstance(data, xr.DataArray):
+            data = data.to_dataset().assign_attrs({'dataarray': data.name})
+
+        is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
+        encoding = {varname: self._compression(data[varname].shape) for varname in data.data_vars}
+        #print ('is_dask', is_dask, 'encoding', encoding)
+
         # save to NetCDF file
         filename = self.get_filename(name)
         if os.path.exists(filename):
             os.remove(filename)
-        if isinstance(data, xr.DataArray):
-            is_dask = isinstance(data.data, dask.array.Array)
-            encoding = {data.name: self._compression(data.shape)}
-        elif isinstance(data, xr.Dataset):
-            is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
-            encoding = {varname: self._compression(data[varname].shape) for varname in data.data_vars}
-        #print ('is_dask', is_dask, 'encoding', encoding)
-
         delayed = data.to_netcdf(filename,
                                  engine=self.netcdf_engine,
                                  encoding=encoding,
