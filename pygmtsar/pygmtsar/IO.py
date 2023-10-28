@@ -433,6 +433,9 @@ class IO(datagrid):
         warnings.filterwarnings('ignore')
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
+        import logging
+        # prevent warnings "RuntimeWarning: All-NaN slice encountered"
+        logging.getLogger('distributed.nanny').setLevel(logging.ERROR)
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
         from dask.distributed import utils_perf
         utils_perf.disable_gc_diagnosis()
