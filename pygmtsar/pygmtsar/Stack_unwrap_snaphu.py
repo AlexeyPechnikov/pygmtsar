@@ -103,7 +103,8 @@ class Stack_unwrap_snaphu(Stack_landmask):
         stdout_data, stderr_data = p.communicate(input=conf)
 
         outs = []
-        if os.path.exists(unwrap_out):
+        # check for expected SNAPHU output files
+        if os.path.exists(unwrap_out) and (not conncomp or os.path.exists(conncomp_out)):
             # convert to grid unwrapped phase from SNAPHU output applying postprocessing
             values = np.fromfile(unwrap_out, dtype=np.float32).reshape(phase.shape)
             #values = np.frombuffer(stdout_data, dtype=np.float32).reshape(phase.shape)
@@ -119,6 +120,7 @@ class Stack_unwrap_snaphu(Stack_landmask):
                 outs.append(conn)
                 del values, conn
         else:
+            # return the same data structure as expected but NaN-filled
             outs.append(xr.full_like(phase, np.nan).rename('phase'))
             if conncomp:
                 outs.append(xr.full_like(phase, np.nan).rename('conncomp'))
