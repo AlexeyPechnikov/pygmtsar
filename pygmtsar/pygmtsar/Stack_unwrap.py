@@ -179,7 +179,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
 
         return model.rename('unwrap')
 
-    def unwrap_snaphu(self, phase, corr=None, conf=None, conncomp=False):
+    def unwrap_snaphu(self, phase, weight=None, conf=None, conncomp=False):
         """
         Limit number of processes for tiled multicore SNAPHU configuration:
         with dask.config.set(scheduler='single-threaded'):
@@ -201,12 +201,12 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         else:
             stackvar = phase.dims[0]
 
-        if corr is not None:
-            assert phase.shape == corr.shape, 'ERROR: phase and correlation variables have different shape'
+        if weight is not None:
+            assert phase.shape == weight.shape, 'ERROR: phase and weight variables have different shape'
 
         def _snaphu(ind):
             ds = self.snaphu(phase.isel({stackvar: ind}) if stackvar is not None else phase,
-                             corr.isel({stackvar: ind})  if stackvar is not None and corr is not None else corr,
+                             weight.isel({stackvar: ind})  if stackvar is not None and weight is not None else weight,
                              conf=conf, conncomp=conncomp)
             if conncomp:
                 return np.stack([ds.phase.values, ds.conncomp.values])
