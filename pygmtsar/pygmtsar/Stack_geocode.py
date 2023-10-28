@@ -52,7 +52,7 @@ class Stack_geocode(Stack_sbas):
     # coarsen=4:
     # nearest: coords [array([596.42352295]), array([16978.65625])]
     # linear:  coords [array([597.1080563]), array([16977.35608873])]
-    def geocode_ll2ra(self, data, z_offset=None):
+    def geocode(self, data, z_offset=None):
         """
         Inverse geocode input geodataframe with 2D or 3D points. 
         """
