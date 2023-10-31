@@ -146,12 +146,13 @@ class NCubeVTK:
             # mask NaNs
             nanmask = np.isnan(dataset[band_mask])
             mask = nanmask | znanmask
-        else:
-            mask = znanmask
-            
-        array = vn.numpy_to_vtk(mask.values.ravel(), deep=True, array_type=VTK_UNSIGNED_CHAR)
-        array.SetName('band_mask')
-        sgrid.GetPointData().AddArray(array)
+        #else:
+        #    mask = znanmask
+
+        if band_mask is not None:
+            array = vn.numpy_to_vtk(mask.values.ravel(), deep=True, array_type=VTK_UNSIGNED_CHAR)
+            array.SetName('band_mask')
+            sgrid.GetPointData().AddArray(array)
 
         for coord in dataset.coords:
             #print (coord, dataset[coord].dims, len(dataset[coord].dims))
@@ -177,10 +178,14 @@ class NCubeVTK:
             data_array.SetName(coord)
             data_array.InsertNextValue(data_value)
             sgrid.GetFieldData().AddArray(data_array)
-        
+
+        # required for 3D interactive rendering on Google Colab
+        if band_mask is None:
+            return sgrid
+
         thresh = vtkThreshold()
         thresh.SetInputData(sgrid)
-        thresh.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, "band_mask")
+        thresh.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, 'band_mask')
         # drop float NANs
         #thresh.SetLowerThreshold(-1e30)
         #thresh.SetUpperThreshold(1e30)
