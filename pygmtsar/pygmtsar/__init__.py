@@ -18,3 +18,5 @@ from .S1 import S1
 from .Stack import Stack
 # export to VTK format
 from .NCubeVTK import NCubeVTK
+# ASF downloading
+from .ASF import ASF

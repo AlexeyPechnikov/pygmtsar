@@ -54,7 +54,8 @@ setup(
                       'nc-time-axis',
                       'statsmodels>=0.13.5',
                       'pygmt',
-                      'vtk'
+                      'vtk',
+                      'asf_search'
                       ],
 
     classifiers=[
