@@ -15,8 +15,13 @@ class ASF(tqdm_joblib):
     template_safe = '*.SAFE/*/s1{mission}-iw{subswath}-slc-{polarization}-*'
     session = None
     
-    def __init__(self, username, password):
+    def __init__(self, username=None, password=None):
         import asf_search
+        import getpass
+        if username is None:
+            username = getpass.getpass('Please enter your ASF username and press Enter key:')
+        if password is None:
+            password = getpass.getpass('Please enter your ASF password and press Enter key:')
         self.session = asf_search.ASFSession().auth_with_creds(username, password)
 
     def download(self, basedir, scenes, subswaths, polarization='VV', mission='?', n_jobs=-1):
