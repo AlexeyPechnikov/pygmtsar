@@ -55,6 +55,8 @@ class Stack(Stack_ps):
         self.basedir = basedir
 
     def set_scenes(self, scenes):
+        assert len(scenes), 'ERROR: the scenes list is empty.'
+        assert len(scenes[scenes.orbitpath.isna()])==0, 'ERROR: orbits missed, check "orbitpath" column.'
         self.df = scenes
         if self.reference is None:
             print (f'NOTE: auto set reference scene {scenes.index[0]}. You can change it like Stack.set_reference("2022-01-20")')

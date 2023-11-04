@@ -42,7 +42,6 @@ setup(
                       'dask_image',
                       'joblib',
                       'tqdm',
-                      'sentineleof',
                       'scipy>=1.9.1',
                       'shapely>=2.0.1',
                       'scikit-learn',
