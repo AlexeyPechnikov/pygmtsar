@@ -87,6 +87,8 @@ class Stack_dem(Stack_reframe):
         """
         import os
         if dem_filename is not None:
+            assert os.path.exists(dem_filename), f'DEM file not found: {dem_filename}'
+            assert os.path.isfile(dem_filename) and os.access(dem_filename, os.R_OK), f'DEM file is not readable: {dem_filename}'
             self.dem_filename = os.path.relpath(dem_filename,'.')
         else:
             self.dem_filename = None

@@ -31,6 +31,8 @@ class Stack_landmask(Stack_multilooking):
         """
         import os
         if landmask_filename is not None:
+            assert os.path.exists(landmask_filename), f'Landmask file not found: {landmask_filename}'
+            assert os.path.isfile(landmask_filename) and os.access(landmask_filename, os.R_OK), f'Landmask file is not readable: {landmask_filename}'
             self.landmask_filename = os.path.relpath(landmask_filename,'.')
         else:
             self.landmask_filename = None
