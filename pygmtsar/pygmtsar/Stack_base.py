@@ -67,8 +67,7 @@ class Stack_base(tqdm_joblib, IO):
         if reference is None:
             print ('NOTE: reference scene is None, Stack.set_reference() command is ignored')
             return self
-        if not reference in self.df.index:
-            raise Exception('Reference scene not found')
+        assert reference in self.df.index, f'Reference scene not found: {reference}'
         self.reference = reference
         return self
 
