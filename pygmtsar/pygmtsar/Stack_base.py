@@ -71,6 +71,27 @@ class Stack_base(tqdm_joblib, IO):
         self.reference = reference
         return self
 
+#     def get_reference(self, subswath=None):
+#         """
+#         Return dataframe reference record(s) for all or only selected subswath.
+# 
+#         Parameters
+#         ----------
+#         subswath : str, optional
+#             The subswath to select. If None, all subswaths are considered. Default is None.
+# 
+#         Returns
+#         -------
+#         pd.DataFrame
+#             The DataFrame containing reference records for the specified subswath.
+#         """
+#         df = self.df.loc[[self.reference]]
+#         if not subswath is None:
+#             df = df[df.subswath == subswath]
+#         assert len(df) > 0, f'Reference record for subswath {subswath} not found'
+#         return df
+
+    # added workaround: when multi-sunswaths is called before merging return the first subswath record
     def get_reference(self, subswath=None):
         """
         Return dataframe reference record(s) for all or only selected subswath.
@@ -85,9 +106,16 @@ class Stack_base(tqdm_joblib, IO):
         pd.DataFrame
             The DataFrame containing reference records for the specified subswath.
         """
-        df = self.df.loc[[self.reference]]
-        if not subswath is None:
-            df = df[df.subswath == subswath]
+        df0 = self.df.loc[[self.reference]]
+
+        # return all records
+        if subswath is None:
+            assert len(df0) > 0, f'Reference record for subswath {subswath} not found'
+            return df0
+        # filgter for subswath
+        df = df0[df0.subswath == subswath]
+        if len(df) == 0:
+            df = df0[df0.subswath == int(str(subswath)[0])]
         assert len(df) > 0, f'Reference record for subswath {subswath} not found'
         return df
 
@@ -130,6 +158,30 @@ class Stack_base(tqdm_joblib, IO):
         # note: df.unique() returns unsorted values so it would be 21 instead of expected 12
         return np.unique(self.df.subswath)
     
+#     def get_subswath(self, subswath=None):
+#         """
+#         Check and return subswath or return an unique subswath to functions which work with a single subswath only.
+# 
+#         Parameters
+#         ----------
+#         subswath : str, optional
+#             The subswath to check. If None, an unique subswath is returned. Default is None.
+# 
+#         Returns
+#         -------
+#         str
+#             The checked or unique subswath.
+#         """
+#         # detect all the subswaths
+#         subswaths = self.get_subswaths()
+#         assert subswath is None or subswath in subswaths, f'ERROR: subswath {subswath} not found'
+#         if subswath is not None:
+#             return subswath
+#         assert len(subswaths)==1, f'ERROR: multiple subswaths {subswaths} found, merge them first using Stack.merge_parallel()'
+#         # define subswath
+#         return subswaths[0]
+
+    # merge multiple subswaths when the function is called before subswaths merging
     def get_subswath(self, subswath=None):
         """
         Check and return subswath or return an unique subswath to functions which work with a single subswath only.
@@ -149,9 +201,8 @@ class Stack_base(tqdm_joblib, IO):
         assert subswath is None or subswath in subswaths, f'ERROR: subswath {subswath} not found'
         if subswath is not None:
             return subswath
-        assert len(subswaths)==1, f'ERROR: multiple subswaths {subswaths} found, merge them first using Stack.merge_parallel()'
         # define subswath
-        return subswaths[0]
+        return int(''.join(map(str, subswaths)))
 
     def get_pairs(self, pairs, dates=False):
         """
