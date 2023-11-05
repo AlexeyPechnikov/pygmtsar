@@ -28,6 +28,14 @@ class Stack_trans(Stack_align):
         # this grid is better suitable for multilooking interferogram coordinates
         azis = np.arange(coarsen[0]//2, azi_max+coarsen[0], coarsen[0], dtype=np.int32)
         rngs = np.arange(coarsen[1]//2, rng_max+coarsen[1], coarsen[1], dtype=np.int32)
+    
+        # DEM extent in radar coordinates
+        extent_ra = self.get_extent_ra()
+        minx, miny, maxx, maxy = np.round(extent_ra.bounds).astype(int)
+        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
+        azis = azis[np.where((azis>=miny)&(azis<=maxy))]
+        rngs = rngs[np.where((rngs>=minx)&(rngs<=maxx))]
+    
         return (azis, rngs)
 
     def get_trans(self):

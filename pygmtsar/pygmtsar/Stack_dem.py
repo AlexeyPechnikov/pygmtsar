@@ -15,6 +15,18 @@ class Stack_dem(Stack_reframe):
     # Buffer size in degrees to expand the area covered by the DEM
     buffer_degrees = 0.1
 
+    def get_extent_ra(self):
+        """
+        minx, miny, maxx, maxy = np.round(geom.bounds).astype(int)
+        """
+        import numpy as np
+        from shapely.geometry import LineString
+
+        dem = self.get_dem()
+        df = dem.isel(lon=[0,-1]).to_dataframe().reset_index()
+        geom = self.geocode(LineString(np.column_stack([df.lon, df.lat])))
+        return geom
+
     def get_extent(self, grid=None, subswath=None):
         import numpy as np
 
@@ -162,7 +174,7 @@ class Stack_dem(Stack_reframe):
     # small margin produces insufficient DEM not covers the defined area
     # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
     # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, product='1s'):
+    def download_dem(self, geometry='auto', product='1s'):
         """
         Download and preprocess digital elevation model (DEM) data.
 
@@ -189,6 +201,7 @@ class Stack_dem(Stack_reframe):
         This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then
         preprocessed by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid.
         """
+        import pandas as pd
         import xarray as xr
         import numpy as np
         import pygmt
@@ -215,11 +228,17 @@ class Stack_dem(Stack_reframe):
             print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
             return
 
+        # round the coordinates up to 1m
+        if type(geometry) == str and geometry == 'auto':
+            # apply scenes geometry
+            geometry = self.get_extent().buffer(self.buffer_degrees)
+        elif isinstance(geometry, pd.DataFrame):
+            geometry = geometry.dissolve().envelope.item()
+        minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
+        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
+
         with tqdm(desc='DEM Downloading', total=1) as pbar:
-            # generate DEM for the area using GMT extent as W E S N
-            # round the coordinates up to 1m
-            minx, miny, maxx, maxy = np.round(self.get_extent().buffer(self.buffer_degrees).bounds, 5)
-            # download DEM
+            # download DEM using GMT extent W E S N
             ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=[minx, maxx, miny, maxy])
             # heights correction
             geoid = self.get_geoid(ortho)

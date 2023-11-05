@@ -570,7 +570,7 @@ class Stack_align(Stack_dem):
 
     # merge_swath.c modified for SLCs
     # use reference scene vertical subswath aligments
-    def merge_subswaths(self, date, offsets, debug=False):
+    def _merge_subswaths(self, date, offsets, xlim1=None, ylim1=None, xlim2=None, ylim2=None, debug=False):
         import xarray as xr
         import numpy as np
         import os
@@ -639,7 +639,9 @@ class Stack_align(Stack_dem):
         # add directory name
         netcdf_filename = os.path.join(self.basedir, netcdf_filename)
         # rename dimensions to prevent issue with square output
-        slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
+        slc.rename({'y': 'a', 'x': 'r'})\
+            .sel(a=slice(ylim1, ylim2), r=slice(xlim1, xlim2))\
+            .to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
 
         # add calculated offsets to single subswaths
     #         for idx, prm in enumerate(prms):
@@ -705,7 +707,7 @@ class Stack_align(Stack_dem):
 #                  .to_file(prm_filename)
 #         #.calc_dop_orb(prm.get('earth_radius'), 0, inplace=True, debug=debug)\
 
-    def _convert_subswath(self, subswath, date, debug=False):
+    def _convert_subswath(self, subswath, date, xlim1=None, ylim1=None, xlim2=None, ylim2=None, debug=False):
         import xarray as xr
         #import numpy as np
         import os
@@ -723,7 +725,9 @@ class Stack_align(Stack_dem):
         # complevel=0 means disabled compression and the fastest saving
         encoding = {vn: self._compression(slc[vn].shape) for vn in slc.data_vars}
         # rename dimensions to prevent issue with square output
-        slc.rename({'y': 'a', 'x': 'r'}).to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
+        slc.rename({'y': 'a', 'x': 'r'})\
+            .sel(a=slice(ylim1, ylim2), r=slice(xlim1, xlim2))\
+            .to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
 
         # cleanup
         slc_filename = os.path.join(self.basedir, prm.get('SLC_file'))
@@ -795,7 +799,7 @@ class Stack_align(Stack_dem):
             data.append({'date':date, 'parallel':BPL.round(1), 'perpendicular':BPR.round(1)})
         return pd.DataFrame(data).set_index('date')
 
-    def compute_align(self, dates=None, n_jobs=-1, debug=False):
+    def compute_align(self, geometry='auto', dates=None, n_jobs=-1, debug=False):
         """
         Stack and align scenes.
 
@@ -814,6 +818,7 @@ class Stack_align(Stack_dem):
         --------
         stack.align()
         """
+        import numpy as np
         import geopandas as gpd
         from tqdm.auto import tqdm
         import joblib
@@ -837,15 +842,20 @@ class Stack_align(Stack_dem):
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_rep_subswath)(subswath, date, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
 
+        # DEM extent in radar coordinates
+        extent_ra = self.get_extent_ra()
+        minx, miny, maxx, maxy = np.round(extent_ra.bounds).astype(int)
+        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
+
         if len(subswaths) > 1:
             offsets = self.get_subswaths_offsets(self.reference, debug=debug)
             with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(dates))) as progress_bar:
-                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.merge_subswaths)(date, offsets, debug=debug) \
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._merge_subswaths)(date, offsets, minx, miny, maxx, maxy, debug=debug) \
                                                for date in dates)
         else:
             # in case of a single subswath only convert SLC to NetCDF grid
             with self.tqdm_joblib(tqdm(desc='Convert Subswath', total=len(dates))) as progress_bar:
-                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._convert_subswath)(subswaths[0], date, debug=debug) \
+                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._convert_subswath)(subswaths[0], date, minx, miny, maxx, maxy, debug=debug) \
                                                for date in dates)
 
         # merge subswaths, datapath and metapath converted to lists even for a single subswath, geometry merges bursts
