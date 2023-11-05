@@ -42,6 +42,7 @@ class Stack_geocode(Stack_sbas):
 
         self.compute_trans(coarsen=coarsen)
         self.compute_trans_inv(coarsen=coarsen)
+        self.compute_satellite_look_vector()
 
     # coarsen=1:
     # nearest: coords [array([596.97436523]), array([16976.93164062])]
