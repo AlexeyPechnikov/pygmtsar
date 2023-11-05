@@ -52,42 +52,67 @@ class Stack_geocode(Stack_sbas):
     # coarsen=4:
     # nearest: coords [array([596.42352295]), array([16978.65625])]
     # linear:  coords [array([597.1080563]), array([16977.35608873])]
-    def geocode(self, data, z_offset=None):
+    def geocode(self, geometry, z_offset=None):
         """
         Inverse geocode input geodataframe with 2D or 3D points. 
+        
+        Examples:
+        ---------
+        sbas.geocode(AOI.assign(col=0))
+        sbas.geocode(gpd.GeoDataFrame(geometry=AOI.centroid))
+        sbas.geocode(AOI.centroid)
+        sbas.geocode(AOI.geometry.item())
+        sbas.geocode([AOI.geometry.item()])
+        sbas.geocode(geometry)
         """
         import numpy as np
         import geopandas as gpd
-        from shapely import Point
-        from scipy.interpolate import RegularGridInterpolator
+        import xarray as xr
+        from shapely.geometry import LineString, Point
+
+        if isinstance(geometry, (gpd.GeoDataFrame, gpd.GeoSeries)):
+            geometries = geometry.geometry
+        elif isinstance(geometry, (list, tuple, np.ndarray)):
+            geometries = geometry
+        else:
+            geometries = [geometry]
 
         dem = self.get_dem()
         prm = self.PRM()
-
-        dy = dem.lat.diff('lat')[0]
-        dx = dem.lon.diff('lon')[0]
-        points_ll = []
-        for geom in data.geometry:
-            subset = dem.sel(lat=slice(geom.y-3*dy, geom.y+3*dy),lon=slice(geom.x-3*dx, geom.x+3*dx)).compute(n_process=1)
-            #print (subset.shape)
-            # perform interpolation
-            lats, lons = subset.lat.values, subset.lon.values
-            interp = RegularGridInterpolator((lats, lons),
-                                             subset.values.astype(np.float64),
-                                             method='cubic',
-                                             bounds_error=False)
-            # interpolate specified point elevation on DEM adding 3D point vertical coordinate when exists
+    
+        geoms = []
+        for geom in geometries:
+            #print (geom)
+            coords = np.asarray(geom.coords[:])
+            #print (len(coords))
+            ele = dem.interp(lat=xr.DataArray(coords[:,1]),
+                       lon=xr.DataArray(coords[:,0]), method='linear').compute()
             if z_offset is None:
-                ele = interp([geom.y, geom.x])[0] + (geom.z if geom.has_z else 0)
+                z = coords[:,2] if coords.shape[1]==3 else 0
             else:
-                ele = interp([geom.y, geom.x])[0] + z_offset
-            points_ll.append([geom.x, geom.y, ele])
-            del interp
-        points_ra = prm.SAT_llt2rat(points_ll)
-        points_ra = points_ra[:,:2] if len(points_ll)>1 else [points_ra[:2]]
-        #print ('points_ra', points_ra)
-        # set fake CRS to differ from WGS84 coordinates
-        return gpd.GeoDataFrame(data, geometry=[Point(point_ra) for point_ra in points_ra], crs=3857)
+                z = z_offset
+            points_ll = np.column_stack([coords[:,0], coords[:,1], ele.values + z])
+            #print (points_ll)
+            points_ra = prm.SAT_llt2rat(points_ll)
+            points_ra = points_ra[:,:2] if len(points_ll)>1 else [points_ra[:2]]
+            #print (points_ra)
+            geom_type = geom.type
+            if geom_type == 'LineString':
+                geom = LineString(points_ra)
+            elif geom_type == 'Point':
+                geom = Point(points_ra)
+            #print (geom)
+            geoms.append(geom)
+
+        # preserve original dataframe columns if exists
+        if isinstance(geometry, gpd.GeoDataFrame):
+            return gpd.GeoDataFrame(geometry, geometry=geoms, crs=3857)
+        elif isinstance(geometry, gpd.GeoSeries):
+            return gpd.GeoSeries(geoms, crs=3857)
+        elif isinstance(geometry, (list, tuple, np.ndarray)):
+            return geoms
+        else:
+            return geoms[0]
 
 ##########################################################################################
 # ra2ll
