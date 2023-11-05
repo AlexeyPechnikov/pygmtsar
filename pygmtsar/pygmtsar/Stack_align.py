@@ -565,7 +565,22 @@ class Stack_align(Stack_dem):
         if debug:
             print ('assert maxx == sum(...)', maxx, sumx)
         assert maxx == sumx, 'Incorrect output grid range dimension size'
-    
+
+        # create reference merged PRM for geocoding to extent radar coordinates calculation
+        filename = prms[0].filename[:-5] + ''.join(map(str, subswaths))
+        prm_filename = filename + '.PRM'
+        #print ('prm_filename', prm_filename)
+        prm = PRM(prms[0])
+        dt = -minh / prm.get('PRF') / 86400
+        prm = prm.set(SLC_file=None,
+                      num_lines=maxy, nrows=maxy, num_valid_az=maxy,
+                      num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
+                      SC_clock_start=prm.get('SC_clock_start') - dt,
+                      clock_start=prm.get('clock_start') - dt,
+                      SC_clock_stop=prm.get('SC_clock_start') + maxy / prm.get('PRF') / 86400,
+                      clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400)\
+            .to_file(prm_filename)
+
         return {'bottoms': bottoms, 'lefts': x1s, 'rights': x2s, 'bottom': minh, 'extent': [maxy, maxx]}
 
     # merge_swath.c modified for SLCs
@@ -842,17 +857,21 @@ class Stack_align(Stack_dem):
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_rep_subswath)(subswath, date, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
 
-        # DEM extent in radar coordinates
-        extent_ra = self.get_extent_ra()
-        minx, miny, maxx, maxy = np.round(extent_ra.bounds).astype(int)
-        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
-
         if len(subswaths) > 1:
+            # calculate the offsets and also create merged reference PRM
             offsets = self.get_subswaths_offsets(self.reference, debug=debug)
+            # DEM extent in radar coordinates, merged reference PRM required
+            extent_ra = self.get_extent_ra()
+            minx, miny, maxx, maxy = np.round(extent_ra.bounds).astype(int)
+            #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
             with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(dates))) as progress_bar:
                 joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._merge_subswaths)(date, offsets, minx, miny, maxx, maxy, debug=debug) \
                                                for date in dates)
         else:
+            # DEM extent in radar coordinates, merged reference PRM required
+            extent_ra = self.get_extent_ra()
+            minx, miny, maxx, maxy = np.round(extent_ra.bounds).astype(int)
+            #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
             # in case of a single subswath only convert SLC to NetCDF grid
             with self.tqdm_joblib(tqdm(desc='Convert Subswath', total=len(dates))) as progress_bar:
                 joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._convert_subswath)(subswaths[0], date, minx, miny, maxx, maxy, debug=debug) \
