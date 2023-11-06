@@ -356,10 +356,10 @@ class Stack_incidence(Stack_geocode):
         assert self.is_ra(unwrap), 'ERROR: unwrapped phase needs to be defined in radar coordinates'
 
         los_disp = self.los_displacement_mm(unwrap)
-        incidence = self.incidence_angle()
+        incidence = self.incidence_angle().reindex_like(los_disp, method='nearest')
         return los_disp/np.cos(incidence)
 
-    def eastwest_displacement_mm(self, unwraps):
+    def eastwest_displacement_mm(self, unwrap):
         """
         Compute East-West displacement in millimeters.
 
@@ -388,8 +388,8 @@ class Stack_incidence(Stack_geocode):
         # this displacement is not symmetrical for the orbits due to scene geometries
         orbit = self.df.orbit.unique()[0]
         sign = 1 if orbit == 'D' else -1
-        los_disp = self.los_displacement_mm(unwraps)
-        incidence_ll = self.incidence_angle()
+        los_disp = self.los_displacement_mm(unwrap)
+        incidence_ll = self.incidence_angle().reindex_like(los_disp, method='nearest')
         return sign * los_disp/np.sin(incidence_ll)
 
     def compute_satellite_look_vector(self, interactive=False):
