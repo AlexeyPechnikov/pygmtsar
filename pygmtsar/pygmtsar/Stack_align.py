@@ -814,7 +814,7 @@ class Stack_align(Stack_dem):
             data.append({'date':date, 'parallel':BPL.round(1), 'perpendicular':BPR.round(1)})
         return pd.DataFrame(data).set_index('date')
 
-    def compute_align(self, geometry='auto', dates=None, n_jobs=-1, debug=False):
+    def compute_align(self, geometry='auto', dates=None, n_jobs=-1, degrees=12.0/3600, debug=False):
         """
         Stack and align scenes.
 
@@ -854,7 +854,7 @@ class Stack_align(Stack_dem):
 
         # prepare secondary images
         with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_rep_subswath)(subswath, date, debug=debug) \
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_rep_subswath)(subswath, date, degrees=degrees, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
 
         if len(subswaths) > 1:
