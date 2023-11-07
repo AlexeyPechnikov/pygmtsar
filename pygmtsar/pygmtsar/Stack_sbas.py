@@ -245,7 +245,7 @@ class Stack_sbas(Stack_detrend):
         return model
         #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
-    def baseline_pairs(self, days=100, meters=None, limit=None, invert=False):
+    def baseline_pairs(self, days=100, meters=None, min_limit=None, max_limit=None, invert=False):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
 
@@ -259,8 +259,10 @@ class Stack_sbas(Stack_detrend):
             Maximum temporal separation between image pairs in days (default is 100).
         meters : int, optional
             Maximum spatial separation between image pairs in meters (default is 150).
-        limit : int, optional
-            Maximum number of pairs to return per reference image (default is None, which means no limit).
+        min_limit : int, optional
+            Minimum number of pairs per date (default is None, which means no limit).
+        max_limit : int, optional
+            Maximum number of pairs per date (default is None, which means no limit).
         invert : bool, optional
             If True, invert the order of reference and repeat images (default is False).
 
@@ -303,7 +305,7 @@ class Stack_sbas(Stack_detrend):
             counter = 0
             for line2 in tbl.itertuples():
                 #print (line1, line2)
-                if limit is not None and counter >= limit:
+                if max_limit is not None and counter >= max_limit:
                     continue
                 if not (line1.Index < line2.Index and (line2.Index - line1.Index).days < days):
                     continue
@@ -320,4 +322,13 @@ class Stack_sbas(Stack_detrend):
                                  'ref_baseline': np.round(line2.BPR, 2),
                                  'rep_baseline': np.round(line1.BPR, 2)})
 
-        return pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
+        df = pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
+
+        if min_limit is not None:
+            # clean hanging nodes
+            for limit in range(1,min_limit + 1):
+                dates, counts = np.unique(df.values[:,:2].reshape(-1), return_counts=True)
+                dates = dates[counts>=limit]
+                df = df[(df['ref_date'].isin(dates))&(df['rep_date'].isin(dates))]
+
+        return df
