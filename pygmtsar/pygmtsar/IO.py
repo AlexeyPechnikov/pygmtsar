@@ -395,6 +395,16 @@ class IO(datagrid):
 
         return data
 
+    def sync_cube(self, data, name=None, caption='Syncing NetCDF 2D/3D Dataset'):
+        import xarray as xr
+        if name is None and isinstance(data, xr.DataArray):
+            assert data.name is not None, 'Define data name or use "name" argument for the NetCDF filename'
+            name = data.name
+        elif name is None:
+            raise ValueError('Specify name for the output NetCDF file')
+        self.save_cube(data, name, caption)
+        return self.open_cube(name)
+    
     def save_cube(self, data, name=None, caption='Saving NetCDF 2D/3D Dataset'):
         """
         Save a lazy and not lazy 2D/3D xarray Dataset or DataArray to a NetCDF file.
@@ -441,7 +451,7 @@ class IO(datagrid):
         utils_perf.disable_gc_diagnosis()
 
         if name is None and isinstance(data, xr.DataArray):
-            assert data.name is not None, 'Define data name or use name argument for the NetCDF filename'
+            assert data.name is not None, 'Define data name or use "name" argument for the NetCDF filename'
             name = data.name
         elif name is None:
             raise ValueError('Specify name for the output NetCDF file')
