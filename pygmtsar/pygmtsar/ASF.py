@@ -13,7 +13,7 @@ class ASF(tqdm_joblib):
     from datetime import timedelta
 
     template_url = 'https://datapool.asf.alaska.edu/SLC/S{satellite}/{scene}.zip'
-    template_safe = '*.SAFE/*/s1{mission}-iw{subswath}-slc-{polarization}-*'
+    template_safe = '*.SAFE/*/{mission}-iw{subswath}-slc-{polarization}-*'
     # URL of the HTML page
     # see https://asf.alaska.edu/data-sets/sar-data-sets/sentinel-1/sentinel-1-data-and-imagery/
     # https://s1qc.asf.alaska.edu
@@ -83,7 +83,7 @@ class ASF(tqdm_joblib):
         | awk -F'-' -v OFS='_' '{print toupper($1), "IW_SLC__1SDV", toupper($5), toupper($6), $7, toupper($8), $9"X.SAFE"}' \
         | xargs -I {} mkdir -p {}
     """
-    def download(self, basedir, scenes, subswaths, polarization='VV', mission='?', n_jobs=8, skip_exist=True):
+    def download(self, basedir, scenes, subswaths, polarization='VV', mission='S1?', n_jobs=4, skip_exist=True):
         import pandas as pd
         import numpy as np
         import asf_search
@@ -97,49 +97,65 @@ class ASF(tqdm_joblib):
         # supress asf_search 'UserWarning: File already exists, skipping download'
         warnings.filterwarnings("ignore", category=UserWarning)
 
+        assert len(mission) == 3 and mission[:2]=='S1', \
+            f'ERROR: mission name is invalid: {mission}. Expected names like "S1?" or "S1A", "S1B", etc.'
+    
         # create the directory if needed
         os.makedirs(basedir, exist_ok=True)
 
-        # check if scenes and orbits are already downloaded, no internet connection required
+        # collect all the existing files once
         files = os.listdir(basedir)
-        scenes_exist = []
-        for scene in scenes:
-            # check scene
-            if not f'{scene}.SAFE' in files:
-                continue
-            # check orbit
-            mission = scene[:3]
-            dt = datetime.strptime(scene.split('_')[5], '%Y%m%dT%H%M%S')
-            day        = dt.strftime('%Y%m%d')
-            day_before = (dt + timedelta(days=-1)).strftime('%Y%m%d')
-            day_after  = (dt + timedelta(days=1)).strftime('%Y%m%d')
-            pattern    = self.template_orbit.format(mission=mission, date_start=day_before, date_end=day_after)
-            filenames  = sorted(filter(re.compile(pattern).match, files))
-            if len(filenames) == 0:
-                pattern   = self.template_orbit.format(mission=mission, date_start=day, date_end=day)
-                filenames = sorted(filter(re.compile(pattern).match, files))
-            if len(filenames) == 0:
-                continue
-            # scene and orbits exist
-            scenes_exist.append(scene)
-            if not skip_exist:
-                [os.remove(os.path.join(basedir, filename)) for filename in filenames]
-        #print ('scenes_exist', scenes_exist)
-        
-        # filter existing scenes
-        if skip_exist:
-            scenes = [scene for scene in scenes if scene not in scenes_exist]
-            if len(scenes) == 0:
-                return
+        #print ('files', len(files))
 
-        def get_urls(scenes):
-            outs = []
-            for scene in (scenes if isinstance(scenes, list) else [scenes]):
-                out = self.template_url.format(satellite=scene[2:3], scene=scene)
-                outs.append(out)
-            return outs if isinstance(scenes, list) else outs[0]
+        # remove all orbits and re-download the same or new ones
+        if not skip_exist:
+            orbits = [res.group(0) if res else None for file in files for res in [re.search(self.pattern_orbit, file)]]
+            orbits = list(filter(None, orbits))
+            for orbit in orbits:
+                os.remove(os.path.join(basedir, orbit))
+
+        # detect all the local orbits for all scenes
+        scenes_orbits = []
+        # skip existing scenes
+        if skip_exist:
+            # output dataframe including scenes and orbits so the both required
+            # missed scene or orbit means scene as missed
+            scenes_missed = []
+            for scene in scenes:
+                # check scene
+                if not f'{scene}.SAFE' in files:
+                    scenes_missed.append(scene)
+
+                # check orbit
+                mission = scene[:3]
+                dt = datetime.strptime(scene.split('_')[5], '%Y%m%dT%H%M%S')
+                day        = dt.strftime('%Y%m%d')
+                day_before = (dt + timedelta(days=-1)).strftime('%Y%m%d')
+                day_after  = (dt + timedelta(days=1)).strftime('%Y%m%d')
+                # check presision orbits
+                pattern    = self.template_orbit.format(mission=mission, date_start=day_before, date_end=day_after)
+                #print ('pattern', pattern)
+                filenames  = sorted(filter(re.compile(pattern).match, files))
+                [scenes_orbits.append((scene, filename)) for filename in filenames]
+                #print ('filenames', filenames)
+                # check approximate orbits
+                if len(filenames) == 0:
+                    pattern   = self.template_orbit.format(mission=mission, date_start=day, date_end=day)
+                    filenames = sorted(filter(re.compile(pattern).match, files))
+                    [scenes_orbits.append((scene, filename)) for filename in filenames]
+                # orbit file is missed when presision and approximate orbits not found
+                if len(filenames) == 0:
+                    scenes_missed.append(scene)
+
+            #print ('scenes_missed', len(scenes_missed))
+            scenes = np.unique(scenes_missed)
+            #print ('scenes_orbits', scenes_orbits)
+
+        def get_url(scene):
+            return self.template_url.format(satellite=scene[2:3], scene=scene)
 
         def get_patterns(subswaths, polarization, mission):
+            #print (f'get_patterns: {subswaths}, {polarization}, {mission}')
             outs = []
             for subswath in str(subswaths):
                 pattern = self.template_safe.format(mission=mission.lower(),
@@ -148,9 +164,13 @@ class ASF(tqdm_joblib):
                 outs.append(pattern)
             return outs
 
-        def extract(url, patterns, basedir, session):
+        def download_scene(scene, patterns, basedir, session):
+            # define scene zip url
+            url = get_url(scene)
+            #print (f'download_scene: {url}, {patterns}, {basedir}, {session}')
             with asf_search.remotezip(url, session) as remotezip:
                 filenames = remotezip.namelist()
+                #print ('filenames', filenames)
                 for pattern in patterns:
                     #print ('pattern', pattern)
                     matching = [filename for filename in filenames if fnmatch.fnmatch(filename, pattern)]
@@ -159,17 +179,13 @@ class ASF(tqdm_joblib):
                         #print (filename, filesize)
                         fullname = os.path.join(basedir, filename)
                         if os.path.exists(fullname) and os.path.getsize(fullname) == filesize:
+                            #print (f'pass {fullname}')
                             pass
                         else:
+                            #print (f'download {fullname}')
                             #with open(fullname, 'wb') as file:
                             #    file.write(remotezip.read(filename))
                             remotezip.extract(filename, basedir)
-
-        if not os.path.exists(basedir):
-            os.makedirs(basedir)
-
-        urls = get_urls(scenes)
-        #print ('urls', urls)
 
         patterns = get_patterns(subswaths, polarization, mission)
         #print ('patterns', patterns)
@@ -178,25 +194,53 @@ class ASF(tqdm_joblib):
         session = asf_search.ASFSession().auth_with_creds(self.username, self.password)
 
         # download scenes
-        with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 SLC', total=len(urls))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(extract)(url, patterns, basedir, session) for url in urls)
+        with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 SLC', total=len(scenes))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_scene)(scene, patterns, basedir, session) for scene in scenes)
+        # debug
+        #[download_scene(scene, patterns, basedir, session) for scene in scenes]
 
-        # parse scenes and convert to dataframe
+        # parse processed scenes and convert to dataframe
+        #print ('scenes', len(scenes))
         scenes = pd.DataFrame(scenes, columns=['scene'])
         scenes['time_start'] = scenes['scene'].apply(lambda name: datetime.strptime(name.split('_')[5], '%Y%m%dT%H%M%S'))
         scenes['time_end']   = scenes['scene'].apply(lambda name: datetime.strptime(name.split('_')[6], '%Y%m%dT%H%M%S'))
         scenes['mission']    = scenes['scene'].apply(lambda name: name[:3])
         scenes['orbit']      = None
 
+        # download orbit catalogs and look for the required scenes orbits
+        if len(scenes[scenes['orbit'].isna()]):
+            with tqdm(desc='Downloading POEORB catalog:', total=1) as pbar:
+                scenes = self._get_orbits(scenes, self.poeorb_url, session)
+                pbar.update(1)
+        if len(scenes[scenes['orbit'].isna()]):
+            with tqdm(desc='Downloading RESORB catalog:', total=1) as pbar:
+                scenes = self._get_orbits(scenes, self.resorb_url, session)
+                pbar.update(1)
+        if len(scenes[scenes['orbit'].isna()]):
+            print ('ERROR: some orbits not found locally and in orbit catalogs')
+
+        def download_orbit(scene, url, basedir, session):
+            #print ('download_orbit', scene, url)
+            # cleanup one or multiple existing orbits
+            # orbits can be outdated and have different names
+            # detect all the existing orbits for the scene
+            orbits = [scene_orbit[1] for scene_orbit in scenes_orbits if scene_orbit[0]==scene]       
+            fullnames = [os.path.join(basedir, orbit) for orbit in orbits]
+            #print ('fullnames', fullnames)
+            # it can be that scene is missed but the orbit esists when skip_exist=True
+            for fullname in fullnames:
+                if os.path.exists(fullname):
+                    os.remove(fullname)
+            # download the same or a new orbit 
+            # this routine can use multiple threads but it does not provide a progress indicator
+            asf_search.download_urls(urls=[url], path=basedir, session=session)
+
         # download orbits
-        if len(scenes[scenes['orbit'].isna()]):
-            scenes = self._get_orbits(scenes, self.poeorb_url, session)
-        if len(scenes[scenes['orbit'].isna()]):
-            scenes = self._get_orbits(scenes, self.resorb_url, session)
-        if len(scenes[scenes['orbit'].isna()]):
-            print ('ERROR: some orbits not found')
-        # download missed orbits
-        asf_search.download_urls(urls=scenes.orbit.tolist(), path=basedir, session=session, processes=n_jobs)
+        with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 Orbits', total=len(scenes.orbit))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_orbit)(scene, url, basedir, session) \
+                                           for (scene, url) in zip(scenes.scene, scenes.orbit))
+        # debug
+    #    [download_orbit(url, basedir, session) for url in scenes.orbit]
 
         # return the results in a user-friendly dataframe
         scenes['scene'] = scenes.scene.apply(lambda name: self.template_url.format(satellite=name[2:3], scene=name))
