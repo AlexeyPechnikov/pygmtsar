@@ -245,7 +245,7 @@ class Stack_sbas(Stack_detrend):
         return model
         #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
-    def baseline_pairs(self, days=100, meters=None, min_limit=None, max_limit=None, invert=False):
+    def baseline_pairs(self, days=100, meters=None, min_limit=None, max_limit=None, exclude_dates=None, invert=False):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
 
@@ -324,9 +324,12 @@ class Stack_sbas(Stack_detrend):
 
         df = pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
 
+        if exclude_dates is not None:
+            df = df[(~df['ref_date'].isin(exclude_dates))&(~df['rep_date'].isin(exclude_dates))]
+    
         if min_limit is not None:
             # clean hanging nodes
-            for limit in range(1,min_limit + 1):
+            for limit in np.repeat(range(1,min_limit + 1), 3):
                 dates, counts = np.unique(df.values[:,:2].reshape(-1), return_counts=True)
                 dates = dates[counts>=limit]
                 df = df[(df['ref_date'].isin(dates))&(df['rep_date'].isin(dates))]
