@@ -107,11 +107,6 @@ class Stack_multilooking(Stack_phasediff):
         import numpy as np
         import dask
         from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
-#         import warnings
-#         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-#         warnings.filterwarnings('ignore')
-#         warnings.filterwarnings('ignore', module='dask')
-#         warnings.filterwarnings('ignore', module='dask.core')
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
         # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
@@ -139,12 +134,8 @@ class Stack_multilooking(Stack_phasediff):
 
         # weighted and not weighted convolution on float and complex float data
         def apply_filter(data, weight, sigmas, truncate=2):
-#             import warnings
-#             # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-#             warnings.filterwarnings('ignore')
-#             warnings.filterwarnings('ignore', module='dask')
-#             warnings.filterwarnings('ignore', module='dask.core')
             if np.issubdtype(data.dtype, np.complexfloating):
+                #print ('complexfloating')
                 parts = []
                 for part in [data.real, data.imag]:
                     data_complex  = ((1j + part) * (weight if weight is not None else 1)).fillna(0)
@@ -158,6 +149,7 @@ class Stack_multilooking(Stack_phasediff):
                 conv = parts[0] + 1j*parts[1]
                 del parts
             else:
+                #print ('floating')
                 # replace nan + 1j to to 0.+0.j
                 data_complex  = ((1j + data) * (weight if weight is not None else 1)).fillna(0)
                 conv_complex = dask_gaussian_filter(data_complex.data, sigmas, mode='reflect', truncate=truncate)
@@ -176,21 +168,40 @@ class Stack_multilooking(Stack_phasediff):
             stackvar = None
         else:
             stackvar = dims[0]
+        #print ('stackvar', stackvar)
 
+        if weight is not None:
+            # for InSAR processing expect 2D weights
+            assert isinstance(weight, xr.DataArray) and len(weight.dims)==2, \
+                'ERROR: multilooking weight should be 2D DataArray'
+        
         if weight is not None and len(data.dims) == len(weight.dims):
+            #print ('2D check shape weighted')
             # single 2D grid processing
-            assert data.shape == weight.shape, 'ERROR: multilooking data and weight variables have different shape'
-        elif weight is not None and len(data.dims) + 1 == len(weight.dims):
+            if isinstance(data, xr.Dataset):
+                for varname in data.data_vars:
+                    assert data[varname].shape == weight.shape, \
+                        f'ERROR: multilooking data[{varname}] and weight variables have different shape'
+            else:
+                assert data.shape == weight.shape, 'ERROR: multilooking data and weight variables have different shape'
+        elif weight is not None and len(data.dims) == len(weight.dims) + 1:
+            #print ('3D check shape weighted')
             # stack of 2D grids processing
-            assert data.shape[1:] == weight.shape, 'ERROR: multilooking data and weight variables have different shape'
+            if isinstance(data, xr.Dataset):
+                for varname in data.data_vars:
+                    assert data[varname].shape[1:] == weight.shape, \
+                        f'ERROR: multilooking data[{varname}] slice and weight variables have different shape'
+            else:
+                assert data.shape[1:] == weight.shape, 'ERROR: multilooking data slice and weight variables have different shape'
 
         stack =[]
         for ind in range(len(data[stackvar]) if stackvar is not None else 1):
             if isinstance(data, xr.Dataset):
+                #print (f'Dataset ind:{ind}')
                 data_convs = []
                 for key in data.data_vars:
                     conv = apply_filter(data[key][ind] if stackvar is not None else data[key],
-                                        weight[ind]    if stackvar is not None and weight is not None else weight,
+                                        weight,
                                         sigmas)
                     data_conv = xr.DataArray(conv, dims=data[key].dims[1:] if stackvar is not None else data[key].dims, name=data[key].name)
                     del conv
@@ -199,8 +210,9 @@ class Stack_multilooking(Stack_phasediff):
                 stack.append(xr.merge(data_convs))
                 del data_convs
             else:
+                #print (f'DataArray ind:{ind}')
                 conv = apply_filter(data[ind]   if stackvar is not None else data,
-                                    weight[ind] if stackvar is not None and weight is not None else weight,
+                                    weight,
                                     sigmas)
                 data_conv = xr.DataArray(conv, dims=data.dims[1:] if stackvar is not None else data.dims, name=data.name)
                 del conv
@@ -215,12 +227,10 @@ class Stack_multilooking(Stack_phasediff):
             ds = stack[0].assign_coords(data.coords)
         del stack
 
-        # it works faster when we prevent small chunks usage
-        if stackvar is not None:
-            chunksizes = (1, self.chunksize, self.chunksize)
-        else:
-            chunksizes = (self.chunksize, self.chunksize)
+        # it works faster when we prevent small output chunks
+        chunksizes = {'y': self.chunksize, 'x': self.chunksize}
         if coarsen is not None:
-            # coarse grid to square cells
+            # coarse grid typically to square cells
             return ds.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(chunksizes)
         return ds.chunk(chunksizes)
+
