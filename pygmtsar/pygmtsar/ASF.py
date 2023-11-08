@@ -83,7 +83,7 @@ class ASF(tqdm_joblib):
         | awk -F'-' -v OFS='_' '{print toupper($1), "IW_SLC__1SDV", toupper($5), toupper($6), $7, toupper($8), $9"X.SAFE"}' \
         | xargs -I {} mkdir -p {}
     """
-    def download(self, basedir, scenes, subswaths, polarization='VV', mission='S1?', n_jobs=4, skip_exist=True):
+    def download(self, basedir, scenes, subswaths, polarization='VV', n_jobs=4, skip_exist=True):
         import pandas as pd
         import numpy as np
         import asf_search
@@ -97,9 +97,6 @@ class ASF(tqdm_joblib):
         # supress asf_search 'UserWarning: File already exists, skipping download'
         warnings.filterwarnings("ignore", category=UserWarning)
 
-        assert len(mission) == 3 and mission[:2]=='S1', \
-            f'ERROR: mission name is invalid: {mission}. Expected names like "S1?" or "S1A", "S1B", etc.'
-    
         # create the directory if needed
         os.makedirs(basedir, exist_ok=True)
 
@@ -156,6 +153,8 @@ class ASF(tqdm_joblib):
 
         def get_patterns(subswaths, polarization, mission):
             #print (f'get_patterns: {subswaths}, {polarization}, {mission}')
+            assert len(mission) == 3 and mission[:2]=='S1', \
+                f'ERROR: mission name is invalid: {mission}. Expected names like "S1A", "S1B", etc.'
             outs = []
             for subswath in str(subswaths):
                 pattern = self.template_safe.format(mission=mission.lower(),
@@ -164,10 +163,12 @@ class ASF(tqdm_joblib):
                 outs.append(pattern)
             return outs
 
-        def download_scene(scene, patterns, basedir, session):
+        def download_scene(scene, subswaths, polarization, basedir, session):
             # define scene zip url
             url = get_url(scene)
             #print (f'download_scene: {url}, {patterns}, {basedir}, {session}')
+            patterns = get_patterns(subswaths, polarization, mission=scene[:3])
+            #print ('patterns', patterns)
             with asf_search.remotezip(url, session) as remotezip:
                 filenames = remotezip.namelist()
                 #print ('filenames', filenames)
@@ -187,17 +188,14 @@ class ASF(tqdm_joblib):
                             #    file.write(remotezip.read(filename))
                             remotezip.extract(filename, basedir)
 
-        patterns = get_patterns(subswaths, polarization, mission)
-        #print ('patterns', patterns)
-
         # prepare authorized connection
         session = asf_search.ASFSession().auth_with_creds(self.username, self.password)
 
         # download scenes
         with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 SLC', total=len(scenes))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_scene)(scene, patterns, basedir, session) for scene in scenes)
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_scene)(scene, subswaths, polarization, basedir, session) for scene in scenes)
         # debug
-        #[download_scene(scene, patterns, basedir, session) for scene in scenes]
+        #[download_scene(scene, subswaths, polarization, basedir, session) for scene in scenes]
 
         # parse processed scenes and convert to dataframe
         #print ('scenes', len(scenes))
