@@ -10,6 +10,111 @@
 from .Stack_unwrap import Stack_unwrap
 
 class Stack_detrend(Stack_unwrap):
+# 
+#     @staticmethod
+#     def regression_linear(data, grid, fit_intercept=True):
+#         import numpy as np
+#         import xarray as xr
+#         import dask
+# 
+#         # define topography on the same grid and fill NaNs
+#         grid = grid.reindex_like(data, method='nearest').fillna(0)
+# 
+#         # find stack dim
+#         stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
+#         #print ('stackvar', stackvar)
+#         shape2d = data.shape[1:] if len(data.dims) == 3 else data.shape
+#         #print ('shape2d', shape2d)
+# 
+#         @dask.delayed
+#         def regression_block(stackval, fit_intercept):
+#             from sklearn.linear_model import LinearRegression
+#             from sklearn.pipeline import make_pipeline
+#             from sklearn.preprocessing import StandardScaler
+# 
+#             # use outer variable
+#             data_block = (data.sel({stackvar: stackval}) if stackval is not None else data).compute(n_workers=1)
+# 
+#             grid_values = grid.values.ravel()
+#             data_values = data_block.values.ravel()
+#             nanmask = np.isnan(grid_values) | np.isnan(data_values)
+#         
+#             # build prediction model with or without plane removal (fit_intercept)
+#             regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept))
+#             # fit 1D non-NaNs phase and topography and predict on the non-NaNs 2D topography grid
+#             data_grid = regr.fit(np.column_stack([grid_values [~nanmask]]),
+#                                  np.column_stack([data_values[~nanmask]]))\
+#                         .predict(np.column_stack([grid_values])).reshape(data_block.shape)
+#             # cleanup
+#             del grid_values, data_values, nanmask, data_block
+#             return data_grid
+#         
+#         stack = []
+#         for stackval in data[stackvar].values if len(data.dims) == 3 else [None]:
+#             #print ('stackval', stackval)
+#             block = dask.array.from_delayed(regression_block(stackval, fit_intercept=fit_intercept),
+#                                             shape=shape2d, dtype=np.float32)
+#             stack.append(block)
+#             del block
+# 
+#         return xr.DataArray(dask.array.stack(stack) if len(data.dims) == 3 else stack[0],
+#                             coords=data.coords)\
+#                .rename(data.name)
+
+    @staticmethod
+    def regression_linear(data, grid, weight=None, fit_intercept=True):
+        import numpy as np
+        import xarray as xr
+        import dask
+
+        # define topography on the same grid and fill NaNs
+        grid = grid.reindex_like(data, method='nearest').fillna(0)
+
+        # find stack dim
+        stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
+        #print ('stackvar', stackvar)
+        shape2d = data.shape[1:] if len(data.dims) == 3 else data.shape
+        #print ('shape2d', shape2d)
+
+        @dask.delayed
+        def regression_block(stackval, fit_intercept):
+            from sklearn.linear_model import LinearRegression
+
+            # use outer variables
+            grid_values = grid.values.ravel()
+        
+            data_block  = (data.sel({stackvar: stackval}) if stackval is not None else data).compute(n_workers=1)
+            data_values = data_block.values.ravel()
+        
+            if weight is not None:
+                weight_block  = (weight.sel({stackvar: stackval}) if stackval is not None else weight).compute(n_workers=1)
+                weight_values = weight_block.values.ravel()
+                nanmask = np.isnan(grid_values) | np.isnan(data_values) | np.isnan(weight_values)
+            else:
+                nanmask = np.isnan(grid_values) | np.isnan(data_values)
+
+            # build prediction model with or without plane removal (fit_intercept)
+            regr = LinearRegression(fit_intercept=fit_intercept)
+            # fit 1D non-NaNs phase and topography and predict on the non-NaNs 2D topography grid
+            data_grid = regr.fit(np.column_stack([grid_values [~nanmask]]),
+                                 np.column_stack([data_values[~nanmask]]),
+                                 None if weight is None else weight_values[~nanmask])\
+                        .predict(np.column_stack([grid_values])).reshape(data_block.shape)
+            # cleanup
+            del grid_values, data_values, nanmask, data_block
+            return data_grid
+
+        stack = []
+        for stackval in data[stackvar].values if len(data.dims) == 3 else [None]:
+            #print ('stackval', stackval)
+            block = dask.array.from_delayed(regression_block(stackval, fit_intercept=fit_intercept),
+                                            shape=shape2d, dtype=np.float32)
+            stack.append(block)
+            del block
+
+        return xr.DataArray(dask.array.stack(stack) if len(data.dims) == 3 else stack[0],
+                            coords=data.coords)\
+               .rename(data.name)
 
     def gaussian(self, grid, wavelength, truncate=3.0, resolution=60, debug=False):
         """
