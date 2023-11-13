@@ -38,7 +38,10 @@ class Stack_geocode(Stack_sbas):
         Otherwise, the progress will be displayed using tqdm_dask.
         """
         import warnings
+        # suppress Dask warning "RuntimeWarning: All-NaN slice encountered"
         warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         self.compute_trans(coarsen=coarsen)
         self.compute_trans_inv(coarsen=coarsen)
