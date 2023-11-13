@@ -13,7 +13,7 @@ from .PRM import PRM
 class Stack_sbas(Stack_detrend):
 
     @staticmethod
-    def lstsq1d(x, w, matrix):
+    def lstsq1d(x, w, matrix, cumsum=True):
         """
         Compute the least squares solution (or weighted least squares if weights are provided) for a given matrix.
 
@@ -77,6 +77,8 @@ class Stack_sbas(Stack_detrend):
             #print ('Stack.lstsq notice:', str(e))
             return np.nan * np.zeros(matrix.shape[1])
         #print ('model', model)
+        if not cumsum:
+            return model[0]
         # mask produced cumsum zeroes by NaNs where model[0] is the timeseries values
         return np.where(~np.isnan(model[0]), np.nancumsum(model[0], axis=0), np.nan)
 
@@ -117,7 +119,50 @@ class Stack_sbas(Stack_detrend):
         matrix = np.stack(matrix).astype(int)
         return matrix
 
-    def lstsq(self, data, weight=None, debug=False):
+    def lstsq_matrix_edge(self, pairs):
+        """
+        Create an edge matrix for use in the least squares computation based on interferogram date pairs.
+
+        Parameters
+        ----------
+        pairs : pandas.DataFrame
+            DataFrame containing interferogram date pairs.
+
+        Returns
+        -------
+        numpy.ndarray
+            Matrix with one row for every interferogram and one column for every date.
+            Each element in the matrix is an integer, with 1 representing the end date,
+            -1 the start date and 0 otherwise.
+
+        Notes
+        -----
+        This function also calculates image capture dates from the interferogram date pairs.
+
+        """
+        import numpy as np
+        import pandas as pd
+
+        # also define image capture dates from interferogram date pairs
+        pairs, dates = self.get_pairs(pairs, dates=True)
+        pairs = pairs[['ref', 'rep']].astype(str).values
+
+        def edge(date, date1, date2):
+            if date == date1:
+                return -1
+            if date == date2:
+                return 1
+            return 0
+        
+        # here are one row for every interferogram and one column for every date
+        matrix = []
+        for pair in pairs:
+            mrow = [edge(date, pair[0], pair[1]) for date in dates]
+            matrix.append(mrow)
+        matrix = np.stack(matrix).astype(int)
+        return matrix
+
+    def lstsq(self, data, weight=None, matrix='auto', cumsum=True, debug=False):
         """
         Perform least squares (weighted or unweighted) computation on the input phase data in parallel.
 
@@ -192,8 +237,15 @@ class Stack_sbas(Stack_detrend):
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(data, dates=True)
         pairs = pairs[['ref', 'rep']].astype(str).values
+        
         # define pairs and dates matrix for LSQ calculation
-        matrix = self.lstsq_matrix(pairs)
+        if isinstance(matrix, str) and matrix == 'auto':
+            if debug:
+                print ('DEBUG: Generate default matrix')
+            matrix = self.lstsq_matrix(pairs)
+        else:
+            if debug:
+                print ('DEBUG: Use user-supplied matrix')
 
         def lstq_block(ys, xs):
             # 3D array
@@ -205,13 +257,13 @@ class Stack_sbas(Stack_detrend):
                 # weight=1 is not allowed for the used weighted least squares calculation function 
                 weight_block = np.where(weight_block>=1, 0.999999, weight_block)
                 # Vectorize vec_lstsq
-                vec_lstsq = np.vectorize(lambda x, w: self.lstsq1d(x, w, matrix), signature='(n),(n)->(m)')
+                vec_lstsq = np.vectorize(lambda x, w: self.lstsq1d(x, w, matrix, cumsum), signature='(n),(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
                 block = vec_lstsq(data_block, weight_block).transpose(2,0,1)
                 del weight_block, vec_lstsq
             else:
                 # Vectorize vec_lstsq
-                vec_lstsq = np.vectorize(lambda x: self.lstsq1d(x, weight, matrix), signature='(n)->(m)')
+                vec_lstsq = np.vectorize(lambda x: self.lstsq1d(x, weight, matrix, cumsum), signature='(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
                 block = vec_lstsq(data_block).transpose(2,0,1)
                 del vec_lstsq
@@ -245,7 +297,8 @@ class Stack_sbas(Stack_detrend):
         return model
         #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
-    def baseline_pairs(self, days=100, meters=None, min_limit=None, max_limit=None, exclude_dates=None, invert=False):
+    def baseline_pairs(self, days=100, meters=None,
+                       min_limit=None, max_limit=None, iterations=1, exclude_dates=None, invert=False):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
 
@@ -326,10 +379,11 @@ class Stack_sbas(Stack_detrend):
 
         if exclude_dates is not None:
             df = df[(~df['ref_date'].isin(exclude_dates))&(~df['rep_date'].isin(exclude_dates))]
-    
+
         if min_limit is not None:
             # clean hanging nodes
-            for limit in np.repeat(range(1,min_limit + 1), 3):
+            for limit in np.repeat(range(1,min_limit + 1), iterations):
+                #print ('limit', limit)
                 dates, counts = np.unique(df.values[:,:2].reshape(-1), return_counts=True)
                 dates = dates[counts>=limit]
                 df = df[(df['ref_date'].isin(dates))&(df['rep_date'].isin(dates))]
