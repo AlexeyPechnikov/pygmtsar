@@ -25,7 +25,7 @@ class Stack_ps(Stack_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def compute_ps(self, dates=None, intensity=True, scale='auto'):
+    def compute_ps(self, dates=None, data='auto'):
         import xarray as xr
         import numpy as np
         import dask
@@ -36,14 +36,12 @@ class Stack_ps(Stack_stl):
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
 
-        # open SLC data as complex amplitudes or real intensities
-        if intensity:
-            data = self.open_data(dates=dates, intensity=intensity, scale=scale)
-        else:
-            data = np.abs(self.open_data(dates=dates, intensity=intensity, scale=scale))
+        if isinstance(data, str) and data == 'auto':
+            # open SLC data as real intensities
+            data = np.square(np.abs(self.open_data(dates=dates)))
+
         # normalize image amplitudes (intensities)
-        stat = 'Intensity' if intensity else 'Amplitude'
-        tqdm_dask(mean := dask.persist(data.mean(dim=['y','x'])), desc=f'{stat} Normalization')
+        tqdm_dask(mean := dask.persist(data.mean(dim=['y','x'])), desc='Intensity Normalization')
         # dask.persist returns tuple
         norm = mean[0].mean(dim='date') / mean[0]
         # compute average and std.dev.

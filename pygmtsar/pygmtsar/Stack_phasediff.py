@@ -13,7 +13,10 @@ from .PRM import PRM
 
 class Stack_phasediff(Stack_topo):
 
-    def compute_interferogram_multilook(self, pairs, name, resolution=60., wavelength=None, psize=None, queue=16, debug=False):
+    # Goldstein filter requires square grid cells means 1:4 range multilooking.
+    # For multilooking interferogram we can use square grid always.
+    #coarsen = (1,4)
+    def compute_interferogram_multilook(self, pairs, name, resolution=60., wavelength=None, psize=None, coarsen=(1,4), queue=16, debug=False):
         import xarray as xr
         import numpy as np
         # cleanup unused resources before start
@@ -26,10 +29,6 @@ class Stack_phasediff(Stack_topo):
         if wavelength is None:
             wavelength = resolution
 
-        # Goldstein filter requires square grid cells means 1:4 range multilooking.
-        # For multilooking interferogram we can use square grid always.
-        coarsen = (1,4)
-        
         # decimate the 1:4 multilooking grids to specified resolution
         decimator = self.decimator(resolution=resolution, grid=coarsen, debug=debug)
 
@@ -43,8 +42,9 @@ class Stack_phasediff(Stack_topo):
             chunk, dates = self.get_pairs(chunk, dates=True)
             # load Sentinel-1 data
             data = self.open_data(dates, debug=debug)
+            intensity = np.square(np.abs(data))
             # Gaussian filtering 200m cut-off wavelength with optional range multilooking on Sentinel-1 amplitudes
-            amp_wavelength = self.multilooking(np.abs(data), wavelength=wavelength, coarsen=coarsen, debug=debug)
+            amp_wavelength = self.multilooking(intensity, wavelength=wavelength, coarsen=coarsen, debug=debug)
             # calculate phase difference with topography correction
             phase = self.phasediff(chunk, data, debug=debug)
             # Gaussian filtering 200m cut-off wavelength with optional range multilooking
@@ -66,9 +66,9 @@ class Stack_phasediff(Stack_topo):
             # anti-aliasing filter for the output resolution is applied above
             intf = decimator(intf_wavelength)
             corr = decimator(corr_wavelength)
-            out =xr.merge([corr, intf])
+            out  = xr.merge([corr, intf])
             # Allowing cleanup for Dask objects.
-            del data, phase, amp_wavelength, phase_wavelength, phase_wavelength_goldstein, corr_wavelength, intf_wavelength
+            del data, intensity, phase, amp_wavelength, phase_wavelength, phase_wavelength_goldstein, corr_wavelength, intf_wavelength
             self.save_stack(out, name,
                             caption=f'Saving Interferogram {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {len(pairs)}')
             counter += len(chunk)
@@ -98,7 +98,7 @@ class Stack_phasediff(Stack_topo):
 #         # amp1 and amp2 chunks are high for SLC, amp has normal chunks for NetCDF
 #         return xr.where(i >= thresh, corr, np.nan).chunk(a.chunksizes).rename('phase')
 
-    def correlation(self, phase, data, debug=False):
+    def correlation(self, phase, intensity, debug=False):
         """
         Example:
         data_200m = stack.multilooking(np.abs(sbas.open_data()), wavelength=200, coarsen=(4,16))
@@ -113,9 +113,6 @@ class Stack_phasediff(Stack_topo):
         import dask
         import xarray as xr
         import numpy as np
-        # constant from GMTSAR code
-        # apply square root because we compare multiplication of amplitudes instead of intensities
-        thresh = np.sqrt(5.e-21)
 
         if debug:
             print ('DEBUG: correlation')
@@ -124,24 +121,20 @@ class Stack_phasediff(Stack_topo):
         pairs, dates = self.get_pairs(phase, dates=True)
         pairs = pairs[['ref', 'rep']].astype(str).values
 
-        # check correctness for user-defined data argument
-        assert not np.issubdtype(data.dtype, np.complexfloating), 'Use np.abs(data) to convert complex values to amplitudes before multilooking'
+        # check correctness for user-defined data arguments
+        assert np.issubdtype(phase.dtype, np.complexfloating), 'ERROR: Phase should be complex-valued data.'
+        assert not np.issubdtype(intensity.dtype, np.complexfloating), 'ERROR: Intensity cannot be complex-valued data.'
 
         stack = []
         for stack_idx, pair in enumerate(pairs):
             date1, date2 = pair
             # calculate correlation
-            amps = data.sel(date=date1) * data.sel(date=date2)
-            # mask too low amplitude areas as invalid
-            corr = xr.where(amps >= thresh, np.abs(phase.sel(pair=' '.join(pair))) / amps, np.nan)
+            corr = np.abs(phase.sel(pair=' '.join(pair)) / np.sqrt(intensity.sel(date=date1) * intensity.sel(date=date2)))
             corr = xr.where(corr < 0, 0, corr)
             corr = xr.where(corr > 1, 1, corr)
-            del amps
             # add to stack
             stack.append(corr)
             del corr
-        # cleanup
-        del data
 
         return xr.concat(stack, dim='pair').rename('correlation')
 
