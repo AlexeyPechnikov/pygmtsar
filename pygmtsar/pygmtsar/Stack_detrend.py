@@ -62,13 +62,10 @@ class Stack_detrend(Stack_unwrap):
 #                .rename(data.name)
 
     @staticmethod
-    def regression_linear(data, grid, weight=None, fit_intercept=True):
+    def regression_linear(data, grid, weight=None, valid_pixels_threshold=10000, fit_intercept=True):
         import numpy as np
         import xarray as xr
         import dask
-
-        # define topography on the same grid and fill NaNs
-        grid = grid.reindex_like(data, method='nearest').fillna(0)
 
         # find stack dim
         stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
@@ -77,22 +74,30 @@ class Stack_detrend(Stack_unwrap):
         #print ('shape2d', shape2d)
 
         @dask.delayed
-        def regression_block(stackval, fit_intercept):
+        def regression_block(stackval, ys, xs, valid_pixels_threshold, fit_intercept):
             from sklearn.linear_model import LinearRegression
 
             # use outer variables
-            grid_values = grid.values.ravel()
-        
-            data_block  = (data.sel({stackvar: stackval}) if stackval is not None else data).compute(n_workers=1)
+            data_block  = (data.sel({stackvar: stackval}) if stackval is not None else data).isel(y=ys, x=xs).compute(n_workers=1)
             data_values = data_block.values.ravel()
-        
+            # define output shape
+            assert data_block.shape == (ys.size, xs.size)
+
+            # define topography on the same grid and fill NaNs for regression
+            grid_values = grid.reindex_like(data_block, method='nearest').fillna(0).values.ravel()
+
             if weight is not None:
-                weight_block  = (weight.sel({stackvar: stackval}) if stackval is not None else weight).compute(n_workers=1)
+                weight_block  = (weight.sel({stackvar: stackval}) if stackval is not None else weight).isel(y=ys, x=xs).compute(n_workers=1)
                 weight_values = weight_block.values.ravel()
                 nanmask = np.isnan(grid_values) | np.isnan(data_values) | np.isnan(weight_values)
             else:
                 nanmask = np.isnan(grid_values) | np.isnan(data_values)
 
+            # regression requires enouth amount of valid pixels
+            if data_values.size - np.sum(nanmask) < valid_pixels_threshold:
+                del grid_values, data_values, nanmask, data_block
+                return np.nan * np.zeros((ys.size, xs.size))
+        
             # build prediction model with or without plane removal (fit_intercept)
             regr = LinearRegression(fit_intercept=fit_intercept)
             # fit 1D non-NaNs phase and topography and predict on the non-NaNs 2D topography grid
@@ -104,17 +109,35 @@ class Stack_detrend(Stack_unwrap):
             del grid_values, data_values, nanmask, data_block
             return data_grid
 
+
+        # split to chunks
+        # use indices instead of the coordinate values to prevent the weird error raising occasionally:
+        # "Reindexing only valid with uniquely valued Index objects"
+        chunks_z, chunks_y, chunks_x = data.chunks
+        ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
+        xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
+
         stack = []
         for stackval in data[stackvar].values if len(data.dims) == 3 else [None]:
             #print ('stackval', stackval)
-            block = dask.array.from_delayed(regression_block(stackval, fit_intercept=fit_intercept),
-                                            shape=shape2d, dtype=np.float32)
-            stack.append(block)
-            del block
+            blocks_total = []
+            for ys_block in ys_blocks:
+                blocks = []
+                for xs_block in xs_blocks:
+                    block = dask.array.from_delayed(regression_block(stackval, ys_block, xs_block,
+                                                                     valid_pixels_threshold, fit_intercept),
+                                                    shape=(ys_block.size, xs_block.size), dtype=np.float32)
+                    blocks.append(block)
+                    del block
+                blocks_total.append(blocks)
+                del blocks        
+            stack.append(dask.array.block(blocks_total))
+            del blocks_total
 
         return xr.DataArray(dask.array.stack(stack) if len(data.dims) == 3 else stack[0],
                             coords=data.coords)\
                .rename(data.name)
+
 
     def gaussian(self, grid, wavelength, truncate=3.0, resolution=60, debug=False):
         """
@@ -458,3 +481,109 @@ class Stack_detrend(Stack_unwrap):
 #                 out[k] = v
 #     
 #         return out
+
+#     def turbulence(self, phase, date_crop=0, symmetrical=False):
+#         pairs, dates = self.get_pairs(phase, dates=True)
+#     
+#         turbos = []
+#         for date in dates:
+#             ref = pairs[pairs.ref==date]
+#             rep = pairs[pairs.rep==date]
+#             # calculate left and right pairs
+#             if symmetrical:
+#                 count = min(len(ref), len(rep))
+#             else:
+#                 count = None
+#             #print (date, len(ref), len(rep), '=>', count)
+#             if len(ref) < 1 or len(rep) < 1:
+#                 # correction calculation is not possible
+#                 #turbo = xr.zeros_like((detrend - phase_topo).isel(pair=0)).drop(['pair','ref','rep'])
+#                 continue
+#             else:
+#                 ref_data = phase.sel(pair=ref.pair.values).isel(pair=slice(None,count))
+#                 #ref_weight = 1/corr60m.sel(pair=ref_data.pair)
+#                 #print (ref_data)
+#                 rep_data = phase.sel(pair=rep.pair.values ).isel(pair=slice(None,count))
+#                 #rep_weight = 1/corr60m.sel(pair=rep_data.pair)
+#                 #print (rep_data)
+#                 #mask = (ref_weight.sum('pair') + rep_weight.sum('pair'))/2/count
+#                 turbo = (ref_data.mean('pair') - rep_data.mean('pair')) / 2
+#                 #turbo = ((ref_data*ref_weight).mean('pair')/ref_weight.sum('pair') -\
+#                 #         (rep_data*rep_weight).mean('pair')/rep_weight.sum('pair')) / 2
+#                 #.where(mask>MASK)
+#             turbos.append(turbo.assign_coords(date=pd.to_datetime(date)))
+#             del turbo
+#         turbo = xr.concat(turbos, dim='date')
+#         del turbos
+#     
+#         # convert dates to pairs
+#         #pairs = pairs[pairs.ref.isin(turbo.date.values)&pairs.rep.isin(turbo.date.values)]
+#         fake = xr.zeros_like(phase.isel(pair=0))
+# 
+#     #     return [(
+#     #         (turbo.sel(date=ref).drop('date') if ref in turbo.date else fake) - \
+#     #         (turbo.sel(date=rep).drop('date') if rep in turbo.date else fake)
+#     #     ).assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+#     #     for ref, rep in zip(pairs['ref'], pairs['rep'])]
+#     
+#     
+#         dates_crop = dates[date_crop:None if date_crop is None or date_crop==0 else -date_crop]
+#         pairs_crop = pairs[pairs.ref.isin(dates_crop)&pairs.rep.isin(dates_crop)]
+#     
+#     #     refs = [ref for ref in pairs['ref'] if str(ref.date()) in dates]
+#     #     reps = [rep for rep in pairs['rep'] if str(rep.date()) in dates]
+#     
+#         phase_turbo = xr.concat([(
+#             (turbo.sel(date=ref).drop('date') if ref in turbo.date else fake) - \
+#             (turbo.sel(date=rep).drop('date') if rep in turbo.date else fake)
+#         ).assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+#         for ref, rep in zip(pairs_crop['ref'], pairs_crop['rep'])], dim='pair')
+#     
+#     #     phase_turbo = xr.concat([(turbo.sel(date=ref) - turbo.sel(date=rep))\
+#     #                              .assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+#     #                              for ref, rep in \
+#     #                              zip(pairs['ref'], pairs['rep'])],
+#     #                        dim='pair')
+#         #phase_turbo['ref'].values = pd.to_datetime(phase_turbo['ref'])
+#         #phase_turbo['rep'].values = pd.to_datetime(phase_turbo['rep'])
+#         return phase_turbo
+
+    def turbulence(self, phase, date_crop=1, symmetrical=False):
+        import xarray as xr
+        import pandas as pd
+
+        pairs, dates = self.get_pairs(phase, dates=True)
+    
+        turbos = []
+        for date in dates:
+            ref = pairs[pairs.ref==date]
+            rep = pairs[pairs.rep==date]
+            # calculate left and right pairs
+            count = min(len(ref), len(rep)) if symmetrical else None
+            #print (date, len(ref), len(rep), '=>', count)
+            if len(ref) < 1 or len(rep) < 1:
+                # correction calculation is not possible
+                continue
+            ref_data = phase.sel(pair=ref.pair.values).isel(pair=slice(None,count))
+            #print (ref_data)
+            rep_data = phase.sel(pair=rep.pair.values ).isel(pair=slice(None,count))
+            #print (rep_data)
+            turbo = (ref_data.mean('pair') - rep_data.mean('pair')) / 2
+            del ref_data, rep_data
+            turbos.append(turbo.assign_coords(date=pd.to_datetime(date)))
+            del turbo
+        turbo = xr.concat(turbos, dim='date')
+        del turbos
+    
+        # convert dates to pairs
+        fake = xr.zeros_like(phase.isel(pair=0))    
+        dates_crop = dates[date_crop:None if date_crop is None or date_crop==0 else -date_crop]
+        pairs_crop = pairs[pairs.ref.isin(dates_crop) & pairs.rep.isin(dates_crop)]  
+        phase_turbo = xr.concat([(
+            (turbo.sel(date=ref).drop('date') if ref in turbo.date else fake) - \
+            (turbo.sel(date=rep).drop('date') if rep in turbo.date else fake)
+        ).assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+        for ref, rep in zip(pairs_crop['ref'], pairs_crop['rep'])], dim='pair')
+        del fake, dates_crop, pairs_crop
+    
+        return phase_turbo
