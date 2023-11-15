@@ -80,25 +80,15 @@ class Stack_multilooking(Stack_phasediff):
             yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
             xname = [varname for varname in ['x', 'lon', 'r'] if varname in da.dims][0]
             coarsen_args = {yname: yscale, xname: xscale0*xscale}
-            #if debug:
-            #    print (f"Decimate y variable '{yname}' for scale 1/{yscale} and x variable '{xname}' for scale 1/{xscale}")
             # avoid creating the large chunks
             with dask.config.set(**{'array.slicing.split_large_chunks': True}):
-                if func == 'mean':
-                    return da.coarsen(coarsen_args, boundary='trim').mean()
-                elif func == 'min':
-                    return da.coarsen(coarsen_args, boundary='trim').min()
-                elif func == 'max':
-                    return da.coarsen(coarsen_args, boundary='trim').max()
-                elif func == 'count':
-                    return da.coarsen(coarsen_args, boundary='trim').count()
-                elif func == 'sum':
-                    return da.coarsen(coarsen_args, boundary='trim').sum()
-                else:
+                if func not in ['mean', 'min', 'max', 'count', 'sum']:
                     raise ValueError(f"Unsupported function {func}. Should be 'mean','min','max','count', or 'sum'")
+                return getattr(da.coarsen(coarsen_args, boundary='trim'), func)()\
+                       .chunk({yname: self.chunksize, xname: self.chunksize})
 
         # return callback function and set common chunk size
-        return lambda da: decimator(da).chunk(self.chunksize)
+        return lambda da: decimator(da)
 
     # coarsen = None disables downscaling and uses wavelength to filter
     # coarsen=1 disables downscaling and use coarsen/cutoff filter
