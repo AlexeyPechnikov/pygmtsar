@@ -728,7 +728,8 @@ class Stack_align(Stack_dem):
         import os
 
         prm = self.PRM(date, subswath=subswath)
-        slc = prm.read_SLC_int(scale=None)
+        # crop the full grid if needed
+        slc = prm.read_SLC_int(scale=None).sel(y=slice(ylim1, ylim2), x=slice(xlim1, xlim2))
         # add PRM to grid
         #slc.attrs['prm'] = str(prm)
 
@@ -741,7 +742,6 @@ class Stack_align(Stack_dem):
         encoding = {vn: self._compression(slc[vn].shape) for vn in slc.data_vars}
         # rename dimensions to prevent issue with square output
         slc.rename({'y': 'a', 'x': 'r'})\
-            .sel(a=slice(ylim1, ylim2), r=slice(xlim1, xlim2))\
             .to_netcdf(netcdf_filename, encoding=encoding, engine=self.netcdf_engine)
 
         # cleanup
