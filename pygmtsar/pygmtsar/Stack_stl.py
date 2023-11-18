@@ -39,7 +39,7 @@ class Stack_stl(Stack_tidal):
         return trend
     
     @staticmethod
-    def stl1d(ts, dt, dt_periodic, periods, robust=False):
+    def stl1d(ts, dt, dt_periodic, periods=52, robust=False):
         """
         Perform Seasonal-Trend decomposition using LOESS (STL) on the input time series data.
 
@@ -92,6 +92,22 @@ class Stack_stl(Stack_tidal):
         res = stl.fit()
 
         return res.trend, res.seasonal, res.resid
+
+    @staticmethod
+    def stl_periodic(dates, freq='W'):
+        import pandas as pd
+        import xarray as xr
+        import numpy as np
+
+        # convert coordinate to valid dates
+        dates = pd.to_datetime(dates)
+        # original dates
+        dt = dates.astype(np.int64)
+        # Unify date intervals; using weekly intervals should be suitable for a mix of 6 and 12 days intervals
+        dates_weekly = pd.date_range(dates[0], dates[-1], freq=freq)
+        dt_weekly = xr.DataArray(dates_weekly, dims=['date'])
+        dt_periodic = dt_weekly.astype(np.int64)
+        return (dt, dt_periodic)
 
     # Aggregate data for varying frequencies (e.g., 12+ days for 6 days S1AB images interval)
     # Use frequency strings like '1W' for 1 week, '2W' for 2 weeks, '10d' for 10 days, '1M' for 1 month, etc.
@@ -152,18 +168,7 @@ class Stack_stl(Stack_tidal):
         else:
             raise Exception('Invalid input: The "data" parameter should be of type xarray.DataArray.')
 
-        # convert coordinate to valid dates
-        dates = pd.to_datetime(data.date)
-
-        # original dates
-        dt = pd.to_datetime(data.date).astype(np.int64)
-        # Unify date intervals; using weekly intervals should be suitable for a mix of 6 and 12 days intervals
-        dates_weekly = pd.date_range(dates[0], dates[-1], freq=freq)
-        dt_weekly = xr.DataArray(dates_weekly, dims=['date'])
-        dt_periodic = dt_weekly.astype(np.int64)
-        # The following line of code is not efficient because the "date" dimension is changed
-        # Note: The bottleneck library should be installed for this line of code to work
-        # disp_weekly = data.interp(date=dates_weekly, method='nearest', assume_sorted=True)
+        dt, dt_periodic = self.stl_periodic(data.date, freq)
 
         def stl_block(ys, xs):
             # use external variables dt, dt_periodic, periods, robust
@@ -190,7 +195,7 @@ class Stack_stl(Stack_tidal):
             blocks = []
             for xs_block in xs_blocks:
                 block = dask.array.from_delayed(dask.delayed(stl_block)(ys_block, xs_block),
-                                                shape=(3, len(dates_weekly), ys_block.size, xs_block.size),
+                                                shape=(3, len(dt_periodic), ys_block.size, xs_block.size),
                                                 dtype=np.float32)
                 blocks.append(block)
                 del block
@@ -200,7 +205,7 @@ class Stack_stl(Stack_tidal):
         del blocks_total
 
         # transform to separate variables
-        coords = {'date': dt_weekly.values, 'y': data.y, 'x': data.x}
+        coords = {'date': dt_periodic.astype('datetime64[ns]'), 'y': data.y, 'x': data.x}
         # transform to separate variables variables returned from Stack.stl() function
         varnames = ['trend', 'seasonal', 'resid']
         keys_vars = {varname: xr.DataArray(models[varidx], coords=coords) for (varidx, varname) in enumerate(varnames)}
