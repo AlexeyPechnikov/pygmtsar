@@ -548,12 +548,12 @@ class Stack_detrend(Stack_unwrap):
 #         #phase_turbo['rep'].values = pd.to_datetime(phase_turbo['rep'])
 #         return phase_turbo
 
-    def turbulence(self, phase, date_crop=1, symmetrical=False):
+    def turbulence(self, phase, weight=None, date_crop=1, symmetrical=False):
         import xarray as xr
         import pandas as pd
 
         pairs, dates = self.get_pairs(phase, dates=True)
-    
+
         turbos = []
         for date in dates:
             ref = pairs[pairs.ref==date]
@@ -568,22 +568,30 @@ class Stack_detrend(Stack_unwrap):
             #print (ref_data)
             rep_data = phase.sel(pair=rep.pair.values ).isel(pair=slice(None,count))
             #print (rep_data)
-            turbo = (ref_data.mean('pair') - rep_data.mean('pair')) / 2
+            if weight is not None:
+                ref_weight = weight.sel(pair=ref_data.pair)
+                rep_weight = weight.sel(pair=rep_data.pair)
+                turbo = ((ref_data*ref_weight).mean('pair')/ref_weight.sum('pair') -\
+                         (rep_data*rep_weight).mean('pair')/rep_weight.sum('pair')) / 2
+                del ref_weight, rep_weight
+            else:
+                turbo = (ref_data.mean('pair') - rep_data.mean('pair')) / 2
             del ref_data, rep_data
             turbos.append(turbo.assign_coords(date=pd.to_datetime(date)))
             del turbo
         turbo = xr.concat(turbos, dim='date')
         del turbos
-    
+
+        # empty grid
+        empty = xr.zeros_like(phase.isel(pair=0))
         # convert dates to pairs
-        fake = xr.zeros_like(phase.isel(pair=0))    
         dates_crop = dates[date_crop:None if date_crop is None or date_crop==0 else -date_crop]
         pairs_crop = pairs[pairs.ref.isin(dates_crop) & pairs.rep.isin(dates_crop)]  
         phase_turbo = xr.concat([(
-            (turbo.sel(date=ref).drop('date') if ref in turbo.date else fake) - \
-            (turbo.sel(date=rep).drop('date') if rep in turbo.date else fake)
+            (turbo.sel(date=ref).drop('date') if ref in turbo.date else empty) - \
+            (turbo.sel(date=rep).drop('date') if rep in turbo.date else empty)
         ).assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
         for ref, rep in zip(pairs_crop['ref'], pairs_crop['rep'])], dim='pair')
-        del fake, dates_crop, pairs_crop
-    
-        return phase_turbo
+        del empty, dates_crop, pairs_crop
+
+        return phase_turbo.rename('turbulence')
