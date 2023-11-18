@@ -20,3 +20,5 @@ from .Stack import Stack
 from .NCubeVTK import NCubeVTK
 # ASF downloading
 from .ASF import ASF
+# XYZ tiles downloading
+from .XYZTiles import XYZTiles

@@ -23,7 +23,7 @@ long_description = response.read().decode('utf-8')
 
 setup(
     name='pygmtsar',
-    version='2023.10.22-alpha',
+    version='2023.11.18-alpha',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -54,7 +54,8 @@ setup(
                       'statsmodels>=0.13.5',
                       'pygmt',
                       'vtk',
-                      'asf_search'
+                      'asf_search',
+                      'imageio'
                       ],
 
     classifiers=[
