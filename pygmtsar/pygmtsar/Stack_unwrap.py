@@ -8,6 +8,8 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_unwrap_snaphu import Stack_unwrap_snaphu
+from numba import jit
+import numpy as np
 
 class Stack_unwrap(Stack_unwrap_snaphu):
 
@@ -23,8 +25,14 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         return np.mod(data_pairs + np.pi, 2 * np.pi) - np.pi
 
     @staticmethod
+    @jit(nopython=True)
     def unwrap_pairs(data_pairs, matrix):
-        import numpy as np
+        # import directive is not compatible to numba
+        #import numpy as np
+
+        # NaN values are not permitted; TBD: its possible to exclude some NaNs
+        if np.any(np.isnan(data_pairs)):
+            return np.nan * np.zeros(data_pairs.shape)
 
         # the data variable will be modified and returned as the function output
         data = data_pairs.copy()
@@ -56,7 +64,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 value = data[pair_idx]
                 values = (matching_matrix * data[:,None])
                 #print ('value', value, '?=', values.sum())    
-                jump = int(((values.sum() - value) / (2*np.pi)).round())
+                jump = int(np.round((values.sum() - value) / (2*np.pi)))
                 if jump == 0:
                     pairs_ok.append(pair_idx)
                     pairs_ok.extend(np.where(matching_rows)[0])
@@ -111,7 +119,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 value = data[pair_idx]
                 values = (matching_matrix * data[:,None])
                 #print ('value', value, '?=', values.sum())    
-                jump = int(((values.sum() - value) / (2*np.pi)).round())
+                jump = int(np.round((values.sum() - value) / (2*np.pi)))
                 #print (f'JUMP {ndate}:', jump)
                 data[pair_idx] += 2*np.pi*jump
                 pairs_ok.append(pair_idx)
@@ -139,7 +147,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 value = data[pair_idx]
                 values = (matching_matrix * data[:,None])
                 #print ('value', value, '???=', values.sum())    
-                jump = int(((values.sum() - value) / (2*np.pi)).round())
+                jump = int(np.round((values.sum() - value) / (2*np.pi)))
                 #print ('jump', jump)
                 if jump != 0:
                     #print (f'JUMP {ndate}:', jump)
@@ -153,7 +161,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 pairs_ok.extend(np.where(matching_rows)[0])
                 #print ()
                 #break
-    
+
         # validity mask
         mask = [idx in pairs_ok for idx in range(data_pairs.size)]
         return np.where(mask, data, np.nan)
