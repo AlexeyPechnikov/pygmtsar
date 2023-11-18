@@ -241,7 +241,7 @@ class Stack_tidal(Stack_incidence):
         else:
             out = xr.DataArray(dask_block[0], coords=stack.coords)
         del dask_block
-        return out.rename('tidal_los')
+        return out.rename(stack.name)
 
     def tidal_los_rad(self, stack):
         """
@@ -253,7 +253,7 @@ class Stack_tidal(Stack_incidence):
         """
         Apply tidal correction to wrapped phase pairs [rad] and wrap the result.
         """
-        return self.wrap(stack - self.tidal_los_rad(stack))
+        return self.wrap(stack - self.tidal_los_rad(stack)).rename(stack.name)
     
     def get_tidal(self):
         return self.open_cube('tidal')
