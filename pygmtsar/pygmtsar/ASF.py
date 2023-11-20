@@ -188,6 +188,10 @@ class ASF(tqdm_joblib):
                             #    file.write(remotezip.read(filename))
                             remotezip.extract(filename, basedir)
 
+        # do not initialize internet connection, it allows to work offline when all the scenes and orbits already available
+        if len(scenes) == 0:
+            return
+
         # prepare authorized connection
         session = asf_search.ASFSession().auth_with_creds(self.username, self.password)
 
