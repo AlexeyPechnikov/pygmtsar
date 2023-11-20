@@ -297,8 +297,42 @@ class Stack_sbas(Stack_detrend):
         return model
         #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
-    def baseline_pairs(self, days=100, meters=None,
-                       min_limit=None, max_limit=None, iterations=1, exclude_dates=None, invert=False):
+    def baseline_pairs(self, days=100, meters=None, invert=False, **kwargs):
+        print('Note: function baseline_pairs() renamed to sbas_pairs()')
+        return self.sbas_pairs(days=days, meters=meters, invert=invert, **kwargs)
+    
+    def sbas_pairs_filter_dates(self, pairs, dates):
+        return pairs[(~pairs['ref'].isin(dates))&(~pairs['rep'].isin(dates))]
+
+    def sbas_pairs_limit(self, pairs, limit=2, iterations=1):
+        """
+        min_limit : int, optional
+                Minimum number of pairs per date (default is None, which means no limit).
+        max_limit : int, optional
+            Maximum number of pairs per date (default is None, which means no limit).    
+        """
+        import numpy as np
+
+        df = pairs.copy()
+
+        # extend simplified definition
+        if isinstance(limit, int):
+            limit = (limit, None)
+
+        if limit[0] is not None:
+            # clean hanging nodes
+            for lim in np.repeat(range(1, limit[0] + 1), iterations):
+                #print ('lim', lim)
+                dates, counts = np.unique(df.values[:,:2].reshape(-1), return_counts=True)
+                dates = dates[counts>=lim]
+                df = pairs[(df['ref'].isin(dates))&(df['rep'].isin(dates))]
+
+        if limit[1] is not None:
+            print ('TODO: process upper limit')
+
+        return df
+       
+    def sbas_pairs(self, days=100, meters=None, invert=False):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
 
@@ -312,10 +346,6 @@ class Stack_sbas(Stack_detrend):
             Maximum temporal separation between image pairs in days (default is 100).
         meters : int, optional
             Maximum spatial separation between image pairs in meters (default is 150).
-        min_limit : int, optional
-            Minimum number of pairs per date (default is None, which means no limit).
-        max_limit : int, optional
-            Maximum number of pairs per date (default is None, which means no limit).
         invert : bool, optional
             If True, invert the order of reference and repeat images (default is False).
 
@@ -358,8 +388,6 @@ class Stack_sbas(Stack_detrend):
             counter = 0
             for line2 in tbl.itertuples():
                 #print (line1, line2)
-                if max_limit is not None and counter >= max_limit:
-                    continue
                 if not (line1.Index < line2.Index and (line2.Index - line1.Index).days < days):
                     continue
                 if meters is not None and not (abs(line1.BPR - line2.BPR)< meters):
@@ -367,25 +395,39 @@ class Stack_sbas(Stack_detrend):
 
                 counter += 1
                 if not invert:
-                    data.append({'ref_date':line1.Index, 'rep_date': line2.Index,
+                    data.append({'ref':line1.Index, 'rep': line2.Index,
                                  'ref_baseline': np.round(line1.BPR, 2),
                                  'rep_baseline': np.round(line2.BPR, 2)})
                 else:
-                    data.append({'ref_date':line2.Index, 'rep_date': line1.Index,
+                    data.append({'ref':line2.Index, 'rep': line1.Index,
                                  'ref_baseline': np.round(line2.BPR, 2),
                                  'rep_baseline': np.round(line1.BPR, 2)})
 
-        df = pd.DataFrame(data).sort_values(['ref_date', 'rep_date'])
+        return pd.DataFrame(data).sort_values(['ref', 'rep'])
 
-        if exclude_dates is not None:
-            df = df[(~df['ref_date'].isin(exclude_dates))&(~df['rep_date'].isin(exclude_dates))]
+    @staticmethod
+    def sbas_pairs_covering(pairs, column, count, func='min'):
+        import pandas as pd
 
-        if min_limit is not None:
-            # clean hanging nodes
-            for limit in np.repeat(range(1,min_limit + 1), iterations):
-                #print ('limit', limit)
-                dates, counts = np.unique(df.values[:,:2].reshape(-1), return_counts=True)
-                dates = dates[counts>=limit]
-                df = df[(df['ref_date'].isin(dates))&(df['rep_date'].isin(dates))]
+        df = pairs.copy()
+        # Generate the new "date" column as a list of dates between 'ref' and 'rep' dates
+        df['date'] = df.apply(lambda row: pd.date_range(row['ref'], row['rep']).tolist(), axis=1)
+
+        # Expand the list into individual rows in the new dataframe
+        df = df.explode('date').reset_index(drop=True)
+
+        df_grouped = df.groupby('date')[column]
+        # filter by lowest/largest per date
+        if func == 'min':
+            df_selected = df_grouped.nsmallest(count)
+        elif func == 'max':
+            df_selected = df_grouped.nlargest(count)
+        else:
+            raise ValueError(f"Unsupported function {func}. Should be 'min' or'max'")
+        df = df.merge(df_selected.reset_index(level=1)['level_1'].reset_index(), left_index=True, right_on='level_1')
+        df = df.drop(columns=['level_1']).rename(columns={'date_x': 'date'})
+        del df['date_y'], df['date']
+        # drop duplicates
+        df = df.drop_duplicates(subset=['ref', 'rep']).reset_index(drop=True)
 
         return df
