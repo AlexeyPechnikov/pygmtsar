@@ -77,7 +77,8 @@ class NCubeVTK:
 
         # fill NODATA by NAN
         for data_var in dataset.data_vars:
-            if dataset[data_var].values.dtype in [np.dtype('float16'),np.dtype('float32'),np.dtype('float64')]:
+            #if dataset[data_var].values.dtype in [np.dtype('float16'),np.dtype('float32'),np.dtype('float64')]:
+            if np.issubdtype(dataset[data_var].dtype, np.floating):
                 dataset[data_var].values = dataset[data_var].values.astype('float32')
                 if '_FillValue' in dataset[data_var] and not np.isnan(dataset[data_var]._FillValue):
                     dataset[data_var].values[dataset[data_var].values == dataset[data_var]._FillValue] = np.nan
