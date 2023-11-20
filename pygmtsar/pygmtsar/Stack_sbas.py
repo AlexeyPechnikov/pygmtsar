@@ -298,8 +298,8 @@ class Stack_sbas(Stack_detrend):
         #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
     def baseline_pairs(self, days=100, meters=None, invert=False, **kwargs):
-        print('Note: function baseline_pairs() renamed to sbas_pairs()')
-        return self.sbas_pairs(days=days, meters=meters, invert=invert, **kwargs)
+        print('Note: function baseline_pairs() renamed to sbas_pairs(). Use separate filtering functions when needed.')
+        return self.sbas_pairs(days=days, meters=meters, invert=invert)
     
     def sbas_pairs_filter_dates(self, pairs, dates):
         return pairs[(~pairs['ref'].isin(dates))&(~pairs['rep'].isin(dates))]
