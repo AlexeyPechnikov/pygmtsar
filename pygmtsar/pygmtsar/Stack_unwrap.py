@@ -169,6 +169,13 @@ class Stack_unwrap(Stack_unwrap_snaphu):
     def unwrap1d(self, data):
         import xarray as xr
         import numpy as np
+
+        chunks_z, chunks_y, chunks_x = data.chunks
+        if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+            print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
+            chunks_y = chunks_x = self.netcdf_chunksize//2
+            print ('Note: auto tune data chunk size to a half of NetCDF chunk')
+            data = data.chunk({'y': chunks_y, 'x': chunks_x})
         
         baseline_pairs = self.get_pairs(data)
         matrix = self.lstsq_matrix(baseline_pairs)
