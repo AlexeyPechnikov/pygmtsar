@@ -144,8 +144,10 @@ class S1():
             orbit_dates = [(text2date(name.split('_')[-2]), text2date(name.split('_')[-1])) for name in orbitnames]
             orbits = dict(zip(orbit_dates, orbitpaths))
             #print ('orbits', orbits)
-            # look for as precise (from date-1 day to date+1 day) as restituted orbits (from date to date)
-            orbits = [orbits.get((date-oneday, date+oneday)) or orbits.get((date,date)) for date in ds]
+            # look for as precise (from date-1 day to date+1 day) as restituted orbits (from date to date or date-1 to date)
+            orbits = [orbits.get((date-oneday, date+oneday)) or
+                      orbits.get((date-oneday, date)) or
+                      orbits.get((date, date)) for date in ds]
             #print ('fileorbits', fileorbits)
             df['orbitpath'] = orbits
         else:

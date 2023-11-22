@@ -27,8 +27,10 @@ class ASF(tqdm_joblib):
     # see _select_orbit.py in sentineleof package
     #Orbital period of Sentinel-1 in seconds
     #T_ORBIT = (12 * 86400.0) / 175.0
-    orbit_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
-    orbit_end_offset = timedelta(seconds=300)
+    resorb_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
+    resorb_end_offset = timedelta(seconds=300)
+    poeorb_start_offset = timedelta(seconds=0)
+    poeorb_end_offset = timedelta(seconds=0)
     
     def __init__(self, username=None, password=None):
         import asf_search
@@ -40,11 +42,21 @@ class ASF(tqdm_joblib):
         self.username = username
         self.password = password
 
-    def _get_orbits(self, scenes, url, session):
+    def _get_orbits(self, scenes, session, kind):
         import pandas as pd
         import re
         from datetime import datetime
 
+        if kind == 'RESORB':
+            url = self.resorb_url
+            orbit_start_offset = self.resorb_start_offset
+            orbit_end_offset = self.resorb_end_offset
+        elif kind == 'POEORB':
+            url = self.poeorb_url
+            orbit_start_offset = self.poeorb_start_offset
+            orbit_end_offset = self.poeorb_end_offset
+        else:
+            raise Exception(f'Invalid orbit type: {kind}.')
         #print ('url', url)
         # get orbits HTML list
         responce = session.get(url)
@@ -64,13 +76,14 @@ class ASF(tqdm_joblib):
         orbits['time_end']   = orbits['orbit'].apply(lambda name: datetime.strptime(name[:-4].split('_')[7], '%Y%m%dT%H%M%S'))
 
         for ind, scene in enumerate(scenes.itertuples()):
-            #print (scene)
+            #print ('scene', scene)
             if scene.orbit is not None:
                 continue
             # look for the orbit file
             orbit = orbits[(orbits.mission == scene.mission)&\
-                           (orbits.time_start <= scene.time_start - self.orbit_start_offset)&\
-                           (orbits.time_end   >= scene.time_end   + self.orbit_end_offset  )].sort_values('time')
+                           (orbits.time_start <= scene.time_start - orbit_start_offset)&\
+                           (orbits.time_end   >= scene.time_end   + orbit_end_offset  )].sort_values('time')
+            #print ('orbit', orbit)
             # add the recent orbit
             orbit = orbit.tail(1).orbit.item() if len(orbit) >= 1 else None
             if orbit is None:
@@ -131,17 +144,27 @@ class ASF(tqdm_joblib):
                 day_after  = (dt + timedelta(days=1)).strftime('%Y%m%d')
                 # check presision orbits
                 pattern    = self.template_orbit.format(mission=mission, date_start=day_before, date_end=day_after)
-                #print ('pattern', pattern)
+                #print ('Precision orbit pattern', pattern)
                 filenames  = sorted(filter(re.compile(pattern).match, files))
                 [scenes_orbits.append((scene, filename)) for filename in filenames]
                 #print ('filenames', filenames)
+                # check approximate orbits when start time is right after midnight and the start date is day before
+                if len(filenames) == 0:
+                    #print ('Precision orbit not found')
+                    pattern   = self.template_orbit.format(mission=mission, date_start=day_before, date_end=day)
+                    #print ('Approximate orbit pattern', pattern)
+                    filenames = sorted(filter(re.compile(pattern).match, files))
+                    [scenes_orbits.append((scene, filename)) for filename in filenames]
                 # check approximate orbits
                 if len(filenames) == 0:
+                    #print ('Precision orbit not found')
                     pattern   = self.template_orbit.format(mission=mission, date_start=day, date_end=day)
+                    #print ('Approximate orbit pattern', pattern)
                     filenames = sorted(filter(re.compile(pattern).match, files))
                     [scenes_orbits.append((scene, filename)) for filename in filenames]
                 # orbit file is missed when presision and approximate orbits not found
                 if len(filenames) == 0:
+                    #print ('Approximate orbit not found')
                     scenes_missed.append(scene)
 
             #print ('scenes_missed', len(scenes_missed))
@@ -212,11 +235,11 @@ class ASF(tqdm_joblib):
         # download orbit catalogs and look for the required scenes orbits
         if len(scenes[scenes['orbit'].isna()]):
             with tqdm(desc='Downloading POEORB catalog:', total=1) as pbar:
-                scenes = self._get_orbits(scenes, self.poeorb_url, session)
+                scenes = self._get_orbits(scenes, session, 'POEORB')
                 pbar.update(1)
         if len(scenes[scenes['orbit'].isna()]):
             with tqdm(desc='Downloading RESORB catalog:', total=1) as pbar:
-                scenes = self._get_orbits(scenes, self.resorb_url, session)
+                scenes = self._get_orbits(scenes, session, 'RESORB')
                 pbar.update(1)
         if len(scenes[scenes['orbit'].isna()]):
             print ('ERROR: some orbits not found locally and in orbit catalogs')
