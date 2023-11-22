@@ -403,7 +403,8 @@ class Stack_sbas(Stack_detrend):
                                  'ref_baseline': np.round(line2.BPR, 2),
                                  'rep_baseline': np.round(line1.BPR, 2)})
 
-        return pd.DataFrame(data).sort_values(['ref', 'rep'])
+        df = pd.DataFrame(data).sort_values(['ref', 'rep'])
+        return df.assign(baseline=np.abs(df.ref_baseline-df.rep_baseline))
 
     @staticmethod
     def sbas_pairs_covering(pairs, column, count, func='min'):
