@@ -325,7 +325,7 @@ class Stack_sbas(Stack_detrend):
                 #print ('lim', lim)
                 dates, counts = np.unique(df.values[:,:2].reshape(-1), return_counts=True)
                 dates = dates[counts>=lim]
-                df = pairs[(df['ref'].isin(dates))&(df['rep'].isin(dates))]
+                df = df[(df['ref'].isin(dates))&(df['rep'].isin(dates))]
 
         if limit[1] is not None:
             print ('TODO: process upper limit')
