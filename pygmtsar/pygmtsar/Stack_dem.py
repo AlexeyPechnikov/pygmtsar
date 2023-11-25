@@ -250,7 +250,7 @@ class Stack_dem(Stack_reframe):
 
         self.dem_filename = dem_filename
 
-    def load_dem(self, filename):
+    def load_dem(self, filename, geometry='auto'):
         """
         Load and preprocess digital elevation model (DEM) data from specified datafile.
 
@@ -299,7 +299,22 @@ class Stack_dem(Stack_reframe):
             print ('ERROR: filename extension is not recognized. Should be one from .tiff, .tif, .TIF, .nc, .netcdf, .grd')
 
         # crop
-        ortho = self.get_extent(ortho)
+        #ortho = self.get_extent(ortho)
+        # round the coordinates up to 1m
+        if type(geometry) == str and geometry == 'auto':
+            # apply scenes geometry
+            extent = self.get_extent().buffer(self.buffer_degrees)
+        elif isinstance(geometry, pd.DataFrame):
+            extent = geometry.dissolve().envelope.item()
+        #minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
+        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
+        bounds = np.round(extent.bounds, 5)
+        #print ('xmin, xmax', xmin, xmax)
+        ortho = ortho\
+               .transpose('lat','lon')\
+               .sel(lat=slice(bounds[1], bounds[3]),
+                    lon=slice(bounds[0], bounds[2]))
+
         # heights correction
         geoid = self.get_geoid(ortho)
         if os.path.exists(dem_filename):
