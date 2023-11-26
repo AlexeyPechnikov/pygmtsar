@@ -78,10 +78,6 @@ The notebooks processing more than a single subswath or scene. It's possible on 
 
 <img src="https://user-images.githubusercontent.com/7342379/190451656-386d6cb8-f536-447c-8274-71d4f0435408.png" width="50%">
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17D53uZu3XcEoWz5T73D__t9Ampzn5l3J?usp=sharing) **ASF Downloading 2023-02-06 Türkiye Earthquakes Co-Seismic Interferogram and LOS Displacement Projections** The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** to **stitch 2 scenes** and **merge subswaths** and **detrend** results. Note: replace the scene names to produce an interferogram for your area of interest.
-
-<img width="50%" src="https://user-images.githubusercontent.com/7342379/223332314-afd00f9d-0691-4d21-8be5-4c2ac96f8f3c.png">
-
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1H652deK0W7nujEky9j9K20729vywntuD?usp=sharing) **ASF Downloading 2023-02-06 Türkiye Earthquakes Co-Seismic Interferogram and LOS Displacement Projections**  The notebook **downloads Sentinel-1 Scenes from Alaska Satellite Facility (ASF)** to **stitch 3 scenes** and **merge subswaths** and **detrend** results. Here are some tricks used to process the large amount of data on Google Colab. Note: replace the scene names to produce an interferogram for your area of interest.
 
 <img width="50%" src="https://user-images.githubusercontent.com/7342379/223332721-2dab4ef5-713a-4bc9-8f6b-1a968e481561.png">
