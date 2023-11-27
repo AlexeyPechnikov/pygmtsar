@@ -279,6 +279,7 @@ class Stack_dem(Stack_reframe):
         import xarray as xr
         import numpy as np
         import rioxarray as rio
+        import pandas as pd
         import os
 
         dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
