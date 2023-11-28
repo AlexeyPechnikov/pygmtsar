@@ -118,9 +118,9 @@ class Stack_geocode(Stack_sbas):
         else:
             return geoms[0]
 
-##########################################################################################
-# ra2ll
-##########################################################################################
+    ##########################################################################################
+    # ra2ll
+    ##########################################################################################
     def ra2ll(self, data, autoscale=True):
         """
         Perform geocoding from radar to geographic coordinates.
@@ -232,7 +232,7 @@ class Stack_geocode(Stack_sbas):
         # decimate the full trans grid to the required spacing
         if autoscale and (step_y>1 or step_x>1):
             # define the equally spacing geographic coordinates grid
-            trans = trans.sel(lat=trans.lat[::step_y], lon=trans.lon[::step_x])
+            trans = trans.sel(lat=trans.lat[step_y//2::step_y], lon=trans.lon[step_x//2::step_x])
          # define output geographic coordinates grid
         lats = trans.lat
         lons = trans.lon
@@ -284,10 +284,10 @@ class Stack_geocode(Stack_sbas):
                 out[k] = v
         return out.rename(data.name)
 
-##########################################################################################
-# ll2ra
-##########################################################################################
-    def ll2ra(self, data):
+    ##########################################################################################
+    # ll2ra
+    ##########################################################################################
+    def ll2ra(self, data, autoscale=True):
         """
         Perform geocoding from geographic to radar coordinates.
 
@@ -326,7 +326,7 @@ class Stack_geocode(Stack_sbas):
 
             def nangrid():
                 return np.nan * np.zeros((ys_block.size, xs_block.size), dtype=np.float32)
-        
+
             # use outer variables
             block_grid = data.sel({stackvar: stackval}) if stackval is not None else data
             trans_inv_block = trans_inv.sel(y=ys_block, x=xs_block).compute(n_workers=1)
@@ -383,6 +383,23 @@ class Stack_geocode(Stack_sbas):
             del ys_subset, xs_subset, points, values
             return grid_ra
 
+        # analyse grid and transform matrix spacing
+        grid_dlat = np.diff(data.lat)[0]
+        grid_dlon = np.diff(data.lon)[0]
+        trans_inv_dlat = np.diff(trans_inv.lat)[0]
+        trans_inv_dlon = np.diff(trans_inv.lon)[0]
+
+        # define transform spacing in radar coordinates
+        step_lat = int(np.round(grid_dlat / trans_inv_dlat))
+        step_lon = int(np.round(grid_dlon / trans_inv_dlon))
+        #print ('step_lat', step_lat, 'step_lon', step_lon)
+        assert step_lat>=1 and step_lon>=1, f'Transforming grid spacing (grid_dlat, grid_dlon) is smaller \
+                                          than transform matrix spacing (trans_inv_dlat, trans_inv_dlon), \
+                                          call Stack.geocode() with less coarsing'
+        # decimate the full trans_inv grid to the required spacing
+        if autoscale and (step_lat>1 or step_lon>1):
+            # define the equally spacing geographic coordinates grid
+            trans_inv = trans_inv.sel(y=trans_inv.y[step_lat//2::step_lat], x=trans_inv.x[step_lon//2::step_lon])
          # define output geographic coordinates grid
         lats = trans_inv.y
         lons = trans_inv.x

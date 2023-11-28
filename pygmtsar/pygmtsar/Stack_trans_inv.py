@@ -48,7 +48,7 @@ class Stack_trans_inv(Stack_trans):
         interactive : bool, optional
             If True, the computation will be performed interactively and the result will be returned as a delayed object.
             Default is False.
-    
+
         Note
         ----
         This function operates on the 'trans' grid using NetCDF chunks (specified by 'netcdf_chunksize') rather than
@@ -70,7 +70,7 @@ class Stack_trans_inv(Stack_trans):
             utils_perf.disable_gc_diagnosis()
             import warnings
             warnings.filterwarnings('ignore')
-        
+
             # required one delta around for nearest interpolation and two for linear
             dazi = np.diff(azis)[0]
             drng = np.diff(rngs)[0]
@@ -80,7 +80,7 @@ class Stack_trans_inv(Stack_trans):
             rngs_max = rngs.max() + drng
             del dazi, drng
             #print ('azis_min', azis_min, 'azis_max', azis_max)
-        
+
             # define valid coordinate blocks 
             block_mask = ((trans_amin<=azis_max)&(trans_amax>=azis_min)&(trans_rmin<=rngs_max)&(trans_rmax>=rngs_min)).values
             block_azi, block_rng = trans_amin.shape
@@ -108,14 +108,14 @@ class Stack_trans_inv(Stack_trans):
                     blocks_trans.append(block_trans[:,mask])
                 del block_lt, block_ll, block_trans, mask
             del block_mask, block_azi, block_rng, blocks_ys, blocks_xs
-        
+
             if len(blocks_lt) == 0:
                 # this case is possible when DEM is incomplete, and it is not an error
                 return np.nan * np.zeros((3, azis.size, rngs.size), np.float32)
-        
+
             # TEST
             #return np.nan * np.zeros((3, azis.size, rngs.size), np.float32)
-    
+
             # valid coordinates
             block_lt = np.concatenate(blocks_lt)
             block_ll = np.concatenate(blocks_ll)
@@ -127,7 +127,7 @@ class Stack_trans_inv(Stack_trans):
             tree = cKDTree(np.column_stack([block_trans[0], block_trans[1]]), compact_nodes=False, balanced_tree=False)
             distances, indices = tree.query(np.column_stack([grid_azi.ravel(), grid_rng.ravel()]), k=1, workers=1)
             del grid_azi, grid_rng, tree, cKDTree
-        
+
             # take the nearest pixels coordinates and elevation
             # the only one index search is required to define all the output variables
             grid_lt = block_lt[indices]
@@ -138,7 +138,7 @@ class Stack_trans_inv(Stack_trans):
             #print ('distance range', distances.min().round(2), distances.max().round(2))
             #assert distances.max() < 2, f'Unexpectedly large distance between radar and geographic coordinate grid pixels (>=2): {distances.max()}'
             del block_trans, indices, distances
-        
+
             # pack all the outputs into one 3D array
             return np.asarray([grid_lt, grid_ll, grid_ele]).reshape((3, azis.size, rngs.size))
 
@@ -159,14 +159,14 @@ class Stack_trans_inv(Stack_trans):
         trans_rmax = block_max.rng
         del trans_blocks, block_min, block_max
         #print ('trans_amin', trans_amin)
-   
+
         # split geographic coordinate grid to equal chunks and rest
         #chunks = trans.azi.data.chunks
         #lt_blocks = np.array_split(trans['lat'].values, np.cumsum(chunks[0])[:-1])
         #ll_blocks = np.array_split(trans['lon'].values, np.cumsum(chunks[1])[:-1])
         lt_blocks = np.array_split(trans['lat'].values, np.arange(0, trans['lat'].size, self.netcdf_chunksize)[1:])
         ll_blocks = np.array_split(trans['lon'].values, np.arange(0, trans['lon'].size, self.netcdf_chunksize)[1:])
-    
+
         # split radar coordinate grid to equal chunks and rest
         azis, rngs = self.define_trans_grid(coarsen)
         azis_blocks = np.array_split(azis, np.arange(0, azis.size, self.netcdf_chunksize)[1:])
@@ -184,7 +184,7 @@ class Stack_trans_inv(Stack_trans):
                 del block
             blocks_total.append(blocks)
             del blocks
-    
+
         trans_inv_dask = dask.array.block(blocks_total)
         del blocks_total
         coords = {'y': azis, 'x': rngs}
@@ -197,6 +197,10 @@ class Stack_trans_inv(Stack_trans):
         trans_inv['lt_max'] = trans_inv.lt.max('x')
         trans_inv['ll_min'] = trans_inv.ll.min('y')
         trans_inv['ll_max'] = trans_inv.ll.max('y')
+
+        # add target geographic coordinate grid for the user defined spacing (coarsen)
+        trans_inv['lat'] = trans['lat'].values
+        trans_inv['lon'] = trans['lon'].values
 
         if interactive:
             return trans_inv
