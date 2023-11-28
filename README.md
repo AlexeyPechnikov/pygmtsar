@@ -44,6 +44,14 @@ These notebooks offer interactive examples accessible directly in your web brows
 
 <img src="https://github.com/mobigroup/gmtsar/assets/7342379/bbe0f043-af09-4724-9e50-5549d3f24adc" width="50%"><img src="https://github.com/mobigroup/gmtsar/assets/7342379/cd1d8c33-3488-41af-aece-985b4d4202ae" width="50%">
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Gdz7ShTkbIQ3-0BBcTxuo1W_CxUegXMq?usp=sharing) Gastein Valley, Austria, 2021—2023. SBAS and PSI example for 28 scenes and 201 interferograms.
+
+<img src="https://github.com/mobigroup/gmtsar/assets/7342379/72e504f2-3e2e-4048-8d21-014ce1c36794" width="50%"><img src="https://github.com/mobigroup/gmtsar/assets/7342379/682bcf8e-fbb1-4b14-84e2-788f5dab4016" width="50%">
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1J5E9KQnrZneiRf-wv2fDBCnEKh1m7kbK?usp=sharing) Gastein Valley, Austria, 2021—2023. PS-weighted SBAS and PSI example for 28 scenes and 201 interferograms.
+
+<img src="https://github.com/mobigroup/gmtsar/assets/7342379/27bd0436-db6f-45cd-88c8-99332ec337d5" width="50%"><img src="https://github.com/mobigroup/gmtsar/assets/7342379/6d1181fb-5bdb-4923-ae64-74f59b48f9b4" width="50%">
+
 ## See Stable PyGMTSAR
 
 The stable PyGMTSAR is available on GitHub, PyPI, DockerHub and Google Colab, see the project home page [PyGMTSAR GitHub Repository](https://github.com/mobigroup/gmtsar)
