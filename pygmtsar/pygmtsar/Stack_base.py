@@ -244,7 +244,7 @@ class Stack_base(tqdm_joblib, IO):
         pairs['rep'] = pd.to_datetime(pairs['rep'])
         pairs['pair'] = [f'{ref} {rep}' for ref, rep in zip(pairs['ref'].dt.date, pairs['rep'].dt.date)]
         # Calculate the duration in days and add it as a new column
-        pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
+        #pairs['duration'] = (pairs['rep'] - pairs['ref']).dt.days
 
         if dates:
             # pairs is DataFrame
