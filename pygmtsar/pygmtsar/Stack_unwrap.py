@@ -224,7 +224,12 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                              weight.isel({stackvar: ind})  if stackvar is not None and weight is not None else weight,
                              conf=conf, conncomp=conncomp)
             if conncomp:
-                return np.stack([ds.phase.values, ds.conncomp.values])
+                # select the largest connected component
+                hist = np.unique(ds.conncomp.values, return_counts=True)
+                idxmax = np.argmax(hist[1])
+                valmax = hist[0][idxmax]
+                # select unwrap phase for the largest connected area
+                return np.stack([ds.phase.where(ds.conncomp==valmax).values, ds.conncomp.values])
             return ds.phase.values[None,]
 
         stack =[]
