@@ -245,7 +245,7 @@ class Stack_dem(Stack_reframe):
             if os.path.exists(dem_filename):
                 os.remove(dem_filename)
             encoding = {'dem': self._compression(ortho.shape)}
-            (ortho + geoid).rename('dem').to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
+            (ortho + geoid).rename('dem').load().to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
             pbar.update(1)
 
         self.dem_filename = dem_filename
@@ -321,7 +321,7 @@ class Stack_dem(Stack_reframe):
         if os.path.exists(dem_filename):
             os.remove(dem_filename)
         encoding = {'dem': self._compression(ortho.shape)}
-        (ortho + geoid).rename('dem').rename({'lat': 'y', 'lon': 'x'})\
+        (ortho + geoid).rename('dem').load()\
             .to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
 
         self.dem_filename = dem_filename
