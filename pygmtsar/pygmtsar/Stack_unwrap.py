@@ -174,7 +174,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
             print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
             chunks_y = chunks_x = self.netcdf_chunksize//2
-            print ('Note: auto tune data chunk size to a half of NetCDF chunk')
+            print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
             data = data.chunk({'y': chunks_y, 'x': chunks_x})
         
         baseline_pairs = self.get_pairs(data)

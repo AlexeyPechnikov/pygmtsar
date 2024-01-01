@@ -205,7 +205,7 @@ class Stack_sbas(Stack_detrend):
         if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
             print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
             chunks_y = chunks_x = self.netcdf_chunksize//2
-            print ('Note: auto tune data chunk size to a half of NetCDF chunk')
+            print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
             data = data.chunk({'y': chunks_y, 'x': chunks_x})
 
         if weight is None:
@@ -782,7 +782,7 @@ class Stack_sbas(Stack_detrend):
         plt.ylabel('Phase, [rad]', fontsize=16)
         plt.title('Baseline Displacement' \
                   + (f' RMSE={rmse:0.2f} [rad]' if displacement else '') \
-                  + (f', Velocity={velocity:0.2f} [rad/year]' if stl else '') \
+                  + (f', STL Velocity={velocity:0.2f} [rad/year]' if stl else '') \
                   + (f'\n{caption}' if caption is not None else ''), fontsize=18)
         plt.xlim([dates[0], dates[-1]])
         if displacement or stl:
