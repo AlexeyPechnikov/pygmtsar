@@ -345,7 +345,7 @@ class Stack_sbas(Stack_detrend):
         days : int, optional
             Maximum temporal separation between image pairs in days (default is 100).
         meters : int, optional
-            Maximum spatial separation between image pairs in meters (default is 150).
+            Maximum spatial separation between image pairs in meters (default is None).
         invert : bool, optional
             If True, invert the order of reference and repeat images (default is False).
 
@@ -404,7 +404,32 @@ class Stack_sbas(Stack_detrend):
                                  'rep_baseline': np.round(line1.BPR, 2)})
 
         df = pd.DataFrame(data).sort_values(['ref', 'rep'])
-        return df.assign(baseline=np.abs(df.ref_baseline-df.rep_baseline))
+        return df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
+                         baseline=df.rep_baseline - df.ref_baseline,
+                         duration=(df['rep'] - df['ref']).dt.days,
+                         rel=np.datetime64('nat'))
+
+    def sbas_pairs_extend(self, baseline_pairs):
+        import pandas as pd
+        import numpy as np
+
+        refreps = [(key[0], key[1]) for key in baseline_pairs[['ref', 'rep']].values]
+        pairs = []
+        for _, row1 in baseline_pairs.iterrows():
+            for _, row2 in baseline_pairs.iterrows():
+                if row1['ref'] >= row2['rep']:
+                    continue
+                pair = (row1['ref'], row2['rep'], row1['rep'], row1['ref_baseline'], row2['rep_baseline'])
+                key = (row1['ref'], row2['rep'])
+                if key in refreps:
+                    continue
+                refreps.append(key)
+                pairs.append(pair)
+        df = pd.DataFrame(pairs, columns=['ref', 'rep', 'rel', 'ref_baseline', 'rep_baseline'])
+        return pd.concat([baseline_pairs.assign(rel=np.datetime64('nat')),
+                          df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
+                                    baseline=df.rep_baseline - df.ref_baseline,
+                                    duration=(df['rep'] - df['ref']).dt.days)]).sort_values(['ref', 'rep'])
 
     @staticmethod
     def sbas_pairs_covering(pairs, column, count, func='min'):
@@ -432,3 +457,334 @@ class Stack_sbas(Stack_detrend):
         df = df.drop_duplicates(subset=['ref', 'rep']).reset_index(drop=True)
 
         return df
+
+    def sbas_pairs_extend(self, baseline_pairs):
+        import pandas as pd
+        import numpy as np
+
+        refreps = [(key[0], key[1]) for key in baseline_pairs[['ref', 'rep']].values]
+        pairs = []
+        for _, row1 in baseline_pairs.iterrows():
+            for _, row2 in baseline_pairs.iterrows():
+                if row1['ref'] >= row2['rep']:
+                    continue
+                if row1['rep'] != row2['ref']:
+                    continue
+                pair = (row1['ref'], row2['rep'], row1['rep'], row1['ref_baseline'], row2['rep_baseline'])
+                key = (row1['ref'], row2['rep'])
+                if key in refreps:
+                    continue
+                refreps.append(key)
+                pairs.append(pair)
+        df = pd.DataFrame(pairs, columns=['ref', 'rep', 'rel', 'ref_baseline', 'rep_baseline'])
+        return pd.concat([baseline_pairs.assign(rel=np.datetime64('nat')),
+                          df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
+                                    baseline=df.rep_baseline - df.ref_baseline,
+                                    duration=(df['rep'] - df['ref']).dt.days)]).sort_values(['ref', 'rep'])
+
+    def correlation_extend(self, corr, baseline_pairs):
+        import xarray as xr
+        import pandas as pd
+    
+        corr_rels = []
+        for (ref, rel, rep) in zip(baseline_pairs.ref,
+                                   baseline_pairs.rel,
+                                   baseline_pairs.rep):
+            #print (ref, rel, rep)
+            if pd.isnull(rel):
+                #print (corr.sel(pair=f'{ref} {rep}'))
+                corr_rels.append(corr.sel(pair=f'{ref.date()} {rep.date()}'))
+            else:
+                corr_ref = corr.sel(pair=[f'{ref.date()} {rel.date()}'])
+                corr_rep = corr.sel(pair=[f'{rel.date()} {rep.date()}'])
+                corr_rel = xr.concat([corr_ref, corr_rep], dim='pair').min('pair')\
+                    .assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep)
+                #print (corr_rel)
+                corr_rels.append(corr_rel)
+                del corr_ref, corr_rep, corr_rel
+        return xr.concat(corr_rels, dim='pair')
+
+    def interferogram_extend(self, phase, baseline_pairs, wrap=True):
+        import xarray as xr
+        import pandas as pd
+    
+        phase_rels = []
+        for (ref, rel, rep) in zip(baseline_pairs.ref,
+                                   baseline_pairs.rel,
+                                   baseline_pairs.rep):
+            #print (ref, rel, rep)
+            if pd.isnull(rel):
+                #print (phase.sel(pair=f'{ref} {rep}'))
+                phase_rels.append(phase.sel(pair=f'{ref.date()} {rep.date()}'))
+            else:
+                phase_ref = phase.sel(pair=[f'{ref.date()} {rel.date()}'])
+                phase_rep = phase.sel(pair=[f'{rel.date()} {rep.date()}'])
+                phase_rel = xr.concat([phase_ref, phase_rep], dim='pair').sum('pair')\
+                    .assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep)
+                #print (phase_rel)
+                phase_rels.append(phase_rel)
+                del phase_ref, phase_rep, phase_rel
+        if wrap:
+            return self.wrap(xr.concat(phase_rels, dim='pair'))
+        return xr.concat(phase_rels, dim='pair')
+
+    def sbas_pairs_fill(self, data):
+        """
+        sbas.sbas_pairs_fill(pairs_best)
+        """
+        import pandas as pd
+        import numpy as np
+
+        baseline_pairs = self.get_pairs(data)
+    
+        matrix = self.lstsq_matrix(baseline_pairs).max(axis=0)
+        #print ('matrix', matrix)
+        dates = self.get_pairs(baseline_pairs, dates=True)[1]
+        #print ('dates', dates)
+        # ignore the first date
+        pairs = []
+        for date in dates[matrix==0][1:]:
+            date_idx = np.where(dates==date)[0][0]
+            #print ('np.where(dates==date)', np.where(dates==date))
+            date_prev = dates[date_idx-1]
+            #print (date_prev, '=>', date)
+            pairs.append([pd.Timestamp(date_prev), pd.Timestamp(date)])
+        if pairs == []:
+            return
+    
+        df = pd.DataFrame(pairs, columns=['ref', 'rep'])
+        return df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
+                                    duration=(df['rep'] - df['ref']).dt.days).sort_values(['ref', 'rep'])
+
+    def interferogram_fill(self, phase):
+        """
+        phase_sbas_fill = sbas.interferogram_fill(phase_sbas.sel(pair=phase_sbas.pair.isin(pairs_best)))
+        """
+        import xarray as xr
+        import pandas as pd
+    
+        pairs = self.sbas_pairs_fill(phase)
+        if pairs is None:
+            return phase
+
+        empty = xr.zeros_like(phase.isel(pair=0))
+        phases = [phase]
+        for (ref, rep) in zip(pairs.ref, pairs.rep):
+            #print (ref, rep)
+            phases.append(empty.assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep))
+        return xr.concat(phases, dim='pair')
+
+    def correlation_fill(self, corr):
+        """
+        corr_sbas_fill = sbas.correlation_fill(corr_sbas_ext.sel(pair=corr_sbas_ext.pair.isin(pairs_best)))
+        """
+        import xarray as xr
+        import pandas as pd
+    
+        pairs = self.sbas_pairs_fill(corr)
+        if pairs is None:
+            return corr
+
+        empty = xr.ones_like(corr.isel(pair=0))
+        corrs = [corr]
+        for (ref, rep) in zip(pairs.ref, pairs.rep):
+            #print (ref, rep)
+            corrs.append(empty.assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep))
+        return xr.concat(corrs, dim='pair')
+
+    def baseline_plot(self, baseline_pairs):
+        import numpy as np
+        import pandas as pd
+        import seaborn as sns
+        import adjustText
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(12, 4), dpi=300)
+
+        # plot dates/baselines marks
+        df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', 'ref_baseline']],
+                                     baseline_pairs[['rep', 'rep_baseline']]]),
+                    columns=['date', 'baseline']).drop_duplicates()
+        sns.scatterplot(x='date', y='baseline', data=df, marker='o', color='b', s=40)
+        # plot reference date on top
+        sns.scatterplot(x='date', y='baseline', data=df[df.date==self.reference], marker='o', color='r', s=40, zorder=1000)
+
+        # plot pairs
+        for _, row in baseline_pairs.iterrows():
+            plt.plot([row['ref'], row['rep']], [row['ref_baseline'], row['rep_baseline']],
+                     c='#30a2da' if pd.isnull(row['rel']) else '#2dda30', lw=0.5)
+        # highlight the longest pair
+        # for _, row in self.get_pairs(baseline_pairs).sort_values('duration', ascending=False).head(1).iterrows():
+        #     plt.plot([row['ref'], row['rep']], [row['ref_baseline'], row['rep_baseline']], c='red', lw=1)
+
+        # Create annotations with adjust_text
+        texts = []
+        for x, y in df.values:
+            texts.append(plt.text(x, y, str(x.date()), ha='center', va='bottom', fontsize=10,
+                                  c='r' if str(x.date()) == self.reference else 'black'))
+        adjustText.adjust_text(texts)
+
+        plt.xlabel('Timeline', fontsize=16)
+        plt.ylabel('Perpendicular Baseline, [m]', fontsize=16)
+        plt.title('Baseline', fontsize=18)
+        plt.grid()
+        plt.show()
+
+    @staticmethod
+    def baseline_duration_plot(baseline_pairs, interval_days=6):
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        max_duration = baseline_pairs.duration.max()
+        bins = np.arange(interval_days/2, max_duration + interval_days, interval_days)
+
+        plt.figure(figsize=(12, 4), dpi=300)
+        plt.hist(baseline_pairs.duration, bins=bins, color='skyblue', edgecolor='black')
+        plt.xlabel('Duration, [days]', fontsize=14)
+        plt.ylabel('Count', fontsize=14)
+        plt.title('Durations Histogram', fontsize=18)
+        plt.xticks(bins + interval_days/2 if interval_days>=12 else bins[1::2] + interval_days/2)
+        plt.xlim(0, max_duration + interval_days/2)
+        plt.grid()
+        plt.show()
+
+    @staticmethod
+    def baseline_correlation_plot(baseline_pairs, pairs_best=None):
+        import numpy as np
+        import pandas as pd
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(12, 4), dpi=300)
+
+        # plot dates/baselines marks
+        df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', 'corr']], baseline_pairs[['rep', 'corr']]]),
+                                         columns=['date', 'corr']).drop_duplicates()
+        sns.scatterplot(x='date', y='corr', data=df, marker='o', color='r', s=10, label='All Pairs')
+
+        if pairs_best is not None:
+            df_best = pd.DataFrame(np.concatenate([pairs_best[['ref', 'corr']], pairs_best[['rep', 'corr']]]),
+                                             columns=['date', 'corr']).drop_duplicates()
+            sns.scatterplot(x='date', y='corr', data=df_best, marker='o', color='g', s=40, label='Selected Pairs')
+
+        # plot pairs
+        for _, row in baseline_pairs.iterrows():
+            plt.plot([row['ref'], row['rep']], [row['corr'], row['corr']], c='r', lw=0.5)
+
+        if pairs_best is not None:
+            for _, row in pairs_best.iterrows():
+                plt.plot([row['ref'], row['rep']], [row['corr'], row['corr']], c='g', lw=1)
+
+        plt.legend(fontsize=14, loc='lower center', bbox_to_anchor=(0.5, 1), ncols=2)
+        plt.xlabel('Timeline', fontsize=14)
+        plt.ylabel('Correlation', fontsize=16)
+        plt.title('Baseline Correlation', y=1.2, fontsize=18)
+        plt.grid()
+        plt.show()
+
+    def baseline_displacement_plot(self, phase, corr=None, caption=None, cmap='turbo',
+                                   displacement=True, unwrap=True,
+                                   stl=True, stl_freq='W', stl_periods=52, stl_robust=False):
+        import numpy as np
+        import xarray as xr
+        import pandas as pd
+        import matplotlib
+        import matplotlib.pyplot as plt
+        from matplotlib.cm import ScalarMappable
+
+        assert isinstance(phase, xr.DataArray) and phase.dims == ('pair',), \
+            'ERROR: Argument phase should be 1D Xarray with "pair" dimension'
+        plt.figure(figsize=(12, 4), dpi=300)
+        colors = matplotlib.cm.get_cmap(cmap)
+
+        df = phase.to_dataframe()
+        df['corr'] = corr.values if corr is not None else 1
+        pairs, dates = self.get_pairs(phase, dates=True)
+        dates = pd.DatetimeIndex(dates)
+        matrix = self.lstsq_matrix(pairs)
+
+        if unwrap:
+            df['phase'] = self.unwrap_pairs(phase.values, matrix)
+
+        if displacement or stl:
+            solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, matrix)
+            #print ('solution', solution)
+
+        if stl:
+            #assert displacement, 'ERROR: Argument value stl=True requires argument displacement=True'
+            dt, dt_periodic = self.stl_periodic(dates, stl_freq)
+            trend, seasonal, resid = self.stl1d(solution, dt, dt_periodic, periods=stl_periods, robust=stl_robust)
+            years = ((dt_periodic.date[-1] - dt_periodic.date[0]).dt.days/365.25).item()
+            # for linear trend
+            velocity = (trend[-1] - trend[0])/years
+
+        vmin = df['phase'].min()
+        vmax = df['phase'].max()
+        y_min = y_max = 0
+        dts = []
+        idx = -1
+        errors = []
+        for i, row in df.iterrows():
+            idx += 1
+            for item in ['ref', 'rep']:
+                if row[item] not in dts:
+                    plt.axvline(x=row[item], color='black', linewidth=0.5, linestyle='--')
+                    dts.append(row[item])
+            if displacement or stl:
+                # find pair fererence date timeline position
+                position1 = np.where(np.asarray(dates)==row['ref'])
+                position2 = np.where(np.asarray(dates)==row['rep'])
+                start = solution[position1][0]
+                end = solution[position2][0]
+                #print (row['phase'], (end - start), row['phase'] - (end - start))
+                errors.append(row['phase'] - (end - start))
+            else:
+                start = 0
+            y_min = min(y_min, start, row['phase'] + start)
+            y_max = max(y_max, start, row['phase'] + start)
+            plt.plot([row['ref'], row['rep']], [start, row['phase'] + start],
+                     c=colors(row['corr']) if corr is not None else 'grey', alpha=0.8,
+                     linewidth=0.5)
+        #print ('errors', errors)
+        #print ('y_min', y_min, 'y_max', y_max)
+        if displacement:
+            errors = np.asarray(errors)
+            #print ('errors', errors)
+            weights = df['corr'].values
+            nanmask = np.isnan(errors) | np.isnan(weights)
+            errors = errors[~nanmask]
+            weights = weights[~nanmask]
+            #print ('weights', weights)
+            #print (errors.size, weights.size, errors)
+            #rmse = np.sqrt(np.sum(errors**2) / errors.size)
+            rmse = np.sqrt(np.sum(weights * (errors**2)) / np.sum(weights) / errors.size)
+            #print ('weighted PI-scaled rmse', np.round(rmse / np.pi, 2))
+            plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label='LSTSQ Displacement')
+
+        if stl:
+            plt.plot(dt_periodic.date, trend, color='blue', linestyle='--', linewidth=2, label='STL Trend')
+            plt.plot(dt_periodic.date, seasonal, color='green', linestyle='--', linewidth=1, label='STL Seasonal')
+            plt.plot(dt_periodic.date, resid, color='red', linestyle='--', linewidth=1, label='STL Residual')
+
+        plt.grid(axis='y')
+        y_min = np.floor(y_min / np.pi) * np.pi
+        y_max = np.ceil(y_max / np.pi) * np.pi
+        y_ticks = np.arange(y_min, y_max + np.pi, np.pi)
+        plt.yticks(y_ticks, [f'{y:.0f}π' if y != 0 else '0' for y in y_ticks / np.pi])
+
+        if corr is not None:
+            sm = ScalarMappable(cmap=colors, norm=plt.Normalize(vmin=0, vmax=1))
+            sm.set_array([])
+            cbar = plt.colorbar(sm, ax=plt.gca(), orientation='vertical')
+            cbar.set_label('Correlation', fontsize=16)
+
+        plt.xlabel('Timeline', fontsize=16)
+        plt.ylabel('Phase, [rad]', fontsize=16)
+        plt.title('Baseline Displacement' \
+                  + (f' RMSE={rmse:0.2f} [rad]' if displacement else '') \
+                  + (f', Velocity={velocity:0.2f} [rad/year]' if stl else '') \
+                  + (f'\n{caption}' if caption is not None else ''), fontsize=18)
+        plt.xlim([dates[0], dates[-1]])
+        if displacement or stl:
+            plt.legend(fontsize=10)
+        plt.show()
