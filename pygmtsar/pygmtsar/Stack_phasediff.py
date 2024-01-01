@@ -82,7 +82,7 @@ class Stack_phasediff(Stack_topo):
         if debug:
             print ('DEBUG: interferogram')
 
-        return np.arctan2(phase.imag, phase.real)
+        return np.arctan2(phase.imag, phase.real).rename('phase')
 
 #     @staticmethod
 #     def correlation(I1, I2, amp):
@@ -384,7 +384,7 @@ class Stack_phasediff(Stack_topo):
 # 
 #         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
 
-    def phasediff(self, pairs, data='auto', topo='auto', method='cubic', debug=False):
+    def phasediff(self, pairs, data='auto', topo='auto', phase=None, method='nearest', debug=False):
         import pandas as pd
         import dask
         import dask.dataframe
@@ -475,11 +475,26 @@ class Stack_phasediff(Stack_topo):
                 # topography resolution is different, interpolation with extrapolation required
                 # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
                 # fill NaNs by zero because typically DEM is missed outside of land areas
-                block_topo = topo.sel(y=slice(ys[0]-3*dy, ys[-1]+3*dy), x=slice(xs[0]-3*dx, xs[-1]+3*dx))\
+                block_topo = topo.sel(y=slice(ys[0]-2*dy, ys[-1]+2*dy), x=slice(xs[0]-2*dx, xs[-1]+2*dx))\
                             .compute(n_workers=1)\
                             .fillna(0)\
                             .interp({'y': block_data1.y, 'x': block_data1.x}, method=method, kwargs={'fill_value': 'extrapolate'})\
                             .assign_coords(y=ys, x=xs)
+
+            if phase is not None:
+                dy, dx = phase.y.diff('y').item(0), phase.x.diff('x').item(0)
+                if dy == 1 and dx == 1:
+                    # phase is already in the original resolution
+                    block_phase = phase.sel(pair=f'{date1} {date2}').isel(y=slice(ylim[0], ylim[1]), x=slice(xlim[0], xlim[1]))\
+                                .compute(n_workers=1)\
+                                .assign_coords(y=ys, x=xs)
+                else:
+                    # phase resolution is different, interpolation with extrapolation required
+                    # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
+                    block_phase = phase.sel(pair=f'{date1} {date2}').sel(y=slice(ys[0]-2*dy, ys[-1]+2*dy), x=slice(xs[0]-2*dx, xs[-1]+2*dx))\
+                                .compute(n_workers=1)\
+                                .interp({'y': block_data1.y, 'x': block_data1.x}, method=method, kwargs={'fill_value': 'extrapolate'})\
+                                .assign_coords(y=ys, x=xs)
             # set dimensions
             xdim = prm1.get('num_rng_bins')
             ydim = prm1.get('num_patches') * prm1.get('num_valid_az')
@@ -553,7 +568,13 @@ class Stack_phasediff(Stack_topo):
             # make topographic and model phase corrections
             # GMTSAR uses float32 complex operations with precision loss
             #phase_shift = np.exp(1j * (cnst * drho).astype(np.float32))
-            phase_shift = np.exp(1j * (cnst * drho))
+            if phase is not None:
+                phase_shift = np.exp(1j * (cnst * drho - block_phase))
+                # or the same expression in other way
+                #phase_shift = np.exp(1j * (cnst * drho)) * np.exp(-1j * block_phase)
+                del block_phase
+            else:
+                phase_shift = np.exp(1j * (cnst * drho))
             del block_topo, near_range, drho, height, B, alpha, Bx, Bv, Bh, time
 
             # calculate phase difference
@@ -586,7 +607,7 @@ class Stack_phasediff(Stack_topo):
         prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair) for pair in pairs)
         # convert the list of dicts to a single dict
         prms = {k: v for d in prms for k, v in d.items()}
-    
+
         if isinstance(data, str) and data == 'auto':
             # open datafiles required for all the pairs
             data = self.open_data(dates)
