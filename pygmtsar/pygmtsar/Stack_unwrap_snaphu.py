@@ -69,6 +69,7 @@ class Stack_unwrap_snaphu(Stack_landmask):
         # SNAPHU input files
         phase_in = basename + '.phase'
         corr_in = basename + '.corr'
+        mask_in = basename + '.bytemask'
         # SNAPHU output files
         unwrap_out = basename + 'unwrap.out'
         conncomp_out = basename + 'conncomp.out'
@@ -77,15 +78,17 @@ class Stack_unwrap_snaphu(Stack_landmask):
         # NaN values are not allowed for SNAPHU phase input file
         # interpolate when exist valid values around and fill zero pixels far away from valid ones
         # convert to lazy array setting the chunk size
-        self.nearest_grid(phase.chunk(self.chunksize)).fillna(0).compute(n_workers=1).values.astype(np.float32).tofile(phase_in)
-
+        phase.fillna(0).compute(n_workers=1).values.astype(np.float32).tofile(phase_in)
+        # SNAPHU masks out 0 and uses only valid pixels with mask 1
+        xr.where(np.isnan(phase), 0, 1).values.astype(np.ubyte).tofile(mask_in)
+    
         if corr is not None:
             # NaN values are not allowed for SNAPHU correlation input file
             # just fill NaNs by zeroes because the main trick is phase filling
             corr.fillna(0).compute(n_workers=1).values.astype(np.float32).tofile(corr_in)
 
         # launch SNAPHU binary (NaNs are not allowed for input but returned in output)
-        argv = ['snaphu', phase_in, str(phase.shape[1]), '-f', '/dev/stdin', '-o', unwrap_out, '-d']
+        argv = ['snaphu', phase_in, str(phase.shape[1]), '-M', mask_in, '-f', '/dev/stdin', '-o', unwrap_out, '-d']
         # output connection componetets map
         if conncomp:
             argv.append('-g')
@@ -132,7 +135,7 @@ class Stack_unwrap_snaphu(Stack_landmask):
 
         # the output files deleted immediately
         # but these are accessible while open descriptors persist
-        for tmp_file in [phase_in, corr_in, unwrap_out, conncomp_out]:
+        for tmp_file in [phase_in, corr_in, mask_in, unwrap_out, conncomp_out]:
             if os.path.exists(tmp_file):
                 os.remove(tmp_file)
 
