@@ -489,6 +489,17 @@ class IO(datagrid):
         if os.path.exists(filename):
             os.remove(filename)
 
+    def sync_stack(self, data, name=None, caption='Saving 2D Stack', queue=50, timeout=300):
+        import xarray as xr
+        if name is None and isinstance(data, xr.DataArray):
+            assert data.name is not None, 'Define data name or use "name" argument for the NetCDF filenames'
+            name = data.name
+        elif name is None:
+            raise ValueError('Specify name for the output NetCDF files')
+        self.delete_stack(name)
+        self.save_stack(data, name, caption, queue, timeout)
+        return self.open_stack(name)
+
     def open_stack(self, name, stack=None):
         """
         Examples:
