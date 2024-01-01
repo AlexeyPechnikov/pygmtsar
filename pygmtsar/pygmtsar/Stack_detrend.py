@@ -62,82 +62,82 @@ class Stack_detrend(Stack_unwrap):
 #                .rename(data.name)
 
     @staticmethod
-    def regression_linear(data, grid, weight=None, valid_pixels_threshold=10000, fit_intercept=True):
+    def regression_linear(data, variables, weight=None, valid_pixels_threshold=10000, fit_intercept=True):
+        """
+        topo = sbas.get_topo().coarsen({'x': 4}, boundary='trim').mean()
+        yy, xx = xr.broadcast(topo.y, topo.x)
+        strat_sbas = sbas.regression_linear(unwrap_sbas.phase,
+                [topo,    topo*yy,    topo*xx,    topo*yy*xx,
+                 topo**2, topo**2*yy, topo**2*xx, topo**2*yy*xx,
+                 topo**3, topo**3*yy, topo**3*xx, topo**3*yy*xx,
+                 yy, xx,
+                 yy**2, xx**2, yy*xx,
+                 yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
+        """
         import numpy as np
         import xarray as xr
         import dask
+        from sklearn.linear_model import LinearRegression
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
 
         # find stack dim
         stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
         #print ('stackvar', stackvar)
         shape2d = data.shape[1:] if len(data.dims) == 3 else data.shape
         #print ('shape2d', shape2d)
+        chunk2d = data.chunks[1:] if len(data.dims) == 3 else data.chunks
+        #print ('chunk2d', chunk2d)
+    
+        if isinstance(variables, (list, tuple)):
+            variables = xr.concat(variables, dim='stack')
+        elif not isinstance(variables, xr.DataArray) or len(variables.dims) not in (2, 3):
+            raise Exception('Argument "variables" should be 2D or 3D Xarray dataarray of list of 2D Xarray dataarrays')
+        elif len(variables.dims) == 2:
+            variables = variables.expand_dims('stack')
+        elif len(variables.dims) == 3 and not variables.dims[0] == 'stack':
+            raise Exception('Argument "variables" 3D Xarray dataarray needs the first dimension name "stack"')
+        #print ('variables', variables)
 
-        @dask.delayed
-        def regression_block(stackval, ys, xs, valid_pixels_threshold, fit_intercept):
-            from sklearn.linear_model import LinearRegression
-
-            # use outer variables
-            data_block  = (data.sel({stackvar: stackval}) if stackval is not None else data).isel(y=ys, x=xs).compute(n_workers=1)
-            data_values = data_block.values.ravel()
-            # define output shape
-            assert data_block.shape == (ys.size, xs.size)
-
-            # define topography on the same grid and fill NaNs for regression
-            grid_values = grid.reindex_like(data_block, method='nearest').fillna(0).values.ravel()
-
-            if weight is not None:
-                weight_block  = (weight.sel({stackvar: stackval}) if stackval is not None else weight).isel(y=ys, x=xs).compute(n_workers=1)
-                weight_values = weight_block.values.ravel()
-                nanmask = np.isnan(grid_values) | np.isnan(data_values) | np.isnan(weight_values)
+        def regression_block(data, variables, weight, valid_pixels_threshold, fit_intercept):
+            data_values  = data.ravel()
+            variables_values = variables.reshape(-1, variables.shape[-1]).T
+            #assert 0, f'TEST: {data_values.shape}, {variables_values.shape}, {weight.shape}'
+            if weight.size > 1:
+                weight_values = weight.ravel()
+                nanmask = np.isnan(data_values) | np.isnan(weight_values) | np.any(np.isnan(variables_values), axis=0)
             else:
-                nanmask = np.isnan(grid_values) | np.isnan(data_values)
+                weight_values = None
+                nanmask = np.isnan(data_values) | np.any(np.isnan(variables_values), axis=0)
 
-            # regression requires enouth amount of valid pixels
+            # regression requires enough amount of valid pixels
             if data_values.size - np.sum(nanmask) < valid_pixels_threshold:
-                del grid_values, data_values, nanmask, data_block
-                return np.nan * np.zeros((ys.size, xs.size))
-        
+                del data_values, variables_values, weight_values, nanmask
+                return np.nan * np.zeros(data.shape)
+
             # build prediction model with or without plane removal (fit_intercept)
-            regr = LinearRegression(fit_intercept=fit_intercept)
-            # fit 1D non-NaNs phase and topography and predict on the non-NaNs 2D topography grid
-            data_grid = regr.fit(np.column_stack([grid_values [~nanmask]]),
-                                 np.column_stack([data_values[~nanmask]]),
-                                 None if weight is None else weight_values[~nanmask])\
-                        .predict(np.column_stack([grid_values])).reshape(data_block.shape)
-            # cleanup
-            del grid_values, data_values, nanmask, data_block
-            return data_grid
+            regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept, copy_X=False, n_jobs=1))
+            fit_params = {'linearregression__sample_weight': weight_values[~nanmask]} if weight.size > 1 else {}
+            regr.fit(variables_values[:, ~nanmask].T, data_values[~nanmask], **fit_params)
+            del weight_values, data_values
+            model = np.full_like(data, np.nan).ravel()
+            model[~nanmask] = regr.predict(variables_values[:, ~nanmask].T)
+            del variables_values, regr
+            return model.reshape(data.shape)
 
-
-        # split to chunks
-        # use indices instead of the coordinate values to prevent the weird error raising occasionally:
-        # "Reindexing only valid with uniquely valued Index objects"
-        chunks_z, chunks_y, chunks_x = data.chunks
-        ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
-        xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
-
-        stack = []
-        for stackval in data[stackvar].values if len(data.dims) == 3 else [None]:
-            #print ('stackval', stackval)
-            blocks_total = []
-            for ys_block in ys_blocks:
-                blocks = []
-                for xs_block in xs_blocks:
-                    block = dask.array.from_delayed(regression_block(stackval, ys_block, xs_block,
-                                                                     valid_pixels_threshold, fit_intercept),
-                                                    shape=(ys_block.size, xs_block.size), dtype=np.float32)
-                    blocks.append(block)
-                    del block
-                blocks_total.append(blocks)
-                del blocks        
-            stack.append(dask.array.block(blocks_total))
-            del blocks_total
-
-        return xr.DataArray(dask.array.stack(stack) if len(data.dims) == 3 else stack[0],
-                            coords=data.coords)\
-               .rename(data.name)
-
+        # xarray wrapper
+        model = xr.apply_ufunc(
+            regression_block,
+            data,
+            variables.chunk(dict(stack=-1, y=chunk2d[0], x=chunk2d[1])),
+            weight.chunk(dict(y=chunk2d[0], x=chunk2d[1])) if weight is not None else weight,
+            dask='parallelized',
+            vectorize=False,
+            output_dtypes=[np.float32],
+            input_core_dims=[[], ['stack'], []],
+            dask_gufunc_kwargs={'valid_pixels_threshold': valid_pixels_threshold, 'fit_intercept': fit_intercept},
+        )
+        return model
 
     def gaussian(self, grid, wavelength, truncate=3.0, resolution=60, debug=False):
         """
@@ -593,5 +593,40 @@ class Stack_detrend(Stack_unwrap):
         ).assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
         for ref, rep in zip(pairs_crop['ref'], pairs_crop['rep'])], dim='pair')
         del empty, dates_crop, pairs_crop
+
+        return phase_turbo.rename('turbulence')
+
+    def turbulence(self, phase, weight=None):
+        import xarray as xr
+        import pandas as pd
+
+        pairs, dates = self.get_pairs(phase, dates=True)
+
+        turbos = []
+        for date in dates:
+            ref = pairs[pairs.ref==date]
+            rep = pairs[pairs.rep==date]
+            #print (date, len(ref), len(rep))
+            ref_data = phase.sel(pair=ref.pair.values)
+            #print (ref_data)
+            rep_data = phase.sel(pair=rep.pair.values)
+            #print (rep_data)
+            if weight is not None:
+                ref_weight = weight.sel(pair=ref.pair.values)
+                rep_weight = weight.sel(pair=rep.pair.values)
+                turbo = xr.concat([ref_data*ref_weight, -rep_data*rep_weight], dim='pair').sum('pair')/\
+                    xr.concat([ref_weight, rep_weight], dim='pair').sum('pair')
+                del ref_weight, rep_weight
+            else:
+                turbo = xr.concat([ref_data, -rep_data], dim='pair').mean('pair')
+            del ref_data, rep_data
+            turbos.append(turbo.assign_coords(date=pd.to_datetime(date)))
+            del turbo
+        turbo = xr.concat(turbos, dim='date')
+        del turbos
+
+        phase_turbo = xr.concat([(turbo.sel(date=ref).drop('date') - turbo.sel(date=rep).drop('date'))\
+                                 .assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+                          for ref, rep in zip(pairs['ref'], pairs['rep'])], dim='pair')
 
         return phase_turbo.rename('turbulence')
