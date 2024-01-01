@@ -61,9 +61,12 @@ class Stack_trans_inv(Stack_trans):
         import warnings
         warnings.filterwarnings('ignore')
 
+        # convert meters or pixels to radar pixels
         coarsen = self.get_coarsen(coarsen)
+        # define maximum search radius, radar pixels
+        tolerance = 2 * max(coarsen)
 
-        def trans_inv_block(azis, rngs, chunksize):
+        def trans_inv_block(azis, rngs, tolerance, chunksize):
             from scipy.spatial import cKDTree
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
             from dask.distributed import utils_perf
@@ -131,10 +134,13 @@ class Stack_trans_inv(Stack_trans):
             # take the nearest pixels coordinates and elevation
             # the only one index search is required to define all the output variables
             grid_lt = block_lt[indices]
+            grid_lt[distances>tolerance] = np.nan
             del block_lt
             grid_ll = block_ll[indices]
+            grid_ll[distances>tolerance] = np.nan
             del block_ll
             grid_ele = block_trans[2][indices]
+            grid_ele[distances>tolerance] = np.nan
             #print ('distance range', distances.min().round(2), distances.max().round(2))
             #assert distances.max() < 2, f'Unexpectedly large distance between radar and geographic coordinate grid pixels (>=2): {distances.max()}'
             del block_trans, indices, distances
@@ -178,7 +184,7 @@ class Stack_trans_inv(Stack_trans):
             blocks = []
             for rngs_block in rngs_blocks:
                 block = dask.array.from_delayed(dask.delayed(trans_inv_block, traverse=False)
-                                               (azis_block, rngs_block, self.netcdf_chunksize),
+                                               (azis_block, rngs_block, tolerance, self.netcdf_chunksize),
                                                shape=(3, azis_block.size, rngs_block.size), dtype=np.float32)
                 blocks.append(block)
                 del block
