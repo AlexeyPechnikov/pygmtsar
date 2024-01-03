@@ -770,3 +770,81 @@ class Stack_phasediff(Stack_topo):
         del stack
         # replace zeros produces in NODATA areas
         return ds.where(ds).rename('phase')
+
+    @staticmethod
+    def plot_phases(data, caption='Phase, [rad]', cols=4, size=4, vmin=None, vmax=None):
+        import matplotlib.pyplot as plt
+
+        # multi-plots ineffective for linked lazy data
+        fg = data.plot.imshow(
+            col='pair',
+            col_wrap=cols, size=size, aspect=1.2,
+            vmin=vmin, vmax=vmax, cmap='turbo'
+        )
+        fg.set_axis_labels('Range', 'Azimuth')
+        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
+        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        plt.show()
+
+    @staticmethod
+    def plot_interferograms(data, cols=4, size=4, caption='Phase, [rad]'):
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # multi-plots ineffective for linked lazy data
+        fg = data.plot.imshow(
+            col='pair',
+            col_wrap=cols, size=size, aspect=1.2,
+            vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r'
+        )
+        fg.set_axis_labels('Range', 'Azimuth')
+        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
+        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        plt.show()
+
+    @staticmethod
+    def plot_correlations(data, cols=4, size=4, caption='Correlation'):
+        import matplotlib.pyplot as plt
+
+        # multi-plots ineffective for linked lazy data
+        fg = data.plot.imshow(
+            col='pair',
+            col_wrap=cols, size=size, aspect=1.2,
+            vmin=0, vmax=1, cmap='gray'
+        )
+        fg.set_axis_labels('Range', 'Azimuth')
+        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
+        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        plt.show()
+
+    @staticmethod
+    def plot_correlation_stack(corr_stack, threshold='auto', bins=100):
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        data = corr_stack.values.flatten()
+        median_value = np.nanmedian(data)
+        if isinstance(threshold, str) and threshold == 'auto':
+            threshold = median_value
+
+        fig, axs = plt.subplots(1, 2, figsize=(12, 4), dpi=300)
+
+        ax2 = axs[0].twinx()
+        axs[0].hist(data, range=(0, 1), bins=bins, density=False, cumulative=False, color='gray', edgecolor='black', alpha=0.5)
+        ax2.hist(data, range=(0, 1), bins=bins, density=False, cumulative=True, color='orange', edgecolor='black', alpha=0.25)
+
+        axs[0].axvline(median_value, color='red', linestyle='dashed')
+        axs[0].set_xlim([0, 1])
+        axs[0].grid()
+        axs[0].set_title(f'Histogram Median={median_value:.2f}', fontsize=18)
+        axs[0].set_xlabel('Correlation', fontsize=16)
+        axs[0].set_ylabel('Count', fontsize=16)
+        ax2.set_ylabel('Cumulative Count', color='orange', fontsize=16)
+
+        corr_stack.where(corr_stack >= threshold).plot.imshow(cmap='gray', vmin=0, vmax=1, ax=axs[1])
+        caption = f'Threshold >= {threshold:0.2f}'
+        axs[1].set_title(caption, fontsize=18)
+
+        plt.suptitle('Correlation Stack', fontsize=20)
+        plt.tight_layout()
+        plt.show()
