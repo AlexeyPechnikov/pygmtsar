@@ -817,3 +817,18 @@ class Stack_sbas(Stack_detrend):
         # form 3D stack
         error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': data.pair})
         return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
+
+    @staticmethod
+    def plot_displacement(data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, y=1.05, vmin=None, vmax=None):
+        import matplotlib.pyplot as plt
+
+        # multi-plots ineffective for linked lazy data
+        fg = data.plot.imshow(
+            col='date',
+            col_wrap=cols, size=size, aspect=1.2,
+            vmin=vmin, vmax=vmax, cmap='turbo'
+        )
+        fg.set_axis_labels('Range', 'Azimuth')
+        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
+        fg.fig.suptitle(caption, y=y, fontsize=24)
+        plt.show()
