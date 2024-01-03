@@ -8,7 +8,9 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_unwrap_snaphu import Stack_unwrap_snaphu
+# required for function decorators
 from numba import jit
+# import directive is not compatible to numba
 import numpy as np
 
 class Stack_unwrap(Stack_unwrap_snaphu):
@@ -24,18 +26,32 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 .rename(data_pairs.name)
         return np.mod(data_pairs + np.pi, 2 * np.pi) - np.pi
 
+    # weight is used only to filter NaNs in data
     @staticmethod
-    @jit(nopython=True)
-    def unwrap_pairs(data_pairs, matrix):
+    @jit(nopython=True, nogil=True)
+    def unwrap_pairs(data, weight, matrix):
         # import directive is not compatible to numba
         #import numpy as np
 
-        # NaN values are not permitted; TBD: its possible to exclude some NaNs
-        if np.any(np.isnan(data_pairs)):
-            return np.nan * np.zeros(data_pairs.shape)
+        # initial data size
+        data_size = data.size
+
+        if np.all(np.isnan(data)) or (weight is not None and np.all(np.isnan(weight))):
+            return np.nan * np.zeros(data_size)
 
         # the data variable will be modified and returned as the function output
-        data = data_pairs.copy()
+        data = data.copy()
+        if weight is not None:
+            nanmask = np.isnan(data) | np.isnan(weight)
+        else:
+            nanmask = np.isnan(data)
+        if np.all(nanmask):
+            return np.nan * np.zeros(data_size)
+        data = data[~nanmask].copy()
+        if weight is not None:
+            weight = weight[~nanmask]
+        matrix = matrix[~nanmask,:]
+
         #data = phase_pairs.values
         pair_sum = matrix.sum(axis=1)
         # tidal displacements for SBAS pairs
@@ -163,10 +179,13 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 #break
 
         # validity mask
-        mask = [idx in pairs_ok for idx in range(data_pairs.size)]
-        return np.where(mask, data, np.nan)
+        mask = [idx in pairs_ok for idx in range(data.size)]
+        data = np.where(mask, data, np.nan)
+        out = np.nan * np.zeros(data_size)
+        out[~nanmask] = data
+        return out
 
-    def unwrap1d(self, data):
+    def unwrap1d(self, data, weight=None):
         import xarray as xr
         import numpy as np
 
@@ -175,18 +194,22 @@ class Stack_unwrap(Stack_unwrap_snaphu):
             print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
             chunks_y = chunks_x = self.netcdf_chunksize//2
             print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
-            data = data.chunk({'y': chunks_y, 'x': chunks_x})
-        
-        baseline_pairs = self.get_pairs(data)
-        matrix = self.lstsq_matrix(baseline_pairs)
+        else:
+            # use the existing data chunks size
+            chunks_y = np.max(chunks_y)
+            chunks_x = np.max(chunks_x)
+
+        pairs = self.get_pairs(data)
+        matrix = self.lstsq_matrix(pairs)
 
         # xarray wrapper
         model = xr.apply_ufunc(
             self.unwrap_pairs,
-            data.chunk(dict(pair=-1)),
+            data.chunk(dict(pair=-1, y=chunks_y, x=chunks_x)),
+            weight.chunk(dict(pair=-1, y=chunks_y, x=chunks_x)) if weight is not None else weight,
             dask='parallelized',
             vectorize=True,
-            input_core_dims=[['pair']],
+            input_core_dims=[['pair'], ['pair']] if weight is not None else [['pair'], []],
             output_core_dims=[['pair']],
             output_dtypes=[np.float32],
             kwargs={'matrix': matrix}
@@ -250,3 +273,18 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                            for idx, block in enumerate(dask_block)])
         del dask_block
         return ds
+
+    @staticmethod
+    def plot_conncomps(data, caption='Connected Components', cols=4, size=4):
+        import matplotlib.pyplot as plt
+
+        # multi-plots ineffective for linked lazy data
+        fg = data.plot.imshow(
+            col='pair',
+            col_wrap=cols, size=size, aspect=1.2,
+            cmap='tab10_r', vmin=0, vmax=10
+        )
+        fg.set_axis_labels('Range', 'Azimuth')
+        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
+        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        plt.show()
