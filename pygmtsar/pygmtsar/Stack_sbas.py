@@ -44,25 +44,27 @@ class Stack_sbas(Stack_detrend):
         import numpy as np
 
         if w is None:
-            # allow not weighted Least Squares
-            w = 0.5 * np.ones_like(x)
-        elif np.any(np.isnan(w)):
-            # ignore pixels where correlation is not defined
+            # not weighted least squares calculation
+            w = np.ones_like(x)
+            nanmask = np.isnan(x)
+        else:
+            assert x.shape == w.shape, f'Arrays x and w need to have equal shape, x.shape={x.shape}, w.shape={w.shape}'
+            nanmask = np.isnan(x) | np.isnan(w)
+        if np.all(nanmask):
+            return np.nan * np.zeros(matrix.shape[1])
+        #print ('nanmask', nanmask)
+        # fill nans as zeroes and set corresponding weight to 0
+        # function arguments are read-only
+        x = x.copy()
+        # prevent weight=1
+        w = (1 - 1e-6)*w.copy()
+        x[nanmask] = 0
+        w[nanmask] = 0
+        # check if x has enough valid values
+        #print (f'{x.size}, {np.sum(nanmask)}, {matrix.shape[1]}')
+        if x.size - np.sum(nanmask) < matrix.shape[1]:
             return np.nan * np.zeros(matrix.shape[1])
 
-        assert x.shape == w.shape, f'Arrays x and w need to have equal shape, x.shape={x.shape}, w.shape={w.shape}'
-
-        # fill nans as zeroes and set corresponding weight to 0
-        nanmask = np.where(np.isnan(x))
-        if nanmask[0].size > 0:
-            # function arguments are read-only
-            x = x.copy()
-            w = w.copy()
-            x[nanmask] = 0
-            w[nanmask] = 0
-            # check if x has enough valid values
-            if x.size - nanmask[0].size < matrix.shape[1]:
-                return np.nan * np.zeros(matrix.shape[1])
         try:
             if np.all(w == 1):
                 # least squares solution
@@ -255,7 +257,7 @@ class Stack_sbas(Stack_detrend):
                 # 3D array
                 weight_block = weight.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
                 # weight=1 is not allowed for the used weighted least squares calculation function 
-                weight_block = np.where(weight_block>=1, 0.999999, weight_block)
+                weight_block = np.where(weight_block>=1, 1, weight_block)
                 # Vectorize vec_lstsq
                 vec_lstsq = np.vectorize(lambda x, w: self.lstsq1d(x, w, matrix, cumsum), signature='(n),(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
@@ -593,6 +595,10 @@ class Stack_sbas(Stack_detrend):
         return xr.concat(corrs, dim='pair')
 
     def baseline_plot(self, baseline_pairs):
+        print ('NOTE: this function is deprecated, use instead Stack.plot_baseline()')
+        self.plot_baseline(baseline_pairs)
+        
+    def plot_baseline(self, baseline_pairs):
         import numpy as np
         import pandas as pd
         import seaborn as sns
@@ -631,7 +637,7 @@ class Stack_sbas(Stack_detrend):
         plt.show()
 
     @staticmethod
-    def baseline_duration_plot(baseline_pairs, interval_days=6):
+    def plot_baseline_duration(baseline_pairs, interval_days=6):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -649,7 +655,7 @@ class Stack_sbas(Stack_detrend):
         plt.show()
 
     @staticmethod
-    def baseline_correlation_plot(baseline_pairs, pairs_best=None):
+    def plot_baseline_correlation(baseline_pairs, pairs_best=None):
         import numpy as np
         import pandas as pd
         import seaborn as sns
@@ -682,7 +688,7 @@ class Stack_sbas(Stack_detrend):
         plt.grid()
         plt.show()
 
-    def baseline_displacement_plot(self, phase, corr=None, caption=None, cmap='turbo',
+    def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
                                    stl=True, stl_freq='W', stl_periods=52, stl_robust=False):
         import numpy as np
@@ -704,7 +710,7 @@ class Stack_sbas(Stack_detrend):
         matrix = self.lstsq_matrix(pairs)
 
         if unwrap:
-            df['phase'] = self.unwrap_pairs(phase.values, matrix)
+            df['phase'] = self.unwrap_pairs(phase.values, df['corr'].values, matrix)
 
         if displacement or stl:
             solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, matrix)
@@ -781,10 +787,33 @@ class Stack_sbas(Stack_detrend):
         plt.xlabel('Timeline', fontsize=16)
         plt.ylabel('Phase, [rad]', fontsize=16)
         plt.title('Baseline Displacement' \
-                  + (f' RMSE={rmse:0.2f} [rad]' if displacement else '') \
-                  + (f', STL Velocity={velocity:0.2f} [rad/year]' if stl else '') \
+                  + (f' RMSE={rmse:0.3f} [rad]' if displacement else '') \
+                  + (f', STL Velocity={velocity:0.1f} [rad/year]' if stl else '') \
                   + (f'\n{caption}' if caption is not None else ''), fontsize=18)
         plt.xlim([dates[0], dates[-1]])
         if displacement or stl:
             plt.legend(fontsize=10)
         plt.show()
+
+    def rmse(self, data, solution, weight=None):
+        """
+        Calculate difference between pairs and dates
+
+        Use to calculate solution vs pair unwrapped phases difference as
+        diff = sbas.stack_vs_cube(phase_unwrap, solution)
+        error = np.sqrt(sbas.wrap(diff)**2).sum('pair')
+        """
+        import numpy as np
+        import xarray as xr
+
+        # extract pairs
+        pairs = self.get_pairs(data)
+        # calculate differences between end and start dates for all the pairs
+        error_pairs = []
+        for rec in pairs.itertuples():
+            #print (rec.rep, rec.ref, rec.Index, rec)
+            error_pair = data.sel(pair=rec.pair) - (solution.sel(date=rec.rep) - solution.sel(date=rec.ref))
+            error_pairs.append(error_pair**2)
+        # form 3D stack
+        error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': data.pair})
+        return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
