@@ -52,6 +52,21 @@ class Stack_ps(Stack_stl):
         self.save_cube(ds, 'ps', 'Compute Stability Measures')
         del ds
 
+    def psfunction(self, ps='auto'):
+        if isinstance(ps, str) and ps == 'auto':
+            ps = self.get_ps()
+        return (ps.average/(2*ps.deviation)).rename('psf')
+
+    def plot_psfunction(self, psfunction='auto', vmin=0.2, vmax=0.7):
+        import matplotlib.pyplot as plt
+
+        if isinstance(psfunction, str) and psfunction == 'auto':
+            psfunction = self.psfunction()
+
+        plt.figure(figsize=(12, 4), dpi=300)
+        psfunction.plot.imshow(cmap='gray', vmin=vmin, vmax=vmax)
+        plt.title('PS Function', fontsize=18)
+        plt.show()
 
 #     def get_adi_threshold(self, threshold):
 #         """
