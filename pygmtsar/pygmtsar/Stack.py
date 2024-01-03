@@ -76,3 +76,24 @@ class Stack(Stack_ps):
 #        # y,x dims order
 #        matrix = np.array(coeffs[1:]).astype(float).reshape((shape[1],shape[0]))
 #        return (gauss_dec, matrix)
+
+    def plot_scenes(self, AOI=None, dem='auto', caption='Estimated Scene Locations', cmap='turbo'):
+        import matplotlib.pyplot as plt
+        import matplotlib
+
+        plt.figure(figsize=(12, 4), dpi=150)
+        if isinstance(dem, str) and dem == 'auto':
+            if self.dem_filename is not None:
+                dem = self.get_dem()
+                # TODO: check shape and decimate large grids
+                dem.plot.imshow(cmap='gray', add_colorbar=False)
+        elif dem is not None:
+            dem.plot.imshow(cmap='gray', add_colorbar=False)
+        gdf = self.to_dataframe()
+        cmap = matplotlib.colormaps[cmap]
+        colors = dict([(v, cmap(k)) for k, v in enumerate(gdf.index.unique())])
+        gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=0.5/len(gdf), edgecolor='black', ax=plt.gca())
+        if AOI is not None:
+            AOI.boundary.plot(ax=plt.gca(), color='red')
+        plt.title(caption, fontsize=18)
+        plt.show()
