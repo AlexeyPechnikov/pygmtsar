@@ -30,3 +30,16 @@ class Stack_topo(Stack_trans_inv):
         This method returns 'topo' variable from inverse radar transform grid.
         """
         return self.get_trans_inv()['ele'].rename('topo')
+
+    def plot_topo(self, topo='auto'):
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(12,4), dpi=300)
+        if isinstance(topo, str) and topo == 'auto':
+            self.get_topo().plot.imshow(cmap='gray')
+        else:
+            topo.plot.imshow(cmap='gray')
+        plt.xlabel('Range', fontsize=16)
+        plt.ylabel('Azimuth', fontsize=16)
+        plt.title('Topography in Radar Coordinates', fontsize=18)
+        plt.show()
