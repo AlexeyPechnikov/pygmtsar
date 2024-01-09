@@ -274,6 +274,38 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         del dask_block
         return ds
 
+    def interpolate_nearest(self, data, search_radius_pixels=None):
+        """
+        Perform nearest neighbor interpolation on each 2D grid in a 3D grid stack.
+
+        Parameters
+        ----------
+        data : xarray.DataArray
+            The input 3D grid stack to be interpolated, with dimensions (pair, y, x).
+        search_radius_pixels : int, optional
+            The interpolation distance in pixels. If not provided, the default is set to the chunksize of the Stack object.
+
+        Returns
+        -------
+        xarray.DataArray
+            The interpolated 3D grid stack.
+
+        Examples
+        --------
+        Fill gaps in the specified grid stack using nearest neighbor interpolation:
+        stack.interpolate_nearest(intf)
+
+        Notes
+        -----
+        This method performs nearest neighbor interpolation on each 2D grid (y, x) in a 3D grid stack (pair, y, x). It replaces the NaN values in each 2D grid with the nearest non-NaN values. The interpolation is performed within a specified search radius in pixels for each grid. If a search radius is not provided, the default search radius is set to the chunksize of the Stack object.
+        """
+        import xarray as xr
+
+        assert data.dims == ('pair', 'y', 'x'), 'Input data must have dimensions (pair, y, x)'
+
+        interpolated = [self.nearest_grid(data.sel(pair=pair), search_radius_pixels) for pair in data.pair]
+        return xr.concat(interpolated, dim='pair')
+
     @staticmethod
     def plot_conncomps(data, caption='Connected Components', cols=4, size=4):
         import matplotlib.pyplot as plt
