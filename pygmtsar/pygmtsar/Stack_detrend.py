@@ -61,12 +61,95 @@ class Stack_detrend(Stack_unwrap):
 #                             coords=data.coords)\
 #                .rename(data.name)
 
+#     @staticmethod
+#     def regression_linear(data, variables, weight=None, valid_pixels_threshold=10000, fit_intercept=True):
+#         """
+#         topo = sbas.get_topo().coarsen({'x': 4}, boundary='trim').mean()
+#         yy, xx = xr.broadcast(topo.y, topo.x)
+#         strat_sbas = sbas.regression_linear(unwrap_sbas.phase,
+#                 [topo,    topo*yy,    topo*xx,    topo*yy*xx,
+#                  topo**2, topo**2*yy, topo**2*xx, topo**2*yy*xx,
+#                  topo**3, topo**3*yy, topo**3*xx, topo**3*yy*xx,
+#                  yy, xx,
+#                  yy**2, xx**2, yy*xx,
+#                  yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
+#         """
+#         import numpy as np
+#         import xarray as xr
+#         import dask
+#         from sklearn.linear_model import LinearRegression
+#         from sklearn.pipeline import make_pipeline
+#         from sklearn.preprocessing import StandardScaler
+# 
+#         if weight is not None and len(weight.dims) == 3 and weight.shape != data.shape:
+#             raise Exception(f'Argument "weight" 3D shape {weight.shape} should be equal to "data" 3D shape {data.shape}')
+#         if weight is not None and len(weight.dims) == 2 and weight.shape != data.shape[1:]:
+#             raise Exception(f'Argument "weight" 2D shape {weight.shape} should be equal to "data" 2D shape {data.shape[1:]}')
+# 
+#         # find stack dim
+#         stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
+#         #print ('stackvar', stackvar)
+#         shape2d = data.shape[1:] if len(data.dims) == 3 else data.shape
+#         #print ('shape2d', shape2d)
+#         chunk2d = data.chunks[1:] if len(data.dims) == 3 else data.chunks
+#         #print ('chunk2d', chunk2d)
+#     
+#         if isinstance(variables, (list, tuple)):
+#             variables = xr.concat(variables, dim='stack')
+#         elif not isinstance(variables, xr.DataArray) or len(variables.dims) not in (2, 3):
+#             raise Exception('Argument "variables" should be 2D or 3D Xarray dataarray of list of 2D Xarray dataarrays')
+#         elif len(variables.dims) == 2:
+#             variables = variables.expand_dims('stack')
+#         elif len(variables.dims) == 3 and not variables.dims[0] == 'stack':
+#             raise Exception('Argument "variables" 3D Xarray dataarray needs the first dimension name "stack"')
+#         #print ('variables', variables)
+# 
+#         def regression_block(data, variables, weight, valid_pixels_threshold, fit_intercept):
+#             data_values  = data.ravel()
+#             variables_values = variables.reshape(-1, variables.shape[-1]).T
+#             #assert 0, f'TEST: {data_values.shape}, {variables_values.shape}, {weight.shape}'
+#             if weight.size > 1:
+#                 weight_values = weight.ravel()
+#                 nanmask = np.isnan(data_values) | np.isnan(weight_values) | np.any(np.isnan(variables_values), axis=0)
+#             else:
+#                 weight_values = None
+#                 nanmask = np.isnan(data_values) | np.any(np.isnan(variables_values), axis=0)
+# 
+#             # regression requires enough amount of valid pixels
+#             if data_values.size - np.sum(nanmask) < valid_pixels_threshold:
+#                 del data_values, variables_values, weight_values, nanmask
+#                 return np.nan * np.zeros(data.shape)
+# 
+#             # build prediction model with or without plane removal (fit_intercept)
+#             regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept, copy_X=False, n_jobs=1))
+#             fit_params = {'linearregression__sample_weight': weight_values[~nanmask]} if weight.size > 1 else {}
+#             regr.fit(variables_values[:, ~nanmask].T, data_values[~nanmask], **fit_params)
+#             del weight_values, data_values
+#             model = np.full_like(data, np.nan).ravel()
+#             model[~nanmask] = regr.predict(variables_values[:, ~nanmask].T)
+#             del variables_values, regr
+#             return model.reshape(data.shape)
+# 
+#         # xarray wrapper
+#         model = xr.apply_ufunc(
+#             regression_block,
+#             data,
+#             variables.chunk(dict(stack=-1, y=chunk2d[0], x=chunk2d[1])),
+#             weight.chunk(dict(y=chunk2d[0], x=chunk2d[1])) if weight is not None else weight,
+#             dask='parallelized',
+#             vectorize=False,
+#             output_dtypes=[np.float32],
+#             input_core_dims=[[], ['stack'], []],
+#             dask_gufunc_kwargs={'valid_pixels_threshold': valid_pixels_threshold, 'fit_intercept': fit_intercept},
+#         )
+#         return model
+
     @staticmethod
-    def regression_linear(data, variables, weight=None, valid_pixels_threshold=10000, fit_intercept=True):
+    def regression(data, variables, weight=None, valid_pixels_threshold=1000, algorithm='sgd', **kwargs):
         """
         topo = sbas.get_topo().coarsen({'x': 4}, boundary='trim').mean()
         yy, xx = xr.broadcast(topo.y, topo.x)
-        strat_sbas = sbas.regression_linear(unwrap_sbas.phase,
+        strat_sbas = sbas.regression(unwrap_sbas.phase,
                 [topo,    topo*yy,    topo*xx,    topo*yy*xx,
                  topo**2, topo**2*yy, topo**2*xx, topo**2*yy*xx,
                  topo**3, topo**3*yy, topo**3*xx, topo**3*yy*xx,
@@ -77,18 +160,13 @@ class Stack_detrend(Stack_unwrap):
         import numpy as np
         import xarray as xr
         import dask
+        # 'linear'
         from sklearn.linear_model import LinearRegression
+        # 'sgd'
+        from sklearn.linear_model import SGDRegressor
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        # find stack dim
-        stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
-        #print ('stackvar', stackvar)
-        shape2d = data.shape[1:] if len(data.dims) == 3 else data.shape
-        #print ('shape2d', shape2d)
-        chunk2d = data.chunks[1:] if len(data.dims) == 3 else data.chunks
-        #print ('chunk2d', chunk2d)
-    
         if isinstance(variables, (list, tuple)):
             variables = xr.concat(variables, dim='stack')
         elif not isinstance(variables, xr.DataArray) or len(variables.dims) not in (2, 3):
@@ -99,30 +177,59 @@ class Stack_detrend(Stack_unwrap):
             raise Exception('Argument "variables" 3D Xarray dataarray needs the first dimension name "stack"')
         #print ('variables', variables)
 
-        def regression_block(data, variables, weight, valid_pixels_threshold, fit_intercept):
+        # find stack dim
+        stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
+        #print ('stackvar', stackvar)
+        shape2d = data.shape[1:] if len(data.dims) == 3 else data.shape
+        #print ('shape2d', shape2d)
+        chunk2d = data.chunks[1:] if len(data.dims) == 3 else data.chunks
+        #print ('chunk2d', chunk2d)
+
+        if isinstance(variables, (list, tuple)):
+            variables = xr.concat(variables, dim='stack')
+        elif not isinstance(variables, xr.DataArray) or len(variables.dims) not in (2, 3):
+            raise Exception('Argument "variables" should be 2D or 3D Xarray dataarray of list of 2D Xarray dataarrays')
+        elif len(variables.dims) == 2:
+            variables = variables.expand_dims('stack')
+        elif len(variables.dims) == 3 and not variables.dims[0] == 'stack':
+            raise Exception('Argument "variables" 3D Xarray dataarray needs the first dimension name "stack"')
+        #print ('variables', variables)
+
+        def regression_block(data, variables, weight, algorithm, **kwargs):
             data_values  = data.ravel()
             variables_values = variables.reshape(-1, variables.shape[-1]).T
             #assert 0, f'TEST: {data_values.shape}, {variables_values.shape}, {weight.shape}'
+            nanmask_data = np.isnan(data_values)
+            nanmask_values = np.any(np.isnan(variables_values), axis=0)
             if weight.size > 1:
                 weight_values = weight.ravel()
-                nanmask = np.isnan(data_values) | np.isnan(weight_values) | np.any(np.isnan(variables_values), axis=0)
+                nanmask_weight = np.isnan(weight_values)
+                nanmask = nanmask_data | nanmask_values | nanmask_weight
             else:
                 weight_values = None
-                nanmask = np.isnan(data_values) | np.any(np.isnan(variables_values), axis=0)
+                nanmask = nanmask_data | nanmask_values
 
             # regression requires enough amount of valid pixels
             if data_values.size - np.sum(nanmask) < valid_pixels_threshold:
-                del data_values, variables_values, weight_values, nanmask
+                del data_values, variables_values, weight_values
+                del nanmask_data, nanmask_values, nanmask_weight, nanmask
                 return np.nan * np.zeros(data.shape)
 
             # build prediction model with or without plane removal (fit_intercept)
-            regr = make_pipeline(StandardScaler(), LinearRegression(fit_intercept=fit_intercept, copy_X=False, n_jobs=1))
-            fit_params = {'linearregression__sample_weight': weight_values[~nanmask]} if weight.size > 1 else {}
+            if algorithm == 'sgd':
+                regr = make_pipeline(StandardScaler(), SGDRegressor(**kwargs))
+                fit_params = {'sgdregressor__sample_weight': weight_values[~nanmask]} if weight.size > 1 else {}
+            elif algorithm == 'linear':
+                regr = make_pipeline(StandardScaler(), LinearRegression(**kwargs, copy_X=False, n_jobs=1))
+                fit_params = {'linearregression__sample_weight': weight_values[~nanmask]} if weight.size > 1 else {}
+            else:
+                raise ValueError(f"Unsupported algorithm {algorithm}. Should be 'linear' or 'sgd'")
             regr.fit(variables_values[:, ~nanmask].T, data_values[~nanmask], **fit_params)
             del weight_values, data_values
             model = np.full_like(data, np.nan).ravel()
-            model[~nanmask] = regr.predict(variables_values[:, ~nanmask].T)
+            model[~nanmask_values] = regr.predict(variables_values[:, ~nanmask_values].T)
             del variables_values, regr
+            del nanmask_data, nanmask_values, nanmask_weight, nanmask
             return model.reshape(data.shape)
 
         # xarray wrapper
@@ -135,9 +242,62 @@ class Stack_detrend(Stack_unwrap):
             vectorize=False,
             output_dtypes=[np.float32],
             input_core_dims=[[], ['stack'], []],
-            dask_gufunc_kwargs={'valid_pixels_threshold': valid_pixels_threshold, 'fit_intercept': fit_intercept},
+            dask_gufunc_kwargs={'algorithm': algorithm, **kwargs},
         )
         return model
+
+    def regression_linear(self, data, variables, weight=None, valid_pixels_threshold=1000, fit_intercept=True):
+        """   
+        topo = sbas.get_topo().coarsen({'x': 4}, boundary='trim').mean()
+        yy, xx = xr.broadcast(topo.y, topo.x)
+        strat_sbas = sbas.regression_linear(unwrap_sbas.phase,
+                [topo,    topo*yy,    topo*xx,    topo*yy*xx,
+                 topo**2, topo**2*yy, topo**2*xx, topo**2*yy*xx,
+                 topo**3, topo**3*yy, topo**3*xx, topo**3*yy*xx,
+                 yy, xx,
+                 yy**2, xx**2, yy*xx,
+                 yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
+        """
+        return self.regression(data, variables, weight, valid_pixels_threshold, 'linear',
+                                fit_intercept=fit_intercept)
+
+    def regression_sgd(self, data, variables, weight=None, valid_pixels_threshold=1000,
+                      max_iter=1000, tol=1e-3, alpha=0.0001, l1_ratio=0.15):
+        """
+        Perform regression on a dataset using the SGDRegressor model from scikit-learn.
+
+        This function applies Stochastic Gradient Descent (SGD) regression to fit the given 'data' against a set of 'variables'. It's suitable for large datasets and handles high-dimensional features efficiently.
+
+        Parameters:
+        data (xarray.DataArray): The target data array to fit.
+        variables (xarray.DataArray or list of xarray.DataArray): Predictor variables. It can be a single 3D DataArray or a list of 2D DataArrays.
+        weight (xarray.DataArray, optional): Weights for each data point. Useful if certain data points are more important. Defaults to None.
+        valid_pixels_threshold (int, optional): Minimum number of valid pixels required for the regression to be performed. Defaults to 10000.
+        max_iter (int, optional): Maximum number of passes over the training data (epochs). Defaults to 1000.
+        tol (float, optional): Stopping criterion. If not None, iterations will stop when (loss > best_loss - tol) for n_iter_no_change consecutive epochs. Defaults to 1e-3.
+        alpha (float, optional): Constant that multiplies the regularization term. Higher values mean stronger regularization. Defaults to 0.0001.
+        l1_ratio (float, optional): The Elastic Net mixing parameter, with 0 <= l1_ratio <= 1. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Defaults to 0.15.
+
+        Returns:
+        xarray.DataArray: The predicted values as an xarray DataArray, fitted by the SGDRegressor model.
+
+        Notes:
+        - SGDRegressor is well-suited for large datasets due to its efficiency in handling large-scale and high-dimensional data.
+        - Proper tuning of parameters (max_iter, tol, alpha, l1_ratio) is crucial for optimal performance and prevention of overfitting.
+
+        Example:  
+        topo = sbas.get_topo().coarsen({'x': 4}, boundary='trim').mean()
+        yy, xx = xr.broadcast(topo.y, topo.x)
+        strat_sbas = sbas.regression_sgd(unwrap_sbas.phase,
+                [topo,    topo*yy,    topo*xx,    topo*yy*xx,
+                 topo**2, topo**2*yy, topo**2*xx, topo**2*yy*xx,
+                 topo**3, topo**3*yy, topo**3*xx, topo**3*yy*xx,
+                 yy, xx,
+                 yy**2, xx**2, yy*xx,
+                 yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
+        """
+        return self.regression(data, variables, weight, valid_pixels_threshold, 'sgd',
+                               max_iter=max_iter, tol=tol, alpha=alpha, l1_ratio=l1_ratio)
 
     def gaussian(self, grid, wavelength, truncate=3.0, resolution=60, debug=False):
         """
