@@ -53,14 +53,15 @@ setup(
                       'nc-time-axis',
                       'statsmodels>=0.13.5',
                       'pygmt',
-                      'vtk',
                       'asf_search',
                       'imageio',
                       'matplotlib',
                       'adjustText',
                       'seaborn'
                       ],
-
+    extras_require={
+                      'vtk_support': ['vtk']
+    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
