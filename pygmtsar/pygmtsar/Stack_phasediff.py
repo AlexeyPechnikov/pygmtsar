@@ -803,14 +803,21 @@ class Stack_phasediff(Stack_topo):
         plt.show()
 
     @staticmethod
-    def plot_correlations(data, cols=4, size=4, caption='Correlation'):
+    def plot_correlations(data, cols=4, size=4, caption='Correlation', cmap='auto'):
         import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
+
+        if isinstance(cmap, str) and cmap == 'auto':
+            cmap = mcolors.LinearSegmentedColormap.from_list(
+                name='custom_gray', 
+                colors=['black', 'whitesmoke']
+            )
 
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
             col='pair',
             col_wrap=cols, size=size, aspect=1.2,
-            vmin=0, vmax=1, cmap='gray'
+            vmin=0, vmax=1, cmap=cmap
         )
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
@@ -818,10 +825,17 @@ class Stack_phasediff(Stack_topo):
         plt.show()
 
     @staticmethod
-    def plot_correlation_stack(corr_stack, threshold='auto', bins=100):
+    def plot_correlation_stack(corr_stack, threshold='auto', caption='Multi-Look Correlation Stack', bins=100, cmap='auto'):
         import numpy as np
         import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
 
+        if isinstance(cmap, str) and cmap == 'auto':
+            cmap = mcolors.LinearSegmentedColormap.from_list(
+                name='custom_gray', 
+                colors=['black', 'whitesmoke']
+            )
+    
         data = corr_stack.values.flatten()
         median_value = np.nanmedian(data)
         if isinstance(threshold, str) and threshold == 'auto':
@@ -841,10 +855,9 @@ class Stack_phasediff(Stack_topo):
         axs[0].set_ylabel('Count', fontsize=16)
         ax2.set_ylabel('Cumulative Count', color='orange', fontsize=16)
 
-        corr_stack.where(corr_stack >= threshold).plot.imshow(cmap='gray', vmin=0, vmax=1, ax=axs[1])
-        caption = f'Threshold >= {threshold:0.2f}'
-        axs[1].set_title(caption, fontsize=18)
+        corr_stack.where(corr_stack >= threshold).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
+        axs[1].set_title(f'Threshold >= {threshold:0.2f}', fontsize=18)
 
-        plt.suptitle('Correlation Stack', fontsize=20)
+        plt.suptitle(caption, fontsize=20)
         plt.tight_layout()
         plt.show()
