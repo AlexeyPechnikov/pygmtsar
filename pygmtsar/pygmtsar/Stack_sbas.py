@@ -637,21 +637,67 @@ class Stack_sbas(Stack_detrend):
         plt.show()
 
     @staticmethod
-    def plot_baseline_duration(baseline_pairs, interval_days=6):
+    def plot_baseline_duration(baseline_pairs, interval_days=6, caption='Durations Histogram',
+                               column=None, ascending=None, cmap='turbo', vmin=None, vmax=None):
         import numpy as np
         import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
 
         max_duration = baseline_pairs.duration.max()
-        bins = np.arange(interval_days/2, max_duration + interval_days, interval_days)
+        bins = np.arange(interval_days / 2, max_duration + interval_days, interval_days)
+        bin_midpoints = (bins[:-1] + bins[1:]) / 2
+        #print ('bins', len(bins), bins)
 
-        plt.figure(figsize=(12, 4), dpi=300)
-        plt.hist(baseline_pairs.duration, bins=bins, color='skyblue', edgecolor='black')
-        plt.xlabel('Duration, [days]', fontsize=14)
-        plt.ylabel('Count', fontsize=14)
-        plt.title('Durations Histogram', fontsize=18)
-        plt.xticks(bins + interval_days/2 if interval_days>=12 else bins[1::2] + interval_days/2)
-        plt.xlim(0, max_duration + interval_days/2)
-        plt.grid()
+        fig, ax = plt.subplots(figsize=(12, 4), dpi=300)
+
+        if column is not None and ascending is None:
+            # Calculate histogram with average column values
+            counts, edges = np.histogram(baseline_pairs.duration, bins=bins)
+            sums, _ = np.histogram(baseline_pairs.duration, bins=bins, weights=baseline_pairs[column])
+            averages = sums / counts
+
+            # Normalize the average values for coloring
+            norm = mcolors.Normalize(vmin=vmin if vmin is not None else np.nanmin(averages),
+                                     vmax=vmax if vmax is not None else np.nanmax(averages))
+            cmap = plt.cm.get_cmap(cmap)
+
+            for i in range(len(bin_midpoints)):
+                bin_color = 'white' if np.isnan(averages[i]) else cmap(norm(averages[i]))
+                ax.bar(bin_midpoints[i], counts[i], width=bins[i+1] - bins[i], color=bin_color,
+                       edgecolor='black', align='center', zorder=3)
+
+            plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, label=f'Average {column}')
+        elif column is not None:
+            norm = mcolors.Normalize(vmin=vmin if vmin is not None else baseline_pairs[column].min(),
+                                     vmax=vmax if vmax is not None else baseline_pairs[column].max())
+            cmap = plt.cm.get_cmap(cmap)
+
+            for i in range(len(bins) - 1):
+                bin_data = baseline_pairs[(baseline_pairs.duration >= bins[i]) & (baseline_pairs.duration < bins[i + 1])]
+                bin_data = bin_data.sort_values(by=column, ascending=ascending)
+                #print (i, bin_data[column].mean())
+
+                bottom = 0
+                for _, row in bin_data.iterrows():
+                    #print (i, row[column])
+                    color = cmap(norm(row[column]))
+                    ax.bar(bin_midpoints[i], 1, bottom=bottom, width=bins[i+1] - bins[i],
+                           color=color, edgecolor='black', align='center', zorder=3)
+                    bottom += 1
+
+            plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, label=f'{column} value')
+        else:
+            ax.hist(baseline_pairs.duration, bins=bins, color='skyblue', edgecolor='black', align='mid', zorder=3)
+
+        ax.set_xlabel('Duration [days]', fontsize=14)
+        ax.set_ylabel('Count', fontsize=14)
+        ax.set_title(caption, fontsize=18)
+        ax.set_xticks(bin_midpoints if interval_days >= 12 else bin_midpoints[1::2])
+        ax.set_xlim(interval_days / 2, max_duration + interval_days / 2)
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+            label.set_horizontalalignment('center')
+        ax.grid(True, color='lightgrey', zorder=0)
         plt.show()
 
     @staticmethod
@@ -690,14 +736,17 @@ class Stack_sbas(Stack_detrend):
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
-                                   stl=True, stl_freq='W', stl_periods=52, stl_robust=False):
+                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True):
         import numpy as np
         import xarray as xr
         import pandas as pd
+        from scipy.stats import linregress
         import matplotlib
         import matplotlib.pyplot as plt
         from matplotlib.cm import ScalarMappable
 
+        if not displacement and stl:
+            print ("NOTE: Displacement is automatically set to 'True' because it is required for 'stl=True'.")
         assert isinstance(phase, xr.DataArray) and phase.dims == ('pair',), \
             'ERROR: Argument phase should be 1D Xarray with "pair" dimension'
         plt.figure(figsize=(12, 4), dpi=300)
@@ -715,14 +764,26 @@ class Stack_sbas(Stack_detrend):
         if displacement or stl:
             solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, matrix)
             #print ('solution', solution)
+            days = (dates - dates[0]).days
+            slope, intercept, r_value, p_value, std_err = linregress(days, solution)
+            #print (slope, intercept, r_value, p_value, std_err)
+            velocity = np.round(slope*365.25, 2)
+            values = intercept + slope*days
 
         if stl:
             #assert displacement, 'ERROR: Argument value stl=True requires argument displacement=True'
             dt, dt_periodic = self.stl_periodic(dates, stl_freq)
             trend, seasonal, resid = self.stl1d(solution, dt, dt_periodic, periods=stl_periods, robust=stl_robust)
-            years = ((dt_periodic.date[-1] - dt_periodic.date[0]).dt.days/365.25).item()
+            #years = ((dt_periodic.date[-1] - dt_periodic.date[0]).dt.days/365.25).item()
+            stl_dates = pd.to_datetime(dt_periodic)
+            stl_days = (stl_dates - stl_dates[0]).days
+            stl_slope, stl_intercept, stl_r_value, stl_p_value, stl_std_err = linregress(stl_days, trend)
+            #print (stl_slope, stl_intercept, stl_r_value, stl_p_value, stl_std_err)
+            stl_velocity = np.round(stl_slope*365.25, 2)
             # for linear trend
-            velocity = (trend[-1] - trend[0])/years
+            #velocity = (trend[-1] - trend[0])/years
+            # for integral trend
+            #velocity = np.round(years*np.nansum(trend - np.nanmin(trend))/trend.size, 2)
 
         vmin = df['phase'].min()
         vmax = df['phase'].max()
@@ -753,7 +814,7 @@ class Stack_sbas(Stack_detrend):
                      linewidth=0.5)
         #print ('errors', errors)
         #print ('y_min', y_min, 'y_max', y_max)
-        if displacement:
+        if displacement or stl:
             errors = np.asarray(errors)
             #print ('errors', errors)
             weights = df['corr'].values
@@ -765,10 +826,13 @@ class Stack_sbas(Stack_detrend):
             #rmse = np.sqrt(np.sum(errors**2) / errors.size)
             rmse = np.sqrt(np.sum(weights * (errors**2)) / np.sum(weights) / errors.size)
             #print ('weighted PI-scaled rmse', np.round(rmse / np.pi, 2))
-            plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label='LSTSQ Displacement')
+            plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label='Least-Squares Displacement')
+            plt.plot(dates, values, color='blue', linestyle='-', linewidth=2,
+                     label=f'Velocity {velocity:0.1f} [rad/year], P-value={p_value:0.2f}')
 
         if stl:
-            plt.plot(dt_periodic.date, trend, color='blue', linestyle='--', linewidth=2, label='STL Trend')
+            plt.plot(dt_periodic.date, trend, color='blue', linestyle='--', linewidth=2,
+                     label=f'STL Trend, Velocity {stl_velocity:0.1f} [rad/year]')
             plt.plot(dt_periodic.date, seasonal, color='green', linestyle='--', linewidth=1, label='STL Seasonal')
             plt.plot(dt_periodic.date, resid, color='red', linestyle='--', linewidth=1, label='STL Residual')
 
@@ -786,9 +850,8 @@ class Stack_sbas(Stack_detrend):
 
         plt.xlabel('Timeline', fontsize=16)
         plt.ylabel('Phase, [rad]', fontsize=16)
-        plt.title('Baseline Displacement' \
-                  + (f' RMSE={rmse:0.3f} [rad]' if displacement else '') \
-                  + (f', STL Velocity={velocity:0.1f} [rad/year]' if stl else '') \
+        plt.title('Displacement' \
+                  + (f' RMSE={rmse:0.3f} [rad]' if displacement or stl else '') \
                   + (f'\n{caption}' if caption is not None else ''), fontsize=18)
         plt.xlim([dates[0], dates[-1]])
         if displacement or stl:
