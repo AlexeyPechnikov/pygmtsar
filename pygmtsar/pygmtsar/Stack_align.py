@@ -854,7 +854,8 @@ class Stack_align(Stack_dem):
 
         # prepare secondary images
         with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_rep_subswath)(subswath, date, degrees=degrees, debug=debug) \
+            # threading backend is the only one working stable inside Docker container to run multiple binaries in parallel
+            joblib.Parallel(n_jobs=n_jobs, backend='threading')(joblib.delayed(self._align_rep_subswath)(subswath, date, degrees=degrees, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
 
         if len(subswaths) > 1:
