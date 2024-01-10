@@ -60,7 +60,7 @@ setup(
                       'seaborn'
                       ],
     extras_require={
-                      'vtk_support': ['vtk']
+                      'vtk_support': ['vtk', 'panel']
     },
     classifiers=[
         'Development Status :: 4 - Beta',
