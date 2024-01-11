@@ -814,7 +814,8 @@ class Stack_align(Stack_dem):
             data.append({'date':date, 'parallel':BPL.round(1), 'perpendicular':BPR.round(1)})
         return pd.DataFrame(data).set_index('date')
 
-    def compute_align(self, geometry='auto', dates=None, n_jobs=-1, degrees=12.0/3600, debug=False):
+    # 'threading' for Docker and 'loky' by default
+    def compute_align(self, geometry='auto', dates=None, n_jobs=-1, degrees=12.0/3600, joblib_aligning_backend=None, debug=False):
         """
         Stack and align scenes.
 
@@ -824,6 +825,7 @@ class Stack_align(Stack_dem):
             List of dates to process. If None, process all scenes. Default is None.
         n_jobs : int, optional
             Number of parallel processing jobs. n_jobs=-1 means all processor cores are used. Default is -1.
+        joblib_aligning_backend: str or None, optional
 
         Returns
         -------
@@ -854,8 +856,8 @@ class Stack_align(Stack_dem):
 
         # prepare secondary images
         with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
-            # threading backend is the only one working stable inside Docker container to run multiple binaries in parallel
-            joblib.Parallel(n_jobs=n_jobs, backend='threading')(joblib.delayed(self._align_rep_subswath)(subswath, date, degrees=degrees, debug=debug) \
+            # threading backend is the only one working inside Docker container to run multiple binaries in parallel
+            joblib.Parallel(n_jobs=n_jobs, backend=joblib_aligning_backend)(joblib.delayed(self._align_rep_subswath)(subswath, date, degrees=degrees, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
 
         if len(subswaths) > 1:
