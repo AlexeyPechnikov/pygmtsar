@@ -701,7 +701,7 @@ class Stack_sbas(Stack_detrend):
         plt.show()
 
     @staticmethod
-    def plot_baseline_correlation(baseline_pairs, pairs_best=None):
+    def plot_baseline_attribute(baseline_pairs, pairs_best=None, column='corr', caption='Baseline Attribute'):
         import numpy as np
         import pandas as pd
         import seaborn as sns
@@ -710,33 +710,54 @@ class Stack_sbas(Stack_detrend):
         plt.figure(figsize=(12, 4), dpi=300)
 
         # plot dates/baselines marks
-        df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', 'corr']], baseline_pairs[['rep', 'corr']]]),
-                                         columns=['date', 'corr']).drop_duplicates()
-        sns.scatterplot(x='date', y='corr', data=df, marker='o', color='r', s=10, label='All Pairs')
+        df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', column]], baseline_pairs[['rep', column]]]),
+                                         columns=['date', column]).drop_duplicates()
+        sns.scatterplot(x='date', y=column, data=df, marker='o', color='r', s=10, label='All Pairs')
 
         if pairs_best is not None:
-            df_best = pd.DataFrame(np.concatenate([pairs_best[['ref', 'corr']], pairs_best[['rep', 'corr']]]),
-                                             columns=['date', 'corr']).drop_duplicates()
-            sns.scatterplot(x='date', y='corr', data=df_best, marker='o', color='g', s=40, label='Selected Pairs')
+            df_best = pd.DataFrame(np.concatenate([pairs_best[['ref', column]], pairs_best[['rep', column]]]),
+                                             columns=['date', column]).drop_duplicates()
+            sns.scatterplot(x='date', y=column, data=df_best, marker='o', color='g', s=40, label='Selected Pairs')
 
         # plot pairs
         for _, row in baseline_pairs.iterrows():
-            plt.plot([row['ref'], row['rep']], [row['corr'], row['corr']], c='r', lw=0.5)
+            plt.plot([row['ref'], row['rep']], [row[column], row[column]], c='r', lw=0.5)
 
         if pairs_best is not None:
             for _, row in pairs_best.iterrows():
-                plt.plot([row['ref'], row['rep']], [row['corr'], row['corr']], c='g', lw=1)
+                plt.plot([row['ref'], row['rep']], [row[column], row[column]], c='g', lw=1)
 
         plt.legend(fontsize=14, loc='lower center', bbox_to_anchor=(0.5, 1), ncols=2)
         plt.xlabel('Timeline', fontsize=14)
-        plt.ylabel('Correlation', fontsize=16)
-        plt.title('Baseline Correlation', y=1.2, fontsize=18)
+        plt.ylabel(f'Column "{column}"', fontsize=16)
+        plt.title(caption, y=1.2, fontsize=18)
         plt.grid()
         plt.show()
+
+    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None):
+        print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
+        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='corr', caption='Baseline Correlation')
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
                                    stl=False, stl_freq='W', stl_periods=52, stl_robust=True):
+        """
+        Performs 1D unwrapping, linear regression, and STL on a given set of phase values.
+
+        The linear regression model is represented as:
+            y = β0 + β1 * x
+
+        Where:
+            y: Dependent variable (the outcome being predicted).
+            x: Independent variable (the predictor).
+            β0: Intercept (the value of y when x is 0).
+            β1: Slope or "velocity" (the rate of change in y for a one-unit change in x).
+
+        In this model, 'β' (beta) symbols followed by indices (0, 1, 2, ...) represent 
+        the coefficients in the regression equation. β0 is always the intercept, and 
+        β1, β2, etc., represent the coefficients of the predictor variables.
+
+        """
         import numpy as np
         import xarray as xr
         import pandas as pd
@@ -765,6 +786,7 @@ class Stack_sbas(Stack_detrend):
             solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, matrix)
             #print ('solution', solution)
             days = (dates - dates[0]).days
+            #print ('days', days)
             slope, intercept, r_value, p_value, std_err = linregress(days, solution)
             #print (slope, intercept, r_value, p_value, std_err)
             velocity = np.round(slope*365.25, 2)
@@ -777,6 +799,7 @@ class Stack_sbas(Stack_detrend):
             #years = ((dt_periodic.date[-1] - dt_periodic.date[0]).dt.days/365.25).item()
             stl_dates = pd.to_datetime(dt_periodic)
             stl_days = (stl_dates - stl_dates[0]).days
+            #print ('stl_days', stl_days)
             stl_slope, stl_intercept, stl_r_value, stl_p_value, stl_std_err = linregress(stl_days, trend)
             #print (stl_slope, stl_intercept, stl_r_value, stl_p_value, stl_std_err)
             stl_velocity = np.round(stl_slope*365.25, 2)
@@ -826,13 +849,13 @@ class Stack_sbas(Stack_detrend):
             #rmse = np.sqrt(np.sum(errors**2) / errors.size)
             rmse = np.sqrt(np.sum(weights * (errors**2)) / np.sum(weights) / errors.size)
             #print ('weighted PI-scaled rmse', np.round(rmse / np.pi, 2))
-            plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label='Least-Squares Displacement')
+            plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label='LSQ')
             plt.plot(dates, values, color='blue', linestyle='-', linewidth=2,
-                     label=f'Velocity {velocity:0.1f} [rad/year], P-value={p_value:0.2f}')
+                     label=f'LSQ β1 {velocity:0.1f} and β0={intercept:0.1f} [rad/year], P-value={p_value:0.2f}')
 
         if stl:
             plt.plot(dt_periodic.date, trend, color='blue', linestyle='--', linewidth=2,
-                     label=f'STL Trend, Velocity {stl_velocity:0.1f} [rad/year]')
+                     label=f'STL β1 {stl_velocity:0.1f} and β0={stl_intercept:0.1f} [rad/year]')
             plt.plot(dt_periodic.date, seasonal, color='green', linestyle='--', linewidth=1, label='STL Seasonal')
             plt.plot(dt_periodic.date, resid, color='red', linestyle='--', linewidth=1, label='STL Residual')
 
