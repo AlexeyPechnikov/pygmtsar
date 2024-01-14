@@ -772,7 +772,7 @@ class Stack_phasediff(Stack_topo):
         return ds.where(ds).rename('phase')
 
     @staticmethod
-    def plot_phases(data, caption='Phase, [rad]', cols=4, size=4, vmin=None, vmax=None):
+    def plot_phases(data, caption='Phase, [rad]', cols=4, size=4, y=1.05, vmin=None, vmax=None):
         import matplotlib.pyplot as plt
 
         # multi-plots ineffective for linked lazy data
@@ -783,7 +783,7 @@ class Stack_phasediff(Stack_topo):
         )
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        fg.fig.suptitle(caption, y=y, fontsize=24)
         plt.show()
 
     @staticmethod
@@ -825,7 +825,7 @@ class Stack_phasediff(Stack_topo):
         plt.show()
 
     @staticmethod
-    def plot_correlation_stack(corr_stack, threshold='auto', caption='Multi-Look Correlation Stack', bins=100, cmap='auto'):
+    def plot_correlation_stack(corr_stack, threshold='auto', caption='Correlation Stack', bins=100, cmap='auto'):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
