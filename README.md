@@ -8,7 +8,7 @@ PyGMTSAR (Python InSAR) **Video Lessons and Educational Notebooks** available on
 
 ## PyGMTSAR (Python InSAR) - Sentinel-1 Satellite Interferometry for Everyone
 
-In its current development phase, PyGMTSAR (Python InSAR) aims to cater to the needs of both occasional users and experts in Sentinel-1 Satellite Interferometry. It offers a range of features, including SBAS, PSI, PSI-SBAS, and more. It is available in [pygmtsar2 branch](https://github.com/mobigroup/gmtsar/tree/pygmtsar2). I  share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and updates on its progress through my [LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/).
+PyGMTSAR (Python InSAR) aims to cater to the needs of both occasional users and experts in Sentinel-1 Satellite Interferometry. It offers a range of features, including SBAS, PSI, PSI-SBAS, and more. It is available in [pygmtsar2 branch](https://github.com/mobigroup/gmtsar/tree/pygmtsar2). I  share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and updates on its progress through my [LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/).
 
 <img src="https://github.com/mobigroup/gmtsar/assets/7342379/3a7d8fda-a3e1-4282-b5ae-2b1c362b891d" width="40%" />
 
@@ -22,7 +22,9 @@ One of the most awaited features in PyGMTSAR (Python InSAR) is the combined anal
 
 ## PyGMTSAR Live Examples on Google Colab
 
-These notebooks offer interactive examples accessible directly in your web browser. All steps are automated, which includes software installation on Google Colab's cloud host (Linux Ubuntu 22, Python 3.10), downloading of Sentinel-1 SLC and orbit files from the Alaska Satellite Facility (ASF) datastore, obtaining SRTM DEM data and converting it to ellipsoidal heights using the EGM96 model, downloading a landmask for masking low-coherence water surfaces, and, of course, performing complete interferometry processing and result mapping. You can replace the scene names with your own to obtain similar results for your specific area. All the notebooks are accompanied by interactive 3D maps that are available instantly. 
+Google Colab is a free service, and these notebooks offer interactive examples that are accessible directly in your web browser, available to everyone. You don't need a powerful computer, extensive disk space, a fast internet connection, or to install any required software. Almost any internet-connected device, such as a desktop, laptop, smartphone, or even a smart TV, is sufficient for InSAR processing using PyGMTSAR. Moreover, you can save the results and the processing Jupyter notebook on your local computer or server to run it locally or in the cloud.
+
+All steps are automated, which includes software installation on Google Colab's cloud host (Linux Ubuntu 22, Python 3.10), downloading of Sentinel-1 SLC and orbit files from the Alaska Satellite Facility (ASF) datastore, obtaining SRTM DEM data and converting it to ellipsoidal heights using the EGM96 model, downloading a landmask for masking low-coherence water surfaces, and, of course, performing complete interferometry processing and result mapping. You can replace the scene names with your own to obtain similar results for your specific area. All the notebooks are accompanied by interactive 3D maps that are available instantly. 
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1TARVTB7z8goZyEVDRWyTAKJpyuqZxzW2?usp=sharing) CENTRAL Türkiye Mw 7.8 & 7.5 Earthquakes Co-Seismic Interferogram, 2023.
 
@@ -44,15 +46,18 @@ These notebooks offer interactive examples accessible directly in your web brows
 
 <img src="https://github.com/mobigroup/gmtsar/assets/7342379/bbe0f043-af09-4724-9e50-5549d3f24adc" width="50%"><img src="https://github.com/mobigroup/gmtsar/assets/7342379/cd1d8c33-3488-41af-aece-985b4d4202ae" width="50%">
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Gdz7ShTkbIQ3-0BBcTxuo1W_CxUegXMq?usp=sharing) Gastein Valley, Austria, 2021—2023. SBAS and PSI example for 28 scenes and 201 interferograms.
+## PyGMTSAR Live Examples on Google Colab Pro
 
-<img src="https://github.com/mobigroup/gmtsar/assets/7342379/72e504f2-3e2e-4048-8d21-014ce1c36794" width="50%"><img src="https://github.com/mobigroup/gmtsar/assets/7342379/682bcf8e-fbb1-4b14-84e2-788f5dab4016" width="50%">
+Additionally, I share more complex SBAS and PSI use cases on my [Patreon](https://www.patreon.com/pechnikov) for subscribers. Please note that Google Colab Pro is a paid service, and accessing these examples requires a paid membership.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1J5E9KQnrZneiRf-wv2fDBCnEKh1m7kbK?usp=sharing) Gastein Valley, Austria, 2021—2023. PS-weighted SBAS and PSI example for 28 scenes and 201 interferograms.
+* InSAR analysis on Gastein Valley, Austria, 2021–2023. SBAS and PSI example featuring 58 Sentinel-1 SLC and between 200 to 1400 interferograms.
 
 <img src="https://github.com/mobigroup/gmtsar/assets/7342379/27bd0436-db6f-45cd-88c8-99332ec337d5" width="50%"><img src="https://github.com/mobigroup/gmtsar/assets/7342379/6d1181fb-5bdb-4923-ae64-74f59b48f9b4" width="50%">
 
-## See Stable PyGMTSAR
+* InSAR analysis on Imperial Valley, California, USA, 2015. SBAS and PSI example featuring 58 Sentinel-1 SLC and between 200 to 1400 interferograms.
+<img src="https://github.com/mobigroup/gmtsar/assets/7342379/c016c07e-06e9-4aef-ab59-4caa83d10541" width="100%">
+
+## See Stable PyGMTSAR (previous version)
 
 The stable PyGMTSAR is available on GitHub, PyPI, DockerHub and Google Colab, see the project home page [PyGMTSAR GitHub Repository](https://github.com/mobigroup/gmtsar)
 
