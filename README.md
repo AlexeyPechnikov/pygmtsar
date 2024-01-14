@@ -48,7 +48,7 @@ All steps are automated, which includes software installation on Google Colab's 
 
 ## PyGMTSAR Live Examples on Google Colab Pro
 
-Additionally, I share more complex SBAS and PSI use cases on my [Patreon](https://www.patreon.com/pechnikov) for subscribers. Please note that Google Colab Pro is a paid service, and accessing these examples requires a paid membership.
+Additionally, I share more complex SBAS and PSI use cases, which are available on Google Colab Pro, on my [Patreon](https://www.patreon.com/pechnikov) for subscribers. Please note, Google Colab Pro is a paid service, costing $10/month, and accessing these examples requires a separate paid membership of $20/month.
 
 * InSAR analysis on Gastein Valley, Austria, 2021–2023. SBAS and PSI example featuring 58 Sentinel-1 SLC and between 200 to 1400 interferograms.
 
