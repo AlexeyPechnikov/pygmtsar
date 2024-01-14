@@ -286,18 +286,106 @@ class Stack_detrend(Stack_unwrap):
         - Proper tuning of parameters (max_iter, tol, alpha, l1_ratio) is crucial for optimal performance and prevention of overfitting.
 
         Example:  
-        topo = sbas.get_topo().coarsen({'x': 4}, boundary='trim').mean()
+        decimator = sbas.decimator(resolution=15, grid=(1,1))
+        topo = decimator(sbas.get_topo())
+        inc = decimator(sbas.incidence_angle())
         yy, xx = xr.broadcast(topo.y, topo.x)
-        strat_sbas = sbas.regression_sgd(unwrap_sbas.phase,
+        trend_sbas = sbas.regression(unwrap_sbas.phase,
                 [topo,    topo*yy,    topo*xx,    topo*yy*xx,
                  topo**2, topo**2*yy, topo**2*xx, topo**2*yy*xx,
                  topo**3, topo**3*yy, topo**3*xx, topo**3*yy*xx,
+                 inc,     inc**yy,    inc*xx,     inc*yy*xx,
                  yy, xx,
                  yy**2, xx**2, yy*xx,
                  yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
         """
         return self.regression(data, variables, weight, valid_pixels_threshold, 'sgd',
                                max_iter=max_iter, tol=tol, alpha=alpha, l1_ratio=l1_ratio)
+
+    def polyfit(self, data, weight=None, degree=0, count=None):
+        import xarray as xr
+        import pandas as pd
+        import numpy as np
+
+        pairs, dates = self.get_pairs(data, dates=True)
+
+        models = []
+        for date in dates:
+            data_pairs = pairs[(pairs.ref==date)|(pairs.rep==date)].pair.values
+            #print (data_pairs)
+            stack = data.sel(pair=data_pairs)
+            if weight is None:
+                stack = data.sel(pair=data_pairs)
+            else:
+                stack = data.sel(pair=data_pairs) * np.sqrt(weight.sel(pair=data_pairs))
+            days = xr.where(stack.ref < pd.Timestamp(date),
+                           (stack.ref - stack.rep).dt.days,
+                           (stack.rep - stack.ref).dt.days)
+            #print (days, np.sign(days))
+            # select smallest intervals
+            days_selected = days[np.argsort(np.abs(days.values))][:count]
+            #print (days_selected)
+            linear_fit = (np.sign(days)*stack)\
+                .assign_coords(time=days)[stack.pair.isin(days_selected.pair)]\
+                .swap_dims({'pair': 'time'}).sortby(['ref', 'rep'])\
+                .polyfit(dim='time', deg=degree)
+            model = linear_fit.polyfit_coefficients.sel(degree=degree)
+            models.append(model.assign_coords(date=pd.to_datetime(date)))
+            del data_pairs, stack, days, days_selected, linear_fit, model
+        model = xr.concat(models, dim='date')
+        del models
+
+        out = xr.concat([(model.sel(date=ref).drop('date') - model.sel(date=rep).drop('date'))\
+                                 .assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+                          for ref, rep in zip(pairs['ref'], pairs['rep'])], dim='pair')
+
+        return out.rename(data.name)
+
+#     def polyfit(self, data, weight=None, degree=0, variable=None, count=None):
+#         import xarray as xr
+#         import pandas as pd
+#         import numpy as np
+# 
+#         pairs, dates = self.get_pairs(data, dates=True)
+#         if variable is not None:
+#             pairs['variable'] = variable.values if isinstance(variable, pd.Series) else variable
+# 
+#         models = []
+#         for date in dates:
+#             data_pairs = pairs[(pairs.ref==date)|(pairs.rep==date)].pair.values
+#             #print (data_pairs)
+#             stack = data.sel(pair=data_pairs)
+#             if weight is None:
+#                 stack = data.sel(pair=data_pairs)
+#             else:
+#                 stack = data.sel(pair=data_pairs) * np.sqrt(weight.sel(pair=data_pairs))
+#             # days, positive and negative
+#             days = xr.where(stack.ref < pd.Timestamp(date),
+#                            (stack.ref - stack.rep).dt.days,
+#                            (stack.rep - stack.ref).dt.days)
+#             # select smallest intervals
+#             days_selected = days[np.argsort(np.abs(days.values))][:count]
+#             if variable is not None:
+#                 data_variables = xr.DataArray(pairs[pairs.pair.isin(data_pairs)]['variable'].values, coords=days.coords)
+#             else:
+#                 data_variables = days
+#             #print (days, days_selected, data_variables)
+#             #.sortby(['ref', 'rep'])
+#             linear_fit = (np.sign(days)*stack)\
+#                 .assign_coords(time=data_variables)[stack.pair.isin(days_selected.pair)]\
+#                 .swap_dims({'pair': 'variable'})\
+#                 .polyfit(dim='variable', deg=degree)
+#             model = linear_fit.polyfit_coefficients.sel(degree=degree)
+#             models.append(model.assign_coords(date=pd.to_datetime(date)))
+#             del data_pairs, stack, days, days_selected, data_variables, linear_fit, model
+#         model = xr.concat(models, dim='date')
+#         del models
+# 
+#         out = xr.concat([(model.sel(date=ref).drop('date') - model.sel(date=rep).drop('date'))\
+#                                  .assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+#                           for ref, rep in zip(pairs['ref'], pairs['rep'])], dim='pair')
+# 
+#         return out.rename(data.name)
 
     def gaussian(self, grid, wavelength, truncate=3.0, resolution=60, debug=False):
         """
