@@ -50,6 +50,8 @@ class Stack_reframe(Stack_reframe_gmtsar):
         # define line covering some bursts to crop them
         if isinstance(geometry, (gpd.GeoDataFrame, gpd.GeoSeries)):
             geometry = geometry.unary_union
+        assert not geometry is None, f'ERROR: subswath {subswath} is not covered, you need to exclude it.'
+
         # convert to polygon when possible
         geometry = geometry.minimum_rotated_rectangle
         # it can be point or line or polygon
@@ -172,13 +174,14 @@ class Stack_reframe(Stack_reframe_gmtsar):
 
         dates = self.df.index.unique().values
         subswaths = self.get_subswaths()
-        if geometry is None:
-            geometries = {subswath: self.df[self.df.subswath==subswath].geometry.unary_union for subswath in subswaths}
+        # approximate subswath geometries from GCP
+        geometries = {subswath: self.df[self.df.subswath==subswath].geometry.unary_union for subswath in subswaths}
 
         # process all the scenes
         with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
             records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._reframe_subswath)\
-                            (subswath, date, geometry if geometry is not None else geometries[subswath], **kwargs) \
-                                                     for date in dates for subswath in subswaths)
+                            (subswath, date,
+                            geometry.intersection(geometries[subswath]) if geometry is not None else geometries[subswath],
+                            **kwargs) for date in dates for subswath in subswaths)
 
         self.df = pd.concat(records)
