@@ -772,6 +772,22 @@ class Stack_phasediff(Stack_topo):
         return ds.where(ds).rename('phase')
 
     @staticmethod
+    def plot_phase(data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None):
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        if quantile is not None:
+            assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
+
+        if quantile is not None:
+            vmin, vmax = np.nanquantile(data, quantile)
+
+        plt.figure(figsize=(12,4), dpi=300)
+        data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
+        plt.title(caption, fontsize=18)
+        plt.show()
+
+    @staticmethod
     def plot_phases(data, caption='Phase, [rad]', cols=4, size=4, y=1.05, quantile=None, vmin=None, vmax=None):
         import numpy as np
         import matplotlib.pyplot as plt
@@ -794,6 +810,16 @@ class Stack_phasediff(Stack_topo):
         plt.show()
 
     @staticmethod
+    def plot_interferogram(data, caption='Phase, [rad]'):
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(12,4), dpi=300)
+        data.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r')
+        plt.title(caption, fontsize=18)
+        plt.show()
+
+    @staticmethod
     def plot_interferograms(data, cols=4, size=4, caption='Phase, [rad]'):
         import numpy as np
         import matplotlib.pyplot as plt
@@ -807,6 +833,15 @@ class Stack_phasediff(Stack_topo):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
         fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        plt.show()
+
+    @staticmethod
+    def plot_correlation(data, caption='Correlation'):
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(12,4), dpi=300)
+        data.plot.imshow(vmin=0, vmax=1, cmap='gray')
+        plt.title(caption, fontsize=18)
         plt.show()
 
     @staticmethod
