@@ -94,6 +94,8 @@ class Stack(Stack_ps):
         colors = dict([(v, cmap(k)) for k, v in enumerate(gdf.index.unique())])
         gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=0.5/len(gdf), edgecolor='black', ax=plt.gca())
         if AOI is not None:
-            AOI.boundary.plot(ax=plt.gca(), color='red')
+            boundaries = AOI.boundary
+            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
+            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
         plt.title(caption, fontsize=18)
         plt.show()
