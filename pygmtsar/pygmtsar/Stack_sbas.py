@@ -905,8 +905,15 @@ class Stack_sbas(Stack_detrend):
         return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
 
     @staticmethod
-    def plot_displacement(data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, y=1.05, vmin=None, vmax=None):
+    def plot_displacements(data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, y=1.05, quantile=None, vmin=None, vmax=None):
+        import numpy as np
         import matplotlib.pyplot as plt
+
+        if quantile is not None:
+            assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
+
+        if quantile is not None:
+            vmin, vmax = np.nanquantile(data, quantile)
 
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
