@@ -772,7 +772,7 @@ class Stack_phasediff(Stack_topo):
         return ds.where(ds).rename('phase')
 
     @staticmethod
-    def plot_phase(data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None):
+    def plot_phase(data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None, aspect=None):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -785,6 +785,8 @@ class Stack_phasediff(Stack_topo):
         plt.figure(figsize=(12,4), dpi=300)
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
         plt.title(caption, fontsize=18)
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
         plt.show()
 
     @staticmethod
