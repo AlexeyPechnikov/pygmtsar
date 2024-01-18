@@ -594,18 +594,18 @@ class Stack_sbas(Stack_detrend):
             corrs.append(empty.assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep))
         return xr.concat(corrs, dim='pair')
 
-    def baseline_plot(self, baseline_pairs):
+    def baseline_plot(self, baseline_pairs, dpi=300):
         print ('NOTE: this function is deprecated, use instead Stack.plot_baseline()')
-        self.plot_baseline(baseline_pairs)
+        self.plot_baseline(baseline_pairs, dpi)
         
-    def plot_baseline(self, baseline_pairs):
+    def plot_baseline(self, baseline_pairs, dpi=300):
         import numpy as np
         import pandas as pd
         import seaborn as sns
         import adjustText
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12, 4), dpi=300)
+        plt.figure(figsize=(12, 4), dpi=dpi)
 
         # plot dates/baselines marks
         df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', 'ref_baseline']],
@@ -638,7 +638,7 @@ class Stack_sbas(Stack_detrend):
 
     @staticmethod
     def plot_baseline_duration(baseline_pairs, interval_days=6, caption='Durations Histogram',
-                               column=None, ascending=None, cmap='turbo', vmin=None, vmax=None):
+                               column=None, ascending=None, cmap='turbo', vmin=None, vmax=None, dpi=300):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
@@ -648,7 +648,7 @@ class Stack_sbas(Stack_detrend):
         bin_midpoints = (bins[:-1] + bins[1:]) / 2
         #print ('bins', len(bins), bins)
 
-        fig, ax = plt.subplots(figsize=(12, 4), dpi=300)
+        fig, ax = plt.subplots(figsize=(12, 4), dpi=dpi)
 
         if column is not None and ascending is None:
             # Calculate histogram with average column values
@@ -701,13 +701,13 @@ class Stack_sbas(Stack_detrend):
         plt.show()
 
     @staticmethod
-    def plot_baseline_attribute(baseline_pairs, pairs_best=None, column='corr', caption='Baseline Attribute'):
+    def plot_baseline_attribute(baseline_pairs, pairs_best=None, column='corr', caption='Baseline Attribute', dpi=300):
         import numpy as np
         import pandas as pd
         import seaborn as sns
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12, 4), dpi=300)
+        plt.figure(figsize=(12, 4), dpi=dpi)
 
         # plot dates/baselines marks
         df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', column]], baseline_pairs[['rep', column]]]),
@@ -734,13 +734,13 @@ class Stack_sbas(Stack_detrend):
         plt.grid()
         plt.show()
 
-    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None):
+    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None, dpi=300):
         print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
-        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='corr', caption='Baseline Correlation')
+        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='corr', caption='Baseline Correlation', dpi=dpi)
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
-                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True):
+                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True, dpi=300):
         """
         Performs 1D unwrapping, linear regression, and STL on a given set of phase values.
 
@@ -770,7 +770,7 @@ class Stack_sbas(Stack_detrend):
             print ("NOTE: Displacement is automatically set to 'True' because it is required for 'stl=True'.")
         assert isinstance(phase, xr.DataArray) and phase.dims == ('pair',), \
             'ERROR: Argument phase should be 1D Xarray with "pair" dimension'
-        plt.figure(figsize=(12, 4), dpi=300)
+        plt.figure(figsize=(12, 4), dpi=dpi)
         colors = matplotlib.cm.get_cmap(cmap)
 
         df = phase.to_dataframe()
