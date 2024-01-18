@@ -902,7 +902,7 @@ class Stack_sbas(Stack_detrend):
         error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': data.pair})
         return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
 
-    def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]', quantile=None, vmin=None, vmax=None, aspect=None, **kwarg):
+    def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]', quantile=None, vmin=None, vmax=None, aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
