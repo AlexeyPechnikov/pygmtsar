@@ -128,3 +128,15 @@ class Stack_landmask(Stack_multilooking):
             pbar.update(1)
 
         self.landmask_filename = landmask_filename
+
+    @staticmethod
+    def plot_landmask(landmask='auto', caption='Land Mask'):
+        import matplotlib.pyplot as plt
+
+        if isinstance(landmask, str) and landmask == 'auto':
+            landmask = self.get_landmask()
+
+        plt.figure(figsize=(12,4), dpi=300)
+        landmask.plot.imshow(vmin=0, cmap='binary')
+        plt.title(caption, fontsize=18)
+        plt.show()
