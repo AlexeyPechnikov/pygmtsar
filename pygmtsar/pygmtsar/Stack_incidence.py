@@ -333,6 +333,27 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = np.arctan2(np.sqrt(sat_look.look_E**2 + sat_look.look_N**2), sat_look.look_U).rename('incidence_angle')
         return incidence_ll
 
+    def plot_incidence_angle(self, incidence_angle='auto', caption='Incidence Angle in Radar Coordinates, [rad]', AOI=None, POI=None, dpi=300, aspect=None):
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(12,4), dpi=dpi)
+        if isinstance(incidence_angle, str) and incidence_angle == 'auto':
+            self.incidence_angle().plot.imshow(cmap='gray')
+        else:
+            incidence_angle.plot.imshow(cmap='gray')
+        if AOI is not None:
+            boundaries = AOI.boundary
+            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
+            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
+        if POI is not None:
+            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
+        plt.xlabel('Range', fontsize=16)
+        plt.ylabel('Azimuth', fontsize=16)
+        plt.title(caption, fontsize=18)
+        plt.show()
+
     def vertical_displacement_mm(self, unwrap):
         """
         Compute vertical displacement in millimeters in radar coordinates.
