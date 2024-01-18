@@ -31,7 +31,7 @@ class Stack_topo(Stack_trans_inv):
         """
         return self.get_trans_inv()['ele'].rename('topo')
 
-    def plot_topo(self, topo='auto', caption='Topography in Radar Coordinates', AOI=None, POI=None, dpi=300, aspect=None):
+    def plot_topo(self, topo='auto', caption='Topography in Radar Coordinates on WGS84 ellipsoid, [m]', AOI=None, POI=None, dpi=300, aspect=None):
         import matplotlib.pyplot as plt
 
         plt.figure(figsize=(12,4), dpi=dpi)
