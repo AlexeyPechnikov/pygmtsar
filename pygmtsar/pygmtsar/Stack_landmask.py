@@ -129,22 +129,17 @@ class Stack_landmask(Stack_multilooking):
 
         self.landmask_filename = landmask_filename
 
-    @staticmethod
-    def plot_landmask(landmask='auto', caption='Land Mask', AOI=None, POI=None, dpi=300, aspect=None):
+    def plot_landmask(self, landmask='auto', caption='Land Mask', cmap='binary', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
 
         if isinstance(landmask, str) and landmask == 'auto':
             landmask = self.get_landmask()
 
-        plt.figure(figsize=(12,4), dpi=dpi)
-        landmask.plot.imshow(vmin=0, cmap='binary')
-        if AOI is not None:
-            boundaries = AOI.boundary
-            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
-            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
-        if POI is not None:
-            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        plt.figure()
+        landmask.plot.imshow(vmin=0, cmap=cmap)
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.title(caption, fontsize=18)
+        plt.title(caption)
         plt.show()

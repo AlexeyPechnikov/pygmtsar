@@ -77,11 +77,45 @@ class Stack(Stack_ps):
 #        matrix = np.array(coeffs[1:]).astype(float).reshape((shape[1],shape[0]))
 #        return (gauss_dec, matrix)
 
-    def plot_scenes(self, AOI=None, POI=None, dem='auto', caption='Estimated Scene Locations', cmap='turbo', dpi=150, aspect=None):
+    @staticmethod
+    def plot_AOI(geometry=None, **kwargs):
+        import matplotlib.pyplot as plt
+        if 'AOI' not in kwargs:
+            return
+        geometry = kwargs['AOI']
+        if 'boundary_color' not in kwargs:
+            boundary_color = 'red'
+        else:
+            boundary_color = kwargs['boundary_color']
+        boundaries = geometry.boundary
+        geometry[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color=boundary_color)
+        geometry[boundaries.is_empty].plot(ax=plt.gca(), color=boundary_color)
+
+    @staticmethod
+    def plot_POI(geometry=None, **kwargs):
+        import matplotlib.pyplot as plt
+        if 'POI' not in kwargs:
+            return
+        geometry = kwargs['POI']
+        if 'marker' not in kwargs:
+            marker = '*'
+        else:
+            marker = kwargs['marker']
+        if 'marker_size' not in kwargs:
+            marker_size = 100
+        else:
+            marker_size = kwargs['marker_size']
+        if 'marker_color' not in kwargs:
+            marker_color = 'red'
+        else:
+            marker_color = kwargs['marker_color']
+        geometry.plot(ax=plt.gca(), marker=marker, markersize=marker_size, color=marker_color)
+
+    def plot_scenes(self, dem='auto', caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
         import matplotlib
 
-        plt.figure(figsize=(12, 4), dpi=dpi)
+        plt.figure()
         if isinstance(dem, str) and dem == 'auto':
             if self.dem_filename is not None:
                 dem = self.get_dem()
@@ -93,13 +127,9 @@ class Stack(Stack_ps):
         cmap = matplotlib.colormaps[cmap]
         colors = dict([(v, cmap(k)) for k, v in enumerate(gdf.index.unique())])
         gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=0.5/len(gdf), edgecolor='black', ax=plt.gca())
-        if AOI is not None:
-            boundaries = AOI.boundary
-            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
-            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
-        if POI is not None:
-            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.title(caption, fontsize=18)
+        plt.title(caption)
         plt.show()

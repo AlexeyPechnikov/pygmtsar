@@ -53,19 +53,30 @@ class Stack_ps(Stack_stl):
         del ds
 
     def psfunction(self, ps='auto'):
+        import numpy as np
         if isinstance(ps, str) and ps == 'auto':
             ps = self.get_ps()
-        return (ps.average/(2*ps.deviation)).rename('psf')
+        psfunction = (ps.average/(2*ps.deviation))
+        return psfunction.where(np.isfinite(psfunction)).rename('psf')
 
-    def plot_psfunction(self, psfunction='auto', vmin=0.2, vmax=0.7):
+    def plot_psfunction(self, psfunction='auto', cmap='gray', quantile=None, vmin=None, vmax=None, **kwargs):
+        import numpy as np
         import matplotlib.pyplot as plt
 
         if isinstance(psfunction, str) and psfunction == 'auto':
             psfunction = self.psfunction()
 
-        plt.figure(figsize=(12, 4), dpi=300)
-        psfunction.plot.imshow(cmap='gray', vmin=vmin, vmax=vmax)
-        plt.title('PS Function', fontsize=18)
+        if quantile is not None:
+            assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
+
+        if quantile is not None:
+            vmin, vmax = np.nanquantile(psfunction, quantile)
+
+        plt.figure()
+        psfunction.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
+        plt.title('PS Function')
         plt.show()
 
 #     def get_adi_threshold(self, threshold):

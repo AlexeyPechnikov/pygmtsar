@@ -306,17 +306,17 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         interpolated = [self.nearest_grid(data.sel(pair=pair), search_radius_pixels) for pair in data.pair]
         return xr.concat(interpolated, dim='pair')
 
-    @staticmethod
-    def plot_conncomps(data, caption='Connected Components', cols=4, size=4):
+    def plot_conncomps(self, data, caption='Connected Components', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
+                       vmin=0, vmax=10, cmap='tab10_r'):
         import matplotlib.pyplot as plt
 
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
             col='pair',
-            col_wrap=cols, size=size, aspect=1.2,
-            cmap='tab10_r', vmin=0, vmax=10
+            col_wrap=cols, size=size, aspect=aspect,
+            cmap=cmap, vmin=0, vmax=10
         )
         fg.set_axis_labels('Range', 'Azimuth')
-        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
+        fg.fig.suptitle(caption, y=y)
         plt.show()

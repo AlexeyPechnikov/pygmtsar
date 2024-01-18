@@ -594,18 +594,18 @@ class Stack_sbas(Stack_detrend):
             corrs.append(empty.assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep))
         return xr.concat(corrs, dim='pair')
 
-    def baseline_plot(self, baseline_pairs, dpi=300):
+    def baseline_plot(self, baseline_pairs):
         print ('NOTE: this function is deprecated, use instead Stack.plot_baseline()')
-        self.plot_baseline(baseline_pairs, dpi)
+        self.plot_baseline(baseline_pairs)
         
-    def plot_baseline(self, baseline_pairs, dpi=300):
+    def plot_baseline(self, baseline_pairs):
         import numpy as np
         import pandas as pd
         import seaborn as sns
         import adjustText
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12, 4), dpi=dpi)
+        plt.figure()
 
         # plot dates/baselines marks
         df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', 'ref_baseline']],
@@ -626,19 +626,18 @@ class Stack_sbas(Stack_detrend):
         # Create annotations with adjust_text
         texts = []
         for x, y in df.values:
-            texts.append(plt.text(x, y, str(x.date()), ha='center', va='bottom', fontsize=10,
+            texts.append(plt.text(x, y, str(x.date()), ha='center', va='bottom',
                                   c='r' if str(x.date()) == self.reference else 'black'))
         adjustText.adjust_text(texts)
 
-        plt.xlabel('Timeline', fontsize=16)
-        plt.ylabel('Perpendicular Baseline, [m]', fontsize=16)
-        plt.title('Baseline', fontsize=18)
+        plt.xlabel('Timeline')
+        plt.ylabel('Perpendicular Baseline, [m]')
+        plt.title('Baseline')
         plt.grid()
         plt.show()
 
-    @staticmethod
-    def plot_baseline_duration(baseline_pairs, interval_days=6, caption='Durations Histogram',
-                               column=None, ascending=None, cmap='turbo', vmin=None, vmax=None, dpi=300):
+    def plot_baseline_duration(self, baseline_pairs, interval_days=6, caption='Durations Histogram',
+                               column=None, ascending=None, cmap='turbo', vmin=None, vmax=None):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
@@ -648,7 +647,7 @@ class Stack_sbas(Stack_detrend):
         bin_midpoints = (bins[:-1] + bins[1:]) / 2
         #print ('bins', len(bins), bins)
 
-        fig, ax = plt.subplots(figsize=(12, 4), dpi=dpi)
+        fig, ax = plt.subplots()
 
         if column is not None and ascending is None:
             # Calculate histogram with average column values
@@ -689,9 +688,9 @@ class Stack_sbas(Stack_detrend):
         else:
             ax.hist(baseline_pairs.duration, bins=bins, color='skyblue', edgecolor='black', align='mid', zorder=3)
 
-        ax.set_xlabel('Duration [days]', fontsize=14)
-        ax.set_ylabel('Count', fontsize=14)
-        ax.set_title(caption, fontsize=18)
+        ax.set_xlabel('Duration [days]')
+        ax.set_ylabel('Count')
+        ax.set_title(caption)
         ax.set_xticks(bin_midpoints if interval_days >= 12 else bin_midpoints[1::2])
         ax.set_xlim(interval_days / 2, max_duration + interval_days / 2)
         for label in ax.get_xticklabels():
@@ -700,14 +699,13 @@ class Stack_sbas(Stack_detrend):
         ax.grid(True, color='lightgrey', zorder=0)
         plt.show()
 
-    @staticmethod
-    def plot_baseline_attribute(baseline_pairs, pairs_best=None, column='corr', caption='Baseline Attribute', dpi=300):
+    def plot_baseline_attribute(self, baseline_pairs, pairs_best=None, column='corr', caption='Baseline Attribute'):
         import numpy as np
         import pandas as pd
         import seaborn as sns
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12, 4), dpi=dpi)
+        plt.figure()
 
         # plot dates/baselines marks
         df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', column]], baseline_pairs[['rep', column]]]),
@@ -727,20 +725,20 @@ class Stack_sbas(Stack_detrend):
             for _, row in pairs_best.iterrows():
                 plt.plot([row['ref'], row['rep']], [row[column], row[column]], c='g', lw=1)
 
-        plt.legend(fontsize=14, loc='lower center', bbox_to_anchor=(0.5, 1), ncols=2)
-        plt.xlabel('Timeline', fontsize=14)
-        plt.ylabel(f'Column "{column}"', fontsize=16)
-        plt.title(caption, y=1.2, fontsize=18)
+        plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1), ncols=2)
+        plt.xlabel('Timeline')
+        plt.ylabel(f'Column "{column}"')
+        plt.title(caption, y=1.2)
         plt.grid()
         plt.show()
 
-    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None, dpi=300):
+    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None):
         print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
-        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='corr', caption='Baseline Correlation', dpi=dpi)
+        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='corr', caption='Baseline Correlation')
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
-                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True, dpi=300):
+                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True):
         """
         Performs 1D unwrapping, linear regression, and STL on a given set of phase values.
 
@@ -770,7 +768,7 @@ class Stack_sbas(Stack_detrend):
             print ("NOTE: Displacement is automatically set to 'True' because it is required for 'stl=True'.")
         assert isinstance(phase, xr.DataArray) and phase.dims == ('pair',), \
             'ERROR: Argument phase should be 1D Xarray with "pair" dimension'
-        plt.figure(figsize=(12, 4), dpi=dpi)
+        plt.figure()
         colors = matplotlib.cm.get_cmap(cmap)
 
         df = phase.to_dataframe()
@@ -869,16 +867,16 @@ class Stack_sbas(Stack_detrend):
             sm = ScalarMappable(cmap=colors, norm=plt.Normalize(vmin=0, vmax=1))
             sm.set_array([])
             cbar = plt.colorbar(sm, ax=plt.gca(), orientation='vertical')
-            cbar.set_label('Correlation', fontsize=16)
+            cbar.set_label('Correlation')
 
-        plt.xlabel('Timeline', fontsize=16)
-        plt.ylabel('Phase, [rad]', fontsize=16)
+        plt.xlabel('Timeline')
+        plt.ylabel('Phase, [rad]')
         plt.title('Displacement' \
                   + (f' RMSE={rmse:0.3f} [rad]' if displacement or stl else '') \
-                  + (f'\n{caption}' if caption is not None else ''), fontsize=18)
+                  + (f'\n{caption}' if caption is not None else ''))
         plt.xlim([dates[0], dates[-1]])
         if displacement or stl:
-            plt.legend(fontsize=10)
+            plt.legend()
         plt.show()
 
     def rmse(self, data, solution, weight=None):
@@ -904,8 +902,7 @@ class Stack_sbas(Stack_detrend):
         error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': data.pair})
         return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
 
-    @staticmethod
-    def plot_displacement(data, caption='Cumulative LOS Displacement, [rad]', quantile=None, vmin=None, vmax=None, AOI=None, POI=None, dpi=300, aspect=None):
+    def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]', quantile=None, vmin=None, vmax=None, aspect=None, **kwarg):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -915,21 +912,16 @@ class Stack_sbas(Stack_detrend):
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
 
-        plt.figure(figsize=(12,4), dpi=dpi)
+        plt.figure()
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
-        if AOI is not None:
-            boundaries = AOI.boundary
-            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
-            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
-        if POI is not None:
-            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.title(caption, fontsize=18)
+        plt.title(caption)
         plt.show()
 
-    @staticmethod
-    def plot_displacements(data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, y=1.05, quantile=None, vmin=None, vmax=None):
+    def plot_displacements(self, data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, quantile=None, vmin=None, vmax=None):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -942,10 +934,10 @@ class Stack_sbas(Stack_detrend):
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
             col='date',
-            col_wrap=cols, size=size, aspect=1.2,
+            col_wrap=cols, size=size, aspect=aspect,
             vmin=vmin, vmax=vmax, cmap='turbo'
         )
         fg.set_axis_labels('Range', 'Azimuth')
-        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-        fg.fig.suptitle(caption, y=y, fontsize=24)
+        fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
+        fg.fig.suptitle(caption, y=y)
         plt.show()

@@ -771,8 +771,7 @@ class Stack_phasediff(Stack_topo):
         # replace zeros produces in NODATA areas
         return ds.where(ds).rename('phase')
 
-    @staticmethod
-    def plot_phase(data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None, AOI=None, POI=None, dpi=300, aspect=None):
+    def plot_phase(self, data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None, cmap='turbo', aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -782,21 +781,16 @@ class Stack_phasediff(Stack_topo):
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
 
-        plt.figure(figsize=(12,4), dpi=dpi)
-        data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
-        if AOI is not None:
-            boundaries = AOI.boundary
-            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
-            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
-        if POI is not None:
-            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        plt.figure()
+        data.plot.imshow(vmin=vmin, vmax=vmax, cmap=cmap)
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.title(caption, fontsize=18)
+        plt.title(caption)
         plt.show()
 
-    @staticmethod
-    def plot_phases(data, caption='Phase, [rad]', cols=4, size=4, y=1.05, quantile=None, vmin=None, vmax=None):
+    def plot_phases(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, quantile=None, vmin=None, vmax=None):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -809,67 +803,55 @@ class Stack_phasediff(Stack_topo):
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
             col='pair',
-            col_wrap=cols, size=size, aspect=1.2,
+            col_wrap=cols, size=size, aspect=aspect,
             vmin=vmin, vmax=vmax, cmap='turbo'
         )
         fg.set_axis_labels('Range', 'Azimuth')
-        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-        fg.fig.suptitle(caption, y=y, fontsize=24)
+        fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
+        fg.fig.suptitle(caption, y=y)
         plt.show()
 
-    @staticmethod
-    def plot_interferogram(data, caption='Phase, [rad]', AOI=None, POI=None, dpi=300, aspect=None):
+    def plot_interferogram(self, data, caption='Phase, [rad]', cmap='gist_rainbow_r', aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12,4), dpi=dpi)
-        data.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r')
-        if AOI is not None:
-            boundaries = AOI.boundary
-            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
-            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
-        if POI is not None:
-            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        plt.figure()
+        data.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap=cmap)
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.title(caption, fontsize=18)
+        plt.title(caption)
         plt.show()
 
-    @staticmethod
-    def plot_interferograms(data, cols=4, size=4, caption='Phase, [rad]'):
+    def plot_interferograms(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05):
         import numpy as np
         import matplotlib.pyplot as plt
 
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
             col='pair',
-            col_wrap=cols, size=size, aspect=1.2,
+            col_wrap=cols, size=size, aspect=aspect,
             vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r'
         )
         fg.set_axis_labels('Range', 'Azimuth')
-        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
+        fg.fig.suptitle(caption, y=y)
         plt.show()
 
-    @staticmethod
-    def plot_correlation(data, caption='Correlation', AOI=None, POI=None, dpi=300, aspect=None):
+    def plot_correlation(self, data, caption='Correlation', cmap='gray', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12,4), dpi=dpi)
-        data.plot.imshow(vmin=0, vmax=1, cmap='gray')
-        if AOI is not None:
-            boundaries = AOI.boundary
-            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
-            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
-        if POI is not None:
-            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        plt.figure()
+        data.plot.imshow(vmin=0, vmax=1, cmap=cmap)
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.title(caption, fontsize=18)
+        plt.title(caption)
         plt.show()
 
-    @staticmethod
-    def plot_correlations(data, cols=4, size=4, caption='Correlation', cmap='auto'):
+    def plot_correlations(self, data, caption='Correlation', cmap='auto', cols=4, size=4, nbins=5, aspect=1.2, y=1.05):
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
 
@@ -882,16 +864,15 @@ class Stack_phasediff(Stack_topo):
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
             col='pair',
-            col_wrap=cols, size=size, aspect=1.2,
+            col_wrap=cols, size=size, aspect=aspect,
             vmin=0, vmax=1, cmap=cmap
         )
         fg.set_axis_labels('Range', 'Azimuth')
-        fg.set_ticks(max_xticks=5, max_yticks=5, fontsize='medium')
-        fg.fig.suptitle(caption, y=1.05, fontsize=24)
+        fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
+        fg.fig.suptitle(caption, y=y)
         plt.show()
 
-    @staticmethod
-    def plot_correlation_stack(corr_stack, threshold='auto', caption='Correlation Stack', bins=100, cmap='auto'):
+    def plot_correlation_stack(self, corr_stack, threshold='auto', caption='Correlation Stack', bins=100, cmap='auto'):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
@@ -907,7 +888,7 @@ class Stack_phasediff(Stack_topo):
         if isinstance(threshold, str) and threshold == 'auto':
             threshold = median_value
 
-        fig, axs = plt.subplots(1, 2, figsize=(12, 4), dpi=300)
+        fig, axs = plt.subplots(1, 2)
 
         ax2 = axs[0].twinx()
         axs[0].hist(data, range=(0, 1), bins=bins, density=False, cumulative=False, color='gray', edgecolor='black', alpha=0.5)
@@ -916,14 +897,14 @@ class Stack_phasediff(Stack_topo):
         axs[0].axvline(median_value, color='red', linestyle='dashed')
         axs[0].set_xlim([0, 1])
         axs[0].grid()
-        axs[0].set_title(f'Histogram Median={median_value:.2f}', fontsize=18)
-        axs[0].set_xlabel('Correlation', fontsize=16)
-        axs[0].set_ylabel('Count', fontsize=16)
-        ax2.set_ylabel('Cumulative Count', color='orange', fontsize=16)
+        axs[0].set_title(f'Histogram Median={median_value:.2f}')
+        axs[0].set_xlabel('Correlation')
+        axs[0].set_ylabel('Count')
+        ax2.set_ylabel('Cumulative Count', color='orange')
 
         corr_stack.where(corr_stack >= threshold).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
-        axs[1].set_title(f'Threshold >= {threshold:0.2f}', fontsize=18)
+        axs[1].set_title(f'Threshold >= {threshold:0.2f}')
 
-        plt.suptitle(caption, fontsize=20)
+        plt.suptitle(caption)
         plt.tight_layout()
         plt.show()
