@@ -772,7 +772,7 @@ class Stack_phasediff(Stack_topo):
         return ds.where(ds).rename('phase')
 
     @staticmethod
-    def plot_phase(data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None, aspect=None):
+    def plot_phase(data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None, AOI=None, POI=None, dpi=300, aspect=None):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -782,11 +782,17 @@ class Stack_phasediff(Stack_topo):
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
 
-        plt.figure(figsize=(12,4), dpi=300)
+        plt.figure(figsize=(12,4), dpi=dpi)
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
-        plt.title(caption, fontsize=18)
+        if AOI is not None:
+            boundaries = AOI.boundary
+            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
+            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
+        if POI is not None:
+            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
         if aspect is not None:
             plt.gca().set_aspect(aspect)
+        plt.title(caption, fontsize=18)
         plt.show()
 
     @staticmethod
@@ -812,12 +818,20 @@ class Stack_phasediff(Stack_topo):
         plt.show()
 
     @staticmethod
-    def plot_interferogram(data, caption='Phase, [rad]'):
+    def plot_interferogram(data, caption='Phase, [rad]', AOI=None, POI=None, dpi=300, aspect=None):
         import numpy as np
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12,4), dpi=300)
+        plt.figure(figsize=(12,4), dpi=dpi)
         data.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r')
+        if AOI is not None:
+            boundaries = AOI.boundary
+            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
+            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
+        if POI is not None:
+            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
         plt.title(caption, fontsize=18)
         plt.show()
 
@@ -838,11 +852,19 @@ class Stack_phasediff(Stack_topo):
         plt.show()
 
     @staticmethod
-    def plot_correlation(data, caption='Correlation'):
+    def plot_correlation(data, caption='Correlation', AOI=None, POI=None, dpi=300, aspect=None):
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12,4), dpi=300)
+        plt.figure(figsize=(12,4), dpi=dpi)
         data.plot.imshow(vmin=0, vmax=1, cmap='gray')
+        if AOI is not None:
+            boundaries = AOI.boundary
+            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
+            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
+        if POI is not None:
+            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
         plt.title(caption, fontsize=18)
         plt.show()
 

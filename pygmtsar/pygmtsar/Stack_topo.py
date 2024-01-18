@@ -31,15 +31,24 @@ class Stack_topo(Stack_trans_inv):
         """
         return self.get_trans_inv()['ele'].rename('topo')
 
-    def plot_topo(self, topo='auto'):
+    def plot_topo(self, topo='auto', caption='Topography in Radar Coordinates', AOI=None, POI=None, dpi=300, aspect=None):
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(12,4), dpi=300)
+        plt.figure(figsize=(12,4), dpi=dpi)
         if isinstance(topo, str) and topo == 'auto':
             self.get_topo().plot.imshow(cmap='gray')
         else:
             topo.plot.imshow(cmap='gray')
+        if AOI is not None:
+            boundaries = AOI.boundary
+            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
+            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
+        if POI is not None:
+            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
         plt.xlabel('Range', fontsize=16)
         plt.ylabel('Azimuth', fontsize=16)
-        plt.title('Topography in Radar Coordinates', fontsize=18)
+        plt.title(caption, fontsize=18)
         plt.show()
+

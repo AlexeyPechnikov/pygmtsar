@@ -77,11 +77,11 @@ class Stack(Stack_ps):
 #        matrix = np.array(coeffs[1:]).astype(float).reshape((shape[1],shape[0]))
 #        return (gauss_dec, matrix)
 
-    def plot_scenes(self, AOI=None, dem='auto', caption='Estimated Scene Locations', cmap='turbo'):
+    def plot_scenes(self, AOI=None, POI=None, dem='auto', caption='Estimated Scene Locations', cmap='turbo', dpi=150, aspect=None):
         import matplotlib.pyplot as plt
         import matplotlib
 
-        plt.figure(figsize=(12, 4), dpi=150)
+        plt.figure(figsize=(12, 4), dpi=dpi)
         if isinstance(dem, str) and dem == 'auto':
             if self.dem_filename is not None:
                 dem = self.get_dem()
@@ -97,5 +97,9 @@ class Stack(Stack_ps):
             boundaries = AOI.boundary
             AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
             AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
+        if POI is not None:
+            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
         plt.title(caption, fontsize=18)
         plt.show()

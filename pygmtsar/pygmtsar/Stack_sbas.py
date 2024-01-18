@@ -905,7 +905,7 @@ class Stack_sbas(Stack_detrend):
         return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
 
     @staticmethod
-    def plot_displacement(data, caption='Cumulative LOS Displacement, [rad]', quantile=None, vmin=None, vmax=None, aspect=None):
+    def plot_displacement(data, caption='Cumulative LOS Displacement, [rad]', quantile=None, vmin=None, vmax=None, AOI=None, POI=None, dpi=300, aspect=None):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -915,11 +915,17 @@ class Stack_sbas(Stack_detrend):
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
 
-        plt.figure(figsize=(12,4), dpi=300)
+        plt.figure(figsize=(12,4), dpi=dpi)
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
-        plt.title(caption, fontsize=18)
+        if AOI is not None:
+            boundaries = AOI.boundary
+            AOI[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color='red')
+            AOI[boundaries.is_empty].plot(ax=plt.gca(), color='red')
+        if POI is not None:
+            POI.plot(ax=plt.gca(), marker='*', markersize=150, color='red')
         if aspect is not None:
             plt.gca().set_aspect(aspect)
+        plt.title(caption, fontsize=18)
         plt.show()
 
     @staticmethod
