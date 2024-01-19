@@ -348,7 +348,6 @@ class Stack_incidence(Stack_geocode):
         plt.xlabel('Range')
         plt.ylabel('Azimuth')
         plt.title(caption)
-        plt.show()
 
     def vertical_displacement_mm(self, unwrap):
         """

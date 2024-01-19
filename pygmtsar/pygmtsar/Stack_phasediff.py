@@ -788,7 +788,6 @@ class Stack_phasediff(Stack_topo):
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
-        plt.show()
 
     def plot_phases(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, quantile=None, vmin=None, vmax=None):
         import numpy as np
@@ -809,7 +808,6 @@ class Stack_phasediff(Stack_topo):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
-        plt.show()
 
     def plot_interferogram(self, data, caption='Phase, [rad]', cmap='gist_rainbow_r', aspect=None, **kwargs):
         import numpy as np
@@ -822,7 +820,6 @@ class Stack_phasediff(Stack_topo):
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
-        plt.show()
 
     def plot_interferograms(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05):
         import numpy as np
@@ -837,7 +834,6 @@ class Stack_phasediff(Stack_topo):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
-        plt.show()
 
     def plot_correlation(self, data, caption='Correlation', cmap='gray', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
@@ -849,7 +845,6 @@ class Stack_phasediff(Stack_topo):
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
-        plt.show()
 
     def plot_correlations(self, data, caption='Correlation', cmap='auto', cols=4, size=4, nbins=5, aspect=1.2, y=1.05):
         import matplotlib.pyplot as plt
@@ -870,7 +865,6 @@ class Stack_phasediff(Stack_topo):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
-        plt.show()
 
     def plot_correlation_stack(self, corr_stack, threshold='auto', caption='Correlation Stack', bins=100, cmap='auto'):
         import numpy as np
@@ -907,4 +901,3 @@ class Stack_phasediff(Stack_topo):
 
         plt.suptitle(caption)
         plt.tight_layout()
-        plt.show()

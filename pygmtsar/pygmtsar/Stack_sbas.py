@@ -634,7 +634,6 @@ class Stack_sbas(Stack_detrend):
         plt.ylabel('Perpendicular Baseline, [m]')
         plt.title('Baseline')
         plt.grid()
-        plt.show()
 
     def plot_baseline_duration(self, baseline_pairs, interval_days=6, caption='Durations Histogram',
                                column=None, ascending=None, cmap='turbo', vmin=None, vmax=None):
@@ -697,7 +696,6 @@ class Stack_sbas(Stack_detrend):
             label.set_rotation(45)
             label.set_horizontalalignment('center')
         ax.grid(True, color='lightgrey', zorder=0)
-        plt.show()
 
     def plot_baseline_attribute(self, baseline_pairs, pairs_best=None, column='corr', caption='Baseline Attribute'):
         import numpy as np
@@ -730,7 +728,6 @@ class Stack_sbas(Stack_detrend):
         plt.ylabel(f'Column "{column}"')
         plt.title(caption, y=1.2)
         plt.grid()
-        plt.show()
 
     def plot_baseline_correlation(self, baseline_pairs, pairs_best=None):
         print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
@@ -877,7 +874,6 @@ class Stack_sbas(Stack_detrend):
         plt.xlim([dates[0], dates[-1]])
         if displacement or stl:
             plt.legend()
-        plt.show()
 
     def rmse(self, data, solution, weight=None):
         """
@@ -919,7 +915,6 @@ class Stack_sbas(Stack_detrend):
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
-        plt.show()
 
     def plot_displacements(self, data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, quantile=None, vmin=None, vmax=None):
         import numpy as np
@@ -940,4 +935,3 @@ class Stack_sbas(Stack_detrend):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
-        plt.show()

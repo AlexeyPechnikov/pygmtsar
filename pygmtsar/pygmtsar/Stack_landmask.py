@@ -142,4 +142,3 @@ class Stack_landmask(Stack_multilooking):
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
-        plt.show()

@@ -319,4 +319,3 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
-        plt.show()

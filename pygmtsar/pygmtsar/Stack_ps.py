@@ -77,7 +77,6 @@ class Stack_ps(Stack_stl):
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         plt.title('PS Function')
-        plt.show()
 
 #     def get_adi_threshold(self, threshold):
 #         """

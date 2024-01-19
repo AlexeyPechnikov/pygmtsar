@@ -132,4 +132,3 @@ class Stack(Stack_ps):
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
-        plt.show()

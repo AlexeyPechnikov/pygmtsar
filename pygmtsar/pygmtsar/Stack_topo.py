@@ -54,5 +54,4 @@ class Stack_topo(Stack_trans_inv):
         plt.xlabel('Range')
         plt.ylabel('Azimuth')
         plt.title(caption)
-        plt.show()
 
