@@ -126,7 +126,10 @@ class Stack(Stack_ps):
         gdf = self.to_dataframe()
         cmap = matplotlib.colormaps[cmap]
         colors = dict([(v, cmap(k)) for k, v in enumerate(gdf.index.unique())])
-        gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=0.5/len(gdf), edgecolor='black', ax=plt.gca())
+        # too small an alpha becomes invisible
+        alpha = 0.5/len(gdf)
+        alpha = alpha if alpha>=0.002 else 0.002
+        gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=alpha, edgecolor='black', ax=plt.gca())
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         if aspect is not None:
