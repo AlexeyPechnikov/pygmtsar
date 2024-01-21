@@ -5,21 +5,21 @@ name: MacOS tests
 
 on:
   push:
-    branches: [ "pygmtsar" ]
+    branches: [ "pygmtsar2" ]
   pull_request:
-    branches: [ "pygmtsar" ]
+    branches: [ "pygmtsar2" ]
 
 permissions:
   contents: read
 
 jobs:
-  S1A_Stack_CPGF_T173:
+  Imperial_Valley_2015:
 
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, macos-13]
-        python-version: ["3.11"]
+        os: [macos-13]
+        python-version: ["3.11", "3.10"]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
@@ -34,8 +34,10 @@ jobs:
         brew install wget libtiff hdf5 gmt ghostscript autoconf
     - name: Compile GMTSAR
       run: |
+        git config --global advice.detachedHead false
         git clone --branch master https://github.com/gmtsar/gmtsar GMTSAR
         cd GMTSAR
+        git checkout e98ebc0f4164939a4780b1534bac186924d7c998
         autoconf
         ./configure --with-orbits-dir=/tmp
         make
@@ -47,20 +49,14 @@ jobs:
     - name: Install PyGMTSAR
       run: |
         # upgrade package to resolve dependencies
-        pip3 install click --upgrade
-        pip3 install matplotlib seaborn
+        #pip3 install click --upgrade
+        #pip3 install matplotlib seaborn
         pip3 install -e ./pygmtsar/
-    - name: Cache dataset
-      uses: actions/cache@v3
-      with:
-        path: tests/S1A_Stack_CPGF_T173.tar.gz
-        key: S1A_Stack_CPGF_T173.tar.gz
-        restore-keys: S1A_Stack_CPGF_T173
     - name: Run test
       working-directory: tests
       run: |
         export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/GMTSAR/bin
-        sh ./S1A_Stack_CPGF_T173.sh
+        ulimit -n 10000 python3 imperial_valley_2015.py
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:
