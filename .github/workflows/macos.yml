@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-13, macos-12]
-        python-version: ["3.12", "3.11"]
+        python-version: ["3.11"]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
@@ -48,9 +48,7 @@ jobs:
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
       run: |
-        # upgrade package to resolve dependencies
-        #pip3 install click --upgrade
-        #pip3 install matplotlib seaborn
+        pip3 install pyvista panel
         pip3 install -e ./pygmtsar/
     - name: Run test
       working-directory: tests
@@ -59,7 +57,8 @@ jobs:
         # remove Google Colab specific commands
         sed -i '' '/if \x27google\.colab\x27 in sys\.modules:/,/^$/d' imperial_valley_2015.py
         sed -i '' 's/^[[:blank:]]*!.*$//' imperial_valley_2015.py
-        ulimit -n 10000 python3 imperial_valley_2015.py
+        ulimit -n 10000
+        python3 imperial_valley_2015.py
     - name: Archive test results
       uses: actions/upload-artifact@v3
       with:

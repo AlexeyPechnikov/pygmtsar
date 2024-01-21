@@ -61,11 +61,8 @@ jobs:
         gmtsar_sharedir.csh
     - name: Install PyGMTSAR
       run: |
-        # upgrade package to resolve dependencies
-        #pip3 install click --upgrade
-        #pip3 install matplotlib seaborn
         # vtk rendering
-        pip3 install pyvista
+        pip3 install pyvista panel
         pip3 install -e ./pygmtsar/
     - name: Run test
       working-directory: tests
