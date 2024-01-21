@@ -1,30 +1,26 @@
-## Announcements
-
-The **e-book, titled 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction'** is now available for the stable PyGMTSAR release on various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). If you'd like a preview of the content, you can check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) uploaded in the repository.
-
-You have the option to **support the development of PyGMTSAR software on [Patreon](https://www.patreon.com/pechnikov) and [Buy Me a Coffee](https://www.buymeacoffee.com/pechnikov) platforms**. These platforms also offer additional documentation and use cases.
-
-PyGMTSAR (Python InSAR) **Video Lessons and Educational Notebooks** available on [Patreon](https://www.patreon.com/collection/12458) and [YouTube](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg).
+[![MacOS tests](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/macos.yml)
+[![Ubuntu tests](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/mobigroup/gmtsar/actions/workflows/ubuntu.yml)
+[![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
+[![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar)
+[![DOI](https://zenodo.org/badge/398018212.svg)](https://zenodo.org/badge/latestdoi/398018212)
 
 ## PyGMTSAR (Python InSAR) - Sentinel-1 Satellite Interferometry for Everyone
 
-PyGMTSAR (Python InSAR) aims to cater to the needs of both occasional users and experts in Sentinel-1 Satellite Interferometry. It offers a range of features, including SBAS, PSI, PSI-SBAS, and more. It is available in [pygmtsar2 branch](https://github.com/mobigroup/gmtsar/tree/pygmtsar2). I  share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and updates on its progress through my [LinkedIn](https://www.linkedin.com/in/alexey-pechnikov/).
+PyGMTSAR (Python InSAR) is designed to meet the needs of both occasional users and experts in Sentinel-1 Satellite Interferometry. It offers a wide range of features, including SBAS, PSI, PSI-SBAS, and more. In addition to the examples provided below, I also share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and provide updates on its progress through my [LinkedIn profile](https://www.linkedin.com/in/alexey-pechnikov/).
 
 <img src="https://github.com/mobigroup/gmtsar/assets/7342379/3a7d8fda-a3e1-4282-b5ae-2b1c362b891d" width="40%" />
 
-## About Development PyGMTSAR
+## About PyGMTSAR
 
-PyGMTSAR offers accessible, reproducible, and powerful Sentinel-1 SBAS interferometry for everyone, regardless of their location. It encompasses various interferometry approaches, including SBAS, PSI, PSI-SBAS, and time series and trend analysis, all wrapped into a single Python package. Whether you're using Google Colab, DockerHub, or any other platform, PyGMTSAR is readily available for your needs.
+PyGMTSAR provides accessible, reproducible, and powerful Sentinel-1 interferometry that is available to everyone, regardless of their location. It encompasses a variety of interferometry approaches, including SBAS, PSI, PSI-SBAS, and time series and trend analysis, all integrated into a single Python package. Whether you're utilizing Google Colab, DockerHub, or any other platform, PyGMTSAR is ready to meet your needs.
 
-The latest version of PyGMTSAR is currently in development, and I regularly share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov). You can also stay updated on its progress through my [LinkedIn profile](https://www.linkedin.com/in/alexey-pechnikov/). The new version is capable of performing powerful and fast analysis on hundreds of Sentinel-1 scenes and thousands of interferograms, although some functions and their options may be subject to renaming or changes.
-
-One of the most awaited features in PyGMTSAR (Python InSAR) is the combined analysis of Persistent Scatterers (PS or PSI) and the Small Baseline Subset (SBAS). Each of the PS and SBAS techniques has unique advantages and drawbacks — with SBAS performing better in rural areas and PS in urban ones. My vision involves merging the benefits of both methods and mitigating their shortcomings in a unified PS-SBAS process. In the development version, PyGMTSAR offers persistent scatterer analysis and weighted interferogram processing. This emphasizes stable pixels, enhancing phase and coherence. This not only improves the accuracy of results but also simplifies SBAS analysis by maintaining high coherence, even in rural areas.
+One of the most in-demand features in PyGMTSAR (Python InSAR) is the combined analysis of Persistent Scatterers (PS or PSI) and the Small Baseline Subset (SBAS). Each method has its own unique advantages and drawbacks — SBAS typically performs better in rural areas, while PS is more suited to urban environments. My vision is to merge the benefits of both methods while mitigating their shortcomings through a unified PS-SBAS process. Additionally, PyGMTSAR offers weighted interferogram processing using an amplitude stability matrix, which emphasizes stable pixels. This approach enhances phase and coherence, improving the accuracy of results by maintaining high coherence, even in rural areas.
 
 ## PyGMTSAR Live Examples on Google Colab
 
-Google Colab is a free service, and these notebooks offer interactive examples that are accessible directly in your web browser, available to everyone. You don't need a powerful computer, extensive disk space, a fast internet connection, or to install any required software. Almost any internet-connected device, such as a desktop, laptop, smartphone, or even a smart TV, is sufficient for InSAR processing using PyGMTSAR. Moreover, you can save the results and the processing Jupyter notebook on your local computer or server to run it locally or in the cloud.
+Google Colab is a free service offering interactive notebooks that are accessible directly in your web browser and available to everyone. These notebooks provide live examples of InSAR processing using PyGMTSAR. You don't need a powerful computer, extensive disk space, a fast internet connection, or any special software installations. Almost any internet-connected device, including desktops, laptops, smartphones, or even smart TVs, can effectively handle InSAR processing with PyGMTSAR. Furthermore, you can save the results and the processing Jupyter notebook on your local computer or server to run it locally or in the cloud.
 
-All steps are automated, which includes software installation on Google Colab's cloud host (Linux Ubuntu 22, Python 3.10), downloading of Sentinel-1 SLC and orbit files from the Alaska Satellite Facility (ASF) datastore, obtaining SRTM DEM data and converting it to ellipsoidal heights using the EGM96 model, downloading a landmask for masking low-coherence water surfaces, and, of course, performing complete interferometry processing and result mapping. You can replace the scene names with your own to obtain similar results for your specific area. All the notebooks are accompanied by interactive 3D maps that are available instantly. 
+All steps in these notebooks are automated. This includes the software installation on Google Colab's cloud host (Linux Ubuntu 22, Python 3.10), downloading Sentinel-1 SLC and orbit files from the Alaska Satellite Facility (ASF) datastore, obtaining SRTM DEM data and converting it to ellipsoidal heights using the EGM96 model, downloading a land mask for masking low-coherence water surfaces, and of course, carrying out complete interferometry processing and result mapping. You can also customize the notebooks by replacing the scene names to process specific areas of your interest. Additionally, all notebooks are accompanied by interactive 3D maps that are available instantly.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1TARVTB7z8goZyEVDRWyTAKJpyuqZxzW2?usp=sharing) CENTRAL Türkiye Mw 7.8 & 7.5 Earthquakes Co-Seismic Interferogram, 2023.
 
@@ -48,7 +44,7 @@ All steps are automated, which includes software installation on Google Colab's 
 
 ## PyGMTSAR Live Examples on Google Colab Pro
 
-Additionally, I share more complex SBAS and PSI use cases, which are available on Google Colab Pro, on my [Patreon](https://www.patreon.com/pechnikov) for subscribers. Please note, Google Colab Pro is a paid service, costing $10/month, and accessing these examples requires a separate paid membership of $20/month.
+For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro through my [Patreon page](https://www.patreon.com/pechnikov). Please note that Google Colab Pro is a paid service, priced at $10/month. Additionally, accessing these advanced examples requires a separate paid membership, which costs $20/month.
 
 * InSAR analysis on Gastein Valley, Austria, 2021–2023. SBAS and PSI example featuring 58 Sentinel-1 SLC and between 200 to 1400 interferograms.
 
@@ -57,8 +53,48 @@ Additionally, I share more complex SBAS and PSI use cases, which are available o
 * InSAR analysis on Imperial Valley, California, USA, 2015. SBAS and PSI example featuring 58 Sentinel-1 SLC and between 200 to 1400 interferograms.
 <img src="https://github.com/mobigroup/gmtsar/assets/7342379/c016c07e-06e9-4aef-ab59-4caa83d10541" width="100%">
 
-## See Stable PyGMTSAR (previous version)
+## Announcements
 
-The stable PyGMTSAR is available on GitHub, PyPI, DockerHub and Google Colab, see the project home page [PyGMTSAR GitHub Repository](https://github.com/mobigroup/gmtsar)
+**E-Book Release: 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction'**
+The e-book is now available for the stable PyGMTSAR release across various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). For a glimpse of the content, check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) in the GitHub repository.
 
-@ Alexey Pechnikov, 2023
+**Support PyGMTSAR Development**
+You can support the development of PyGMTSAR software through platforms like [Patreon](https://www.patreon.com/pechnikov) and [Buy Me a Coffee](https://www.buymeacoffee.com/pechnikov). These platforms also provide additional documentation and use cases.
+
+**Educational Resources: Video Lessons and Notebooks**
+Find PyGMTSAR (Python InSAR) video lessons and educational notebooks on [Patreon](https://www.patreon.com/collection/12458) and [YouTube](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg).
+
+**PyGMTSAR AI Assistant**
+The [PyGMTSAR AI Assistant](https://chat.openai.com/g/g-rHoTFLwK7-pygmtsar-python-insar-assistant), powered by OpenAI GPT-4, is knowledgeable in InSAR processing using PyGMTSAR. It can assist in understanding the theory, finding and explaining InSAR examples, creating an InSAR processing pipeline, and troubleshooting issues in your processing.
+
+<img width="631" alt="PyGMTSAR AI Assistant" src="https://github.com/mobigroup/gmtsar/assets/7342379/f1b7780d-9a93-4277-b9c3-9e54d9ff3d8b">
+
+The assistant can answer many of your questions, such as:
+
+* How to start with InSAR?
+
+* Where can I find interactive InSAR example?
+
+* Please provide interferogram creation code.
+
+* Show me online InSAR examples on Google Colab.
+
+* Explain to me content https:// [colab.research.google.com/drive/1673p-BhRwsh8g3VBYhqBYLrL5Lso81mj?usp=sharing](http://colab.research.google.com/drive/1673p-BhRwsh8g3VBYhqBYLrL5Lso81mj?usp=sharing)
+
+* Show me open tickets.
+
+* Find the recent ticket about Docker images and display last message.
+
+* Create my AOI as GeoJSON text for a line between the points (-24.42, 14.8) and (-24.54, 14.88).
+
+* Could you explain the global plotting parameters used in https://colab.research.google.com/drive/1dpDWbp3BO-xVWnTcJN4NXTdfZ47oxrM4?usp=sharing
+
+* What specific lines of code need to be modified to compute the interferogram without multilooking in https://colab.research.google.com/drive/1dpDWbp3BO-xVWnTcJN4NXTdfZ47oxrM4?usp=sharing
+
+Furthermore, you have the option to upload a document or a screenshot for discussion, and you can request explanations, such as 'explain the code to me,' among many other possibilities.
+
+## PyGMTSAR Previous Version
+
+The 2023 releases of PyGMTSAR are still available on GitHub, PyPI, DockerHub, and Google Colab. For more information and access to these releases, visit the project's home page at the [PyGMTSAR 2023 GitHub Repository](https://github.com/mobigroup/gmtsar/tree/pygmtsar). Included is a collection of examples that facilitate the comparison of PyGMTSAR's InSAR processing capabilities with those of other InSAR software.
+
+@ Alexey Pechnikov, 2024

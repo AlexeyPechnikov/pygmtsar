@@ -23,7 +23,7 @@ long_description = response.read().decode('utf-8')
 
 setup(
     name='pygmtsar',
-    version='2024.1.3-alpha',
+    version='2024.1.21',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
