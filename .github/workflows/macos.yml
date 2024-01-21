@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13]
-        python-version: ["3.11", "3.10"]
+        os: [macos-13, macos-12]
+        python-version: ["3.12", "3.11"]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
@@ -56,6 +56,8 @@ jobs:
       working-directory: tests
       run: |
         export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/GMTSAR/bin
+        # remove Google Colab specific commands
+        sed -i '' '/if \x27google\.colab\x27 in sys\.modules:/,/^$/d' imperial_valley_2015.py
         ulimit -n 10000 python3 imperial_valley_2015.py
     - name: Archive test results
       uses: actions/upload-artifact@v3
