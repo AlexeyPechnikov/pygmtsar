@@ -328,6 +328,26 @@ sbas.plot_displacements(disp_subset_ll, cols=3, size=3, caption='Cumulative LOS 
                         quantile=[0.01, 0.99])
 plt.savefig('Cumulative LOS Displacement Geographic Coordinates AOI, [mm].jpg')
 
+"""## Pixel Displacement"""
+
+# define point coordinates
+lat = 32.43
+lon = -115.15
+
+# find nearest pixel to the defined coordinates
+# first zero replaced by NaN so convert it back to zero
+disp_ll_pixel = sbas.ra2ll(disp_subset).sel(lat=lat, lon=lon, method='nearest').fillna(0)
+
+disp_ll_pixel.plot.scatter('date')
+disp_ll_pixel.plot(lw=0.25)
+plt.title(f'Cumulative LOS Displacement, [mm]\nlat={lat}, lon={lon}', fontsize=18)
+plt.xlabel('Date', fontsize=14)
+plt.ylabel('Displacement, [mm]', fontsize=16)
+plt.grid()
+plt.savefig('Cumulative LOS Displacement POI, [mm].jpg')
+
+"""## 3D Interactive Maps"""
+
 # prepare topography and phase
 dem = sbas.get_dem()
 dem_subset = dem.interp_like(disp_subset_ll).where(np.isfinite(disp_subset_ll[-1]))
@@ -354,8 +374,8 @@ load_mesh(plotter, 2, 200)
 load_mesh(plotter, 3, 400)
 load_mesh(plotter, 4, 600)
 plotter.show_axes()
+plotter.show(screenshot='3D LOS Displacements Stack.png', jupyter_backend='panel', return_viewer=True)
 plotter.add_title(f'Interactive LOS Displacements on DEM', font_size=32)
-#p.show(screenshot='intf.png', jupyter_backend='panel', return_viewer=True)
 plotter._on_first_render_request()
 panel.panel(
     plotter.render_window, orientation_widget=plotter.renderer.axes_enabled,
@@ -385,29 +405,12 @@ load_mesh(plotter, 4)
 plotter.subplot(0, 1)
 plotter.add_legend(loc='upper center')
 plotter.show_axes()
+plotter.show(screenshot='3D LOS Displacements Grid.png', jupyter_backend='panel', return_viewer=True)
 plotter._on_first_render_request()
 panel.panel(
     plotter.render_window, orientation_widget=plotter.renderer.axes_enabled,
     enable_keybindings=False, sizing_mode='stretch_width', min_height=600
 )
-
-"""## Pixel Displacement"""
-
-# define point coordinates
-lat = 32.43
-lon = -115.15
-
-# find nearest pixel to the defined coordinates
-# first zero replaced by NaN so convert it back to zero
-disp_ll_pixel = sbas.ra2ll(disp_subset).sel(lat=lat, lon=lon, method='nearest').fillna(0)
-
-disp_ll_pixel.plot.scatter('date')
-disp_ll_pixel.plot(lw=0.25)
-plt.title(f'Cumulative LOS Displacement, [mm]\nlat={lat}, lon={lon}', fontsize=18)
-plt.xlabel('Date', fontsize=14)
-plt.ylabel('Displacement, [mm]', fontsize=16)
-plt.grid()
-plt.savefig('Cumulative LOS Displacement POI, [mm].jpg')
 
 """## Conclusion
 

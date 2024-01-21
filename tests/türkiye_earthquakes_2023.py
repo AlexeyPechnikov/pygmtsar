@@ -322,8 +322,8 @@ vtk_grid
 plotter = pv.Plotter(notebook=True)
 plotter.add_mesh(pv.read('intf.vtk').scale([1, 1, 0.00002], inplace=True), scalars='phase', cmap='turbo', ambient=0.1, show_scalar_bar=True)
 plotter.show_axes()
+plotter.show(screenshot='3D Interferogram.png', jupyter_backend='panel', return_viewer=True)
 plotter.add_title(f'Interactive Interferogram on DEM', font_size=32)
-#p.show(screenshot='intf.png', jupyter_backend='panel', return_viewer=True)
 plotter._on_first_render_request()
 panel.panel(
     plotter.render_window, orientation_widget=plotter.renderer.axes_enabled,
@@ -396,8 +396,8 @@ vtk_grid
 plotter = pv.Plotter(notebook=True)
 plotter.add_mesh(pv.read('los.vtk').scale([1, 1, 0.00002], inplace=True), scalars='los', cmap='turbo', ambient=0.1, show_scalar_bar=True)
 plotter.show_axes()
+plotter.show(screenshot='3D LOS Displacement.png', jupyter_backend='panel', return_viewer=True)
 plotter.add_title(f'Interactive LOS Displacement on DEM', font_size=32)
-#p.show(screenshot='intf.png', jupyter_backend='panel', return_viewer=True)
 plotter._on_first_render_request()
 panel.panel(
     plotter.render_window, orientation_widget=plotter.renderer.axes_enabled,
@@ -437,8 +437,8 @@ vtk_grid
 plotter = pv.Plotter(notebook=True)
 plotter.add_mesh(pv.read('vdisp.vtk').scale([1, 1, 0.00002], inplace=True), scalars='vdisp', cmap='turbo', ambient=0.1, show_scalar_bar=True)
 plotter.show_axes()
+plotter.show(screenshot='3D Vertical Displacement.png', jupyter_backend='panel', return_viewer=True)
 plotter.add_title(f'Interactive Vertical Displacement on DEM', font_size=32)
-#p.show(screenshot='intf.png', jupyter_backend='panel', return_viewer=True)
 plotter._on_first_render_request()
 panel.panel(
     plotter.render_window, orientation_widget=plotter.renderer.axes_enabled,
@@ -459,8 +459,8 @@ vtk_grid
 plotter = pv.Plotter(notebook=True)
 plotter.add_mesh(pv.read('edisp.vtk').scale([1, 1, 0.00002], inplace=True), scalars='edisp', cmap='turbo', ambient=0.1, show_scalar_bar=True)
 plotter.show_axes()
+plotter.show(screenshot='3D East-West Displacement.png', jupyter_backend='panel', return_viewer=True)
 plotter.add_title(f'Interactive East-West Displacement on DEM', font_size=32)
-#p.show(screenshot='intf.png', jupyter_backend='panel', return_viewer=True)
 plotter._on_first_render_request()
 panel.panel(
     plotter.render_window, orientation_widget=plotter.renderer.axes_enabled,
