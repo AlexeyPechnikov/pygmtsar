@@ -17,13 +17,13 @@ import urllib.request
 #this_directory = Path(__file__).parent
 #long_description = (this_directory / "README.md").read_text()
 
-upstream_url = 'https://raw.githubusercontent.com/mobigroup/gmtsar/pygmtsar/README.md'
+upstream_url = 'https://raw.githubusercontent.com/mobigroup/gmtsar/pygmtsar2/README.md'
 response = urllib.request.urlopen(upstream_url)
 long_description = response.read().decode('utf-8')
 
 setup(
     name='pygmtsar',
-    version='2024.1.21',
+    version='2024.1.21.post1',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
