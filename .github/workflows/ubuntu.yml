@@ -76,6 +76,7 @@ jobs:
         export XVFB_PID=$!
         # remove Google Colab specific commands
         sed -i '/if \x27google\.colab\x27 in sys\.modules:/,/^$/d' imperial_valley_2015.py
+        sed -i 's/^[[:blank:]]*!.*$//' imperial_valley_2015.py
         python3 imperial_valley_2015.py
     - name: Archive test results
       uses: actions/upload-artifact@v3
