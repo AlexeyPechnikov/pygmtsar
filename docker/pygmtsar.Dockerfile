@@ -55,7 +55,6 @@ WORKDIR "${HOME}"
 RUN git clone --branch pygmtsar2 --single-branch https://github.com/mobigroup/gmtsar.git \
 && mv gmtsar/notebooks ./notebooks \
 && mv gmtsar/README.md ./ \
-&& mv gmtsar/tests ./tests \
 && rm -rf gmtsar work
 
 
