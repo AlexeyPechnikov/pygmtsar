@@ -201,7 +201,7 @@ class Stack_dem(Stack_reframe):
         This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then
         preprocessed by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid.
         """
-        import pandas as pd
+        import geopandas as gpd
         import xarray as xr
         import numpy as np
         import pygmt
@@ -232,8 +232,10 @@ class Stack_dem(Stack_reframe):
         if type(geometry) == str and geometry == 'auto':
             # apply scenes geometry
             geometry = self.get_extent().buffer(self.buffer_degrees)
-        elif isinstance(geometry, pd.DataFrame):
+        elif isinstance(geometry, gpd.GeoDataFrame):
             geometry = geometry.dissolve().envelope.item()
+        elif isinstance(geometry, gpd.GeoSeries):
+            geometry = geometry.unary_union.envelope
         minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
         #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
 
@@ -279,7 +281,7 @@ class Stack_dem(Stack_reframe):
         import xarray as xr
         import numpy as np
         import rioxarray as rio
-        import pandas as pd
+        import geopandas as gpd
         import os
 
         dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
@@ -305,7 +307,7 @@ class Stack_dem(Stack_reframe):
         if type(geometry) == str and geometry == 'auto':
             # apply scenes geometry
             extent = self.get_extent().buffer(self.buffer_degrees)
-        elif isinstance(geometry, pd.DataFrame):
+        elif isinstance(geometry, gpd.GeoDataFrame):
             extent = geometry.dissolve().envelope.item()
         #minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
         #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
