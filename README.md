@@ -42,6 +42,10 @@ All steps in these notebooks are automated. This includes the software installat
 
 <img src="https://github.com/mobigroup/gmtsar/assets/7342379/bbe0f043-af09-4724-9e50-5549d3f24adc" width="50%"><img src="https://github.com/mobigroup/gmtsar/assets/7342379/cd1d8c33-3488-41af-aece-985b4d4202ae" width="50%">
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1aqAr9KWKzGx9XpVie1M000C3vUxzNDxu?usp=sharing) Flooding [Correlation] Map: Kalkarindji, NT Australia, 2024.
+
+<img src="https://github.com/mobigroup/gmtsar/assets/7342379/9651ce67-9a3b-404a-b966-25f80982b013" width="100%">
+
 ## PyGMTSAR Live Examples on Google Colab Pro
 
 For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro through my [Patreon page](https://www.patreon.com/pechnikov). Please note that Google Colab Pro is a paid service, priced at $10/month. Additionally, accessing these advanced examples requires a separate paid membership, which costs $20/month.
