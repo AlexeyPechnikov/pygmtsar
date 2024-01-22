@@ -58,9 +58,6 @@ For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro
 **E-Book Release: 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction'**
 The e-book is now available for the stable PyGMTSAR release across various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). For a glimpse of the content, check out the [PyGMTSAR Introduction Preview](https://github.com/mobigroup/gmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) in the GitHub repository.
 
-**Support PyGMTSAR Development**
-You can support the development of PyGMTSAR software through platforms like [Patreon](https://www.patreon.com/pechnikov) and [Buy Me a Coffee](https://www.buymeacoffee.com/pechnikov). These platforms also provide additional documentation and use cases.
-
 **Educational Resources: Video Lessons and Notebooks**
 Find PyGMTSAR (Python InSAR) video lessons and educational notebooks on [Patreon](https://www.patreon.com/collection/12458) and [YouTube](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg).
 
