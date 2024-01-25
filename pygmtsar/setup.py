@@ -34,7 +34,7 @@ setup(
     license='BSD-3-Clause',
     packages=['pygmtsar'],
     install_requires=['xarray>=2024.1.0',
-                      'numpy>=1.26.0',
+                      'numpy>=1.22.4',
                       'numba',
                       'pandas>=2.2',
                       'geopandas',
