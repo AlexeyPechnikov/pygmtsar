@@ -11,9 +11,16 @@
 
 from setuptools import setup
 import urllib.request
-from pygmtsar import __version__
 
-# read the contents of your README file
+def get_version():
+    with open("pygmtsar/__init__.py", "r") as f:
+        for line in f:
+            if line.startswith("__version__"):
+                version = line.split('=')[1]
+                version = version.replace("'", "").replace('"', "").strip()
+                return version
+
+# read the contents of local README file
 #from pathlib import Path
 #this_directory = Path(__file__).parent
 #long_description = (this_directory / "README.md").read_text()
@@ -24,7 +31,7 @@ long_description = response.read().decode('utf-8')
 
 setup(
     name='pygmtsar',
-    version=__version__,
+    version=get_version(),
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
