@@ -196,13 +196,13 @@ class Stack_detrend(Stack_unwrap):
         #print ('variables', variables)
 
         def regression_block(data, variables, weight, algorithm, **kwargs):
-            data_values  = data.ravel()
+            data_values  = data.ravel().astype(np.float64)
             variables_values = variables.reshape(-1, variables.shape[-1]).T
             #assert 0, f'TEST: {data_values.shape}, {variables_values.shape}, {weight.shape}'
             nanmask_data = np.isnan(data_values)
             nanmask_values = np.any(np.isnan(variables_values), axis=0)
             if weight.size > 1:
-                weight_values = weight.ravel()
+                weight_values = weight.ravel().astype(np.float64)
                 nanmask_weight = np.isnan(weight_values)
                 nanmask = nanmask_data | nanmask_values | nanmask_weight
             else:
@@ -231,7 +231,7 @@ class Stack_detrend(Stack_unwrap):
             model[~nanmask_values] = regr.predict(variables_values[:, ~nanmask_values].T)
             del variables_values, regr
             del nanmask_data, nanmask_values, nanmask_weight, nanmask
-            return model.reshape(data.shape)
+            return model.reshape(data.shape).astype(np.float32)
 
         # xarray wrapper
         model = xr.apply_ufunc(
