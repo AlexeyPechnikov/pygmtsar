@@ -22,3 +22,5 @@ from .NCubeVTK import NCubeVTK
 from .ASF import ASF
 # XYZ tiles downloading
 from .XYZTiles import XYZTiles
+
+__version__ = '2024.1.21.post5'

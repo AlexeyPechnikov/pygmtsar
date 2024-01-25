@@ -11,6 +11,7 @@
 
 from setuptools import setup
 import urllib.request
+from pygmtsar import __version__
 
 # read the contents of your README file
 #from pathlib import Path
@@ -23,7 +24,7 @@ long_description = response.read().decode('utf-8')
 
 setup(
     name='pygmtsar',
-    version='2024.1.21.post3',
+    version=__version__,
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -73,5 +74,5 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.8'
     ],
-    python_requires='>=3.8'
+    python_requires='>=3.10'
 )
