@@ -207,6 +207,7 @@ class Stack_detrend(Stack_unwrap):
                 nanmask = nanmask_data | nanmask_values | nanmask_weight
             else:
                 weight_values = None
+                nanmask_weight = None
                 nanmask = nanmask_data | nanmask_values
 
             # regression requires enough amount of valid pixels
