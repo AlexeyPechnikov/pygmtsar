@@ -62,7 +62,7 @@ jobs:
     - name: Install PyGMTSAR
       run: |
         # vtk rendering
-        pip3 install pyvista panel
+        pip3 install pyvista panel distributed
         pip3 install -e ./pygmtsar/
     - name: Run test
       working-directory: tests
