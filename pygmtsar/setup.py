@@ -23,7 +23,7 @@ long_description = response.read().decode('utf-8')
 
 setup(
     name='pygmtsar',
-    version='2024.1.21.post1',
+    version='2024.1.21.post3',
     description='PyGMTSAR (Python GMTSAR) - Easy and Fast Satellite Interferometry For Everyone',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -53,6 +53,7 @@ setup(
                       'nc-time-axis',
                       'statsmodels>=0.13.5',
                       'pygmt',
+                      'remotezip',
                       'asf_search',
                       'imageio',
                       'matplotlib',
