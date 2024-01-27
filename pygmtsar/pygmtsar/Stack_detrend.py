@@ -156,6 +156,12 @@ class Stack_detrend(Stack_unwrap):
                  yy, xx,
                  yy**2, xx**2, yy*xx,
                  yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
+        
+        topo = sbas.interferogram(topophase)
+        inc = decimator(sbas.incidence_angle())
+        yy, xx = xr.broadcast(topo.y, topo.x)
+        variables = [topo,  topo*yy,  topo*xx, topo*yy*xx]
+        trend_sbas = sbas.regression(intf_sbas, variables, corr_sbas)
         """
         import numpy as np
         import xarray as xr
@@ -169,7 +175,7 @@ class Stack_detrend(Stack_unwrap):
 
         if isinstance(variables, (list, tuple)):
             variables = xr.concat(variables, dim='stack')
-        elif not isinstance(variables, xr.DataArray) or len(variables.dims) not in (2, 3):
+        elif not isinstance(variables, xr.DataArray) or len(variables.dims) not in (2, 3, 4):
             raise Exception('Argument "variables" should be 2D or 3D Xarray dataarray of list of 2D Xarray dataarrays')
         elif len(variables.dims) == 2:
             variables = variables.expand_dims('stack')
@@ -178,22 +184,12 @@ class Stack_detrend(Stack_unwrap):
         #print ('variables', variables)
 
         # find stack dim
-        stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
+        stackvar = data.dims[0] if len(data.dims) >= 3 else 'stack'
         #print ('stackvar', stackvar)
         shape2d = data.shape[1:] if len(data.dims) == 3 else data.shape
         #print ('shape2d', shape2d)
         chunk2d = data.chunks[1:] if len(data.dims) == 3 else data.chunks
         #print ('chunk2d', chunk2d)
-
-        if isinstance(variables, (list, tuple)):
-            variables = xr.concat(variables, dim='stack')
-        elif not isinstance(variables, xr.DataArray) or len(variables.dims) not in (2, 3):
-            raise Exception('Argument "variables" should be 2D or 3D Xarray dataarray of list of 2D Xarray dataarrays')
-        elif len(variables.dims) == 2:
-            variables = variables.expand_dims('stack')
-        elif len(variables.dims) == 3 and not variables.dims[0] == 'stack':
-            raise Exception('Argument "variables" 3D Xarray dataarray needs the first dimension name "stack"')
-        #print ('variables', variables)
 
         def regression_block(data, variables, weight, algorithm, **kwargs):
             data_values  = data.ravel().astype(np.float64)
