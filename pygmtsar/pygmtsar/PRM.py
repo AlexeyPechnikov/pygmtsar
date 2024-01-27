@@ -251,13 +251,17 @@ class PRM(datagrid, PRM_gmtsar):
             A PRM object.
         """
         import pandas as pd
-        # Google Colab wrapper
-        if float(pd.__version__[:3]) > 2.0:
-            return PRM(pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')\
-                    .map(lambda val : pd.to_numeric(val,errors='ignore')))
-        else:
-            return PRM(pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')\
-                    .applymap(lambda val : pd.to_numeric(val,errors='ignore')))
+
+        def to_numeric_or_original(vals):
+            try:
+                return pd.to_numeric(vals)
+            except ValueError:
+                return vals
+
+        df = pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')
+        df['value'] = df['value'].map(to_numeric_or_original)
+
+        return PRM(df)
 
     def __init__(self, prm=None):
         """
@@ -273,20 +277,26 @@ class PRM(datagrid, PRM_gmtsar):
         None
         """
         import pandas as pd
-        #print ('__init__')
+
+        def to_numeric_or_original(vals):
+            try:
+                return pd.to_numeric(vals)
+            except ValueError:
+                return vals
+
+        # Initialize an empty DataFrame if prm is None
         if prm is None:
-            _prm = pd.DataFrame(None,columns=['name','value'])
+            _prm = pd.DataFrame(columns=['name', 'value'])
         elif isinstance(prm, pd.DataFrame):
             _prm = prm.reset_index()
         else:
             _prm = prm.df.reset_index()
-        # Google Colab wrapper
-        if float(pd.__version__[:3]) > 2.0:
-            self.df = _prm[['name', 'value']].drop_duplicates(keep='last', inplace=False).set_index('name')\
-                .map(lambda val : pd.to_numeric(val,errors='ignore'))
-        else:
-            self.df = _prm[['name', 'value']].drop_duplicates(keep='last', inplace=False).set_index('name')\
-                .applymap(lambda val : pd.to_numeric(val,errors='ignore'))
+
+        # Convert values to numeric where possible, keep original value otherwise
+        _prm['value'] = _prm['value'].map(to_numeric_or_original)
+
+        # Set the DataFrame for the PRM object
+        self.df = _prm[['name', 'value']].drop_duplicates(keep='last').set_index('name')
         self.filename = None
 
     def __eq__(self, other):
