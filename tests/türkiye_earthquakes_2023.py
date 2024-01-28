@@ -95,6 +95,8 @@ The installation takes a long time on fresh Debian 10 and a short time on Google
 if 'google.colab' in sys.modules:
     #!{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
     !{sys.executable} -m pip install -q pygmtsar
+from pygmtsar import __version__
+__version__
 
 """## Load and Setup Python Modules"""
 
