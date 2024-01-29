@@ -211,10 +211,11 @@ class Stack_detrend(Stack_unwrap):
                 return np.nan * np.zeros(data.shape)
 
             # build prediction model with or without plane removal (fit_intercept)
-            if 'algorithm' in kwargs and kwargs['algorithm'] == 'sgd':
+            algorithm = kwargs.pop('algorithm', 'linear')
+            if algorithm == 'sgd':
                 regr = make_pipeline(StandardScaler(), SGDRegressor(**kwargs))
                 fit_params = {'sgdregressor__sample_weight': weight_values[~nanmask]} if weight.size > 1 else {}
-            elif 'algorithm' not in kwargs or kwargs['algorithm'] == 'linear':
+            elif algorithm == 'linear':
                 regr = make_pipeline(StandardScaler(), LinearRegression(**kwargs, copy_X=False, n_jobs=1))
                 fit_params = {'linearregression__sample_weight': weight_values[~nanmask]} if weight.size > 1 else {}
             else:
@@ -265,7 +266,7 @@ class Stack_detrend(Stack_unwrap):
                  yy**2, xx**2, yy*xx,
                  yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
         """
-        return self.regression(data, variables, weight, valid_pixels_threshold, 'linear',
+        return self.regression(data, variables, weight, valid_pixels_threshold, algorithm='linear',
                                 fit_intercept=fit_intercept)
 
     def regression_sgd(self, data, variables, weight=None, valid_pixels_threshold=1000,
@@ -306,7 +307,7 @@ class Stack_detrend(Stack_unwrap):
                  yy**2, xx**2, yy*xx,
                  yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
         """
-        return self.regression(data, variables, weight, valid_pixels_threshold, 'sgd',
+        return self.regression(data, variables, weight, valid_pixels_threshold, algorithm='sgd',
                                max_iter=max_iter, tol=tol, alpha=alpha, l1_ratio=l1_ratio)
 
     def polyfit(self, data, weight=None, degree=0, count=None):
