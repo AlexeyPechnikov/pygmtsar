@@ -1,7 +1,10 @@
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html
 # https://github.com/jupyter/docker-stacks/blob/main/base-notebook/Dockerfile
 # https://hub.docker.com/repository/docker/mobigroup/pygmtsar
+# host platform compilation:
 # docker build . -f pygmtsar.Dockerfile -t mobigroup/pygmtsar:latest --no-cache
+# cross-compilation:
+# docker buildx build . -f pygmtsar.Dockerfile -t mobigroup/pygmtsar:latest --no-cache --platform linux/amd64 --load
 FROM jupyter/scipy-notebook:ubuntu-22.04
 
 USER root
@@ -32,7 +35,7 @@ RUN cd $(dirname ${GMTSAR}) \
 
 # install PyGMTSAR and additional libraries
 RUN apt-get -y update \
-&&  apt-get -y install xvfb \
+&&  apt-get -y install xvfb libegl1-mesa \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN conda install -y -c conda-forge vtk panel xvfbwrapper pyvista
 RUN pip3 install pygmtsar
