@@ -192,11 +192,11 @@ class Stack_detrend(Stack_unwrap):
             del variables_stack
             #assert 0, f'TEST: {data_values.shape}, {variables_values.shape}'
 
-            nanmask_data = np.isnan(data_values)
-            nanmask_values = np.any(np.isnan(variables_values), axis=0)
+            nanmask_data = ~np.isfinite(data_values)
+            nanmask_values = np.any(~np.isfinite(variables_values), axis=0)
             if weight.size > 1:
                 weight_values = weight.ravel().astype(np.float64)
-                nanmask_weight = np.isnan(weight_values)
+                nanmask_weight = ~np.isfinite(weight_values)
                 nanmask = nanmask_data | nanmask_values | nanmask_weight
                 #assert 0, f'TEST weight: {data_values.shape}, {variables_values.shape}, {weight_values.shape}'
             else:
