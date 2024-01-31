@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  Imperial_Valley_2015:
+  Pico_do_Fogo_2014:
 
     strategy:
       fail-fast: false
