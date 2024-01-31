@@ -7,6 +7,8 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
+__version__ = '2024.1.21.post6'
+
 # unified progress indicators
 from .tqdm_joblib import tqdm_joblib
 from .tqdm_dask import tqdm_dask
@@ -22,5 +24,5 @@ from .NCubeVTK import NCubeVTK
 from .ASF import ASF
 # XYZ tiles downloading
 from .XYZTiles import XYZTiles
-
-__version__ = '2024.1.21.post5'
+# a set of utils
+from .utils import utils
