@@ -66,11 +66,13 @@ setup(
                       'imageio',
                       'matplotlib',
                       'adjustText',
-                      'seaborn'
+                      'seaborn',
+                      'vtk',
+                      'panel'
                       ],
-    extras_require={
-                      'vtk_support': ['vtk', 'panel']
-    },
+#    extras_require={
+#                      'vtk_support': ['vtk', 'panel']
+#    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
