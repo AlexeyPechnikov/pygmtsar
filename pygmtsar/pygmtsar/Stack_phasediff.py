@@ -876,7 +876,7 @@ class Stack_phasediff(Stack_topo):
                 name='custom_gray', 
                 colors=['black', 'whitesmoke']
             )
-    
+
         data = corr_stack.values.flatten()
         median_value = np.nanmedian(data)
         if isinstance(threshold, str) and threshold == 'auto':
@@ -891,13 +891,13 @@ class Stack_phasediff(Stack_topo):
         axs[0].axvline(median_value, color='red', linestyle='dashed')
         axs[0].set_xlim([0, 1])
         axs[0].grid()
-        axs[0].set_title(f'Histogram Median={median_value:.2f}')
+        axs[0].set_title(f'Histogram Median={median_value:.3f}')
         axs[0].set_xlabel('Correlation')
         axs[0].set_ylabel('Count')
         ax2.set_ylabel('Cumulative Count', color='orange')
 
         corr_stack.where(corr_stack >= threshold).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
-        axs[1].set_title(f'Threshold >= {threshold:0.2f}')
+        axs[1].set_title(f'Threshold >= {threshold:0.3f}')
 
         plt.suptitle(caption)
         plt.tight_layout()
