@@ -276,3 +276,27 @@ class Stack_topo(Stack_trans_inv):
 
         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).where(np.isfinite(topo)).rename('phase')
 
+    def topo_slope(self, topo='auto', edge_order=1):
+        import xarray as xr
+        import numpy as np
+
+        if isinstance(topo, str) and topo == 'auto':
+            topo = self.get_topo()
+
+        dy, dx = self.get_spacing(topo)
+        # The cell sizes (dx, dy) are passed to np.gradient to account for non-uniform spacing
+        gradient_y, gradient_x = np.gradient(topo, dy, dx, edge_order=edge_order)
+        slope_radians = np.arctan(np.sqrt(gradient_x**2 + gradient_y**2))
+        slope_degrees = np.degrees(slope_radians)
+        slope = xr.DataArray(slope_degrees, coords=topo.coords, dims=topo.dims, name="slope_degrees")
+        slope.attrs["units"] = "degrees"
+        slope.attrs["description"] = "Slope calculated from DEM, accounting for non-uniform grid spacing"
+
+        return slope
+
+    def topo_variation(self):
+        """
+        Topography related range cell variation to detect layovers and shadows.
+        """
+        drange = self.get_trans_inv().ll.diff('x')
+        return drange/drange.mean()
