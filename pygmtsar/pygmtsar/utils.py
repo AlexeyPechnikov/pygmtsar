@@ -95,13 +95,41 @@ class utils():
         """
         import xarray as xr
         from scipy.ndimage import binary_erosion
-        # Perform binary erosion on the NumPy array data
         array = binary_erosion(data.values, *args, **kwargs)
-        # Create a new DataArray from the eroded NumPy array
-        array = xr.DataArray(
-            array,
-            coords=data.coords,
-            dims=data.dims,
-            attrs=data.attrs,
-        )
-        return array
+        return xr.DataArray(array, coords=data.coords, dims=data.dims, attrs=data.attrs)
+
+    @staticmethod
+    def binary_dilation(data, *args, **kwargs):
+        """
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.binary_dilation.html
+        """
+        import xarray as xr
+        from scipy.ndimage import binary_dilation
+        array = binary_dilation(data.values, *args, **kwargs)
+        return xr.DataArray(array, coords=data.coords, dims=data.dims, attrs=data.attrs)
+
+    @staticmethod
+    def binary_opening(data, *args, **kwargs):
+        """
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.binary_opening.html
+        
+        corrmask = utils.binary_closing(corrmask, structure=np.ones((10,10)))
+        corrmask = utils.binary_opening(corrmask, structure=np.ones((10,10)))
+        """
+        import xarray as xr
+        from scipy.ndimage import binary_opening
+        array = binary_opening(data.values, *args, **kwargs)
+        return xr.DataArray(array, coords=data.coords, dims=data.dims, attrs=data.attrs)
+
+    @staticmethod
+    def binary_closing(data, *args, **kwargs):
+        """
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.binary_opening.html
+        
+        corrmask = utils.binary_closing(corrmask, structure=np.ones((10,10)))
+        corrmask = utils.binary_opening(corrmask, structure=np.ones((10,10)))
+        """
+        import xarray as xr
+        from scipy.ndimage import binary_closing
+        array = binary_closing(data.values, *args, **kwargs)
+        return xr.DataArray(array, coords=data.coords, dims=data.dims, attrs=data.attrs)
