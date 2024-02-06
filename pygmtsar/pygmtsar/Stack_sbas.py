@@ -730,8 +730,12 @@ class Stack_sbas(Stack_detrend):
         plt.grid()
 
     def plot_baseline_correlation(self, baseline_pairs, pairs_best=None):
-        print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
+        #print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
         self.plot_baseline_attribute(baseline_pairs, pairs_best, column='corr', caption='Baseline Correlation')
+
+    def plot_baseline_deviation(self, baseline_pairs, pairs_best=None):
+        #print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
+        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='stddev', caption='Baseline Deviation')
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
