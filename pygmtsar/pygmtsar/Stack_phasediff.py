@@ -13,25 +13,27 @@ from .PRM import PRM
 
 class Stack_phasediff(Stack_topo):
 
-    # Goldstein filter requires square grid cells means 1:4 range multilooking.
-    # For multilooking interferogram we can use square grid always.
-    #coarsen = (1,4)
-    def compute_interferogram_multilook(self, pairs, name, resolution=60., wavelength=None, psize=None, coarsen=(1,4), queue=16, debug=False):
+    def compute_interferogram(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
+                              psize=None, coarsen=None, queue=16, debug=False):
         import xarray as xr
         import numpy as np
+        import dask
         # cleanup unused resources before start
         import gc; gc.collect()
 
         # delete stack files if exist
         self.delete_stack(name)
-        
+
         # define anti-aliasing filter for the specified output resolution
         if wavelength is None:
             wavelength = resolution
 
         # decimate the 1:4 multilooking grids to specified resolution
-        decimator = self.decimator(resolution=resolution, grid=coarsen, debug=debug)
-
+        if resolution is not None:
+            decimator = self.decimator(resolution=resolution, grid=coarsen, debug=debug)
+        else:
+            decimator = None
+    
         # Applying iterative processing to prevent Dask scheduler deadlocks.
         counter = 0
         digits = len(str(len(pairs)))
@@ -44,36 +46,58 @@ class Stack_phasediff(Stack_topo):
             data = self.open_data(dates, debug=debug)
             intensity = np.square(np.abs(data))
             # Gaussian filtering 200m cut-off wavelength with optional range multilooking on Sentinel-1 amplitudes
-            amp_wavelength = self.multilooking(intensity, wavelength=wavelength, coarsen=coarsen, debug=debug)
+            amp_look = self.multilooking(intensity, wavelength=wavelength, coarsen=coarsen, debug=debug)
+            del intensity
             # calculate phase difference with topography correction
-            phase = self.phasediff(chunk, data, debug=debug)
+            phasediff = self.phasediff(chunk, data, phase=phase, debug=debug)
+            del data
             # Gaussian filtering 200m cut-off wavelength with optional range multilooking
-            phase_wavelength = self.multilooking(phase, wavelength=wavelength, coarsen=coarsen, debug=debug)
+            phasediff_look = self.multilooking(phasediff, weight=weight,
+                                               wavelength=wavelength, coarsen=coarsen, debug=debug)
+            del phasediff
             # correlation with optional range decimation
-            corr_wavelength = self.correlation(phase_wavelength, amp_wavelength, debug=debug)
+            corr_look = self.correlation(phasediff_look, amp_look, debug=debug)
+            del amp_look
             if psize is not None:
                 # Goldstein filter in psize pixel patch size on square grid cells produced using 1:4 range multilooking
-                phase_wavelength_goldstein = self.goldstein(phase_wavelength, corr_wavelength, psize, debug=debug)
+                phasediff_look_goldstein = self.goldstein(phasediff_look, corr_look, psize, debug=debug)
+                # convert complex phase difference to interferogram 
+                intf_look = self.interferogram(phasediff_look_goldstein, debug=debug)
+                del phasediff_look_goldstein
             else:
                 # here is no additional filtering step
-                phase_wavelength_goldstein = phase_wavelength
-            # convert complex phase difference to interferogram 
-            intf_wavelength = self.interferogram(phase_wavelength_goldstein, debug=debug)
+                # convert complex phase difference to interferogram 
+                intf_look = self.interferogram(phasediff_look, debug=debug)
+            del phasediff_look
             # compute together because correlation depends on phase, and filtered phase depends on correlation.
             #tqdm_dask(result := dask.persist(decimator(corr15m), decimator(intf15m)), desc='Compute Phase and Correlation')
             # unpack results for a single interferogram
             #corr90m, intf90m = [grid[0] for grid in result]
             # anti-aliasing filter for the output resolution is applied above
-            intf = decimator(intf_wavelength)
-            corr = decimator(corr_wavelength)
-            out  = xr.merge([corr, intf])
-            # Allowing cleanup for Dask objects.
-            del data, intensity, phase, amp_wavelength, phase_wavelength, phase_wavelength_goldstein, corr_wavelength, intf_wavelength
+            if decimator is not None:
+                intf_dec = decimator(intf_look)
+                corr_dec = decimator(corr_look)
+                out = xr.merge([intf_dec, corr_dec])
+                del intf_dec, corr_dec
+            else:
+                out = xr.merge([intf_look, corr_look])
+            del corr_look, intf_look
             self.save_stack(out, name,
                             caption=f'Saving Interferogram {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {len(pairs)}')
             counter += len(chunk)
-            # cleanup output variables too
-            del intf, corr, out, chunk, dates
+            del out, chunk, dates
+
+    # single-look interferogram processing has a limited set of arguments
+    # resolution, coarsen, and psize are not applicable here
+    def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, queue=16, debug=False):
+        self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength, queue=queue, debug=debug)
+
+    # Goldstein filter requires square grid cells means 1:4 range multilooking.
+    # For multilooking interferogram we can use square grid always using coarsen = (1,4)
+    def compute_interferogram_multilook(self, pairs, name, resolution=60., weight=None, phase=None,
+                                        wavelength=None, psize=None, coarsen=(1,4), queue=16, debug=False):
+        self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase,
+                                   wavelength=wavelength, psize=psize, coarsen=coarsen, queue=queue, debug=debug)
 
     @staticmethod
     def interferogram(phase, debug=False):
