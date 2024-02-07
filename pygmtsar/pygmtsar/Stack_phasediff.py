@@ -94,7 +94,7 @@ class Stack_phasediff(Stack_topo):
 
     # Goldstein filter requires square grid cells means 1:4 range multilooking.
     # For multilooking interferogram we can use square grid always using coarsen = (1,4)
-    def compute_interferogram_multilook(self, pairs, name, resolution=60., weight=None, phase=None,
+    def compute_interferogram_multilook(self, pairs, name, resolution=None, weight=None, phase=None,
                                         wavelength=None, psize=None, coarsen=(1,4), queue=16, debug=False):
         self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase,
                                    wavelength=wavelength, psize=psize, coarsen=coarsen, queue=queue, debug=debug)
