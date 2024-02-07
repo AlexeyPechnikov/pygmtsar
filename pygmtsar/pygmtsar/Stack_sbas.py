@@ -333,7 +333,7 @@ class Stack_sbas(Stack_detrend):
             print ('TODO: process upper limit')
 
         return df
-       
+
     def sbas_pairs(self, days=100, meters=None, invert=False):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
@@ -390,9 +390,9 @@ class Stack_sbas(Stack_detrend):
             counter = 0
             for line2 in tbl.itertuples():
                 #print (line1, line2)
-                if not (line1.Index < line2.Index and (line2.Index - line1.Index).days < days):
+                if not (line1.Index < line2.Index and (line2.Index - line1.Index).days < days + 1):
                     continue
-                if meters is not None and not (abs(line1.BPR - line2.BPR)< meters):
+                if meters is not None and not (abs(line1.BPR - line2.BPR)< meters + 1):
                     continue
 
                 counter += 1
