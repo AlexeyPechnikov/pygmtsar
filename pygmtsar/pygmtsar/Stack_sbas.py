@@ -460,6 +460,12 @@ class Stack_sbas(Stack_detrend):
 
         return df
 
+    def sbas_pairs_covering_deviation(self, pairs, count, column='stddev'):
+        return self.sbas_pairs_covering(pairs, column, count, 'min')
+
+    def sbas_pairs_covering_correlation(self, pairs, count, column='corr'):
+        return self.sbas_pairs_covering(pairs, column, count, 'max')
+
     def sbas_pairs_extend(self, baseline_pairs):
         import pandas as pd
         import numpy as np
@@ -697,11 +703,13 @@ class Stack_sbas(Stack_detrend):
             label.set_horizontalalignment('center')
         ax.grid(True, color='lightgrey', zorder=0)
 
-    def plot_baseline_attribute(self, baseline_pairs, pairs_best=None, column='corr', caption='Baseline Attribute'):
+    def plot_baseline_attribute(self, baseline_pairs, pairs_best=None, column=None, caption='Baseline Attribute'):
         import numpy as np
         import pandas as pd
         import seaborn as sns
         import matplotlib.pyplot as plt
+
+        assert column is not None, 'ERROR: specify the column argument'
 
         plt.figure()
 
@@ -729,13 +737,13 @@ class Stack_sbas(Stack_detrend):
         plt.title(caption, y=1.2)
         plt.grid()
 
-    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None):
+    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None, column='corr'):
         #print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
-        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='corr', caption='Baseline Correlation')
+        self.plot_baseline_attribute(baseline_pairs, pairs_best, column=column, caption='Baseline Correlation')
 
-    def plot_baseline_deviation(self, baseline_pairs, pairs_best=None):
+    def plot_baseline_deviation(self, baseline_pairs, pairs_best=None, column='stddev'):
         #print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
-        self.plot_baseline_attribute(baseline_pairs, pairs_best, column='stddev', caption='Baseline Deviation')
+        self.plot_baseline_attribute(baseline_pairs, pairs_best, column=column, caption='Baseline Deviation')
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
