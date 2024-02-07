@@ -306,6 +306,22 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         interpolated = [self.nearest_grid(data.sel(pair=pair), search_radius_pixels) for pair in data.pair]
         return xr.concat(interpolated, dim='pair')
 
+    @staticmethod
+    def conncomp_main(data):
+        import xarray as xr
+        import numpy as np
+
+        # Function to find the mode (most frequent value)
+        def find_mode(array):
+            values, counts = np.unique(array[~np.isnan(array)], return_counts=True)
+            max_count_index = np.argmax(counts)
+            return values[max_count_index] if counts.size > 0 else np.nan
+
+        # Apply the function along the 'pair' dimension
+        maincomps =  xr.apply_ufunc(find_mode, data.conncomp, input_core_dims=[['y', 'x']],
+                                    vectorize=True, dask='parallelized', output_dtypes=[float])
+        return data.where(data.conncomp==maincomps)
+
     def plot_conncomps(self, data, caption='Connected Components', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
                        vmin=0, vmax=10, cmap='tab10_r'):
         import matplotlib.pyplot as plt
