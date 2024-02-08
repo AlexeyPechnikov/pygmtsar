@@ -310,7 +310,7 @@ class Stack_detrend(Stack_unwrap):
         return self.regression(data, variables, weight, valid_pixels_threshold, algorithm='sgd',
                                max_iter=max_iter, tol=tol, alpha=alpha, l1_ratio=l1_ratio)
 
-    def polyfit(self, data, weight=None, degree=0, count=None):
+    def polyfit(self, data, weight=None, degree=0, days=None, count=None):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -319,34 +319,36 @@ class Stack_detrend(Stack_unwrap):
 
         models = []
         for date in dates:
+            #print ('date', date)
             data_pairs = pairs[(pairs.ref==date)|(pairs.rep==date)].pair.values
-            #print (data_pairs)
-            stack = data.sel(pair=data_pairs)
+            #print ('data_pairs', data_pairs)
             if weight is None:
                 stack = data.sel(pair=data_pairs)
             else:
                 stack = data.sel(pair=data_pairs) * np.sqrt(weight.sel(pair=data_pairs))
-            days = xr.where(stack.ref < pd.Timestamp(date),
+            stack_days = xr.where(stack.ref < pd.Timestamp(date),
                            (stack.ref - stack.rep).dt.days,
                            (stack.rep - stack.ref).dt.days)
-            #print (days, np.sign(days))
+            #print ('stack_days', stack_days)
             # select smallest intervals
-            days_selected = days[np.argsort(np.abs(days.values))][:count]
-            #print (days_selected)
-            linear_fit = (np.sign(days)*stack)\
-                .assign_coords(time=days)[stack.pair.isin(days_selected.pair)]\
-                .swap_dims({'pair': 'time'}).sortby(['ref', 'rep'])\
+            stack_days_selected = stack_days[np.argsort(np.abs(stack_days.values))][:count]
+            if days is not None:
+                stack_days_selected = stack_days_selected[np.abs(stack_days_selected)<=days]
+            #print ('stack_days_selected', stack_days_selected)
+            linear_fit = (np.sign(stack_days)*stack).assign_coords(time=stack_days)\
+                [stack.pair.isin(stack_days_selected.pair)]\
+                .swap_dims({'pair': 'time'})\
+                .sortby(['ref', 'rep'])\
                 .polyfit(dim='time', deg=degree)
             model = linear_fit.polyfit_coefficients.sel(degree=degree)
             models.append(model.assign_coords(date=pd.to_datetime(date)))
-            del data_pairs, stack, days, days_selected, linear_fit, model
+            del data_pairs, stack, stack_days, stack_days_selected, linear_fit, model
         model = xr.concat(models, dim='date')
         del models
 
         out = xr.concat([(model.sel(date=ref).drop('date') - model.sel(date=rep).drop('date'))\
                                  .assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
                           for ref, rep in zip(pairs['ref'], pairs['rep'])], dim='pair')
-
         return out.rename(data.name)
 
 #     def polyfit(self, data, weight=None, degree=0, variable=None, count=None):
@@ -804,53 +806,53 @@ class Stack_detrend(Stack_unwrap):
 #         #phase_turbo['rep'].values = pd.to_datetime(phase_turbo['rep'])
 #         return phase_turbo
 
-    def turbulence(self, phase, weight=None, date_crop=1, symmetrical=False):
-        import xarray as xr
-        import pandas as pd
-
-        pairs, dates = self.get_pairs(phase, dates=True)
-
-        turbos = []
-        for date in dates:
-            ref = pairs[pairs.ref==date]
-            rep = pairs[pairs.rep==date]
-            # calculate left and right pairs
-            count = min(len(ref), len(rep)) if symmetrical else None
-            #print (date, len(ref), len(rep), '=>', count)
-            if len(ref) < 1 or len(rep) < 1:
-                # correction calculation is not possible
-                continue
-            ref_data = phase.sel(pair=ref.pair.values).isel(pair=slice(None,count))
-            #print (ref_data)
-            rep_data = phase.sel(pair=rep.pair.values ).isel(pair=slice(None,count))
-            #print (rep_data)
-            if weight is not None:
-                ref_weight = weight.sel(pair=ref_data.pair)
-                rep_weight = weight.sel(pair=rep_data.pair)
-                turbo = ((ref_data*ref_weight).mean('pair')/ref_weight.sum('pair') -\
-                         (rep_data*rep_weight).mean('pair')/rep_weight.sum('pair')) / 2
-                del ref_weight, rep_weight
-            else:
-                turbo = (ref_data.mean('pair') - rep_data.mean('pair')) / 2
-            del ref_data, rep_data
-            turbos.append(turbo.assign_coords(date=pd.to_datetime(date)))
-            del turbo
-        turbo = xr.concat(turbos, dim='date')
-        del turbos
-
-        # empty grid
-        empty = xr.zeros_like(phase.isel(pair=0))
-        # convert dates to pairs
-        dates_crop = dates[date_crop:None if date_crop is None or date_crop==0 else -date_crop]
-        pairs_crop = pairs[pairs.ref.isin(dates_crop) & pairs.rep.isin(dates_crop)]  
-        phase_turbo = xr.concat([(
-            (turbo.sel(date=ref).drop('date') if ref in turbo.date else empty) - \
-            (turbo.sel(date=rep).drop('date') if rep in turbo.date else empty)
-        ).assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
-        for ref, rep in zip(pairs_crop['ref'], pairs_crop['rep'])], dim='pair')
-        del empty, dates_crop, pairs_crop
-
-        return phase_turbo.rename('turbulence')
+#     def turbulence(self, phase, weight=None, date_crop=1, symmetrical=False):
+#         import xarray as xr
+#         import pandas as pd
+# 
+#         pairs, dates = self.get_pairs(phase, dates=True)
+# 
+#         turbos = []
+#         for date in dates:
+#             ref = pairs[pairs.ref==date]
+#             rep = pairs[pairs.rep==date]
+#             # calculate left and right pairs
+#             count = min(len(ref), len(rep)) if symmetrical else None
+#             #print (date, len(ref), len(rep), '=>', count)
+#             if len(ref) < 1 or len(rep) < 1:
+#                 # correction calculation is not possible
+#                 continue
+#             ref_data = phase.sel(pair=ref.pair.values).isel(pair=slice(None,count))
+#             #print (ref_data)
+#             rep_data = phase.sel(pair=rep.pair.values ).isel(pair=slice(None,count))
+#             #print (rep_data)
+#             if weight is not None:
+#                 ref_weight = weight.sel(pair=ref_data.pair)
+#                 rep_weight = weight.sel(pair=rep_data.pair)
+#                 turbo = ((ref_data*ref_weight).mean('pair')/ref_weight.sum('pair') -\
+#                          (rep_data*rep_weight).mean('pair')/rep_weight.sum('pair')) / 2
+#                 del ref_weight, rep_weight
+#             else:
+#                 turbo = (ref_data.mean('pair') - rep_data.mean('pair')) / 2
+#             del ref_data, rep_data
+#             turbos.append(turbo.assign_coords(date=pd.to_datetime(date)))
+#             del turbo
+#         turbo = xr.concat(turbos, dim='date')
+#         del turbos
+# 
+#         # empty grid
+#         empty = xr.zeros_like(phase.isel(pair=0))
+#         # convert dates to pairs
+#         dates_crop = dates[date_crop:None if date_crop is None or date_crop==0 else -date_crop]
+#         pairs_crop = pairs[pairs.ref.isin(dates_crop) & pairs.rep.isin(dates_crop)]  
+#         phase_turbo = xr.concat([(
+#             (turbo.sel(date=ref).drop('date') if ref in turbo.date else empty) - \
+#             (turbo.sel(date=rep).drop('date') if rep in turbo.date else empty)
+#         ).assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
+#         for ref, rep in zip(pairs_crop['ref'], pairs_crop['rep'])], dim='pair')
+#         del empty, dates_crop, pairs_crop
+# 
+#         return phase_turbo.rename('turbulence')
 
     def turbulence(self, phase, weight=None):
         import xarray as xr
