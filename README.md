@@ -55,19 +55,14 @@ All steps in these notebooks are automated. This includes the software installat
 
 ## PyGMTSAR Live Examples on Google Colab Pro
 
-For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro through my [Patreon page](https://www.patreon.com/pechnikov). Please note that Google Colab Pro is a paid service, priced at $10/month. Additionally, accessing these advanced examples requires a separate paid membership, which costs $20/month.
-
-* InSAR analysis on Gastein Valley, Austria, 2021–2023. SBAS and PSI example featuring 58 Sentinel-1 SLC and between 200 to 1400 interferograms.
-
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/27bd0436-db6f-45cd-88c8-99332ec337d5" width="50%"><img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/6d1181fb-5bdb-4923-ae64-74f59b48f9b4" width="50%">
-
-* InSAR analysis on Imperial Valley, California, USA, 2015. SBAS and PSI example featuring 58 Sentinel-1 SLC and between 200 to 1400 interferograms.
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/c016c07e-06e9-4aef-ab59-4caa83d10541" width="100%">
+For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro through my [Patreon page](https://www.patreon.com/pechnikov). These use cases are suitable for InSAR learners, researchers, and industry specialists working on their challenging projects. Large areas and big stacks for thousands of interferograms, low-coherence territories, and extensive atmospheric phase delays - all these tasks can be addressed with PyGMTSAR. These examples can still be run online on the Google Colab Pro platform, which is cost-effective ($10/month) and provides a good balance between very fast data transfer speeds for downloading dozens of Sentinel-1 SLC scenes, available disk space to store the datasets and process them (approximately 220GB vs. 110GB for the free version of Google Colab), processing speed (8 vCPUs vs. 2 for the free version of Google Colab), and accessible memory (54GB vs. 12GB for the free version of Google Colab). I frequently utilize Google Colab Pro myself to manage up to five parallel InSAR projects, without concerns about disk space, memory, or processing performance limitations. Moreover, all the examples can be executed locally as well as on cloud hosts and remote servers.
 
 ## Announcements
 
 **E-Book Release: 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction'**
 The e-book is now available for the stable PyGMTSAR release across various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). For a glimpse of the content, check out the [PyGMTSAR Introduction Preview](https://github.com/AlexeyPechnikov/gmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) in the GitHub repository.
+
+<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/93859fc8-f867-41d0-a03a-0fd89d854e82" width="40%">
 
 **Educational Resources: Video Lessons and Notebooks**
 Find PyGMTSAR (Python InSAR) video lessons and educational notebooks on [Patreon](https://www.patreon.com/collection/12458) and [YouTube](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg).
@@ -75,7 +70,7 @@ Find PyGMTSAR (Python InSAR) video lessons and educational notebooks on [Patreon
 **PyGMTSAR AI Assistant**
 The [PyGMTSAR AI Assistant](https://chat.openai.com/g/g-rHoTFLwK7-pygmtsar-python-insar-assistant), powered by OpenAI GPT-4, is knowledgeable in InSAR processing using PyGMTSAR. It can assist in understanding the theory, finding and explaining InSAR examples, creating an InSAR processing pipeline, and troubleshooting issues in your processing.
 
-<img width="631" alt="PyGMTSAR AI Assistant" src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/f1b7780d-9a93-4277-b9c3-9e54d9ff3d8b">
+<img width="40%" alt="PyGMTSAR AI Assistant" src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/f1b7780d-9a93-4277-b9c3-9e54d9ff3d8b">
 
 The assistant can answer many of your questions, such as:
 
