@@ -1,9 +1,8 @@
 [![View on GitHub](https://img.shields.io/badge/GitHub-View%20on%20GitHub-blue)](https://github.com/AlexeyPechnikov/pygmtsar)
-[![MacOS tests](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/macos.yml/badge.svg)](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/macos.yml)
-[![Ubuntu tests](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/ubuntu.yml)
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
 [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar)
 [![DOI](https://zenodo.org/badge/398018212.svg)](https://zenodo.org/badge/latestdoi/398018212)
+[![ChatGPT Assistant](https://img.shields.io/badge/ChatGPT-Assistant-green?logo=openai)](https://insar.dev/ai)
 
 ## PyGMTSAR (Python InSAR): Powerful and Accessible Satellite Interferometry
 
