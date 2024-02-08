@@ -1,3 +1,4 @@
+[![View on GitHub](https://img.shields.io/badge/GitHub-View%20on%20GitHub-blue)](https://github.com/AlexeyPechnikov/pygmtsar)
 [![MacOS tests](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/macos.yml/badge.svg)](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/macos.yml)
 [![Ubuntu tests](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/AlexeyPechnikov/gmtsar/actions/workflows/ubuntu.yml)
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
