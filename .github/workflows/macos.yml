@@ -44,8 +44,8 @@ jobs:
         make install
         # check installation
         export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/GMTSAR/bin
-        echo "Start gmtsar_sharedir.csh"
-        gmtsar_sharedir.csh
+        #echo "Start gmtsar_sharedir.csh"
+        #gmtsar_sharedir.csh
     - name: Install PyGMTSAR
       run: |
         pip3 install pyvista panel
