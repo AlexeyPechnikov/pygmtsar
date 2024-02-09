@@ -42,16 +42,6 @@ jobs:
         ./configure --with-orbits-dir=/tmp
         make
         make install
-        export PATH=$PATH:${{ github.workspace }}/GMTSAR/bin
-        # check installation
-        echo "Show compilation directory"
-        pwd
-        echo "Set PATH"
-        echo "$PATH"
-        echo "Run gmtsar_sharedir.csh"
-        gmtsar_sharedir.csh
-        echo "Run make_s1a_tops"
-        make_s1a_tops || true
     - name: Install PyGMTSAR
       run: |
         pip3 install pyvista panel
@@ -59,7 +49,7 @@ jobs:
     - name: Run test
       working-directory: tests
       run: |
-        export PATH=$PATH:/Users/runner/work/gmtsar/gmtsar/GMTSAR/bin
+        export PATH=$PATH:${{ github.workspace }}/GMTSAR/bin
         ulimit -n 10000
         # remove Google Colab specific commands and add __main__ section
         cat pico_do_fogo_volcano_eruption_2014.py \
