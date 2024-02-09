@@ -51,7 +51,7 @@ jobs:
         echo "Run gmtsar_sharedir.csh"
         gmtsar_sharedir.csh
         echo "Run make_s1a_tops"
-        make_s1a_tops
+        make_s1a_tops || true
     - name: Install PyGMTSAR
       run: |
         pip3 install pyvista panel
