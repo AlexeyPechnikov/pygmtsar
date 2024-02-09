@@ -1,30 +1,30 @@
 ---
 name: General help
-about: Help with problems users met during software installation, data processing,
-  etc.
+about: Help with problems users met during software installation, data processing, etc.
 title: "[Help]: "
 labels: ''
 assignees: ''
 
 ---
 
-**Describe the problem you met**
-Write a brief description of the problem you met, e.g. my intf_tops.csh could not run through
+**Describe the problem you encountered**
+Provide a brief description of the issue you're facing.
 
 **OS and software version**
-If applicable, what operating system and software version you are using?
-OS:
-GMTSAR version:
+Please specify your operating system and the version of PyGMTSAR you are using, if applicable.
+- OS:
+- PyGMTSAR version:
 
-**Reproduce the problem**
-If applicable, how to reproduce the problem from scratch?
+**Steps to reproduce the problem**
+If possible, describe how the problem can be reproduced from scratch. Include any commands or steps you took leading up to the issue.
 
 **Log file**
-Attach a log file output from your terminal.
+If you have a log file or terminal output related to the problem, please attach it here.
 
 **Screenshot**
-If applicable, attach a Screenshot to help us understand your case
+If applicable, attach a screenshot to help us better understand your situation.
 
-[Please note that if no new responses are made over six months from users, the issue will get closed]
+**Note**
+- If you have a general question not directly related to PyGMTSAR, consider using the discussions page.
 
-[Also if this is a general question that's not particlarly related to GMTSAR, such as "how to correct atmospheric noise" or "how to intepret my interferogram", consider using the discussions page]
+[For additional support, consider using the ChatGPT4-based InSAR AI Assistant at https://insar.dev/ai. It can provide guidance and help with understanding PyGMTSAR's capabilities and troubleshooting issues.]

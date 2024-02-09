@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for GMTSAR
+about: Suggest an idea for PyGMTSAR
 title: "[Feature]: "
 labels: ''
 assignees: ''
@@ -8,16 +8,18 @@ assignees: ''
 ---
 
 **Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is, with what dataset, ...
+Provide a clear and concise description of the problem. Include details about the dataset or specific scenario where this feature could be beneficial.
 
 **Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+Offer a clear and concise description of what you want to happen. How do you envision this feature working within PyGMTSAR?
 
 **Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+Share a clear and concise description of any alternative solutions or features you've considered. Why might these alternatives not meet your needs fully?
 
 **Additional context**
-Add any other context or screenshots about the feature request here.
+Add any other context, examples, or screenshots about the feature request here. The more information you provide, the easier it is for us to understand and evaluate the request.
 
 **Note**
-Feature requests usually mean writing codes/scripts, so expect this to be solved in the long-run. Meanwhile the issue will remain open until it is addressed one way or another.
+Please be aware that feature requests often involve developing new code or examples, which means they may be addressed over the long term. We will keep the issue open until it is resolved in some form. Your patience and contributions towards implementing this feature are welcome.
+
+[For guidance or to discuss potential features and their implementation, the ChatGPT4-based InSAR AI Assistant is available at https://insar.dev/ai. It can provide insights and help articulate feature requests more clearly.]
