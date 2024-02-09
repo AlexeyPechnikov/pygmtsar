@@ -2,13 +2,14 @@
 [![Available on pypi](https://img.shields.io/pypi/v/pygmtsar.svg)](https://pypi.python.org/pypi/pygmtsar/)
 [![Docker](https://badgen.net/badge/icon/docker?icon=docker&label)](https://hub.docker.com/r/mobigroup/pygmtsar)
 [![DOI](https://zenodo.org/badge/398018212.svg)](https://zenodo.org/badge/latestdoi/398018212)
+[![Support on Patreon](https://img.shields.io/badge/Patreon-Support-orange.svg)](https://www.patreon.com/pechnikov)
 [![ChatGPT Assistant](https://img.shields.io/badge/ChatGPT-Assistant-green?logo=openai)](https://insar.dev/ai)
 
 ## PyGMTSAR (Python InSAR): Powerful and Accessible Satellite Interferometry
 
 PyGMTSAR (Python InSAR) is designed to meet the needs of both occasional users and experts in Sentinel-1 Satellite Interferometry. It offers a wide range of features, including SBAS, PSI, PSI-SBAS, and more. In addition to the examples provided below, I also share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and provide updates on its progress through my [LinkedIn profile](https://www.linkedin.com/in/alexey-pechnikov/).
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/3a7d8fda-a3e1-4282-b5ae-2b1c362b891d" width="40%" />
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/3a7d8fda-a3e1-4282-b5ae-2b1c362b891d" width="40%" />
 
 ## About PyGMTSAR
 
@@ -24,34 +25,34 @@ All steps in these notebooks are automated. This includes the software installat
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1TARVTB7z8goZyEVDRWyTAKJpyuqZxzW2?usp=sharing) CENTRAL Türkiye Mw 7.8 & 7.5 Earthquakes Co-Seismic Interferogram, 2023.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/cce39fa5-0115-467e-836d-8361a37da935" width="50%"><img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/47543745-e7b1-41cb-b9f3-6f73cb1f9fb3" width="50%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/cce39fa5-0115-467e-836d-8361a37da935" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/47543745-e7b1-41cb-b9f3-6f73cb1f9fb3" width="50%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ET8Fv4Q4flV-WL2T4H-62dM3UpC7WKqT?usp=sharing) Philipphine earthquake M7.6 Co-Seismic Interferogram, 2023.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/7ca38adf-5312-4398-b936-0c8de71b8b92" width="50%"><img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/5a9352e1-f0d7-466d-b817-7c7e7c298e96" width="50%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/7ca38adf-5312-4398-b936-0c8de71b8b92" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/5a9352e1-f0d7-466d-b817-7c7e7c298e96" width="50%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1dDFG8BoF4WfB6tOF5sAi5mjdBKRbhxHo?usp=sharing) Pico do Fogo Volcano Eruption on Cape Verde's Fogo Island, 2014.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/d2eda089-0730-4699-82db-9410712d55ff" width="50%"><img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/694d9670-36c9-4e56-bfb8-056e0d038d58" width="50%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/d2eda089-0730-4699-82db-9410712d55ff" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/694d9670-36c9-4e56-bfb8-056e0d038d58" width="50%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1d9RcqBmWIKQDEwJYo8Dh6M4tMjJtvseC?usp=sharing) La Cumbre Volcano Eruption Interferogram, 2020.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/93cc9c5c-a654-4cc6-a310-2f3337c95ce2" width="50%"><img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/fe085c2b-5bd5-4385-a1fe-04144568e1cb" width="50%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/93cc9c5c-a654-4cc6-a310-2f3337c95ce2" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/fe085c2b-5bd5-4385-a1fe-04144568e1cb" width="50%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1shNGvUlUiXeyV7IcTmDbWaEM6XrB0014?usp=sharing) Iran–Iraq Earthquake Co-Seismic Interferogram, 2017.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/7357a56a-d69f-451b-91ab-367cbf2af410" width="50%"><img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/bcd807f9-5d48-4bb4-ac13-803305f3b6da" width="50%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/7357a56a-d69f-451b-91ab-367cbf2af410" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/bcd807f9-5d48-4bb4-ac13-803305f3b6da" width="50%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h4XxJZwFfm7EC8NUzl34cCkOVUG2uJr4?usp=sharing) Imperial Valley SBAS analysis, 2015.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/bbe0f043-af09-4724-9e50-5549d3f24adc" width="50%"><img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/cd1d8c33-3488-41af-aece-985b4d4202ae" width="50%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/bbe0f043-af09-4724-9e50-5549d3f24adc" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/cd1d8c33-3488-41af-aece-985b4d4202ae" width="50%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1aqAr9KWKzGx9XpVie1M000C3vUxzNDxu?usp=sharing) Flooding [Correlation] Map: Kalkarindji, NT Australia, 2024.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/9651ce67-9a3b-404a-b966-25f80982b013" width="100%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/9651ce67-9a3b-404a-b966-25f80982b013" width="100%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ipiQGbvUF8duzjZER8v-_R48DSpSmgvQ?usp=sharing) PyGMTSAR SBAS and PSI Analyses: Golden Valley, CA.
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/8b416787-4b81-44f8-8956-3a5d596af51b" width="100%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/8b416787-4b81-44f8-8956-3a5d596af51b" width="100%">
 
 ## PyGMTSAR Live Examples on Google Colab Pro
 
@@ -60,17 +61,17 @@ For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro
 ## Announcements
 
 **E-Book Release: 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction'**
-The e-book is now available for the stable PyGMTSAR release across various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). For a glimpse of the content, check out the [PyGMTSAR Introduction Preview](https://github.com/AlexeyPechnikov/gmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) in the GitHub repository.
+The e-book is now available for the stable PyGMTSAR release across various platforms, including [Amazon, Apple, Kobo, and many other bookstores](https://books2read.com/b/PyGMTSAR-introduction). For a glimpse of the content, check out the [PyGMTSAR Introduction Preview](https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/book/PyGMTSAR_preview.pdf) in the GitHub repository.
 
-<img src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/93859fc8-f867-41d0-a03a-0fd89d854e82" width="40%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/93859fc8-f867-41d0-a03a-0fd89d854e82" width="40%">
 
 **Educational Resources: Video Lessons and Notebooks**
 Find PyGMTSAR (Python InSAR) video lessons and educational notebooks on [Patreon](https://www.patreon.com/collection/12458) and [YouTube](https://www.youtube.com/channel/UCSEeXKAn9f_bDiTjT6l87Lg).
 
 **PyGMTSAR AI Assistant**
-The [PyGMTSAR AI Assistant](https://chat.openai.com/g/g-rHoTFLwK7-pygmtsar-python-insar-assistant), powered by OpenAI GPT-4, is knowledgeable in InSAR processing using PyGMTSAR. It can assist in understanding the theory, finding and explaining InSAR examples, creating an InSAR processing pipeline, and troubleshooting issues in your processing.
+The [PyGMTSAR AI Assistant](https://insar.dev/ai), powered by OpenAI GPT-4, is knowledgeable in InSAR processing using PyGMTSAR. It can assist in understanding the theory, finding and explaining InSAR examples, creating an InSAR processing pipeline, and troubleshooting issues in your processing.
 
-<img width="40%" alt="PyGMTSAR AI Assistant" src="https://github.com/AlexeyPechnikov/gmtsar/assets/7342379/f1b7780d-9a93-4277-b9c3-9e54d9ff3d8b">
+<img width="40%" alt="PyGMTSAR AI Assistant" src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/f1b7780d-9a93-4277-b9c3-9e54d9ff3d8b">
 
 The assistant can answer many of your questions, such as:
 
@@ -98,6 +99,6 @@ Furthermore, you have the option to upload a document or a screenshot for discus
 
 ## PyGMTSAR Previous Version
 
-The 2023 releases of PyGMTSAR are still available on GitHub, PyPI, DockerHub, and Google Colab. For more information and access to these releases, visit the project's home page at the [PyGMTSAR 2023 GitHub Repository](https://github.com/AlexeyPechnikov/gmtsar/tree/pygmtsar). Included is a collection of examples that facilitate the comparison of PyGMTSAR's InSAR processing capabilities with those of other InSAR software.
+The 2023 releases of PyGMTSAR are still available on GitHub, PyPI, DockerHub, and Google Colab. For more information and access to these releases, visit the project's home page at the [PyGMTSAR 2023 GitHub Repository](https://github.com/AlexeyPechnikov/pygmtsar/tree/pygmtsar). Included is a collection of examples that facilitate the comparison of PyGMTSAR's InSAR processing capabilities with those of other InSAR software.
 
 @ Alexey Pechnikov, 2024
