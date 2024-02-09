@@ -2,10 +2,10 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Pechnikov"
-  given-names: "Aleksei"
-  orcid: "http://orcid.org/0000-0001-9626-8615"
-title: "PyGMTSAR (Python GMTSAR) Sentinel-1 InSAR library"
-version: 2023.3.11
+  given-names: "Alexey (Aleksei)"
+  orcid: "https://orcid.org/0000-0001-9626-8615"
+title: "PyGMTSAR (Python InSAR)"
+version: 2024.2.8
 doi: 10.5281/zenodo.7725131
-date-released: 2023-03-11
-url: "https://github.com/mobigroup/gmtsar"
+date-released: 2024-02-08
+url: "https://insar.dev"
