@@ -42,10 +42,16 @@ jobs:
         ./configure --with-orbits-dir=/tmp
         make
         make install
-        # check installation
         export PATH=$PATH:${{ github.workspace }}/GMTSAR/bin
-        echo "Start gmtsar_sharedir.csh"
+        # check installation
+        echo "Show compilation directory"
+        pwd
+        echo "Set PATH"
+        echo "$PATH"
+        echo "Run gmtsar_sharedir.csh"
         gmtsar_sharedir.csh
+        echo "Run make_s1a_tops"
+        make_s1a_tops
     - name: Install PyGMTSAR
       run: |
         pip3 install pyvista panel
