@@ -947,3 +947,42 @@ class Stack_sbas(Stack_detrend):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
+
+    def plot_velocity(self, data, caption='Velocity, mm/year', quantile=None, vmin=None, vmax=None, aspect=None, **kwargs):
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        if quantile is not None:
+            assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
+
+        if quantile is not None:
+            vmin, vmax = np.nanquantile(data, quantile)
+
+        plt.figure()
+        data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
+        plt.title(caption)
+
+    def plot_rmse(self, rmse, caption='RMSE', cmap='turbo', quantile=None, vmin=None, vmax=None, **kwargs):
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
+
+        if quantile is not None:
+            assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
+
+        if quantile is not None:
+            vmin, vmax = np.nanquantile(rmse, quantile)
+
+        plt.figure()
+        rmse.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
+        plt.title(caption)
