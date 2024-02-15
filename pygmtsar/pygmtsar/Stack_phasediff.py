@@ -14,7 +14,7 @@ from .PRM import PRM
 class Stack_phasediff(Stack_topo):
 
     def compute_interferogram(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
-                              psize=None, coarsen=None, queue=16, debug=False):
+                              psize=None, coarsen=None, queue=None, debug=False):
         import xarray as xr
         import numpy as np
         import dask
@@ -27,6 +27,12 @@ class Stack_phasediff(Stack_topo):
         # define anti-aliasing filter for the specified output resolution
         if wavelength is None:
             wavelength = resolution
+
+        if queue is None:
+            queue = self.netcdf_queue
+        if queue is None:
+            # process all the pairs in a single operation
+            queue = len(pairs)
 
         # decimate the 1:4 multilooking grids to specified resolution
         if resolution is not None:

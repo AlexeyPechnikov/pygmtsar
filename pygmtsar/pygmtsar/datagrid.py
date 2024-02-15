@@ -30,10 +30,12 @@ class datagrid:
     # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
     chunksize = 2048
     netcdf_engine = 'h5netcdf'
+    #netcdf_engine = 'netcdf4'
     netcdf_chunksize = 512
     netcdf_compression_algorithm = 'zlib'
     netcdf_complevel = -1
     netcdf_shuffle = True
+    netcdf_queue = 16
 
     # define lost class variables due to joblib via arguments
     def _compression(self, shape=None, chunksize=None):

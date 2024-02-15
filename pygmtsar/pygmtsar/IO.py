@@ -489,7 +489,7 @@ class IO(datagrid):
         if os.path.exists(filename):
             os.remove(filename)
 
-    def sync_stack(self, data, name=None, caption='Saving 2D Stack', queue=50, timeout=300):
+    def sync_stack(self, data, name=None, caption='Saving 2D Stack', queue=None, timeout=300):
         import xarray as xr
         if name is None and isinstance(data, xr.DataArray):
             assert data.name is not None, 'Define data name or use "name" argument for the NetCDF filenames'
@@ -652,7 +652,7 @@ class IO(datagrid):
 #             import gc; gc.collect()
 
     # use save_mfdataset
-    def save_stack(self, data, name, caption='Saving 2D Stack', queue=50, timeout=300):
+    def save_stack(self, data, name, caption='Saving 2D Stack', queue=None, timeout=300):
         import numpy as np
         import xarray as xr
         import dask
@@ -686,6 +686,8 @@ class IO(datagrid):
         #print ('is_dask', is_dask, 'stackvar', stackvar)
         stacksize = data[stackvar].size
 
+        if queue is None:
+            queue = self.netcdf_queue
         if queue is None:
             # process all the stack items in a single operation
             queue = stacksize
