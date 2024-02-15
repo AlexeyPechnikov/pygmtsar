@@ -229,7 +229,7 @@ class Stack_dem(Stack_reframe):
             return
 
         # round the coordinates up to 1m
-        if type(geometry) == str and geometry == 'auto':
+        if geometry is None or (type(geometry) == str and geometry == 'auto'):
             # apply scenes geometry
             geometry = self.get_extent().buffer(self.buffer_degrees)
         elif isinstance(geometry, gpd.GeoDataFrame):
