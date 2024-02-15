@@ -4,7 +4,7 @@
 # 
 # This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
 # 
-# Copyright (c) 2021, Alexey Pechnikov
+# Copyright (c) 2024, Alexey Pechnikov
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ def get_version():
 #this_directory = Path(__file__).parent
 #long_description = (this_directory / "README.md").read_text()
 
-upstream_url = 'https://raw.githubusercontent.com/mobigroup/gmtsar/pygmtsar2/README.md'
+upstream_url = 'https://raw.githubusercontent.com/AlexeyPechnikov/pygmtsar/pygmtsar2/README.md'
 response = urllib.request.urlopen(upstream_url)
 long_description = response.read().decode('utf-8')
 
@@ -81,7 +81,8 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.8'
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11'
     ],
     python_requires='>=3.10'
 )
