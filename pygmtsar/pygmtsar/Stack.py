@@ -83,6 +83,8 @@ class Stack(Stack_ps):
         if 'AOI' not in kwargs:
             return
         geometry = kwargs['AOI']
+        if geometry is None:
+            return
         if 'boundary_color' not in kwargs:
             boundary_color = 'red'
         else:
@@ -97,6 +99,8 @@ class Stack(Stack_ps):
         if 'POI' not in kwargs:
             return
         geometry = kwargs['POI']
+        if geometry is None:
+            return
         if 'marker' not in kwargs:
             marker = '*'
         else:
