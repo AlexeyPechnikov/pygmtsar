@@ -143,6 +143,10 @@ pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
 from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, XYZTiles
+if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
+    # use different NetCDF backend and queue size in Docker containers
+    from pygmtsar import datagrid
+    datagrid.netcdf_engine = 'netcdf4'
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -280,7 +284,11 @@ sbas.plot_scenes(AOI=AOI)
 
 """## Align Images"""
 
-sbas.compute_align()
+if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
+    # avoid using parallel processing inside low-memory Docker containers
+    sbas.compute_align(n_jobs=1)
+else:
+    sbas.compute_align()
 
 """## Backup"""
 
@@ -485,8 +493,7 @@ Use the trend detected on possibly lower resolution unwrapped phases for higher 
 """
 
 sbas.compute_interferogram_singlelook(pairs_best, 'intf_slook', wavelength=100,
-                                      weight=sbas.psfunction(),
-                                      phase=trend_sbas_best)
+                                      weight=sbas.psfunction(), phase=trend_sbas_best)
 
 # optionally, materialize to disk and open
 ds_ps = sbas.open_stack('intf_slook')
