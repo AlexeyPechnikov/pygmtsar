@@ -29,8 +29,8 @@ class ASF(tqdm_joblib):
     #T_ORBIT = (12 * 86400.0) / 175.0
     resorb_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
     resorb_end_offset = timedelta(seconds=300)
-    poeorb_start_offset = timedelta(seconds=0)
-    poeorb_end_offset = timedelta(seconds=0)
+    poeorb_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
+    poeorb_end_offset = timedelta(seconds=300)
     
     def __init__(self, username=None, password=None):
         import asf_search
