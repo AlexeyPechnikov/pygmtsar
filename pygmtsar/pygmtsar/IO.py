@@ -652,7 +652,7 @@ class IO(datagrid):
 #             import gc; gc.collect()
 
     # use save_mfdataset
-    def save_stack(self, data, name, caption='Saving 2D Stack', queue=None, timeout=300):
+    def save_stack(self, data, name, caption='Saving 2D Stack', queue=None, timeout=None):
         import numpy as np
         import xarray as xr
         import dask
