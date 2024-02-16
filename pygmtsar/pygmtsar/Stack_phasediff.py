@@ -14,7 +14,7 @@ from .PRM import PRM
 class Stack_phasediff(Stack_topo):
 
     def compute_interferogram(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
-                              psize=None, coarsen=None, queue=None, debug=False):
+                              psize=None, coarsen=None, queue=None, timeout=None, debug=False):
         import xarray as xr
         import numpy as np
         import dask
@@ -88,22 +88,24 @@ class Stack_phasediff(Stack_topo):
             else:
                 out = xr.merge([intf_look, corr_look])
             del corr_look, intf_look
-            self.save_stack(out, name,
+            self.save_stack(out, name, timeout=timeout,
                             caption=f'Saving Interferogram {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {len(pairs)}')
             counter += len(chunk)
             del out, chunk, dates
 
     # single-look interferogram processing has a limited set of arguments
     # resolution, coarsen, and psize are not applicable here
-    def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, queue=16, debug=False):
-        self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength, queue=queue, debug=debug)
+    def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None,
+                                         queue=16, timeout=None, debug=False):
+        self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength,
+                                   queue=queue, timeout=timeout, debug=debug)
 
     # Goldstein filter requires square grid cells means 1:4 range multilooking.
     # For multilooking interferogram we can use square grid always using coarsen = (1,4)
     def compute_interferogram_multilook(self, pairs, name, resolution=None, weight=None, phase=None,
-                                        wavelength=None, psize=None, coarsen=(1,4), queue=16, debug=False):
-        self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase,
-                                   wavelength=wavelength, psize=psize, coarsen=coarsen, queue=queue, debug=debug)
+                                        wavelength=None, psize=None, coarsen=(1,4), queue=16, timeout=None, debug=False):
+        self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase, wavelength=wavelength,
+                                   psize=psize, coarsen=coarsen, queue=queue, timeout=timeout, debug=debug)
 
     @staticmethod
     def interferogram(phase, debug=False):
