@@ -9,7 +9,7 @@
 
 PyGMTSAR (Python InSAR) is designed to meet the needs of both occasional users and experts in Sentinel-1 Satellite Interferometry. It offers a wide range of features, including SBAS, PSI, PSI-SBAS, and more. In addition to the examples provided below, I also share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and provide updates on its progress through my [LinkedIn profile](https://www.linkedin.com/in/alexey-pechnikov/).
 
-<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/271d5d25-d026-4636-a31c-97888e9643d8" width="40%" />
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/c157c3a6-ed06-4b6d-82ae-c0aefb286d47" width="40%" />
 
 ## About PyGMTSAR
 
