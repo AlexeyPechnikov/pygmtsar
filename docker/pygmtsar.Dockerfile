@@ -55,9 +55,9 @@ USER    ${NB_UID}
 WORKDIR "${HOME}"
 
 # Clone only the pygmtsar2 branch
-RUN git clone --branch pygmtsar2 --single-branch https://github.com/mobigroup/gmtsar.git \
-&& mv gmtsar/notebooks ./notebooks \
-&& mv gmtsar/README.md ./ \
-&& rm -rf gmtsar work
+RUN git clone --branch pygmtsar2 --single-branch https://github.com/AlexeyPechnikov/pygmtsar.git \
+&& mv pygmtsar/notebooks ./notebooks \
+&& mv pygmtsar/README.md ./ \
+&& rm -rf pygmtsar work
 
 
