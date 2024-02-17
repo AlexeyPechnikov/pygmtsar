@@ -249,8 +249,8 @@ plt.savefig('Sentinel1 Landmasked Frame on DEM.jpg')
 """## Align Images"""
 
 if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
-    # avoid using parallel processing inside low-memory Docker containers
-    sbas.compute_align(n_jobs=1)
+    # use special joblib backend in Docker containers
+    sbas.compute_align(joblib_aligning_backend='threading')
 else:
     sbas.compute_align()
 

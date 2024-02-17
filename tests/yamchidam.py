@@ -438,12 +438,10 @@ stl_sbas
 
 stl_sbas = sbas.sync_cube(stl_sbas, 'stl_sbas')
 
-# Commented out IPython magic to ensure Python compatibility.
-# %%time
-# years = ((stl_sbas.date.max() - stl_sbas.date.min()).dt.days/365.25).item()
-# print ('years', np.round(years, 3))
-# velocity_sbas = stl_sbas.trend.mean('date')/years
-# velocity_sbas
+years = ((stl_sbas.date.max() - stl_sbas.date.min()).dt.days/365.25).item()
+print ('years', np.round(years, 3))
+velocity_sbas = stl_sbas.trend.mean('date')/years
+velocity_sbas
 
 sbas.plot_velocity(sbas.as_geo(sbas.ra2ll(velocity_sbas)).rio.clip(AOI.geometry.envelope),
                    caption='SBAS LOS Velocity STL Decompose, 2021',

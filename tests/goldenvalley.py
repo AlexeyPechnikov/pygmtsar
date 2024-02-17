@@ -439,12 +439,10 @@ stl_sbas
 # optionally, materialize to disk and open
 stl_sbas = sbas.sync_cube(stl_sbas, 'stl_sbas')
 
-# Commented out IPython magic to ensure Python compatibility.
-# %%time
-# years = ((stl_sbas.date.max() - stl_sbas.date.min()).dt.days/365.25).item()
-# print ('years', np.round(years, 3))
-# velocity_sbas = stl_sbas.trend.mean('date')/years
-# velocity_sbas
+years = ((stl_sbas.date.max() - stl_sbas.date.min()).dt.days/365.25).item()
+print ('years', np.round(years, 3))
+velocity_sbas = stl_sbas.trend.mean('date')/years
+velocity_sbas
 
 fig = plt.figure(figsize=(12,4), dpi=300)
 
@@ -536,12 +534,10 @@ stl_ps
 # optionally, materialize to disk and open
 stl_ps = sbas.sync_cube(stl_ps, 'stl_ps')
 
-# Commented out IPython magic to ensure Python compatibility.
-# %%time
-# years = ((stl_ps.date.max() - stl_ps.date.min()).dt.days/365.25).item()
-# print ('years', np.round(years, 3))
-# velocity_ps = stl_ps.trend.mean('date')/years
-# velocity_ps
+years = ((stl_ps.date.max() - stl_ps.date.min()).dt.days/365.25).item()
+print ('years', np.round(years, 3))
+velocity_ps = stl_ps.trend.mean('date')/years
+velocity_ps
 
 fig = plt.figure(figsize=(12,4), dpi=300)
 
