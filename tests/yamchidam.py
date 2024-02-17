@@ -144,7 +144,7 @@ pd.set_option('display.max_colwidth', 100)
 
 from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, XYZTiles
 if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
-    # use different NetCDF backend and queue size in Docker containers
+    # use different NetCDF backend in Docker containers
     from pygmtsar import datagrid
     datagrid.netcdf_engine = 'netcdf4'
 
@@ -285,8 +285,8 @@ sbas.plot_scenes(AOI=AOI)
 """## Align Images"""
 
 if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
-    # avoid using parallel processing inside low-memory Docker containers
-    sbas.compute_align(n_jobs=1)
+    # use special joblib backend in Docker containers
+    sbas.compute_align(joblib_aligning_backend='threading')
 else:
     sbas.compute_align()
 
