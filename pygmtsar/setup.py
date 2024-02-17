@@ -50,7 +50,7 @@ setup(
                       'dask_image',
                       'joblib',
                       'tqdm',
-                      'scipy>=1.12.0',
+                      'scipy==1.11.4',
                       'shapely>=2.0.2',
                       'scikit-learn',
                       'xmltodict',

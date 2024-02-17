@@ -41,6 +41,7 @@ class Stack_align(Stack_dem):
         azis = np.arange(4/2, amax+4/2, 4)
         grid_r, grid_a = np.meshgrid(rngs, azis)
 
+        # crashes in Docker containers on Türkiye Earthquakes for scipy=1.12.0
         grid = griddata((xyz[:,0], xyz[:,1]), xyz[:,2], (grid_r, grid_a), method=method)
         da = xr.DataArray(np.flipud(grid), coords={'y': azis, 'x': rngs}, name='z')
         return da
