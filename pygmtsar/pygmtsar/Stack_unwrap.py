@@ -307,20 +307,28 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         return xr.concat(interpolated, dim='pair')
 
     @staticmethod
-    def conncomp_main(data):
+    def conncomp_main(data, start=0):
         import xarray as xr
         import numpy as np
+        from scipy.ndimage import label
+
+        if isinstance(data, xr.Dataset):
+            conncomp = data.conncomp
+        else:
+            # 2D array expected for landmask, etc.
+            labeled_array, num_features = label(data)
+            conncomp = xr.DataArray(labeled_array, coords=data.coords).where(data)
 
         # Function to find the mode (most frequent value)
         def find_mode(array):
-            values, counts = np.unique(array[~np.isnan(array)], return_counts=True)
+            values, counts = np.unique(array[~np.isnan(array)&(array>=start)], return_counts=True)
             max_count_index = np.argmax(counts)
             return values[max_count_index] if counts.size > 0 else np.nan
 
         # Apply the function along the 'pair' dimension
-        maincomps =  xr.apply_ufunc(find_mode, data.conncomp, input_core_dims=[['y', 'x']],
-                                    vectorize=True, dask='parallelized', output_dtypes=[float])
-        return data.where(data.conncomp==maincomps)
+        maincomps =  xr.apply_ufunc(find_mode, conncomp, input_core_dims=[['y', 'x']],
+                                    vectorize=True, dask='parallelized', output_dtypes=[int])
+        return data.where(conncomp==maincomps)
 
     def plot_conncomps(self, data, caption='Connected Components', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
                        vmin=0, vmax=10, cmap='tab10_r'):
