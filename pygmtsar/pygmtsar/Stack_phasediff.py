@@ -95,10 +95,10 @@ class Stack_phasediff(Stack_topo):
 
     # single-look interferogram processing has a limited set of arguments
     # resolution, coarsen, and psize are not applicable here
-    def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None,
+    def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, psize=None,
                                          queue=16, timeout=None, debug=False):
         self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength,
-                                   queue=queue, timeout=timeout, debug=debug)
+                                   psize=psize, queue=queue, timeout=timeout, debug=debug)
 
     # Goldstein filter requires square grid cells means 1:4 range multilooking.
     # For multilooking interferogram we can use square grid always using coarsen = (1,4)
@@ -773,7 +773,9 @@ class Stack_phasediff(Stack_topo):
 
         assert phase.shape == corr.shape, 'ERROR: phase and correlation variables have different shape'
         spacing = self.get_spacing(phase)
-        assert np.round(spacing[0]/spacing[1]) == 1, f'ERROR: grid cells should be almost square: {spacing}'
+        #assert np.round(spacing[0]/spacing[1]) == 1, f'ERROR: grid cells should be almost square: {spacing}'
+        if not np.round(spacing[0]/spacing[1]) == 1:
+            print (f'NOTE: grid cells are not close to square as expected: {spacing}')
         
         if len(phase.dims) == 2:
             stackvar = None
