@@ -32,7 +32,8 @@ class Stack_topo(Stack_trans_inv):
         return self.get_trans_inv()['ele'].rename('topo')
 
     def plot_topo(self, topo='auto', caption='Topography on WGS84 ellipsoid, [m]',
-                  quantile=None, vmin=None, vmax=None, cmap='gray', aspect=None, **kwargs):
+                  quantile=None, vmin=None, vmax=None, symmetrical=False,
+                  cmap='gray', aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -44,6 +45,12 @@ class Stack_topo(Stack_trans_inv):
 
         if quantile is not None:
             vmin, vmax = np.nanquantile(topo, quantile)
+
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
 
         plt.figure()
         topo.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)

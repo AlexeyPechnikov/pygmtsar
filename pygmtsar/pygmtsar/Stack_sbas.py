@@ -910,7 +910,8 @@ class Stack_sbas(Stack_detrend):
         error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': data.pair})
         return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
 
-    def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]', quantile=None, vmin=None, vmax=None, aspect=None, **kwargs):
+    def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]',
+                          quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -919,6 +920,12 @@ class Stack_sbas(Stack_detrend):
 
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
+
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
 
         plt.figure()
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
@@ -928,7 +935,8 @@ class Stack_sbas(Stack_detrend):
             plt.gca().set_aspect(aspect)
         plt.title(caption)
 
-    def plot_displacements(self, data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, quantile=None, vmin=None, vmax=None):
+    def plot_displacements(self, data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
+                           quantile=None, vmin=None, vmax=None, symmetrical=False):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -937,6 +945,12 @@ class Stack_sbas(Stack_detrend):
 
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
+
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
 
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
@@ -948,7 +962,8 @@ class Stack_sbas(Stack_detrend):
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
 
-    def plot_velocity(self, data, caption='Velocity, mm/year', quantile=None, vmin=None, vmax=None, aspect=None, **kwargs):
+    def plot_velocity(self, data, caption='Velocity, mm/year',
+                      quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -958,6 +973,12 @@ class Stack_sbas(Stack_detrend):
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
 
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
+
         plt.figure()
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
         self.plot_AOI(**kwargs)
@@ -966,7 +987,8 @@ class Stack_sbas(Stack_detrend):
             plt.gca().set_aspect(aspect)
         plt.title(caption)
 
-    def plot_rmse(self, rmse, caption='RMSE', cmap='turbo', quantile=None, vmin=None, vmax=None, **kwargs):
+    def plot_rmse(self, rmse, caption='RMSE', cmap='turbo',
+                  quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
         import warnings
@@ -980,6 +1002,12 @@ class Stack_sbas(Stack_detrend):
 
         if quantile is not None:
             vmin, vmax = np.nanquantile(rmse, quantile)
+
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
 
         plt.figure()
         rmse.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)

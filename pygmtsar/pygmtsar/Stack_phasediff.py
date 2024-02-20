@@ -803,7 +803,9 @@ class Stack_phasediff(Stack_topo):
         # replace zeros produces in NODATA areas
         return ds.where(ds).rename('phase')
 
-    def plot_phase(self, data, caption='Phase, [rad]', quantile=None, vmin=None, vmax=None, cmap='turbo', aspect=None, **kwargs):
+    def plot_phase(self, data, caption='Phase, [rad]',
+                   quantile=None, vmin=None, vmax=None, symmetrical=False,
+                   cmap='turbo', aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -812,6 +814,12 @@ class Stack_phasediff(Stack_topo):
 
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
+
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
 
         plt.figure()
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap=cmap)
@@ -821,7 +829,8 @@ class Stack_phasediff(Stack_topo):
             plt.gca().set_aspect(aspect)
         plt.title(caption)
 
-    def plot_phases(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, quantile=None, vmin=None, vmax=None):
+    def plot_phases(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
+                    quantile=None, vmin=None, vmax=None, symmetrical=False):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -830,6 +839,12 @@ class Stack_phasediff(Stack_topo):
 
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
+
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
 
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
