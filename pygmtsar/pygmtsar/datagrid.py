@@ -284,6 +284,27 @@ class datagrid:
         matrix2d = np.outer(matrix1, matrix2)
         return matrix2d
 
+    @staticmethod
+    def get_bounds(geometry):
+        import geopandas as gpd
+        import xarray as xr
+    
+        if isinstance(geometry, (xr.DataArray, xr.Dataset)):
+            lon_start = geometry.lon.min().item()
+            lat_start = geometry.lat.min().item()
+            lon_end   = geometry.lon.max().item()
+            lat_end   = geometry.lat.max().item()
+            bounds = lon_start, lat_start, lon_end, lat_end
+        elif isinstance(geometry, gpd.GeoDataFrame):
+            bounds = geometry.dissolve().envelope.item().bounds
+        elif isinstance(geometry, gpd.GeoSeries):
+            bounds = geometry.unary_union.envelope.bounds
+        else:
+            bounds = geometry.bounds
+        #print ('bounds', bounds)
+        #lon_start, lat_start, lon_end, lat_end
+        return bounds
+
 #    @staticmethod
 #    def nanconvolve2d(data, kernel, threshold=1/3.):
 #        """
