@@ -169,97 +169,14 @@ class Stack_dem(Stack_reframe):
 
         return self.get_extent(dem, subswath)
 
-    # buffer required to get correct (binary) results from SAT_llt2rat tool
-    # 0.02 degrees works well worldwide but not in Siberia
-    # small margin produces insufficient DEM not covers the defined area
-    # https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
-    # only bicubic interpolation supported as the best one for the case
-    def download_dem(self, geometry='auto', product='1s'):
+    def load_dem(self, data, geometry='auto'):
         """
-        Download and preprocess digital elevation model (DEM) data.
+        Load and preprocess digital elevation model (DEM) data from specified datafile or variable.
 
         Parameters
         ----------
-        product : str, optional
-            Product type of the DEM data. Available options are '1s' or 'SRTM1' (1 arcsec ~= 30m, default)
-            and '3s' or 'SRTM3' (3 arcsec ~= 90m).
-
-        Returns
-        -------
-        None
-
-        Examples
-        --------
-        Download default STRM1 DEM (~30 meters):
-        stack.download_dem()
-
-        Download STRM3 DEM (~90 meters):
-        stack.download_dem(product='STRM3')
-
-        Notes
-        -----
-        This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then
-        preprocessed by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid.
-        """
-        import geopandas as gpd
-        import xarray as xr
-        import numpy as np
-        import pygmt
-        # suppress warnings
-        pygmt.config(GMT_VERBOSE='errors')
-        import rioxarray as rio
-        import os
-        #import subprocess
-        from tqdm.auto import tqdm
-        import warnings
-        warnings.filterwarnings('ignore')
-
-        dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
-
-        if self.dem_filename is not None:
-            print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
-            return
-
-        if product in ['SRTM1', '1s', '01s']:
-            resolution = '01s'
-        elif product in ['SRTM3', '3s', '03s']:
-            resolution = '03s'
-        else:
-            print (f'ERROR: unknown product {product}. Available only SRTM1 ("01s") and SRTM3 ("03s") DEM using GMT servers')
-            return
-
-        # round the coordinates up to 1m
-        if geometry is None or (type(geometry) == str and geometry == 'auto'):
-            # apply scenes geometry
-            geometry = self.get_extent().buffer(self.buffer_degrees)
-        elif isinstance(geometry, gpd.GeoDataFrame):
-            geometry = geometry.dissolve().envelope.item()
-        elif isinstance(geometry, gpd.GeoSeries):
-            geometry = geometry.unary_union.envelope
-        minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
-        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
-
-        with tqdm(desc='DEM Downloading', total=1) as pbar:
-            # download DEM using GMT extent W E S N
-            ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=[minx, maxx, miny, maxy])
-            # heights correction
-            geoid = self.get_geoid(ortho)
-            if os.path.exists(dem_filename):
-                os.remove(dem_filename)
-            encoding = {'dem': self._compression(ortho.shape)}
-            (ortho + geoid).rename('dem').load().to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
-            pbar.update(1)
-
-        self.dem_filename = dem_filename
-
-    def load_dem(self, filename, geometry='auto'):
-        """
-        Load and preprocess digital elevation model (DEM) data from specified datafile.
-
-        Parameters
-        ----------
-        filename : str, optional
-            DEM filename.
+        data : xarray dataarray or str
+            DEM filename or variable.
 
         Returns
         -------
@@ -272,6 +189,10 @@ class Stack_dem(Stack_reframe):
 
         Load and crop from local GeoTIF file:
         stack.load_dem('GEBCO_2019.tif')
+
+        Load from Xarray DataArray or Dataset:
+        stack.set_dem(None).load_dem(dem)
+        stack.set_dem(None).load_dem(dem.to_dataset())
 
         Notes
         -----
@@ -290,29 +211,35 @@ class Stack_dem(Stack_reframe):
             print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
             return
 
-        if os.path.splitext(filename)[-1] in ['.tiff', '.tif', '.TIF']:
-            ortho = rio.open_rasterio(filename, chunks=self.chunksize).squeeze(drop=True)\
+        if isinstance(data, (xr.Dataset)):
+            ortho = data[list(data.data_vars)[0]]
+        elif isinstance(data, (xr.DataArray)):
+            ortho = data
+        elif isinstance(data, str) and os.path.splitext(data)[-1] in ['.tiff', '.tif', '.TIF']:
+            ortho = rio.open_rasterio(data, chunks=self.chunksize).squeeze(drop=True)\
                 .rename({'y': 'lat', 'x': 'lon'})\
                 .drop('spatial_ref')
             if ortho.lat.diff('lat')[0].item() < 0:
                 ortho = ortho.reindex(lat=ortho.lat[::-1])
-        elif os.path.splitext(filename)[-1] in ['.nc', '.netcdf', '.grd']:
-            ortho = xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=self.chunksize)
-        else:
+        elif isinstance(data, str) and os.path.splitext(data)[-1] in ['.nc', '.netcdf', '.grd']:
+            ortho = xr.open_dataarray(data, engine=self.netcdf_engine, chunks=self.chunksize)
+        elif isinstance(data, str):
             print ('ERROR: filename extension is not recognized. Should be one from .tiff, .tif, .TIF, .nc, .netcdf, .grd')
+        else:
+            print ('ERROR: argument is not an Xarray object and it is not a file name')
 
         # crop
-        #ortho = self.get_extent(ortho)
-        # round the coordinates up to 1m
         if type(geometry) == str and geometry == 'auto':
             # apply scenes geometry
             extent = self.get_extent().buffer(self.buffer_degrees)
         elif isinstance(geometry, gpd.GeoDataFrame):
             extent = geometry.dissolve().envelope.item()
+        elif isinstance(geometry, gpd.GeoSeries):
+            geometry = geometry.unary_union.envelope
+        # round the coordinates up to 1m
         #minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
         #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
         bounds = np.round(extent.bounds, 5)
-        #print ('xmin, xmax', xmin, xmax)
         ortho = ortho\
                .transpose('lat','lon')\
                .sel(lat=slice(bounds[1], bounds[3]),
@@ -327,3 +254,7 @@ class Stack_dem(Stack_reframe):
             .to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
 
         self.dem_filename = dem_filename
+
+    def download_dem(self, geometry='auto', product='1s'):
+        print ('NOTE: Function is deprecated. Download DEM using GMT.download_dem(AOI) or')
+        print ('AWS.download_dem(AOI) functions and load with stack.load_dem() function.')
