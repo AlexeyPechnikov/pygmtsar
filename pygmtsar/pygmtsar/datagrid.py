@@ -299,6 +299,9 @@ class datagrid:
             bounds = geometry.dissolve().envelope.item().bounds
         elif isinstance(geometry, gpd.GeoSeries):
             bounds = geometry.unary_union.envelope.bounds
+        elif isinstance(geometry, tuple):
+            # geometry is already bounds
+            bounds = geometry
         else:
             bounds = geometry.bounds
         #print ('bounds', bounds)
