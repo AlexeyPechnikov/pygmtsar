@@ -7,7 +7,7 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-__version__ = '2024.2.15.post4'
+__version__ = '2024.2.21'
 
 # unified progress indicators
 from .tqdm_joblib import tqdm_joblib
@@ -16,13 +16,17 @@ from .tqdm_dask import tqdm_dask
 from .datagrid import datagrid
 # top level module classes
 from .PRM import PRM
-from .S1 import S1
 from .Stack import Stack
+# Sentinel-1 processing functions
+from .S1 import S1
 # export to VTK format
 from .NCubeVTK import NCubeVTK
-# ASF downloading
+# ASF, AWS, ESA, GMT downloading functions
 from .ASF import ASF
-# XYZ tiles downloading
+from .AWS import AWS
+from .ESA import ESA
+from .GMT import GMT
+# XYZ map tiles downloading
 from .XYZTiles import XYZTiles
-# a set of utils
+# morphology and other helper functions
 from .utils import utils
