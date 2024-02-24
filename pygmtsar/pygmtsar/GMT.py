@@ -31,26 +31,21 @@ class GMT(datagrid, tqdm_joblib):
         Examples
         --------
         Download default STRM1 DEM (~30 meters):
-        GMT.download_dem()
+        GMT().download_dem()
 
         Download STRM3 DEM (~90 meters):
         GMT.download_dem(product='STRM3')
         
         Download default STRM DEM to cover the selected area AOI:
-        GMT.download_dem(AOI)
+        GMT().download_dem(AOI)
         
         Download default STRM DEM to cover all the scenes:
-        GMT.download_dem(stack.get_extent().buffer(stack.buffer_degrees))
+        GMT().download_dem(stack.get_extent().buffer(0.1))
 
         import pygmt
         # Set the GMT data server limit to N Mb to allow for remote downloads
         pygmt.config(GMT_DATA_SERVER_LIMIT=1e6)
-        GMT.download_dem(AOI, product='1s')
-
-        Notes
-        -----
-        This method uses the GMT servers to download SRTM 1 or 3 arc-second DEM data. The downloaded data is then
-        preprocessed by removing the EGM96 geoid to make the heights relative to the WGS84 ellipsoid.
+        GMT().download_dem(AOI, product='1s')
         """
         import numpy as np
         import pygmt
@@ -74,17 +69,14 @@ class GMT(datagrid, tqdm_joblib):
         lon_start, lat_start, lon_end, lat_end = self.get_bounds(geometry)
         with tqdm(desc='GMT SRTM DEM Downloading', total=1) as pbar:
             # download DEM using GMT extent W E S N
-            ortho = pygmt.datasets.load_earth_relief(resolution=resolution, region=[lon_start, lon_end, lat_start, lat_end])
-            # heights correction
-            geoid = self.get_geoid(ortho)
-            dem = (ortho + geoid).rename('dem')
+            dem = pygmt.datasets.load_earth_relief(resolution=resolution, region=[lon_start, lon_end, lat_start, lat_end])
             pbar.update(1)
 
         if filename is not None:
             if os.path.exists(filename):
                 os.remove(filename)
             encoding = {'dem': self._compression(dem.shape)}
-            dem.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
+            dem.rename('dem').load().to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
         else:
             return dem
 
@@ -132,6 +124,6 @@ class GMT(datagrid, tqdm_joblib):
             if os.path.exists(filename):
                 os.remove(filename)
             encoding = {'landmask': self._compression(landmask.shape)}
-            landmask.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
+            landmask.rename('landmask').load().to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
         else:
             return landmask
