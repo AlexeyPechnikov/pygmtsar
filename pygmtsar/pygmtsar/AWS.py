@@ -32,6 +32,7 @@ class AWS(datagrid, tqdm_joblib):
         import joblib
         import requests
         import io
+        import os
 
         assert product in ['1s', '3s'], f'ERROR: product name is invalid: {product}. Expected names are "1s", "3s"'
 
@@ -74,6 +75,6 @@ class AWS(datagrid, tqdm_joblib):
             if os.path.exists(filename):
                 os.remove(filename)
             encoding = {'dem': self._compression(dem.shape)}
-            dem.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
+            dem.rename('dem').to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
         else:
             return dem
