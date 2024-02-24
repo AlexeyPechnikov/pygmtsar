@@ -266,14 +266,15 @@ class S1():
         import pandas as pd
         import geopandas as gpd
         import os
-    
+
         geoloc = annotation['product']['geolocationGrid']['geolocationGridPointList']
         # check data consistency
         assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
-        # Google Colab wrapper
-        if float(pd.__version__[:3]) > 2.0:
-            gcps = pd.DataFrame(geoloc['geolocationGridPoint']).map(lambda val : pd.to_numeric(val,errors='ignore'))
-        else:
-            gcps = pd.DataFrame(geoloc['geolocationGridPoint']).applymap(lambda val : pd.to_numeric(val,errors='ignore'))
+    
+        gcps = pd.DataFrame(geoloc['geolocationGridPoint'])
+        # convert to numeric values excluding azimuthTime & slantRangeTime
+        for column in gcps.columns[2:]:
+            gcps[column] = pd.to_numeric(gcps[column])
+
         # return approximate location as set of GCP
         return gpd.GeoDataFrame(gcps, geometry=gpd.points_from_xy(x=gcps.longitude, y=gcps.latitude))
