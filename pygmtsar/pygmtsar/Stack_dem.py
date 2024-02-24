@@ -12,9 +12,6 @@ from .PRM import PRM
 
 class Stack_dem(Stack_reframe):
 
-    # Buffer size in degrees to expand the area covered by the DEM
-    buffer_degrees = 0.1
-
     def get_extent_ra(self):
         """
         minx, miny, maxx, maxy = np.round(geom.bounds).astype(int)
@@ -37,8 +34,8 @@ class Stack_dem(Stack_reframe):
         #print ('xmin, xmax', xmin, xmax)
         return grid\
                .transpose('lat','lon')\
-               .sel(lat=slice(bounds[1] - self.buffer_degrees, bounds[3] + self.buffer_degrees),
-                    lon=slice(bounds[0] - self.buffer_degrees, bounds[2] + self.buffer_degrees))
+               .sel(lat=slice(bounds[1], bounds[3]),
+                    lon=slice(bounds[0], bounds[2]))
 
     def get_geoid(self, grid=None):
         """
@@ -196,7 +193,7 @@ class Stack_dem(Stack_reframe):
 
         Notes
         -----
-        This method loads DEM from the user specified file. The downloaded data is then preprocessed by removing
+        This method loads DEM from the user specified file. The data is then preprocessed by removing
         the EGM96 geoid to make the heights relative to the WGS84 ellipsoid.
         """
         import xarray as xr
@@ -229,17 +226,18 @@ class Stack_dem(Stack_reframe):
             print ('ERROR: argument is not an Xarray object and it is not a file name')
 
         # crop
-        if type(geometry) == str and geometry == 'auto':
-            # apply scenes geometry
-            extent = self.get_extent().buffer(self.buffer_degrees)
-        elif isinstance(geometry, gpd.GeoDataFrame):
-            extent = geometry.dissolve().envelope.item()
-        elif isinstance(geometry, gpd.GeoSeries):
-            geometry = geometry.unary_union.envelope
-        # round the coordinates up to 1m
-        #minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
-        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
-        bounds = np.round(extent.bounds, 5)
+#         if type(geometry) == str and geometry == 'auto':
+#             # apply scenes geometry
+#             extent = self.get_extent()
+#         elif isinstance(geometry, gpd.GeoDataFrame):
+#             extent = geometry.dissolve().envelope.item()
+#         elif isinstance(geometry, gpd.GeoSeries):
+#             geometry = geometry.unary_union.envelope
+#         # round the coordinates up to 1m
+#         #minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
+#         #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
+#         bounds = np.round(extent.bounds, 5)
+        bounds = self.get_bounds(self.get_extent() if type(geometry) == str and geometry == 'auto' else geometry)
         ortho = ortho\
                .transpose('lat','lon')\
                .sel(lat=slice(bounds[1], bounds[3]),
