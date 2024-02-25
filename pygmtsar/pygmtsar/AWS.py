@@ -25,7 +25,6 @@ class AWS(datagrid, tqdm_joblib):
         dem.plot.imshow()
         """
         import xarray as xr
-        import rioxarray
         import geopandas as gpd
         import numpy as np
         from tqdm.auto import tqdm
@@ -54,7 +53,7 @@ class AWS(datagrid, tqdm_joblib):
             if response.status_code != 200:
                 return None
             with io.BytesIO(response.content) as f:
-                tile = rioxarray.open_rasterio(f, cache=True)\
+                tile = xr.open_dataarray(f, engine='rasterio')\
                     .squeeze(drop=True)\
                     .rename({'y': 'lat', 'x': 'lon'})\
                     .drop_vars('spatial_ref')\
@@ -69,7 +68,7 @@ class AWS(datagrid, tqdm_joblib):
         with self.tqdm_joblib(tqdm(desc='DEM Tile Downloading', total=(right-left+1)*(upper-lower+1))) as progress_bar:
             tile_xarrays = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(job_tile)(product, x, y)\
                                 for x in range(left, right + 1) for y in range(lower, upper + 1))
-        dem = xr.combine_by_coords([tile for tile in tile_xarrays if tile is not None])
+        dem = xr.combine_by_coords([tile for tile in tile_xarrays if tile is not None])['band_data']
 
         if filename is not None:
             if os.path.exists(filename):
