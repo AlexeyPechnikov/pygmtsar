@@ -28,7 +28,6 @@ It's important to note that the examples are coded with different objectives in 
 
 | Analysis                 | Notebook                      | Scenes | Subswaths | Interferograms | Time (4 CPUs, 8 GB RAM) | Time (2 CPUs, 4 GB RAM) |
 | ------------------------ | ----------------------------- | ------ | --------- | -------------- | ----------------------- | ----------------------- |
-| SBAS and PSI Analyses    | Yamchi dam                    | 29     | 1         | 270            | 48 min                  | -                       |
 | Co-Seismic Interferogram | CENTRAL Türkiye Earthquake    | 4      | 3         | 1              | 28 min                  | -                       |
 | SBAS and PSI Analyses    | Golden Valley                 | 30     | 1         | 57             | 19 min                  | 23 min                  |
 | SBAS Analysis            | Imperial Valley               | 5      | 1         | 9              | 8 min                   | -                       |

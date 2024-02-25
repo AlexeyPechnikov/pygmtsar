@@ -50,9 +50,6 @@ All steps in these notebooks are automated. This includes the software installat
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ipiQGbvUF8duzjZER8v-_R48DSpSmgvQ?usp=sharing) PyGMTSAR SBAS and PSI Analyses: Golden Valley, CA.
 <img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/8b416787-4b81-44f8-8956-3a5d596af51b" width="100%">
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1diVdEahWeJdzvBG7tUQJrj-13uzs6feS?usp=sharing) PyGMTSAR SBAS and PSI Analyses: Yamchi dam, Iran.
-<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/5e55f245-8257-430c-93d0-6cda1df12957" width="100%">
-
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1O3aZtZsTrQIldvCqlVRel13wJRLhmTJt?usp=sharing) PyGMTSAR SBAS and PSI Analyses: Lake Sarez Landslides, Tajikistan.
 <img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/b507cad0-db7a-47e6-a679-f74631c5e840" width="100%">
 
