@@ -198,6 +198,7 @@ except Exception as e:
     print (esa.download_orbits(DATADIR))
 
 # previously, PyGMTSAR internally applied 0.1° buffer
+
 # try:
 #     # download SRTM DEM from GMT servers
 #     # note: downloading often fails recently

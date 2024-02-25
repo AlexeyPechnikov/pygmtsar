@@ -185,10 +185,11 @@ except Exception as e:
     esa = ESA(esa_username, esa_password)
     print (esa.download_orbits(DATADIR))
 
+# previously, PyGMTSAR internally applied 0.1° buffer
+
 # define AOI as the whole scenes area
 AOI = S1.scan_slc(DATADIR)
 
-# previously, PyGMTSAR internally applied 0.1° buffer
 # try:
 #     # download SRTM DEM from GMT servers
 #     # note: downloading often fails recently

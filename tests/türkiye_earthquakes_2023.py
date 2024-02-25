@@ -93,8 +93,8 @@ The installation takes a long time on fresh Debian 10 and a short time on Google
 !{sys.executable} --version
 
 if 'google.colab' in sys.modules:
-    !{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
-    #!{sys.executable} -m pip install -q pygmtsar
+    #!{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
+    !{sys.executable} -m pip install -q pygmtsar
 from pygmtsar import __version__
 __version__
 
@@ -207,14 +207,17 @@ except Exception as e:
     esa = ESA(esa_username, esa_password)
     print (esa.download_orbits(DATADIR))
 
-AOI = S1.scan_slc(DATADIR)
 # previously, PyGMTSAR internally applied 0.1° buffer
-try:
-    # download SRTM DEM from GMT servers
-    # note: downloading often fails recently
-    GMT().download_dem(AOI, filename=DEM)
-except Exception as e:
-    print (e)
+
+# define AOI as the whole scenes area
+AOI = S1.scan_slc(DATADIR)
+
+# try:
+#     # download SRTM DEM from GMT servers
+#     # note: downloading often fails recently
+#     GMT().download_dem(AOI, filename=DEM)
+# except Exception as e:
+#     print (e)
 
 # if DEM missed, download Copernicus DEM from open AWS datastore
 # get complete 1°x1° tiles covering the AOI, crop them later using AOI
