@@ -27,10 +27,6 @@ All steps in these notebooks are automated. This includes the software installat
 
 <img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/cce39fa5-0115-467e-836d-8361a37da935" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/47543745-e7b1-41cb-b9f3-6f73cb1f9fb3" width="50%">
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ET8Fv4Q4flV-WL2T4H-62dM3UpC7WKqT?usp=sharing) Philipphine earthquake M7.6 Co-Seismic Interferogram, 2023.
-
-<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/7ca38adf-5312-4398-b936-0c8de71b8b92" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/5a9352e1-f0d7-466d-b817-7c7e7c298e96" width="50%">
-
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1dDFG8BoF4WfB6tOF5sAi5mjdBKRbhxHo?usp=sharing) Pico do Fogo Volcano Eruption on Cape Verde's Fogo Island, 2014.
 
 <img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/d2eda089-0730-4699-82db-9410712d55ff" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/694d9670-36c9-4e56-bfb8-056e0d038d58" width="50%">
