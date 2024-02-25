@@ -93,8 +93,8 @@ The installation takes a long time on fresh Debian 10 and a short time on Google
 !{sys.executable} --version
 
 if 'google.colab' in sys.modules:
-    #!{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
-    !{sys.executable} -m pip install -q pygmtsar
+    !{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
+    #!{sys.executable} -m pip install -q pygmtsar
 from pygmtsar import __version__
 __version__
 
@@ -132,7 +132,7 @@ plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # %matplotlib inline
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF
+from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, AWS, ESA, GMT
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters"""
 
@@ -150,24 +150,56 @@ DATADIR      = 'data_imperial'
 BASEDAYS     = 100
 BASEMETERS   = 150
 
+# define DEM filename inside data directory
+DEM = f'{DATADIR}/dem.nc'
+
 """## Download and Unpack Datasets
 
-## Enter Your ASF (Earthdata) User and Password
+## Enter Your ASF and ESA User and Password
 
-If the data directory is empty or doesn't exist, you'll need to download Sentinel-1 scenes from the Alaska Satellite Facility (ASF) datastore. Use your Earthdata Login credentials. If you don't have an Earthdata Login, you can create one at https://urs.earthdata.nasa.gov//users/new
+If the data directory is empty or doesn't exist, you'll need to download Sentinel-1 scenes from the Alaska Satellite Facility (ASF) datastore. Use your Earthdata Login credentials. If you don't have an Earthdata Login, you can create one at https://urs.earthdata.nasa.gov//users/new Also, register your ESA Copernicus datastore account at https://dataspace.copernicus.eu/
 
 You can also use pre-existing SLC scenes stored on your Google Drive, or you can copy them using a direct public link from iCloud Drive.
 
-The credentials below are available at the time the notebook is validated. Special symbols, like underscores, are required in your ASF password.
+The credentials below are available at the time the notebook is validated.
 """
 
 # Set these variables to None and you will be prompted to enter your username and password below.
-username = 'GoogleColab2023'
-password = 'GoogleColab_2023'
+asf_username = 'GoogleColab2023'
+asf_password = 'GoogleColab_2023'
 
-# download required polarization and subswaths only
-asf = ASF(username, password)
-asf.download(DATADIR, SCENES, SUBSWATH, POLARIZATION)
+esa_username = 'sifts0_spangle@icloud.com'
+esa_password = 'cnjwdchuwe&e9d0We9'
+
+# Set these variables to None and you will be prompted to enter your username and password below.
+asf = ASF(asf_username, asf_password)
+# Optimized scene downloading from ASF - only the required subswaths and polarizations.
+print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+# There are two ways to download orbits; you can use any one or both together.
+try:
+    # RESORB orbit downloading from ASF has recently failed.
+    print(asf.download_orbits(DATADIR))
+except Exception as e:
+    print (e)
+    # Download missed orbits in case ASF orbit downloading fails.
+    esa = ESA(esa_username, esa_password)
+    print (esa.download_orbits(DATADIR))
+
+# define AOI as the whole scenes area
+AOI = S1.scan_slc(DATADIR)
+
+# previously, PyGMTSAR internally applied 0.1° buffer
+try:
+    # download SRTM DEM from GMT servers
+    # note: downloading often fails recently
+    GMT().download_dem(AOI, filename=DEM)
+except Exception as e:
+    print (e)
+
+# if DEM missed, download Copernicus DEM from open AWS datastore
+# get complete 1°x1° tiles covering the AOI, crop them later using AOI
+AWS().download_dem(AOI, filename=DEM)
+# don't worry about messages 'ERROR 3: /vsipythonfilelike/ ... : I/O error'
 
 """## Run Local Dask Cluster
 
@@ -193,13 +225,13 @@ sbas.to_dataframe()
 
 sbas.plot_scenes()
 
-"""### Download SRTM DEM
+"""### Load DEM
 
-The function below downloads SRTM1 or SRTM3 DEM and converts heights to ellipsoidal model using EGM96 grid.
-Besides, for faster processing we can use pre-defined DEM file as explained above. Select product=SRTM1 for 30m resolution and product=SRTM3 for 90m resolution SRTM DEM.
+The function below loads DEM from file or Xarray variable and converts heights to ellipsoidal model using EGM96 grid.
 """
 
-sbas.download_dem()
+# define the area of interest (AOI) to speedup the processing
+sbas.load_dem(DEM, AOI)
 
 sbas.plot_scenes()
 plt.savefig('Estimated Scene Locations.jpg')
@@ -217,7 +249,8 @@ else:
 baseline_pairs = sbas.baseline_pairs(days=BASEDAYS, meters=BASEMETERS)
 baseline_pairs
 
-sbas.plot_baseline(baseline_pairs)
+with mpl_settings({'figure.dpi': 150}):
+    sbas.plot_baseline(baseline_pairs)
 plt.savefig('Baseline.jpg')
 
 """## Geocoding"""
