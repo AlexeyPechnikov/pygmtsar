@@ -93,8 +93,8 @@ The installation takes a long time on fresh Debian 10 and a short time on Google
 !{sys.executable} --version
 
 if 'google.colab' in sys.modules:
-    !{sys.executable} -m pip install -Uq git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
-    #!{sys.executable} -m pip install -q pygmtsar
+    #!{sys.executable} -m pip install -Uq git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
+    !{sys.executable} -m pip install -q pygmtsar
 from pygmtsar import __version__
 __version__
 
@@ -198,12 +198,12 @@ except Exception as e:
     print (esa.download_orbits(DATADIR))
 
 # previously, PyGMTSAR internally applied 0.1° buffer
-try:
-    # download SRTM DEM from GMT servers
-    # note: downloading often fails recently
-    GMT().download_dem(AOI, filename=DEM)
-except Exception as e:
-    print (e)
+# try:
+#     # download SRTM DEM from GMT servers
+#     # note: downloading often fails recently
+#     GMT().download_dem(AOI, filename=DEM)
+# except Exception as e:
+#     print (e)
 
 # if DEM missed, download Copernicus DEM from open AWS datastore
 # get complete 1°x1° tiles covering the AOI, crop them later using AOI
@@ -218,6 +218,9 @@ GMT().download_landmask(AOI, filename=LANDMASK)
 Launch Dask cluster for local and distributed multicore computing. That's possible to process terabyte scale Sentinel-1 SLC datasets on Apple Air 16 GB RAM.
 """
 
+# simple Dask initialization
+if 'client' in globals():
+    client.close()
 client = Client()
 client
 
