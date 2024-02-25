@@ -57,7 +57,7 @@ setup(
                       'rioxarray',
                       'ipywidgets',
                       'h5netcdf>=1.3.0',
-                      'h5py',
+                      'h5py==3.9.0',
                       'nc-time-axis',
                       'statsmodels>=0.14.0',
                       'pygmt',
