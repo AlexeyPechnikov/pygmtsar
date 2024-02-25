@@ -68,7 +68,10 @@ class AWS(datagrid, tqdm_joblib):
         with self.tqdm_joblib(tqdm(desc='DEM Tile Downloading', total=(right-left+1)*(upper-lower+1))) as progress_bar:
             tile_xarrays = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(job_tile)(product, x, y)\
                                 for x in range(left, right + 1) for y in range(lower, upper + 1))
+
         dem = xr.combine_by_coords([tile for tile in tile_xarrays if tile is not None])['band_data']
+        bounds = self.get_bounds(geometry)
+        dem = dem.sel(lat=slice(bounds[1], bounds[3]), lon=slice(bounds[0], bounds[2]))
 
         if filename is not None:
             if os.path.exists(filename):
