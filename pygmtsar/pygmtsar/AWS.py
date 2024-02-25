@@ -45,8 +45,8 @@ class AWS(datagrid, tqdm_joblib):
         def job_tile(product, lon, lat):
             base_url = self.base_url.format(resolution=30 if product=='1s' else 90)
             tile_id = self.tile_id.format(product1=int(product[0]),
-                                          SN2=f'{"S" if lat<0 else "N"}{lat:02}',
-                                          WE3=f'{"W" if lon<0 else "E"}{lon:03}')
+                                          SN2=f'{"S" if lat<0 else "N"}{abs(lat):02}',
+                                          WE3=f'{"W" if lon<0 else "E"}{abs(lon):03}')
             url = f'{base_url}/{tile_id}/{tile_id}.tif'
             response = requests.get(url)
             #response.raise_for_status()
