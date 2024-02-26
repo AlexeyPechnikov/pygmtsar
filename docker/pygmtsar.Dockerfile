@@ -38,6 +38,8 @@ RUN apt-get -y update \
 &&  apt-get -y install xvfb libegl1-mesa \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN conda install -y -c conda-forge vtk panel xvfbwrapper pyvista
+# magick fix for the library
+RUN pip3 uninstall -y h5py
 RUN pip3 install pygmtsar
 
 # modify start-notebook.py to start Xvfb
