@@ -81,56 +81,8 @@ class Stack_landmask(Stack_multilooking):
         return landmask
 
     def download_landmask(self, product='1s', debug=False):
-        print ('NOTE: Function is deprecated. Download land mask using GMT.download_landmask(stack.get_dem())')
-        print ('function and load with stack.load_landmask() function.')
-
-        """
-        Download the landmask and save as NetCDF file.
-
-        Parameters
-        ----------
-        product : str, optional
-                Available options are '1s' (1 arcsec ~= 30m, default) and '3s' (3 arcsec ~= 90m).
-        debug : bool, optional
-            Whether to enable debug mode. Default is False.
-
-        Examples
-        --------
-        stack.download_landmask()
-
-        Notes
-        -----
-        This method downloads the landmask using GMT's local data or server. The landmask is built based on the interferogram DEM area.
-        """
-        import pygmt
-        import os
-        from tqdm.auto import tqdm
-
-        if self.landmask_filename is not None:
-            print ('NOTE: landmask exists, ignore the command. Use Stack.set_landmask(None) to allow new landmask downloading')
-            return
-
-        # generate the same as DEM grid
-        landmask_filename = os.path.join(self.basedir, 'landmask.nc')
-
-        # geographical grid for interferogram area only
-        dem = self.get_dem()
-        llmin = dem.lon.min().item()
-        llmax = dem.lon.max().item()
-        ltmin = dem.lat.min().item()
-        ltmax = dem.lat.max().item()
-        region = f'{llmin}/{llmax}/{ltmin}/{ltmax}'
-        if debug:
-            print('region', region)
-
-        with tqdm(desc='Landmask Downloading', total=1) as pbar:
-            landmask = pygmt.grdlandmask(resolution='f', region=region, spacing=product, maskvalues='NaN/1')
-            if os.path.exists(landmask_filename):
-                os.remove(landmask_filename)
-            landmask.to_netcdf(landmask_filename)
-            pbar.update(1)
-
-        self.landmask_filename = landmask_filename
+        print ('NOTE: Function is deprecated. Download land mask using GMT.download_landmask()')
+        print ('function and load with Stack.load_landmask() function.')
 
     def load_landmask(self, data, geometry='auto'):
         """
@@ -188,18 +140,7 @@ class Stack_landmask(Stack_multilooking):
         else:
             print ('ERROR: argument is not an Xarray object and it is not a file name')
 
-#         # crop
-#         if type(geometry) == str and geometry == 'auto':
-#             # apply scenes geometry
-#             extent = self.get_extent()
-#         elif isinstance(geometry, gpd.GeoDataFrame):
-#             extent = geometry.dissolve().envelope.item()
-#         elif isinstance(geometry, gpd.GeoSeries):
-#             geometry = geometry.unary_union.envelope
-#         # round the coordinates up to 1m
-#         #minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
-#         #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
-#         bounds = np.round(extent.bounds, 5)
+        # crop
         bounds = self.get_bounds(self.get_extent() if type(geometry) == str and geometry == 'auto' else geometry)
         landmask = landmask\
                .transpose('lat','lon')\

@@ -27,11 +27,9 @@ class Stack_dem(Stack_reframe):
     def get_extent(self, grid=None, subswath=None):
         import numpy as np
 
-        extent = self.get_reference(subswath).dissolve().envelope.item()
+        bounds = self.get_bounds(self.get_reference(subswath))
         if grid is None:
-            return extent
-        bounds = np.round(extent.bounds, 3)
-        #print ('xmin, xmax', xmin, xmax)
+            return bounds
         return grid\
                .transpose('lat','lon')\
                .sel(lat=slice(bounds[1], bounds[3]),
@@ -226,17 +224,6 @@ class Stack_dem(Stack_reframe):
             print ('ERROR: argument is not an Xarray object and it is not a file name')
 
         # crop
-#         if type(geometry) == str and geometry == 'auto':
-#             # apply scenes geometry
-#             extent = self.get_extent()
-#         elif isinstance(geometry, gpd.GeoDataFrame):
-#             extent = geometry.dissolve().envelope.item()
-#         elif isinstance(geometry, gpd.GeoSeries):
-#             geometry = geometry.unary_union.envelope
-#         # round the coordinates up to 1m
-#         #minx, miny, maxx, maxy = np.round(geometry.bounds, 5)
-#         #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
-#         bounds = np.round(extent.bounds, 5)
         bounds = self.get_bounds(self.get_extent() if type(geometry) == str and geometry == 'auto' else geometry)
         ortho = ortho\
                .transpose('lat','lon')\

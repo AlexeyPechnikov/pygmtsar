@@ -60,7 +60,6 @@ setup(
                       'h5py',
                       'nc-time-axis',
                       'statsmodels>=0.14.0',
-                      'pygmt',
                       'remotezip',
                       'asf_search',
                       'imageio',
