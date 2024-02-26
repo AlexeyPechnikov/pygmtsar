@@ -230,7 +230,7 @@ class GMT(datagrid, tqdm_joblib):
         def grdlandmask(bounds, product, resolution, filename):
             if os.path.exists(filename):
                 os.remove(filename)
-            argv = ['gmt', 'grdlandmask', f'-R{bounds[0]}/{bounds[2]}/{bounds[1]}/{bounds[3]}', f'-I{product}', f'-D{resolution}', '-N1/NaN', f'-G{filename}']
+            argv = ['gmt', 'grdlandmask', f'-R{bounds[0]}/{bounds[2]}/{bounds[1]}/{bounds[3]}', f'-I{product}', f'-D{resolution}', '-NNaN/1', f'-G{filename}']
             #print ('grdlandmask argv:', ' '.join(argv))
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
             stdout_data, stderr_data = p.communicate()
