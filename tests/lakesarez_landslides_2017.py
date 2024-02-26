@@ -143,10 +143,6 @@ pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
 from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, AWS, ESA, GMT, XYZTiles, utils
-if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
-    # use different NetCDF backend in Docker containers
-    from pygmtsar import datagrid
-    datagrid.netcdf_engine = 'netcdf4'
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
