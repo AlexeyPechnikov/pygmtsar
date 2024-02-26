@@ -22,6 +22,16 @@ class datagrid:
         The compression level for data compression. Default is 3.
     noindex : np.uint32
         The NODATA index value for transform matrices.
+    
+    Notes
+    ----------
+    That's possible to define a special NetCDF backend for Docker environment or other cases:
+
+    if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
+        # use different NetCDF backend in Docker containers
+        from pygmtsar import datagrid
+        datagrid.netcdf_engine = 'netcdf4'
+    
     """
     import numpy as np
 
