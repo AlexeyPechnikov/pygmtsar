@@ -40,7 +40,34 @@ RUN apt-get -y update \
 RUN conda install -y -c conda-forge vtk panel xvfbwrapper pyvista
 # magick fix for the library
 RUN pip3 uninstall -y h5py
-RUN pip3 install pygmtsar
+# use requirements.sh to build the installation command
+RUN pip3 install \
+    adjustText==1.0.4 \
+    asf_search==7.0.4 \
+    dask==2024.1.1 \
+    distributed==2024.1.1 \
+    geopandas==0.14.3 \
+    h5netcdf==1.3.0 \
+    h5py==3.10.0 \
+    imageio==2.31.5 \
+    ipywidgets==8.1.1 \
+    joblib==1.3.2 \
+    matplotlib==3.8.0 \
+    nc-time-axis==1.4.1 \
+    numba==0.57.1 \
+    numpy==1.24.4 \
+    pandas==2.2.1 \
+    remotezip==0.12.2 \
+    rioxarray==0.15.1 \
+    scikit-learn==1.3.1 \
+    scipy==1.11.4 \
+    seaborn==0.13.0 \
+    shapely==2.0.3 \
+    statsmodels==0.14.0 \
+    tqdm==4.66.1 \
+    xarray==2024.2.0 \
+    xmltodict==0.13.0 \
+    pygmtsar
 
 # modify start-notebook.py to start Xvfb
 RUN sed -i '/import sys/a \
