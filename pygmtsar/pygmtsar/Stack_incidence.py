@@ -408,6 +408,37 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = self.incidence_angle().reindex_like(los_disp, method='nearest')
         return sign * los_disp/np.sin(incidence_ll)
 
+    def elevation_m(self, unwrap, baseline):
+        """
+        Compute elevation in meters in radar coordinates.
+
+        Parameters
+        ----------
+        unwrap : xarray.DataArray or xarray.Dataset
+            Unwrapped phase grid(s) in radar coordinates.
+
+        Returns
+        -------
+        xarray.DataArray
+            Elevation grid(s) in meters.
+
+        Examples
+        --------
+        ...
+        """
+        import xarray as xr
+        import numpy as np
+
+        assert self.is_ra(unwrap), 'ERROR: unwrapped phase needs to be defined in radar coordinates'
+    
+        # expected accuracy about 0.01%
+        #wavelength, slant_range = self.PRM().get('radar_wavelength','SC_height')
+        wavelength, slant_range_start,slant_range_end = self.PRM().get('radar_wavelength', 'SC_height_start', 'SC_height_end')
+        slant_range = xr.DataArray(np.linspace(slant_range_start,slant_range_end, unwrap.shape[1]),
+                                   coords=[unwrap.coords['x']])
+        incidence = self.incidence_angle().reindex_like(unwrap, method='nearest')
+        return (wavelength*unwrap*slant_range*np.cos(incidence)/(4*np.pi*baseline)).rename('ele')
+
     def compute_satellite_look_vector(self, interactive=False):
         #import dask
         import xarray as xr
