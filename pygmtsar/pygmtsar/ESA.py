@@ -142,7 +142,8 @@ class ESA(tqdm_joblib):
 
         return
 
-    def download_orbits(self, basedir: str, n_jobs: int = 8, skip_exist: bool = True):
+    def download_orbits(self, basedir: str, n_jobs: int = 2, skip_exist: bool = True):
+        import pandas as pd
         import os
         import glob
         from tqdm.auto import tqdm
