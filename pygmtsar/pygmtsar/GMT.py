@@ -158,6 +158,7 @@ class GMT(datagrid, tqdm_joblib):
         --------
         https://docs.generic-mapping-tools.org/6.0/datasets/earth_relief.html
         """
+        import xarray as xr
         import os
         import subprocess
         from tqdm.auto import tqdm
@@ -198,7 +199,7 @@ class GMT(datagrid, tqdm_joblib):
             pbar.update(1)
 
         if filename is None:
-            da = xr.open_dataarray(grdname, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+            da = xr.open_dataarray(grdname, engine=self.netcdf_engine).load()
             os.remove(grdname)
             return da
 
@@ -220,6 +221,7 @@ class GMT(datagrid, tqdm_joblib):
         -----
         This method downloads the landmask using GMT's local data or server.
         """
+        import xarray as xr
         import os
         import subprocess
         from tqdm.auto import tqdm
@@ -256,6 +258,6 @@ class GMT(datagrid, tqdm_joblib):
             pbar.update(1)
 
         if filename is None:
-            da = xr.open_dataarray(grdname, engine=self.netcdf_engine, chunks=self.netcdf_chunksize)
+            da = xr.open_dataarray(grdname, engine=self.netcdf_engine).load()
             os.remove(grdname)
             return da
