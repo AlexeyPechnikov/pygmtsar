@@ -173,10 +173,10 @@ class GMT(datagrid, tqdm_joblib):
             #print ('gmt grdcut argv:', ' '.join(argv))
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
             stdout_data, stderr_data = p.communicate()
-            if p.returncode != 0 or len(stderr_data.strip()) > 0:
+            if p.returncode != 0 or not os.path.exists(filename):
                 print('Error executing external command "gmt grdcut":')
                 raise ValueError(stderr_data)
-            return stdout_data.strip()
+            return stdout_data
 
         if product in ['SRTM1', '1s', '01s']:
             resolution = '01s'
@@ -237,10 +237,10 @@ class GMT(datagrid, tqdm_joblib):
             #print ('grdlandmask argv:', ' '.join(argv))
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
             stdout_data, stderr_data = p.communicate()
-            if p.returncode != 0 or len(stderr_data.strip()) > 0:
+            if p.returncode != 0 or not os.path.exists(filename):
                 print('Error executing external command "gmt grdlandmask":')
                 raise ValueError(stderr_data)
-            return stdout_data.strip()
+            return stdout_data
 
         if filename is not None and os.path.exists(filename) and skip_exist:
             print ('NOTE: landmask file exists, ignore the command. Use "skip_exist=False" or omit the filename to allow new downloading')
