@@ -140,12 +140,9 @@ class Stack_landmask(Stack_multilooking):
         else:
             print ('ERROR: argument is not an Xarray object and it is not a file name')
 
-        # crop
-        bounds = self.get_bounds(self.get_extent() if type(geometry) == str and geometry == 'auto' else geometry)
-        landmask = landmask\
-               .transpose('lat','lon')\
-               .sel(lat=slice(bounds[1], bounds[3]),
-                    lon=slice(bounds[0], bounds[2]))
+        # unify to DEM
+        dem = self.get_dem()
+        landmask = landmask.transpose('lat','lon').reindex_like(dem, method='nearest')
 
         if os.path.exists(landmask_filename):
             os.remove(landmask_filename)
