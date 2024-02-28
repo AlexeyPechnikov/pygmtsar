@@ -494,6 +494,9 @@ class Stack_phasediff(Stack_topo):
             block_data1 = block_data1.assign_coords(y=ys, x=xs)
             block_data2 = block_data2.assign_coords(y=ys, x=xs)
 
+            if isinstance(topo, xr.DataArray):
+                dy, dx = topo.y.diff('y').item(0), topo.x.diff('x').item(0)
+
             # use outer variables topo, data1, data2, prm1, prm2
             # build topo block
             if not isinstance(topo, xr.DataArray):
@@ -507,7 +510,6 @@ class Stack_phasediff(Stack_topo):
                             .assign_coords(y=ys, x=xs)
             else:
                 # topography resolution is different, interpolation with extrapolation required
-                dy, dx = topo.y.diff('y').item(0), topo.x.diff('x').item(0)
                 # convert indices 0.5, 1.5,... to 0,1,... for easy calculations
                 # fill NaNs by zero because typically DEM is missed outside of land areas
                 block_topo = topo.sel(y=slice(ys[0]-2*dy, ys[-1]+2*dy), x=slice(xs[0]-2*dx, xs[-1]+2*dx))\
