@@ -176,8 +176,9 @@ class datagrid:
         with EPSG 3857 and spatial dimensions 'y' and 'x'. The method relies on the availability of the
         'rioxarray' module.
         """
+        import rioxarray
         import sys
-        assert 'rioxarray' in sys.modules, 'rioxarray module is not found'
+        #assert 'rioxarray' in sys.modules, 'rioxarray module is not found'
         if self.is_geo(da):
             epsg = 4326
             y_dim = 'lat'
