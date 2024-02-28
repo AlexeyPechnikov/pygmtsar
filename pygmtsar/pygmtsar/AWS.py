@@ -24,7 +24,7 @@ class AWS(datagrid, tqdm_joblib):
     path_id_srtm = '{SN2}'
     tile_id_srtm = '{SN2}{WE3}.hgt.gz'
 
-    def _download_tile_glo(self, product, lon, lat):
+    def _download_tile_glo(self, product, lon, lat, debug=False):
         """
         Download Copernicus GLO-30/GLO-90 Digital Elevation Model tiles from open AWS storage.
         
@@ -47,8 +47,9 @@ class AWS(datagrid, tqdm_joblib):
         tile_id = self.tile_id_glo.format(product1=product1, SN2=SN2, WE3=WE3)
         tile_url = f'{base_url}/{path_id}/{tile_id}'
         tile_filename = os.path.join(tempfile.gettempdir(), tile_id)
-        print ('tile_url', tile_url)
-        print ('tile_filename', tile_filename)
+        if debug:
+            print ('DEBUG _download_tile_glo: tile_url', tile_url)
+            print ('DEBUG _download_tile_glo: tile_filename', tile_filename)
         try:
             with requests.get(tile_url, stream=True) as response:
                 response.raise_for_status()
@@ -75,7 +76,7 @@ class AWS(datagrid, tqdm_joblib):
                 os.remove(tile_filename)
         return tile
 
-    def _download_tile_srtm(self, product, lon, lat):
+    def _download_tile_srtm(self, product, lon, lat, debug=False):
         """
         Download NASA SRTM Digital Elevation Model tiles from open AWS storage.
         """
@@ -93,8 +94,9 @@ class AWS(datagrid, tqdm_joblib):
         tile_url = f'{base_url}/{path_id}/{tile_id}'
         # remove .gz extension
         tile_filename = os.path.join(tempfile.gettempdir(), tile_id[:-3])
-        print ('tile_url', tile_url)
-        print ('tile_filename', tile_filename)
+        if debug:
+            print ('DEBUG _download_tile_srtm: tile_url', tile_url)
+            print ('DEBUG _download_tile_srtm: tile_filename', tile_filename)
         try:
             with requests.get(tile_url, stream=True) as response:
                 response.raise_for_status()
