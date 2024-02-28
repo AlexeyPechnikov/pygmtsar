@@ -152,7 +152,7 @@ class GMT(datagrid, tqdm_joblib):
         GMT().download_dem(AOI)
     
         Download default STRM DEM to cover all the scenes:
-        GMT().download_dem(stack.get_extent().buffer(0.1))
+        GMT().download_dem(S1.scan_slc(DATADIR))
         
         Notes
         --------
@@ -216,7 +216,7 @@ class GMT(datagrid, tqdm_joblib):
         Examples
         --------
         from pygmtsar import GMT
-        landmask = GMT().download_landmask(stack.get_dem())
+        landmask = GMT().download_landmask(S1.scan_slc(DATADIR))
 
         Notes
         -----
