@@ -173,8 +173,9 @@ class GMT(datagrid, tqdm_joblib):
             #print ('gmt grdcut argv:', ' '.join(argv))
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
             stdout_data, stderr_data = p.communicate()
-            if p.returncode != 0:
-                print(f'Error executing gmt grdcut: {stderr_data}')
+            if p.returncode != 0 or len(stderr_data.strip()) > 0:
+                print('Error executing external command "gmt grdcut":')
+                raise ValueError(stderr_data)
             return stdout_data.strip()
 
         if product in ['SRTM1', '1s', '01s']:
@@ -236,8 +237,9 @@ class GMT(datagrid, tqdm_joblib):
             #print ('grdlandmask argv:', ' '.join(argv))
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
             stdout_data, stderr_data = p.communicate()
-            if p.returncode != 0:
-                print(f'Error executing grdlandmask: {stderr_data}')
+            if p.returncode != 0 or len(stderr_data.strip()) > 0:
+                print('Error executing external command "gmt grdlandmask":')
+                raise ValueError(stderr_data)
             return stdout_data.strip()
 
         if filename is not None and os.path.exists(filename) and skip_exist:
