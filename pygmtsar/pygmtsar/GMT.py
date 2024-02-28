@@ -169,7 +169,7 @@ class GMT(datagrid, tqdm_joblib):
         def load_earth_relief(bounds, product, filename):
             if os.path.exists(filename):
                 os.remove(filename)
-            argv = ['gmt', 'grdcut', f'@earth_relief_{product}', f'-R{bounds[0]}/{bounds[2]}/{bounds[1]}/{bounds[3]}', '-rp', f'-G{filename}']
+            argv = ['gmt', 'grdcut', f'@earth_relief_{product}', f'-R{bounds[0]}/{bounds[2]}/{bounds[1]}/{bounds[3]}', f'-G{filename}']
             #print ('gmt grdcut argv:', ' '.join(argv))
             p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
             stdout_data, stderr_data = p.communicate()
