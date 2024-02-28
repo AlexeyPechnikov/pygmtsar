@@ -12,6 +12,8 @@ from .PRM import PRM
 
 class Stack_dem(Stack_reframe):
 
+    buffer_degrees = 0.02
+
     def get_extent_ra(self):
         """
         minx, miny, maxx, maxy = np.round(geom.bounds).astype(int)
@@ -24,16 +26,16 @@ class Stack_dem(Stack_reframe):
         geom = self.geocode(LineString(np.column_stack([df.lon, df.lat])))
         return geom
 
-    def get_extent(self, grid=None, subswath=None):
-        import numpy as np
-
-        bounds = self.get_bounds(self.get_reference(subswath))
-        if grid is None:
-            return bounds
-        return grid\
-               .transpose('lat','lon')\
-               .sel(lat=slice(bounds[1], bounds[3]),
-                    lon=slice(bounds[0], bounds[2]))
+#     def get_extent(self, grid=None, subswath=None):
+#         import numpy as np
+# 
+#         bounds = self.get_bounds(self.get_reference(subswath))
+#         if grid is None:
+#             return bounds
+#         return grid\
+#                .transpose('lat','lon')\
+#                .sel(lat=slice(bounds[1], bounds[3]),
+#                     lon=slice(bounds[0], bounds[2]))
 
     def get_geoid(self, grid=None):
         """
@@ -157,14 +159,21 @@ class Stack_dem(Stack_reframe):
         z_array_name = [data_var for data_var in dem.data_vars if len(dem.data_vars[data_var].coords)==2]
         assert len(z_array_name) == 1
         # extract the array and fill missed values (mostly water surfaces)
-        dem = dem[z_array_name[0]].fillna(0)
+        dem = dem[z_array_name[0]]
+        #.fillna(0)
         # round the coordinates up to 1 mm
         dem['lat'] = dem.lat.round(8)
         dem['lon'] = dem.lon.round(8)
 
-        return self.get_extent(dem, subswath)
+        # crop to reference scene and subswath if defined
+        bounds = self.get_bounds(self.get_reference(subswath))
+        return dem\
+               .transpose('lat','lon')\
+               .sel(lat=slice(bounds[1] - self.buffer_degrees, bounds[3] + self.buffer_degrees),
+                    lon=slice(bounds[0] - self.buffer_degrees, bounds[2] + self.buffer_degrees))
+        #return self.get_extent(dem, subswath)
 
-    def load_dem(self, data, geometry='auto'):
+    def load_dem(self, data, geometry='auto', buffer_degrees=None):
         """
         Load and preprocess digital elevation model (DEM) data from specified datafile or variable.
 
@@ -206,6 +215,9 @@ class Stack_dem(Stack_reframe):
             print ('NOTE: DEM exists, ignore the command. Use Stack.set_dem(None) to allow new DEM downloading')
             return
 
+        if buffer_degrees is not None:
+            self.buffer_degrees = buffer_degrees
+
         if isinstance(data, (xr.Dataset)):
             ortho = data[list(data.data_vars)[0]]
         elif isinstance(data, (xr.DataArray)):
@@ -223,12 +235,13 @@ class Stack_dem(Stack_reframe):
         else:
             print ('ERROR: argument is not an Xarray object and it is not a file name')
 
-        # crop
-        bounds = self.get_bounds(self.get_extent() if type(geometry) == str and geometry == 'auto' else geometry)
+        # crop to reference scene extent
+        geometry_auto = type(geometry) == str and geometry == 'auto'
+        bounds = self.get_bounds(self.get_reference() if geometry_auto else geometry)
         ortho = ortho\
                .transpose('lat','lon')\
-               .sel(lat=slice(bounds[1], bounds[3]),
-                    lon=slice(bounds[0], bounds[2]))
+               .sel(lat=slice(bounds[1] - self.buffer_degrees, bounds[3] + self.buffer_degrees),
+                    lon=slice(bounds[0] - self.buffer_degrees, bounds[2] + self.buffer_degrees))
 
         # heights correction
         geoid = self.get_geoid(ortho)
