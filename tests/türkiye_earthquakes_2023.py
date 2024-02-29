@@ -207,24 +207,12 @@ except Exception as e:
     esa = ESA(esa_username, esa_password)
     print (esa.download_orbits(DATADIR))
 
-# previously, PyGMTSAR internally applied 0.1° buffer
-
-# define AOI as the whole scenes area
+# Define AOI as the whole scenes extent.
 AOI = S1.scan_slc(DATADIR)
-
-# try:
-#     # download SRTM DEM from GMT servers
-#     # note: downloading often fails recently
-#     GMT().download_dem(AOI, filename=DEM)
-# except Exception as e:
-#     print (e)
-
-# if DEM missed, download Copernicus DEM from open AWS datastore
-# get complete 1°x1° tiles covering the AOI, crop them later using AOI
+# Download Copernicus DEM 30m from the open AWS datastore.
 AWS().download_dem(AOI, filename=DEM)
-# don't worry about messages 'ERROR 3: /vsipythonfilelike/ ... : I/O error'
 
-# download SRTM DEM from GMT servers or make locally when gmt-gshhg installed
+# download land mask from GMT servers or make it locally when gmt-gshhg installed
 GMT().download_landmask(AOI, filename=LANDMASK)
 
 """## Run Local Dask Cluster

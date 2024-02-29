@@ -292,19 +292,8 @@ except Exception as e:
     esa = ESA(esa_username, esa_password)
     print (esa.download_orbits(DATADIR))
 
-# previously, PyGMTSAR internally applied 0.1° buffer
-
-try:
-    # download SRTM DEM from GMT servers
-    # note: downloading often fails recently
-    GMT().download_dem(AOI, filename=DEM)
-except Exception as e:
-    print (e)
-
-# if DEM missed, download Copernicus DEM from open AWS datastore
-# get complete 1°x1° tiles covering the AOI, crop them later using AOI
-# AWS().download_dem(AOI, filename=DEM)
-# don't worry about messages 'ERROR 3: /vsipythonfilelike/ ... : I/O error'
+# download SRTM DEM 30m from open AWS datastore
+AWS().download_dem(AOI, filename=DEM, provider='SRTM')
 
 """## Run Local Dask Cluster
 
@@ -680,8 +669,6 @@ for name, velocity_ll in {'sbas': velocity_sbas_ll, 'ps': velocity_ps_ll}.items(
     map_colors = xr.where(mask_invert.sum('band') == 0, velocity_ll_colors, gmap)
     ds = xr.merge([dem.interp_like(velocity_ll, method='cubic').rename('z'),
                    map_colors.transpose('band', 'lat', 'lon')])
-    # decimate large grid
-    ds = ds.sel(lat=ds.lat[::2])
     # convert to VTK structure
     vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds.rename({'lat': 'y', 'lon': 'x'})))
     vtk_grid.save(f'velocity_{name}.vtk')
