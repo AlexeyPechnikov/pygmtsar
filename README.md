@@ -45,7 +45,7 @@ All steps in these notebooks are automated. This includes the software installat
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1aqAr9KWKzGx9XpVie1M000C3vUxzNDxu?usp=sharing) Flooding [Correlation] Map: Kalkarindji, NT Australia, 2024.
 
-<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/9651ce67-9a3b-404a-b966-25f80982b013" width="100%">
+<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/368e5fc2-1966-4f98-a03d-e82b50103c05" width="100%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ipiQGbvUF8duzjZER8v-_R48DSpSmgvQ?usp=sharing) PyGMTSAR SBAS and PSI Analyses: Golden Valley, CA.
 <img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/8b416787-4b81-44f8-8956-3a5d596af51b" width="100%">
