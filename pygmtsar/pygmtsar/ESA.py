@@ -135,14 +135,16 @@ class ESA(tqdm_joblib):
             response = requests.get(download_url, headers=headers, stream=True)
             response.raise_for_status()
             file_path = os.path.join(basedir, orbit_file_name)
+#             with open(file_path, 'wb') as f:
+#                 for chunk in response.iter_content(chunk_size=256*1024):
+#                     f.write(chunk)
             with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=256*1024):
-                    f.write(chunk)            
-            return orbit_file_id
+                f.write(response.content)
+            return result['Name']
 
         return
 
-    def download_orbits(self, basedir: str, n_jobs: int = 2, skip_exist: bool = True):
+    def download_orbits(self, basedir: str, n_jobs: int = 2, skip_exist: bool = True, debug: bool = False):
         import pandas as pd
         import os
         import glob
@@ -170,7 +172,9 @@ class ESA(tqdm_joblib):
 
         access_token = self._get_copernicus_access_token()
         # download orbits
+        joblib_backend = 'sequential' if debug else 'loky'
         with self.tqdm_joblib(tqdm(desc='ESA Downloading Sentinel-1 Orbits', total=len(mission_date))) as progress_bar:
-            orbits = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._download_orbit)(access_token, date, mission, basedir)
+            orbits = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._download_orbit)\
+                                    (access_token, date, mission, basedir)
                                            for (mission, date) in mission_date.values)
         return pd.Series(orbits)
