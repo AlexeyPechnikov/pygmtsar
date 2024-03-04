@@ -7,7 +7,7 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-__version__ = '2024.2.21.post8'
+__version__ = '2024.2.21.post9'
 
 # unified progress indicators
 from .tqdm_joblib import tqdm_joblib
@@ -26,6 +26,8 @@ from .ASF import ASF
 from .AWS import AWS
 from .ESA import ESA
 from .GMT import GMT
+# tiles downloading
+from .Tiles import Tiles
 # XYZ map tiles downloading
 from .XYZTiles import XYZTiles
 # morphology and other helper functions
