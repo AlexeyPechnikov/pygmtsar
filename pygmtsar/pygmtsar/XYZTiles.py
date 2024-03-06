@@ -99,8 +99,15 @@ class XYZTiles(datagrid, tqdm_joblib):
             if debug:
                 print('DEBUG: XYZTiles: url', url_tile)
             response = requests.get(url_tile, headers=self.headers, timeout=self.http_timeout)
-            image = iio.imread(io.BytesIO(response.content))
-            return image
+            if response.status_code == 200:
+                # Check if the content type is an image
+                if 'image' in response.headers.get('Content-Type', ''):
+                    image = iio.imread(io.BytesIO(response.content))
+                    return image
+                else:
+                    raise ValueError(f'Expected an image response, got {response.headers.get("Content-Type")}')
+            else:
+                raise ValueError(f'Request for tile {url_tile} failed with status {response.status_code}')
 
         def num2deg(xtile, ytile, zoom):
             n = 2.0 ** zoom
