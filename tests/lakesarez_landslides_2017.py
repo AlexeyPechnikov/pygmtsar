@@ -142,7 +142,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, AWS, ESA, GMT, XYZTiles, utils
+from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles, XYZTiles, utils
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -248,8 +248,8 @@ except Exception as e:
     esa = ESA(esa_username, esa_password)
     print (esa.download_orbits(DATADIR))
 
-# download Copernicus DEM from open AWS datastore
-AWS().download_dem(AOI, filename=DEM)
+# download Copernicus Global DEM 1 arc-second
+Tiles().download_dem(AOI, filename=DEM)
 
 """## Run Local Dask Cluster
 
@@ -648,8 +648,8 @@ velocity_ps_ll = sbas.as_geo(velocity_ps_ll).rio.clip(AOI.geometry.envelope)
 gmap_tiles = XYZTiles().download(velocity_sbas_ll, 15)
 
 for name, velocity_ll in {'sbas': velocity_sbas_ll, 'ps': velocity_ps_ll}.items():
-    gmap = gmap_tiles.interp_like(velocity_ll, method='cubic').round().astype(np.uint8)
-    ds = xr.merge([dem.interp_like(velocity_ll, method='cubic').rename('z'), gmap, velocity_ll])
+    gmap = gmap_tiles.interp_like(velocity_ll, method='linear').round().astype(np.uint8)
+    ds = xr.merge([dem.interp_like(velocity_ll, method='linear').rename('z'), gmap, velocity_ll])
     # decimate large grid
     if name == 'sbas':
         ds = ds.sel(lat=ds.lat[::3], lon=ds.lon[::2])

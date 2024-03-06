@@ -132,7 +132,7 @@ plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # %matplotlib inline
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, AWS, ESA, GMT
+from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters"""
 
@@ -187,8 +187,8 @@ except Exception as e:
 
 # define AOI as the whole scenes area
 AOI = S1.scan_slc(DATADIR)
-# download Copernicus DEM from open AWS datastore
-AWS().download_dem(AOI, filename=DEM)
+# download Copernicus Global DEM 1 arc-second
+Tiles().download_dem(AOI, filename=DEM)
 
 """## Run Local Dask Cluster
 

@@ -140,7 +140,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, AWS, ESA, GMT, XYZTiles
+from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles, XYZTiles
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -292,8 +292,8 @@ except Exception as e:
     esa = ESA(esa_username, esa_password)
     print (esa.download_orbits(DATADIR))
 
-# download SRTM DEM 30m from open AWS datastore
-AWS().download_dem(AOI, filename=DEM, provider='SRTM')
+# download NASA SRTM DEM 1 arc-second
+Tiles().download_dem_srtm(AOI, filename=DEM)
 
 """## Run Local Dask Cluster
 
@@ -653,11 +653,13 @@ velocity_ps_ll = sbas.ra2ll(velocity_ps)
 velocity_sbas_ll = sbas.as_geo(velocity_sbas_ll).rio.clip(AOI.geometry.buffer(-BUFFER).envelope)
 velocity_ps_ll = sbas.as_geo(velocity_ps_ll).rio.clip(AOI.geometry.buffer(-BUFFER).envelope)
 
-gmap_tiles = XYZTiles().download(velocity_sbas_ll, 14)
+gmap_tiles = XYZTiles().download(velocity_sbas_ll, 15)
+
+gmap_tiles.plot.imshow()
 
 for name, velocity_ll in {'sbas': velocity_sbas_ll, 'ps': velocity_ps_ll}.items():
     #sbas.as_geo(velocity_ll).rio.clip(AOI.geometry.buffer(-BUFFER))
-    gmap = gmap_tiles.interp_like(velocity_ll, method='cubic').round().astype(np.uint8)
+    gmap = gmap_tiles.interp_like(velocity_ll, method='linear').round().astype(np.uint8)
 
     zmin, zmax = np.nanquantile(velocity_ll, [0.01, 0.99])
     velocity_ll_norm = np.clip((velocity_ll - zmin) / (zmax - zmin), 0, 1)

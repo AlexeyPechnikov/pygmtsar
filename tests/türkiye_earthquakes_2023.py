@@ -139,7 +139,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, AWS, ESA, GMT
+from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -209,11 +209,11 @@ except Exception as e:
 
 # Define AOI as the whole scenes extent.
 AOI = S1.scan_slc(DATADIR)
-# Download Copernicus DEM 30m from the open AWS datastore.
-AWS().download_dem(AOI, filename=DEM)
+# download Copernicus Global DEM 1 arc-second
+Tiles().download_dem(AOI, filename=DEM)
 
-# download land mask from GMT servers or make it locally when gmt-gshhg installed
-GMT().download_landmask(AOI, filename=LANDMASK)
+# download land mask 1 arc-second
+Tiles().download_landmask(AOI, filename=LANDMASK)
 
 """## Run Local Dask Cluster
 

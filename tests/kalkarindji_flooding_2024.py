@@ -138,7 +138,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, AWS, ESA, GMT, XYZTiles
+from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles, XYZTiles
 
 """## Define Processing Parameters"""
 
@@ -199,8 +199,8 @@ except Exception as e:
     esa = ESA(esa_username, esa_password)
     print (esa.download_orbits(DATADIR))
 
-# download Copernicus DEM from open AWS datastore
-AWS().download_dem(AOI, filename=DEM)
+# download Copernicus Global DEM 1 arc-second
+Tiles().download_dem(AOI, filename=DEM)
 
 """## Run Local Dask Cluster
 
@@ -293,33 +293,40 @@ sbas.plot_correlations(corr_ll.where(corr_ll<0.2), cols=2, cmap='turbo', caption
 # prepare topography and correlation
 dem = sbas.get_dem().interp_like(corr_ll).where(np.isfinite(corr_ll.mean('pair')))
 gmap = XYZTiles().download(dem, 12).interp_like(corr_ll)
-ds = xr.merge([dem.rename('z'),
-               gmap,
-               corr_ll[1],
-               ]).transpose('band', 'lat', 'lon').rename({'lat': 'y', 'lon': 'x'})
-ds
 
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('intf.vtk')
+for name, index in zip(['before', 'after'], [0,1]):
+    ds = xr.merge([dem.rename('z'),
+                gmap,
+                corr_ll[index],
+                ]).transpose('band', 'lat', 'lon').rename({'lat': 'y', 'lon': 'x'})
+    # convert to VTK structure
+    vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
+    vtk_grid.save(f'{name}.vtk')
 vtk_grid
 
-# build interactive 3D plot
-plotter = pv.Plotter(notebook=True)
+plotter = pv.Plotter(shape=(1, 2), notebook=True)
 axes = pv.Axes(show_actor=True, actor_scale=2.0, line_width=5)
-mesh = pv.read('intf.vtk').scale([1, 1, 0.00005], inplace=True).rotate_z(135, point=axes.origin, inplace=True)
-correlation_data = mesh['correlation']
-opacity_data = np.ones_like(correlation_data, dtype=np.float64)  # Initialize with all values as 1.0 (fully opaque)
-opacity_data[correlation_data < 0.2] = 0.0
-opacity_normalized = (opacity_data - opacity_data.min()) / (opacity_data.max() - opacity_data.min())
-combined_scalars = np.column_stack((mesh['colors'], opacity_normalized))
-mesh['colors'][correlation_data < 0.15] = [70, 130, 180]
-#plotter.add_mesh(mesh, scalars='correlation', color='blue', ambient=0.1)
-#plotter.add_mesh(mesh, scalars=combined_scalars, rgba=True, ambient=0.2)
-plotter.add_mesh(mesh, scalars='colors', rgb=True, ambient=0.2)
+
+def read_mesh(name):
+    mesh = pv.read(f'{name}.vtk').scale([1, 1, 0.00005], inplace=True).rotate_z(135, point=axes.origin, inplace=True)
+    correlation_data = mesh['correlation']
+    opacity_data = np.ones_like(correlation_data, dtype=np.float64)  # Initialize with all values as 1.0 (fully opaque)
+    opacity_data[correlation_data < 0.2] = 0.0
+    opacity_normalized = (opacity_data - opacity_data.min()) / (opacity_data.max() - opacity_data.min())
+    combined_scalars = np.column_stack((mesh['colors'], opacity_normalized))
+    mesh['colors'][correlation_data < 0.15] = [70, 130, 180]
+    return mesh
+
+plotter.subplot(0, 0)
+plotter.add_mesh(read_mesh('before'), scalars='colors', rgb=True, ambient=0.2)
+plotter.add_title(f'Interactive Sentinel-1 Flooding Map: Before', font_size=32)
+
+plotter.subplot(0, 1)
+plotter.add_mesh(read_mesh('after'), scalars='colors', rgb=True, ambient=0.2)
+plotter.add_title(f'Interactive Sentinel-1 Flooding Map: After', font_size=32)
+
 plotter.show_axes()
-plotter.show(screenshot='3D Flooding Map.png', jupyter_backend='panel', return_viewer=True)
-plotter.add_title(f'Interactive Flooding Map', font_size=32)
+plotter.show(screenshot='Interactive Sentinel-1 Flooding Map.png', jupyter_backend='panel', return_viewer=True)
 plotter._on_first_render_request()
 panel.panel(
     plotter.render_window, orientation_widget=plotter.renderer.axes_enabled,
