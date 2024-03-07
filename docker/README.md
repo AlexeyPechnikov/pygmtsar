@@ -6,7 +6,7 @@
 
 ## PyGMTSAR (Python InSAR) - Powerful and Accessible Satellite Interferometry
 
-### Previous builds available at https://hub.docker.com/r/mobigroup/pygmtsar
+**Note**: Previous builds available at https://hub.docker.com/r/mobigroup/pygmtsar
 
 PyGMTSAR (Python InSAR) is designed to meet the needs of both occasional users and experts in Sentinel-1 Satellite Interferometry. It offers a wide range of features, including SBAS, PSI, PSI-SBAS, and more. In addition to the examples provided below, I also share Jupyter notebook examples on [Patreon](https://www.patreon.com/pechnikov) and provide updates on its progress through my [LinkedIn profile](https://www.linkedin.com/in/alexey-pechnikov/).
 
@@ -28,13 +28,14 @@ It's important to note that the examples are coded with different objectives in 
 
 | Analysis                 | Notebook                      | Scenes | Subswaths | Interferograms | Time (4 CPUs, 8 GB RAM) | Time (2 CPUs, 4 GB RAM) |
 | ------------------------ | ----------------------------- | ------ | --------- | -------------- | ----------------------- | ----------------------- |
+| SBAS and PSI Analyses    | Lake Sarez Landslides         | 19     | 1         | 76             | 50 min                  | -                       |
 | Co-Seismic Interferogram | CENTRAL Türkiye Earthquake    | 4      | 3         | 1              | 28 min                  | -                       |
-| SBAS and PSI Analyses    | Golden Valley                 | 30     | 1         | 57             | 19 min                  | 23 min                  |
-| SBAS Analysis            | Imperial Valley               | 5      | 1         | 9              | 8 min                   | -                       |
+| SBAS and PSI Analyses    | Golden Valley Subsidence      | 30     | 1         | 57             | 19 min                  | 23 min                  |
+| SBAS Analysis            | Imperial Valley Groundwater   | 5      | 1         | 9              | 8 min                   | -                       |
 | Co-Seismic Interferogram | Iran–Iraq Earthquake          | 3      | 1         | 1              | 6 min                   | 6 min                   |
 | Co-Seismic Interferogram | La Cumbre Volcano Eruption    | 2      | 2         | 1              | 1 min                   | 1 min                   |
 | Co-Seismic Interferogram | Pico do Fogo Volcano Eruption | 2      | 1         | 1              | 1 min                   | 1 min                   |
-| Flooding Correlation Map | Kalkarindji                   | 3      | 1         | 2              | 1 min                   | 1 min                   |
+| Flooding Map             | Kalkarindji                   | 3      | 1         | 2              | 1 min                   | 1 min                   |
 
 Download the Docker image (or build it yourself using the Dockerfile in the repository), and run the container while forwarding port 8888 to JupyterLab using these commands inside your command line terminal window:
 
