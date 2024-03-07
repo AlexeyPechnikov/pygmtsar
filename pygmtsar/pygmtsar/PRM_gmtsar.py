@@ -219,7 +219,7 @@ class PRM_gmtsar:
                              cwd=cwd, bufsize=10*1000*1000)
         stdout_data, stderr_data = p.communicate(input=stdin_data)
 
-        stderr_data = stderr_data.decode('utf8')
+        stderr_data = stderr_data.decode('utf8', errors='ignore')
         if stderr_data.startswith('interpolation point outside of data constraints'):
             print ('Error: SAT_llt2rat processing stopped due to invalid coordinates for one of input points')
             return None
