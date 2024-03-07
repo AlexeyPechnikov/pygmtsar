@@ -850,10 +850,18 @@ class Stack_align(Stack_dem):
 
         subswaths = self.get_subswaths()
 
+        if n_jobs is None or debug == True:
+            joblib_backend = 'sequential'
+            joblib_aligning_backend = 'sequential'
+        else:
+            if joblib_aligning_backend is None:
+                joblib_aligning_backend = 'loky'
+            joblib_backend = 'loky'
+
         # prepare reference scene
         #self.stack_ref()
         with self.tqdm_joblib(tqdm(desc='Aligning Reference', total=len(subswaths))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._align_ref_subswath)(subswath, debug=debug) for subswath in subswaths)
+            joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._align_ref_subswath)(subswath, debug=debug) for subswath in subswaths)
 
         # prepare secondary images
         with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
@@ -869,7 +877,7 @@ class Stack_align(Stack_dem):
             minx, miny, maxx, maxy = np.round(extent_ra.bounds).astype(int)
             #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
             with self.tqdm_joblib(tqdm(desc=f'Merging Subswaths', total=len(dates))) as progress_bar:
-                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._merge_subswaths)(date, offsets, minx, miny, maxx, maxy, debug=debug) \
+                joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._merge_subswaths)(date, offsets, minx, miny, maxx, maxy, debug=debug) \
                                                for date in dates)
         else:
             # DEM extent in radar coordinates, merged reference PRM required
@@ -878,7 +886,7 @@ class Stack_align(Stack_dem):
             #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
             # in case of a single subswath only convert SLC to NetCDF grid
             with self.tqdm_joblib(tqdm(desc='Convert Subswath', total=len(dates))) as progress_bar:
-                joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._convert_subswath)(subswaths[0], date, minx, miny, maxx, maxy, debug=debug) \
+                joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._convert_subswath)(subswaths[0], date, minx, miny, maxx, maxy, debug=debug) \
                                                for date in dates)
 
         # merge subswaths, datapath and metapath converted to lists even for a single subswath, geometry merges bursts

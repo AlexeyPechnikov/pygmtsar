@@ -60,7 +60,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
             #geometry = geometry.buffer(1e-3)
             raise ValueError(f"Unsupported Point geometry. Unfortunately, GMTSAR tools cannot crop a scene to a single burst.")
         if isinstance(geometry, Polygon):
-            rect = geometry.minimum_rotated_rectangle.exterior
+            rect = geometry.exterior
             # define diagonal line
             diag1 = LineString([rect.coords[0], rect.coords[2]])
             diag2 = LineString([rect.coords[1], rect.coords[3]])
@@ -82,6 +82,8 @@ class Stack_reframe(Stack_reframe_gmtsar):
 
         self._make_s1a_tops(subswath, date, debug=debug)
         prm = PRM.from_file(old_filename+'.PRM')
+        if debug:
+            print ('DEBUG: ','geometry', geometry)
         tmpazi_a = prm.SAT_llt2rat([geometry.coords[0][0],  geometry.coords[0][1],  0], precise=1, debug=debug)[1]
         tmpazi_b = prm.SAT_llt2rat([geometry.coords[-1][0], geometry.coords[-1][1], 0], precise=1, debug=debug)[1]
         tmpazi = min(tmpazi_a, tmpazi_b)
@@ -178,8 +180,12 @@ class Stack_reframe(Stack_reframe_gmtsar):
         geometries = {subswath: self.df[self.df.subswath==subswath].geometry.unary_union for subswath in subswaths}
 
         # process all the scenes
+        if n_jobs is None or ('debug' in kwargs and kwargs['debug'] == True):
+            joblib_backend = 'sequential'
+        else:
+            joblib_backend = 'loky'
         with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
-            records = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self._reframe_subswath)\
+            records = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._reframe_subswath)\
                             (subswath, date,
                             geometry.intersection(geometries[subswath]) if geometry is not None else geometries[subswath],
                             **kwargs) for date in dates for subswath in subswaths)
