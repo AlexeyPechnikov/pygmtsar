@@ -170,20 +170,14 @@ class Tiles(datagrid, tqdm_joblib):
         bottom, top = int(bottom), int(top)
         #print ('left, right', left, right, 'bottom, top', bottom, top)
 
-        if joblib_backend is None or n_jobs is None:
-            # do not use joblib parallel processing
-            tile_xarrays = []
-            with self.tqdm_joblib(tqdm(desc=f'Tiles Downloading', total=(right-left+1)*(top-bottom+1))) as pbar:
-                for x in range(left, right + 1):
-                    for y in range(bottom, top + 1):
-                        tile = self._download_tile(base_url, path_id, tile_id, archive, filetype, product, x, y, debug)
-                        tile_xarrays.append(tile)     
-                        pbar.update(1)
-        else:
-            with self.tqdm_joblib(tqdm(desc=f'Tiles Parallel Downloading', total=(right-left+1)*(top-bottom+1))) as progress_bar:
-                tile_xarrays = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._download_tile)\
-                                    (base_url, path_id, tile_id, archive, filetype, product, x, y, debug)\
-                                    for x in range(left, right + 1) for y in range(bottom, top + 1))
+        if n_jobs is None or debug == True:
+            print ('Note: sequential joblib processing is applied when "n_jobs" is None or "debug" is True.')
+            joblib_backend = 'sequential'
+
+        with self.tqdm_joblib(tqdm(desc=f'Tiles Parallel Downloading', total=(right-left+1)*(top-bottom+1))) as progress_bar:
+            tile_xarrays = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._download_tile)\
+                                (base_url, path_id, tile_id, archive, filetype, product, x, y, debug)\
+                                for x in range(left, right + 1) for y in range(bottom, top + 1))
 
         tile_xarrays = [tile for tile in tile_xarrays if tile is not None]
         if len(tile_xarrays) == 0:

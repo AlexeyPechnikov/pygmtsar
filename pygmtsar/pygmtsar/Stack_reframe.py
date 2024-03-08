@@ -181,9 +181,10 @@ class Stack_reframe(Stack_reframe_gmtsar):
 
         # process all the scenes
         if n_jobs is None or ('debug' in kwargs and kwargs['debug'] == True):
+            print ('Note: sequential joblib processing is applied when "n_jobs" is None or "debug" is True.')
             joblib_backend = 'sequential'
         else:
-            joblib_backend = 'loky'
+            joblib_backend = None
         with self.tqdm_joblib(tqdm(desc='Reframing', total=len(dates)*len(subswaths))) as progress_bar:
             records = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._reframe_subswath)\
                             (subswath, date,

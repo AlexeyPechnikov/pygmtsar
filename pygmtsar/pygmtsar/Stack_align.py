@@ -851,12 +851,11 @@ class Stack_align(Stack_dem):
         subswaths = self.get_subswaths()
 
         if n_jobs is None or debug == True:
+            print ('Note: sequential joblib processing is applied when "n_jobs" is None or "debug" is True.')
             joblib_backend = 'sequential'
             joblib_aligning_backend = 'sequential'
         else:
-            if joblib_aligning_backend is None:
-                joblib_aligning_backend = 'loky'
-            joblib_backend = 'loky'
+            joblib_backend = None
 
         # prepare reference scene
         #self.stack_ref()
