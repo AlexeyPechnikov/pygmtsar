@@ -51,6 +51,7 @@ setup(
                       'joblib',
                       'tqdm',
                       'scipy==1.11.4',
+                      'cffi',
                       'shapely>=2.0.2',
                       'scikit-learn',
                       'xmltodict',
