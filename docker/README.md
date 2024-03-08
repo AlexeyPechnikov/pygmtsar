@@ -26,16 +26,16 @@ It's important to note that the examples are coded with different objectives in 
 
 **Table: Processing Times for InSAR Analyses Example Notebooks on an iMac 2021 (Apple M1, 16 GB RAM, 2 TB SSD) Using Various Docker Configurations** 
 
-| Analysis                 | Notebook                      | Scenes | Subswaths | Interferograms | Time (4 CPUs, 8 GB RAM) | Time (2 CPUs, 4 GB RAM) |
-| ------------------------ | ----------------------------- | ------ | --------- | -------------- | ----------------------- | ----------------------- |
-| SBAS and PSI Analyses    | Lake Sarez Landslides         | 19     | 1         | 76             | 50 min                  | -                       |
-| Co-Seismic Interferogram | CENTRAL Türkiye Earthquake    | 4      | 3         | 1              | 28 min                  | -                       |
-| SBAS and PSI Analyses    | Golden Valley Subsidence      | 30     | 1         | 57             | 19 min                  | 23 min                  |
-| SBAS Analysis            | Imperial Valley Groundwater   | 5      | 1         | 9              | 8 min                   | -                       |
-| Co-Seismic Interferogram | Iran–Iraq Earthquake          | 3      | 1         | 1              | 6 min                   | 6 min                   |
-| Co-Seismic Interferogram | La Cumbre Volcano Eruption    | 2      | 2         | 1              | 1 min                   | 1 min                   |
-| Co-Seismic Interferogram | Pico do Fogo Volcano Eruption | 2      | 1         | 1              | 1 min                   | 1 min                   |
-| Flooding Map             | Kalkarindji                   | 3      | 1         | 2              | 1 min                   | 1 min                   |
+| Analysis                 | Notebook                      | Scenes | Subswaths | Interferograms | Time (Native, no Docker) | Time (4 CPUs, 8 GB RAM) | Time (2 CPUs, 4 GB RAM) |
+| ------------------------ | ----------------------------- | ------ | --------- | -------------- | ------------------------ | ----------------------- | ----------------------- |
+| SBAS and PSI Analyses    | Lake Sarez Landslides         | 19     | 1         | 76             | 31 min                   | 50 min                  | -                       |
+| Co-Seismic Interferogram | CENTRAL Türkiye Earthquake    | 4      | 3         | 1              | 12 min                   | 28 min                  | -                       |
+| SBAS and PSI Analyses    | Golden Valley Subsidence      | 30     | 1         | 57             | 11 min                   | 19 min                  | 23 min                  |
+| SBAS Analysis            | Imperial Valley Groundwater   | 5      | 1         | 9              | 4 min                    | 8 min                   | -                       |
+| Co-Seismic Interferogram | Iran–Iraq Earthquake          | 3      | 1         | 1              | 1 min                    | 6 min                   | 6 min                   |
+| Co-Seismic Interferogram | La Cumbre Volcano Eruption    | 2      | 2         | 1              | < 1 min                  | 1 min                   | 1 min                   |
+| Co-Seismic Interferogram | Pico do Fogo Volcano Eruption | 2      | 1         | 1              | < 1 min                  | 1 min                   | 1 min                   |
+| Flooding Map             | Kalkarindji                   | 3      | 1         | 2              | < 1 min                  | 1 min                   | 1 min                   |
 
 Download the Docker image (or build it yourself using the Dockerfile in the repository), and run the container while forwarding port 8888 to JupyterLab using these commands inside your command line terminal window:
 
