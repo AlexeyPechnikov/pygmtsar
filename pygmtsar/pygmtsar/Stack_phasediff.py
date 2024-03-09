@@ -716,6 +716,9 @@ class Stack_phasediff(Stack_topo):
         if psize is None:
             # miss the processing
             return phase
+        
+        if not isinstance(psize, (list, tuple)):
+            psize = (psize, psize)
 
         def apply_pspec(data, alpha):
             # NaN is allowed value
@@ -724,7 +727,8 @@ class Stack_phasediff(Stack_topo):
             data = wgt * data
             return data
 
-        def make_wgt(nxp, nyp):
+        def make_wgt(psize):
+            nyp, nxp = psize
             # Create arrays of horizontal and vertical weights
             wx = 1.0 - np.abs(np.arange(nxp // 2) - (nxp / 2.0 - 1.0)) / (nxp / 2.0 - 1.0)
             wy = 1.0 - np.abs(np.arange(nyp // 2) - (nyp / 2.0 - 1.0)) / (nyp / 2.0 - 1.0)
@@ -748,9 +752,9 @@ class Stack_phasediff(Stack_topo):
             """
             # Calculate alpha
             alpha = 1 - (wgt * corr).sum() / wgt.sum()
-            data = np.fft.fft2(data, s=(psize,psize))
+            data = np.fft.fft2(data, s=psize)
             data = apply_pspec(data, alpha)
-            data = np.fft.ifft2(data, s=(psize,psize))
+            data = np.fft.ifft2(data, s=psize)
             return wgt * data
 
         def apply_goldstein_filter(data, corr, psize):
@@ -760,19 +764,19 @@ class Stack_phasediff(Stack_topo):
             if np.all(np.isnan(data)):
                 return out
             # Create the weight matrix
-            wgt_matrix = make_wgt(psize, psize)
+            wgt_matrix = make_wgt(psize)
             # Iterate over windows of the data
-            for i in range(0, data.shape[0] - psize, psize // 2):
-                for j in range(0, data.shape[1] - psize, psize // 2):
+            for i in range(0, data.shape[0] - psize[0], psize[0] // 2):
+                for j in range(0, data.shape[1] - psize[1], psize[1] // 2):
                     # Create proocessing windows
-                    data_window = data[i:i+psize, j:j+psize]
-                    corr_window = corr[i:i+psize, j:j+psize]
+                    data_window = data[i:i+psize[0], j:j+psize[1]]
+                    corr_window = corr[i:i+psize[0], j:j+psize[1]]
                     wgt_window = wgt_matrix[:data_window.shape[0],:data_window.shape[1]]
                     # Apply the filter to the window
                     filtered_window = patch_goldstein_filter(data_window, corr_window, wgt_window, psize)
                     # Add the result to the output array
-                    slice_i = slice(i, min(i + psize, out.shape[0]))
-                    slice_j = slice(j, min(j + psize, out.shape[1]))
+                    slice_i = slice(i, min(i + psize[0], out.shape[0]))
+                    slice_j = slice(j, min(j + psize[1], out.shape[1]))
                     out[slice_i, slice_j] += filtered_window[:slice_i.stop - slice_i.start, :slice_j.stop - slice_j.start]
             return out
 
@@ -795,7 +799,7 @@ class Stack_phasediff(Stack_topo):
             block = dask.array.map_overlap(lambda phase, corr: apply_goldstein_filter(phase, corr, psize),
                                            (phase[ind] if stackvar is not None else phase).data,
                                            (corr[ind]  if stackvar is not None else corr).fillna(0).data,
-                                           depth=psize // 2 + 2,
+                                           depth=(psize[0] // 2 + 2, psize[1] // 2 + 2),
                                            dtype=np.complex64, 
                                            meta=np.array(()))
             # Calculate the phase
