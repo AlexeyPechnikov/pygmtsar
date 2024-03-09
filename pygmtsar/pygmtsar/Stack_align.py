@@ -82,7 +82,8 @@ class Stack_align(Stack_dem):
 
         lats, lons, z = xr.broadcast(dem_area.lat, dem_area.lon, dem_area)
         topo_llt = np.column_stack([lons.values.ravel(), lats.values.ravel(), z.values.ravel()])
-        return topo_llt
+        # filter out records where the third column (index 2) is NaN
+        return topo_llt[~np.isnan(topo_llt[:, 2])]
 
     # aligning for reference image
     def _align_ref_subswath(self, subswath, debug=False):
