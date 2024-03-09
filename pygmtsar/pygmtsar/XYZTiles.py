@@ -26,23 +26,23 @@ class XYZTiles(datagrid, tqdm_joblib):
         'DNT': '1',
     }
 
-    def download_googlemaps(self, geometry, zoom, **kwargs):
+    def download_googlemaps(self, geometry, zoom, filename=None, **kwargs):
         kwargs['url'] = 'https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}'
-        return self._download(geometry, zoom, **kwargs)
+        return self.download(geometry, zoom, filename, **kwargs)
         
-    def download_googlesatellite(self, geometry, zoom, **kwargs):
+    def download_googlesatellite(self, geometry, zoom, filename=None, **kwargs):
         kwargs['url'] = 'https://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}'
-        return self._download(geometry, zoom, **kwargs)
+        return self.download(geometry, zoom, filename, **kwargs)
 
-    def download_googlesatellitehybrid(self, geometry, zoom, **kwargs):
+    def download_googlesatellitehybrid(self, geometry, zoom, filename=None, **kwargs):
         kwargs['url'] = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
-        return self._download(geometry, zoom, **kwargs)
+        return self.download(geometry, zoom, filename, **kwargs)
 
-    def download_openstreetmap(self, geometry, zoom, **kwargs):
+    def download_openstreetmap(self, geometry, zoom, filename=None, **kwargs):
         kwargs['url'] = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-        return self._download(geometry, zoom, **kwargs)
+        return self.download(geometry, zoom, filename, **kwargs)
 
-    def download(self, geometry, zoom, url='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', n_jobs=8, debug=False):
+    def download(self, geometry, zoom, filename=None, url='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', n_jobs=8, skip_exist=True, debug=False):
         """
         Downloads map tiles for a specified geometry and zoom level from a given tile map service.
 
@@ -67,14 +67,8 @@ class XYZTiles(datagrid, tqdm_joblib):
         Examples
         --------
         # Download map tiles at zoom level 10
-        tiles = XYZTiles().download(AOI, zoom=10)
-        """
-        return self._download(geometry, zoom, url=url, n_jobs=n_jobs, debug=debug)
-
-    def _download(self, geometry, zoom, url, n_jobs=8, debug=False):
-        """
         from pygmtsar import XYZTiles
-        gmap = XYZTiles().download(AOI.geometry[0], zoom = 17)
+        gmap = XYZTiles().download(AOI, zoom = 10)
         gmap.plot.imshow()
         """
         import xarray as xr
@@ -85,6 +79,11 @@ class XYZTiles(datagrid, tqdm_joblib):
         import numpy as np
         from tqdm.auto import tqdm
         import joblib
+        import os
+
+        if filename is not None and os.path.exists(filename) and skip_exist:
+            print ('NOTE: Target file exists, return it. Use "skip_exist=False" or omit the filename to allow new downloading.')
+            return xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=self.chunksize)
 
         def deg2num(lat_deg, lon_deg, zoom):
             lat_rad = math.radians(lat_deg)
@@ -189,4 +188,10 @@ class XYZTiles(datagrid, tqdm_joblib):
             da = da.reindex(lat=da.lat[::-1])
         # crop geometry extent
         da = da.sel(lat=slice(bounds[1], bounds[3]), lon=slice(bounds[0], bounds[2]))
+        
+        if filename is not None:
+            if os.path.exists(filename):
+                os.remove(filename)
+            encoding = {'colors': self._compression(da.shape)}
+            da.to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
         return da

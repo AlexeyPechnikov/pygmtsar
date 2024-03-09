@@ -137,7 +137,7 @@ class Tiles(datagrid, tqdm_joblib):
                 os.remove(tile_filename)
         return tile
 
-    def _download(self, base_url, path_id, tile_id, archive, filetype,
+    def download(self, base_url, path_id, tile_id, archive, filetype,
                   geometry, filename=None, product='1s',
                   n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
         """
@@ -152,8 +152,8 @@ class Tiles(datagrid, tqdm_joblib):
         assert product in ['1s', '3s'], f'ERROR: product name is invalid: {product}. Expected names are "1s", "3s".'
 
         if filename is not None and os.path.exists(filename) and skip_exist:
-            print ('NOTE: Target file exists, ignore the command. Use "skip_exist=False" or omit the filename to allow new downloading.')
-            return
+            print ('NOTE: Target file exists, return it. Use "skip_exist=False" or omit the filename to allow new downloading.')
+            return xr.open_dataarray(filename, engine=self.netcdf_engine, chunks=self.chunksize)
 
         bounds = self.get_bounds(geometry)
 
@@ -194,8 +194,7 @@ class Tiles(datagrid, tqdm_joblib):
                 os.remove(filename)
             encoding = {'z': self._compression(da.shape)}
             da.rename('z').to_netcdf(filename, encoding=encoding, engine=self.netcdf_engine)
-        else:
-            return da
+        return da
 
     def download_landmask(self, geometry, filename=None, product='1s', skip_exist=True, n_jobs=8, debug=False):
         """
@@ -207,7 +206,7 @@ class Tiles(datagrid, tqdm_joblib):
 
         Tiles().download_landmask(S1.scan_slc(DATADIR), 'landmask.nc')
         """
-        return self._download(
+        return self.download(
                          base_url       = 'https://gmtlandmask.pechnikov.workers.dev/{product}',
                          #base_url       = 'https://alexeypechnikov.github.io/gmtlandmask/{product}',
                          path_id        = '{SN2}',
@@ -235,7 +234,7 @@ class Tiles(datagrid, tqdm_joblib):
         Tiles().download_dem_glo(S1.scan_slc(DATADIR), 'dem_glo.nc')
         """
         assert product in ['1s', '3s'], f'ERROR: product name is invalid: {product} for Copernicus GLO DEM. Expected names are "1s", "3s".'
-        return self._download(
+        return self.download(
                          #base_url       = 'https://copernicus-dem-{resolution}m.s3.amazonaws.com',
                          base_url       = 'https://copernicusdem{product1}s.pechnikov.workers.dev',
                          path_id        = 'Copernicus_DSM_COG_{product1}0_{SN2}_00_{WE3}_00_DEM',
@@ -262,7 +261,7 @@ class Tiles(datagrid, tqdm_joblib):
         Tiles().download_dem_srtm(S1.scan_slc(DATADIR), 'dem_srtm.nc')
         """
         assert product in ['1s'], f'ERROR: only product="1s" is supported for NASA SRTM DEM.'
-        return self._download(
+        return self.download(
                          #base_url       = 'https://s3.amazonaws.com/elevation-tiles-prod/skadi',
                          base_url       = 'https://srtmdem1s.pechnikov.workers.dev',
                          path_id        = '{SN2}',
