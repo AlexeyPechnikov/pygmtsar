@@ -94,7 +94,7 @@ class Stack_phasediff(Stack_topo):
             del out, chunk, dates
 
     # single-look interferogram processing has a limited set of arguments
-    # resolution, coarsen, and psize are not applicable here
+    # resolution and coarsen are not applicable here
     def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, psize=None,
                                          queue=16, timeout=None, debug=False):
         self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength,
