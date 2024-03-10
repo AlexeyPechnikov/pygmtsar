@@ -9,6 +9,7 @@
 # ----------------------------------------------------------------------------
 from .Stack_detrend import Stack_detrend
 from .PRM import PRM
+import numpy as np
 
 class Stack_sbas(Stack_detrend):
 
@@ -747,7 +748,7 @@ class Stack_sbas(Stack_detrend):
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
-                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True):
+                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True, tolerance=np.pi/2):
         """
         Performs 1D unwrapping, linear regression, and STL on a given set of phase values.
 
@@ -787,7 +788,7 @@ class Stack_sbas(Stack_detrend):
         matrix = self.lstsq_matrix(pairs)
 
         if unwrap:
-            df['phase'] = self.unwrap_pairs(phase.values, df['corr'].values, matrix)
+            df['phase'] = self.unwrap_pairs(phase.values, df['corr'].values, matrix, tolerance)
 
         if displacement or stl:
             solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, matrix)
