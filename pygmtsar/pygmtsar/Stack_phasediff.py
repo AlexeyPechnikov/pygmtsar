@@ -781,11 +781,11 @@ class Stack_phasediff(Stack_topo):
             return out
 
         assert phase.shape == corr.shape, 'ERROR: phase and correlation variables have different shape'
-        spacing = self.get_spacing(phase)
-        #assert np.round(spacing[0]/spacing[1]) == 1, f'ERROR: grid cells should be almost square: {spacing}'
-        if not np.round(spacing[0]/spacing[1]) == 1:
-            print (f'NOTE: grid cells are not close to square as expected: {spacing}')
-        
+#         spacing = self.get_spacing(phase)
+#         #assert np.round(spacing[0]/spacing[1]) == 1, f'ERROR: grid cells should be almost square: {spacing}'
+#         if not np.round(spacing[0]/spacing[1]) == 1:
+#             print (f'NOTE: grid cells are not close to square as expected: {spacing}')
+#         
         if len(phase.dims) == 2:
             stackvar = None
         else:
@@ -797,8 +797,8 @@ class Stack_phasediff(Stack_topo):
             # use complex data and real correlation
             # fill NaN values in correlation by zeroes to prevent empty output blocks
             block = dask.array.map_overlap(lambda phase, corr: apply_goldstein_filter(phase, corr, psize),
-                                           (phase[ind] if stackvar is not None else phase).data,
-                                           (corr[ind]  if stackvar is not None else corr).fillna(0).data,
+                                           (phase[ind] if stackvar is not None else phase).fillna(0).data,
+                                           (corr[ind]  if stackvar is not None else corr ).fillna(0).data,
                                            depth=(psize[0] // 2 + 2, psize[1] // 2 + 2),
                                            dtype=np.complex64, 
                                            meta=np.array(()))
