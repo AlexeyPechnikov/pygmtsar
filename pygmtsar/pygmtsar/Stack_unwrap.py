@@ -25,46 +25,234 @@ class Stack_unwrap(Stack_unwrap_snaphu):
             return xr.DataArray(dask.array.mod(data_pairs.data + np.pi, 2 * np.pi) - np.pi, data_pairs.coords)\
                 .rename(data_pairs.name)
         return np.mod(data_pairs + np.pi, 2 * np.pi) - np.pi
+# 
+#     @staticmethod
+#     @jit(nopython=True, nogil=True)
+#     def unwrap_pairs(data   : np.ndarray,
+#                      weight : np.ndarray = np.empty((0),   dtype=np.float32),
+#                      matrix : np.ndarray = np.empty((0,0), dtype=np.float32)):
+#         # import directive is not compatible to numba
+#         #import numpy as np
+#     
+#         assert data.ndim   == 1
+#         assert weight.ndim == 1 or weight.ndim == 0
+#         assert matrix.ndim == 2
+#         assert data.shape[0] == matrix.shape[0]
+# 
+#         if np.all(np.isnan(data)) or (weight.size != 0 and np.all(np.isnan(weight))):
+#             return np.nan * np.zeros(data.size)
+#         
+#         # the data variable will be modified and returned as the function output
+#         #data = data.copy()
+#         nanmask = np.isnan(data)
+#         if weight.size != 0:
+#             nanmask = nanmask | np.isnan(weight)
+#         if np.all(nanmask):
+#             # no valid input data
+#             return np.nan * np.zeros(data.size)
+#         
+#         # the buffer variable will be modified
+#         buffer = data[~nanmask].copy()
+#         if weight.size != 0:
+#             weight = weight[~nanmask]
+#         
+#         # exclude matrix records for not valid data
+#         matrix = matrix[~nanmask,:]
+#         pair_sum = matrix.sum(axis=1)
+#         
+#         # pairs do not require unwrapping, allow numba to recognize list type
+#         pairs_ok = [0][1:]
+#     
+#         # check all compound pairs vs single pairs: only detect all not wrapped
+#         for ndate in np.unique(pair_sum)[1:]:
+#             pair_idxs = np.where(pair_sum==ndate)[0]
+#             if weight.size != 0:
+#                 # get the sorted order for the specific weights corresponding to pair_idxs
+#                 pair_idxs_order = np.argsort(weight[pair_idxs])[::-1]
+#                 # Apply the sorted order to pair_idxs
+#                 pair_idxs = pair_idxs[pair_idxs_order]
+#             for pair_idx in pair_idxs:
+#                 #print (pair_idx, matrix[pair_idx])
+#                 matching_columns = matrix[pair_idx] == 1
+#                 #print ('matching_columns', matching_columns)
+#                 # works for dates = 2
+#                 #matching_rows = ((matrix[:, matching_columns] == 1).sum(axis=1) == 1)&((matrix[:, ~matching_columns] == 1).sum(axis=1) == 0)
+#                 matching_rows = ((matrix[:, matching_columns] >= 1).sum(axis=1) == 1)&((matrix[:, ~matching_columns] == 1).sum(axis=1) == 0)
+#                 #print ('matching_rows', matching_rows)
+#                 matching_matrix = matrix[:,matching_columns] * matching_rows[:,None]
+#                 #row_indices = np.where(matching_rows)[0]
+#                 #print ('row_indices', row_indices)
+#                 #with np.printoptions(threshold=np.inf, linewidth=np.inf):
+#                 #    print (matching_matrix.T)
+#                 value = buffer[pair_idx]
+#                 values = (matching_matrix * buffer[:,None])
+#                 #print ('value', value, '?=', values.sum())    
+#                 jump = int(np.round((values.sum() - value) / (2*np.pi)))
+#                 if jump == 0:
+#                     pairs_ok.append(pair_idx)
+#                     pairs_ok.extend(np.where(matching_rows)[0])
+#                     #print ()
+#                     continue
+#     
+#                 #print ('jump', jump)
+#                 if abs(value) > abs(value + 2*np.pi*jump):
+#                     #print (f'JUMP {ndate}:', jump)
+#                     #jump, phase.values[pair_idx] + 2*np.pi*jump
+#                     #print ('value', value, '=>', value + 2*np.pi*jump, '=', values.sum())
+#                     pass
+#                 else:
+#                     #print (f'JUMP singles:', jump)
+#                     pass
+#                 #print (values[matching_rows])
+#                 # check for wrapping
+#                 valid_values = values[matching_rows].ravel()
+#                 #maxdiff = abs(np.diff(valid_values[valid_values!=0])).max()
+#                 #print ('maxdiff', maxdiff, maxdiff >= np.pi)
+#                 #print ()
+#                 #break
+#         #print ('pairs_ok', pairs_ok)
+#         #print ('==================')
+#     
+#         # check all compound pairs vs single pairs: fix wrapped compound using not wrapped singles only
+#         for ndate in np.unique(pair_sum)[1:]:
+#             pair_idxs = np.where(pair_sum==ndate)[0]
+#             if weight.size != 0:
+#                 # get the sorted order for the specific weights corresponding to pair_idxs
+#                 pair_idxs_order = np.argsort(weight[pair_idxs])[::-1]
+#                 # Apply the sorted order to pair_idxs
+#                 pair_idxs = pair_idxs[pair_idxs_order]
+#             for pair_idx in pair_idxs:
+#                 if pair_idx in pairs_ok:
+#                     continue
+#                 #print (pair_idx, matrix[pair_idx])
+#                 matching_columns = matrix[pair_idx] == 1
+#                 #print ('matching_columns', matching_columns)
+#                 # works for dates = 2
+#                 #matching_rows = ((matrix[:, matching_columns] == 1).sum(axis=1) == 1)&((matrix[:, ~matching_columns] == 1).sum(axis=1) == 0)
+#                 matching_rows = ((matrix[:, matching_columns] >= 1).sum(axis=1) == 1)&((matrix[:, ~matching_columns] == 1).sum(axis=1) == 0)
+#                 #print ('matching_rows', matching_rows)
+#                 matching_matrix = matrix[:,matching_columns] * matching_rows[:,None]
+#                 #row_indices = np.where(matching_rows)[0]
+#                 #print ('row_indices', row_indices)
+#                 #with np.printoptions(threshold=np.inf, linewidth=np.inf):
+#                 #    print (matching_matrix.T)
+#                 #print ('matching_matrix', matching_matrix.shape)
+#     
+#                 pairs_single_not_valid = [pair for pair in np.where(matching_rows)[0] if not pair in pairs_ok]
+#                 if len(pairs_single_not_valid) > 0:
+#                     # some of single-pairs requires unwrapping, miss the compound segment processing
+#                     #print ('ERROR')
+#                     #print ()
+#                     continue
+#     
+#                 value = buffer[pair_idx]
+#                 values = (matching_matrix * buffer[:,None])
+#                 #print ('value', value, '?=', values.sum())    
+#                 jump = int(np.round((values.sum() - value) / (2*np.pi)))
+#                 #print (f'JUMP {ndate}:', jump)
+#                 buffer[pair_idx] += 2*np.pi*jump
+#                 pairs_ok.append(pair_idx)
+#                 #print ()
+#                 continue
+#         #print ('==================')
+#     
+#         # check all compound pairs vs single pairs
+#         for ndate in np.unique(pair_sum)[1:]:
+#             pair_idxs = np.where(pair_sum==ndate)[0]
+#             if weight.size != 0:
+#                 # get the sorted order for the specific weights corresponding to pair_idxs
+#                 pair_idxs_order = np.argsort(weight[pair_idxs])[::-1]
+#                 # Apply the sorted order to pair_idxs
+#                 pair_idxs = pair_idxs[pair_idxs_order]
+#             for pair_idx in pair_idxs:
+#                 if pair_idx in pairs_ok:
+#                     continue
+#                 #print (pair_idx, matrix[pair_idx])
+#                 matching_columns = matrix[pair_idx] == 1
+#                 #print ('matching_columns', matching_columns)
+#                 # works for dates = 2
+#                 #matching_rows = ((matrix[:, matching_columns] == 1).sum(axis=1) == 1)&((matrix[:, ~matching_columns] == 1).sum(axis=1) == 0)
+#                 matching_rows = ((matrix[:, matching_columns] >= 1).sum(axis=1) == 1)&((matrix[:, ~matching_columns] == 1).sum(axis=1) == 0)
+#                 #print ('matching_rows', matching_rows)
+#                 matching_matrix = matrix[:,matching_columns] * matching_rows[:,None]
+#                 #row_indices = np.where(matching_rows)[0]
+#                 #print ('row_indices', row_indices)
+#                 #with np.printoptions(threshold=np.inf, linewidth=np.inf):
+#                 #    print (matching_matrix.T)
+#                 value = buffer[pair_idx]
+#                 values = (matching_matrix * buffer[:,None])
+#                 #print ('value', value, '???=', values.sum())    
+#                 jump = int(np.round((values.sum() - value) / (2*np.pi)))
+#                 #print ('jump', jump)
+#                 if jump != 0:
+#                     #print (f'JUMP {ndate}:', jump)
+#                     #jump, phase.values[pair_idx] + 2*np.pi*jump
+#                     #print ('value', value, '=>', value + 2*np.pi*jump, '=', values.sum())
+#                     pass
+#                 #print (values[matching_rows])
+#                 # unwrap
+#                 buffer[pair_idx] += 2*np.pi*jump
+#                 pairs_ok.append(pair_idx)
+#                 pairs_ok.extend(np.where(matching_rows)[0])
+#                 #print ()
+#                 #break
+#     
+#         # validity mask
+#         #mask = [idx in pairs_ok for idx in range(buffer.size)]
+#         mask = np.isin(np.arange(buffer.size), pairs_ok)
+#         # output is the same size as input
+#         #out = np.nan * np.zeros(data.size)
+#         out = np.full(data.size, np.nan, dtype=np.float32)
+#         #out[~nanmask] = np.where(mask, buffer, np.nan)
+#         out[~nanmask] = np.where(mask[~nanmask], buffer[~nanmask], np.nan)
+#         return out
 
-    # weight is used only to filter NaNs in data
     @staticmethod
     @jit(nopython=True, nogil=True)
-    def unwrap_pairs(data, weight, matrix):
+    def unwrap_pairs(data      : np.ndarray,
+                     weight    : np.ndarray = np.empty((0),   dtype=np.float32),
+                     matrix    : np.ndarray = np.empty((0,0), dtype=np.float32),
+                     tolerance : np.float32 = np.pi/2) -> np.ndarray:
         # import directive is not compatible to numba
         #import numpy as np
-
-        # initial data size
-        data_size = data.size
-
-        if np.all(np.isnan(data)) or (weight is not None and np.all(np.isnan(weight))):
-            return np.nan * np.zeros(data_size)
-
-        # the data variable will be modified and returned as the function output
-        data = data.copy()
-        if weight is not None:
-            nanmask = np.isnan(data) | np.isnan(weight)
-        else:
-            nanmask = np.isnan(data)
+    
+        assert data.ndim   == 1
+        assert weight.ndim == 1 or weight.ndim == 0
+        assert matrix.ndim == 2
+        assert data.shape[0] == matrix.shape[0]
+    
+        if np.all(np.isnan(data)) or (weight.size != 0 and np.all(np.isnan(weight))):
+            return np.full(data.size, np.nan, dtype=np.float32)
+    
+        nanmask = np.isnan(data)
+        if weight.size != 0:
+            nanmask = nanmask | np.isnan(weight)
         if np.all(nanmask):
-            return np.nan * np.zeros(data_size)
-        data = data[~nanmask].copy()
-        if weight is not None:
+            # no valid input data
+            return np.full(data.size, np.nan, dtype=np.float32)
+    
+        # the buffer variable will be modified
+        buffer = data[~nanmask].copy()
+        if weight.size != 0:
             weight = weight[~nanmask]
+    
+        # exclude matrix records for not valid data
         matrix = matrix[~nanmask,:]
-
-        #data = phase_pairs.values
         pair_sum = matrix.sum(axis=1)
-        # tidal displacements for SBAS pairs
-        #tidal_pairs = (matrix * np.concatenate([[0], np.diff(tidal)])).sum(axis=1)
-        # wrapped phase pairs (phase_tidal)
-        #data = (np.mod((phase_pairs - tidal_pairs) + np.pi, 2 * np.pi) - np.pi)
-
-        # pairs do not require unwrapping
-        pairs_ok = []
-
+    
+        # processed pairs, allow numba to recognize list type
+        pairs_ok = [0][1:]
+    
         # check all compound pairs vs single pairs: only detect all not wrapped
+        # fill initial pairs_ok
         for ndate in np.unique(pair_sum)[1:]:
-            for pair_idx in np.where(pair_sum==ndate)[0]:
+            pair_idxs = np.where(pair_sum==ndate)[0]
+            if weight.size != 0:
+                # get the sorted order for the specific weights corresponding to pair_idxs
+                pair_idxs_order = np.argsort(weight[pair_idxs])[::-1]
+                # Apply the sorted order to pair_idxs
+                pair_idxs = pair_idxs[pair_idxs_order]
+            for pair_idx in pair_idxs:
                 #print (pair_idx, matrix[pair_idx])
                 matching_columns = matrix[pair_idx] == 1
                 #print ('matching_columns', matching_columns)
@@ -77,38 +265,26 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 #print ('row_indices', row_indices)
                 #with np.printoptions(threshold=np.inf, linewidth=np.inf):
                 #    print (matching_matrix.T)
-                value = data[pair_idx]
-                values = (matching_matrix * data[:,None])
+                value = buffer[pair_idx]
+                values = (matching_matrix * buffer[:,None])
                 #print ('value', value, '?=', values.sum())    
                 jump = int(np.round((values.sum() - value) / (2*np.pi)))
-                if jump == 0:
+                is_tolerance = abs(value - values.sum()) < tolerance
+                #print (f'1JUMP {ndate}:', jump, value, '?', values.sum(), 'tol', is_tolerance)
+                if jump == 0 and is_tolerance:
                     pairs_ok.append(pair_idx)
                     pairs_ok.extend(np.where(matching_rows)[0])
-                    #print ()
-                    continue
-
-                #print ('jump', jump)
-                if abs(value) > abs(value + 2*np.pi*jump):
-                    #print (f'JUMP {ndate}:', jump)
-                    #jump, phase.values[pair_idx] + 2*np.pi*jump
-                    #print ('value', value, '=>', value + 2*np.pi*jump, '=', values.sum())
-                    pass
-                else:
-                    #print (f'JUMP singles:', jump)
-                    pass
-                #print (values[matching_rows])
-                # check for wrapping
-                valid_values = values[matching_rows].ravel()
-                #maxdiff = abs(np.diff(valid_values[valid_values!=0])).max()
-                #print ('maxdiff', maxdiff, maxdiff >= np.pi)
-                #print ()
-                #break
-        #print ('pairs_ok', pairs_ok)
-        #print ('==================')
-
+    
         # check all compound pairs vs single pairs: fix wrapped compound using not wrapped singles only
+        # use pairs_ok to compare and add to pairs_ok
         for ndate in np.unique(pair_sum)[1:]:
-            for pair_idx in np.where(pair_sum==ndate)[0]:
+            pair_idxs = np.where(pair_sum==ndate)[0]
+            if weight.size != 0:
+                # get the sorted order for the specific weights corresponding to pair_idxs
+                pair_idxs_order = np.argsort(weight[pair_idxs])[::-1]
+                # Apply the sorted order to pair_idxs
+                pair_idxs = pair_idxs[pair_idxs_order]
+            for pair_idx in pair_idxs:
                 if pair_idx in pairs_ok:
                     continue
                 #print (pair_idx, matrix[pair_idx])
@@ -124,28 +300,38 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 #with np.printoptions(threshold=np.inf, linewidth=np.inf):
                 #    print (matching_matrix.T)
                 #print ('matching_matrix', matching_matrix.shape)
-
+    
                 pairs_single_not_valid = [pair for pair in np.where(matching_rows)[0] if not pair in pairs_ok]
                 if len(pairs_single_not_valid) > 0:
                     # some of single-pairs requires unwrapping, miss the compound segment processing
                     #print ('ERROR')
                     #print ()
                     continue
-
-                value = data[pair_idx]
-                values = (matching_matrix * data[:,None])
+    
+                value = buffer[pair_idx]
+                values = (matching_matrix * buffer[:,None])
                 #print ('value', value, '?=', values.sum())    
                 jump = int(np.round((values.sum() - value) / (2*np.pi)))
-                #print (f'JUMP {ndate}:', jump)
-                data[pair_idx] += 2*np.pi*jump
-                pairs_ok.append(pair_idx)
+                #print (f'JUMP {ndate}:', jump, 'value', value, '?=', values.sum())
+                buffer[pair_idx] += 2*np.pi*jump
+                is_tolerance = abs(buffer[pair_idx] - values.sum()) < tolerance
+                #print (f'2JUMP {ndate}:', jump, value, '=>', buffer[pair_idx], '?', values.sum(), 'tol', is_tolerance)
+                if is_tolerance:
+                    pairs_ok.append(pair_idx)
                 #print ()
                 continue
         #print ('==================')
-
+    
         # check all compound pairs vs single pairs
+        # complete pairs_ok always when possible
         for ndate in np.unique(pair_sum)[1:]:
-            for pair_idx in np.where(pair_sum==ndate)[0]:
+            pair_idxs = np.where(pair_sum==ndate)[0]
+            if weight.size != 0:
+                # get the sorted order for the specific weights corresponding to pair_idxs
+                pair_idxs_order = np.argsort(weight[pair_idxs])[::-1]
+                # Apply the sorted order to pair_idxs
+                pair_idxs = pair_idxs[pair_idxs_order]
+            for pair_idx in pair_idxs:
                 if pair_idx in pairs_ok:
                     continue
                 #print (pair_idx, matrix[pair_idx])
@@ -160,32 +346,32 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 #print ('row_indices', row_indices)
                 #with np.printoptions(threshold=np.inf, linewidth=np.inf):
                 #    print (matching_matrix.T)
-                value = data[pair_idx]
-                values = (matching_matrix * data[:,None])
+                value = buffer[pair_idx]
+                values = (matching_matrix * buffer[:,None])
                 #print ('value', value, '???=', values.sum())    
-                jump = int(np.round((values.sum() - value) / (2*np.pi)))
-                #print ('jump', jump)
-                if jump != 0:
-                    #print (f'JUMP {ndate}:', jump)
-                    #jump, phase.values[pair_idx] + 2*np.pi*jump
-                    #print ('value', value, '=>', value + 2*np.pi*jump, '=', values.sum())
-                    pass
-                #print (values[matching_rows])
-                # unwrap
-                data[pair_idx] += 2*np.pi*jump
-                pairs_ok.append(pair_idx)
-                pairs_ok.extend(np.where(matching_rows)[0])
+                #jump = int(np.round((values.sum() - value) / (2*np.pi)))
+                #print ('\t3jump', jump)
+                # unwrap if needed (jump=0 means no unwrapping)
+                buffer[pair_idx] += 2*np.pi*jump
+                is_tolerance = abs(buffer[pair_idx] - values.sum()) < tolerance
+                #print (f'3JUMP {ndate}:', jump, value, '=>', buffer[pair_idx], '?', values.sum(), 'tol', is_tolerance)
+                if is_tolerance:
+                    pairs_ok.append(pair_idx)
+                    pairs_ok.extend(np.where(matching_rows)[0])
                 #print ()
                 #break
-
+    
         # validity mask
-        mask = [idx in pairs_ok for idx in range(data.size)]
-        data = np.where(mask, data, np.nan)
-        out = np.nan * np.zeros(data_size)
-        out[~nanmask] = data
+        mask = [idx in pairs_ok for idx in range(buffer.size)]
+        #mask = np.isin(np.arange(buffer.size), pairs_ok)
+        # output is the same size as input
+        #out = np.nan * np.zeros(data.size)
+        out = np.full(data.size, np.nan, dtype=np.float32)
+        out[~nanmask] = np.where(mask, buffer, np.nan)
+        #out[~nanmask] = np.where(mask[~nanmask], buffer[~nanmask], np.nan)
         return out
 
-    def unwrap1d(self, data, weight=None):
+    def unwrap1d(self, data, weight=None, tolerance=np.pi/2):
         import xarray as xr
         import numpy as np
 
@@ -203,17 +389,24 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         matrix = self.lstsq_matrix(pairs)
 
         # xarray wrapper
+        input_core_dims = [['pair']]
+        args = [data.chunk(dict(pair=-1, y=chunks_y, x=chunks_x))]
+        if weight is not None:
+            # sdd another 'pair' dimension for weight
+            input_core_dims.append(['pair'])
+            # add weight to the arguments
+            args.append(weight.chunk(dict(pair=-1, y=chunks_y, x=chunks_x)))
         model = xr.apply_ufunc(
             self.unwrap_pairs,
-            data.chunk(dict(pair=-1, y=chunks_y, x=chunks_x)),
-            weight.chunk(dict(pair=-1, y=chunks_y, x=chunks_x)) if weight is not None else weight,
+            *args,
             dask='parallelized',
             vectorize=True,
-            input_core_dims=[['pair'], ['pair']] if weight is not None else [['pair'], []],
+            input_core_dims=input_core_dims,
             output_core_dims=[['pair']],
             output_dtypes=[np.float32],
-            kwargs={'matrix': matrix}
+            kwargs={'matrix': matrix, 'tolerance': tolerance}
         ).transpose('pair',...)
+        del args
 
         return model.rename('unwrap')
 
