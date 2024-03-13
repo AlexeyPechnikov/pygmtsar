@@ -891,24 +891,26 @@ class Stack_sbas(Stack_detrend):
     def rmse(self, data, solution, weight=None):
         """
         Calculate difference between pairs and dates
-
+    
         Use to calculate solution vs pair unwrapped phases difference as
         diff = sbas.stack_vs_cube(phase_unwrap, solution)
         error = np.sqrt(sbas.wrap(diff)**2).sum('pair')
         """
         import numpy as np
         import xarray as xr
-
+    
         # extract pairs
         pairs = self.get_pairs(data)
+        # unify data and solution
+        pairs = pairs[pairs.ref.isin(solution.date.values)&pairs.rep.isin(solution.date.values)]
         # calculate differences between end and start dates for all the pairs
         error_pairs = []
         for rec in pairs.itertuples():
             #print (rec.rep, rec.ref, rec.Index, rec)
-            error_pair = data.sel(pair=rec.pair) - (solution.sel(date=rec.rep) - solution.sel(date=rec.ref))
+            error_pair = self.wrap(data.sel(pair=rec.pair) - (solution.sel(date=rec.rep) - solution.sel(date=rec.ref)))
             error_pairs.append(error_pair**2)
         # form 3D stack
-        error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': data.pair})
+        error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': pairs.pair})
         return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
 
     def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]',
