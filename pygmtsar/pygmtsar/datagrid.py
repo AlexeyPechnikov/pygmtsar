@@ -147,31 +147,6 @@ class datagrid:
         if 'lat' in dims and 'lon' in dims:
             return True
         return False
-
-    @staticmethod
-    def is_same(grid1, grid2):
-        """
-        Check if two grids have the same coordinate dimensions.
-
-        Parameters
-        ----------
-        grid1 : xarray.DataArray
-            The first grid to compare.
-        grid2 : xarray.DataArray
-            The second grid to compare.
-
-        Returns
-        -------
-        bool
-            True if the grids have the same coordinate dimensions, False otherwise.
-        """
-        dims1 = grid1.dims
-        dims2 = grid2.dims
-        if 'lat' in dims1 and 'lon' in dims1 and 'lat' in dims2 and 'lon' in dims2:
-            return True
-        if 'y' in dims1 and 'x' in dims1 and 'y' in dims2 and 'x' in dims2:
-            return True
-        return False
  
     # da.dropna(dim=dim, how='all') is not fast at all
     @staticmethod
