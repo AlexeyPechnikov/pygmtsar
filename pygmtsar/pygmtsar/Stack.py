@@ -7,11 +7,11 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .Stack_ps import Stack_ps
+from .Stack_export import Stack_export
 from .S1 import S1
 from .PRM import PRM
 
-class Stack(Stack_ps):
+class Stack(Stack_export):
 
     df = None
     basedir = None
