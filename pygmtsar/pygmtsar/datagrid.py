@@ -148,48 +148,6 @@ class datagrid:
             return True
         return False
 
-    def as_geo(self, da):
-        """
-        Add geospatial attributes (CRS and spatial dimensions) to allow raster operations using RioXarray.
-
-        Parameters
-        ----------
-        da : xarray.DataArray
-            The input 2D or 3D grid to be converted to geospatial.
-
-        Returns
-        -------
-        xarray.DataArray
-            The geospatial 2D or 3D grid.
-
-        Examples
-        --------
-        Convert a raster to geospatial and mask it using a Shapely vector geometry:
-        stack.as_geo(grid).rio.clip([geometry])
-
-        Notes
-        -----
-        This method adds geospatial attributes (CRS and spatial dimensions) to the input grid,
-        allowing raster operations using the RioXarray library. If the input grid is already
-        in geographic coordinates, the CRS is set to EPSG 4326 with spatial dimensions 'lat' and 'lon'.
-        Otherwise, if the input grid is in radar coordinates, a fake metric coordinate system is used
-        with EPSG 3857 and spatial dimensions 'y' and 'x'. The method relies on the availability of the
-        'rioxarray' module.
-        """
-        import rioxarray
-        import sys
-        #assert 'rioxarray' in sys.modules, 'rioxarray module is not found'
-        if self.is_geo(da):
-            epsg = 4326
-            y_dim = 'lat'
-            x_dim = 'lon'
-        else:
-            # fake metrical coordinate system just to perform spatial operations
-            epsg = 3857
-            y_dim = 'y'
-            x_dim = 'x'
-        return da.rio.write_crs(epsg).rio.set_spatial_dims(y_dim=y_dim, x_dim=x_dim)
-
     @staticmethod
     def is_same(grid1, grid2):
         """
