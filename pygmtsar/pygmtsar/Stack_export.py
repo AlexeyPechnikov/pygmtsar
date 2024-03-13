@@ -63,6 +63,9 @@ class Stack_export(Stack_ps):
         
         Export date-based stack of GeoTIFFs (like disp_ps.2023-12-27.tif, ...):
         sbas.export_stack(disp_ps, 'disp_ps')
+
+        The exported GeoTIFF files can be converted to KMZ for Google Earth Engine using GDAL tools:
+        gdalwarp -of KMLSUPEROVERLAY -co FORMAT=PNG velocity.tif velocity.kmz
         """
         import xarray as xr
         import numpy as np
