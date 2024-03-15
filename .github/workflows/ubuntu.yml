@@ -38,9 +38,9 @@ jobs:
         sudo apt install -y gfortran
         sudo apt install -y g++
         sudo apt install -y libgmt-dev
-        sudo apt install -y gmt-dcw gmt-gshhg
+#        sudo apt install -y gmt-dcw gmt-gshhg
         # gmt-gshhg-full should be installed automatically (it is required to use GMTSAR landmask)
-        sudo apt install -y gmt
+#        sudo apt install -y gmt
         # add missed package
         sudo apt install -y make
         # vtk rendering
