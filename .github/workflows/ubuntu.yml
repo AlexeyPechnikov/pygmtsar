@@ -39,6 +39,7 @@ jobs:
         sudo apt install -y g++
         sudo apt install -y libgmt-dev
         # gmt-gshhg-full should be installed automatically (it is required to use GMTSAR landmask)
+        sudo apt install -y gmt
         # add missed package
         sudo apt install -y make
         # vtk rendering
