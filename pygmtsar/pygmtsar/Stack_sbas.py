@@ -966,24 +966,24 @@ class Stack_sbas(Stack_detrend):
         fg.fig.suptitle(caption, y=y)
 
     def plot_velocity(self, data, caption='Velocity, mm/year',
-                      quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, **kwargs):
+                      quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, alpha=1, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
-
+    
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
-
+    
         if quantile is not None:
             vmin, vmax = np.nanquantile(data, quantile)
-
+    
         # define symmetrical boundaries
         if symmetrical is True and vmax > 0:
             minmax = max(abs(vmin), vmax)
             vmin = -minmax
             vmax =  minmax
-
+    
         plt.figure()
-        data.plot.imshow(vmin=vmin, vmax=vmax, cmap='turbo')
+        data.plot.imshow(vmin=vmin, vmax=vmax, alpha=alpha, cmap='turbo')
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         if aspect is not None:
