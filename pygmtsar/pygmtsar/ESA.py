@@ -29,10 +29,8 @@ class ESA(tqdm_joblib):
     # see _select_orbit.py in sentineleof package
     #Orbital period of Sentinel-1 in seconds
     #T_ORBIT = (12 * 86400.0) / 175.0
-    resorb_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
-    resorb_end_offset = timedelta(seconds=300)
-    poeorb_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
-    poeorb_end_offset = timedelta(seconds=300)
+    offset_start = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
+    offset_end = timedelta(seconds=300)
     
     def __init__(self, username: str = None, password: str= None):
         """
@@ -92,21 +90,11 @@ class ESA(tqdm_joblib):
         import os
         
         for product_type in ['AUX_POEORB', 'AUX_RESORB']:
-            if product_type == 'AUX_RESORB':
-                orbit_start_offset = self.resorb_start_offset
-                orbit_end_offset = self.resorb_end_offset
-            elif product_type == 'AUX_POEORB':
-                orbit_start_offset = self.poeorb_start_offset
-                orbit_end_offset = self.poeorb_end_offset
-            else:
-                raise Exception(f'Invalid orbit type: {product_type}.')
-
-            start_time = time - orbit_start_offset
-            end_time = time + orbit_end_offset
-            
             query = self.template_query.format(
-                start_time = start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                stop_time  = end_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                start_time = (time - self.offset_start).strftime('%Y-%m-%dT%H:%M:%SZ') if product_type == 'AUX_RESORB' else
+                         time.replace(hour=0,  minute=0,  second=1 ).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                stop_time  = (time + self.offset_end).strftime('%Y-%m-%dT%H:%M:%SZ')   if product_type == 'AUX_RESORB' else
+                         time.replace(hour=23, minute=59, second=59).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 mission_id = mission_id,
                 orbit_type = product_type,
             )
@@ -120,11 +108,11 @@ class ESA(tqdm_joblib):
             # Process the query results
             results = response.json().get('value', [])
             if not results:
-                print(f'No {product_type} files found to cover interval {start_time} - {end_time}')
+                print(f'No {product_type} files found to cover time {time}')
                 continue
         
             if len(results) > 1:
-                print(f'Found multiple {product_type} orbits for interval {start_time} - {end_time}', results)
+                print(f'Found multiple {product_type} orbits for time {time}', results)
             # TODO: what is the sorting for multiple orbits?
             result = results[0]
             

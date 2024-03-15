@@ -28,11 +28,9 @@ class ASF(tqdm_joblib):
     # see _select_orbit.py in sentineleof package
     #Orbital period of Sentinel-1 in seconds
     #T_ORBIT = (12 * 86400.0) / 175.0
-    resorb_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
-    resorb_end_offset = timedelta(seconds=300)
-    poeorb_start_offset = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
-    poeorb_end_offset = timedelta(seconds=300)
-    
+    offset_start = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
+    offset_end = timedelta(seconds=300)
+
     def __init__(self, username=None, password=None):
         import asf_search
         import getpass
@@ -183,17 +181,8 @@ class ASF(tqdm_joblib):
             # nothing to do
             if scenes is None or len(scenes) == 0:
                 continue
-    
-            if product_type == 'RESORB':
-                url = self.resorb_url
-                orbit_start_offset = self.resorb_start_offset
-                orbit_end_offset = self.resorb_end_offset
-            elif product_type == 'POEORB':
-                url = self.poeorb_url
-                orbit_start_offset = self.poeorb_start_offset
-                orbit_end_offset = self.poeorb_end_offset
-            else:
-                raise Exception(f'Invalid orbit type: {product_type}.')
+
+            url = self.resorb_url if product_type == 'RESORB' else self.poeorb_url
 
             # get orbits HTML list
             with tqdm(desc=f'Downloading {product_type} catalog:', total=1) as pbar:
@@ -204,9 +193,14 @@ class ASF(tqdm_joblib):
             orbits = [re.search(self.pattern_orbit, line).group(0) if re.search(self.pattern_orbit, line) else None for line in lines]
             orbits = pd.DataFrame(orbits, columns=['orbit']).dropna()
             orbits['mission']    = orbits['orbit'].apply(lambda name: name[:3])
-            orbits['time']       = orbits['orbit'].apply(lambda name: datetime.strptime(name.split('_')[5],      '%Y%m%dT%H%M%S'))
-            orbits['time_start'] = orbits['orbit'].apply(lambda name: datetime.strptime(name.split('_')[6][1:],  '%Y%m%dT%H%M%S'))
-            orbits['time_end']   = orbits['orbit'].apply(lambda name: datetime.strptime(name[:-4].split('_')[7], '%Y%m%dT%H%M%S'))
+            orbits['time']       = orbits['orbit'].apply(lambda name: datetime.strptime(name.split('_')[5], '%Y%m%dT%H%M%S'))
+            if product_type == 'RESORB':
+                orbits['time_start'] = orbits['orbit'].apply(lambda name: datetime.strptime(name.split('_')[6][1:],  '%Y%m%dT%H%M%S')) + self.offset_start
+                orbits['time_end']   = orbits['orbit'].apply(lambda name: datetime.strptime(name[:-4].split('_')[7], '%Y%m%dT%H%M%S')) - self.offset_end
+            elif product_type == 'POEORB':
+                # use daily orbits
+                orbits['time_start'] = orbits['orbit'].apply(lambda name: datetime.strptime(name.split('_')[6][1:][:9]  + '235959', '%Y%m%dT%H%M%S'))
+                orbits['time_end']   = orbits['orbit'].apply(lambda name: datetime.strptime(name[:-4].split('_')[7][:9] + '000001', '%Y%m%dT%H%M%S'))
             #print ('orbits', orbits.head(3))
 
             urls = []
@@ -215,8 +209,8 @@ class ASF(tqdm_joblib):
                 #print ('scene', scene)
                 # look for the orbit file
                 orbit = orbits[(orbits.mission == scene.mission)&\
-                               (orbits.time_start <= scene.datetime - orbit_start_offset)&\
-                               (orbits.time_end   >= scene.datetime + orbit_end_offset  )].sort_values('time')
+                               (orbits.time_start <= scene.datetime)&\
+                               (orbits.time_end   >= scene.datetime)].sort_values('time')
                 #print ('orbit', orbit)
                 # add the recent orbit
                 orbit = orbit.tail(1).orbit.item() if len(orbit) >= 1 else None
