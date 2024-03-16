@@ -252,7 +252,7 @@ class Stack_export(Stack_ps):
         """
         import xarray as xr
         import numpy as np
-        from vtk import vtkStructuredGridWriter, vtkStringArray
+        from vtk import vtkStructuredGridWriter, vtkStringArray, VTK_BINARY
         from tqdm.auto import tqdm
         import os
     
@@ -321,6 +321,6 @@ class Stack_export(Stack_ps):
                 writer = vtkStructuredGridWriter()
                 writer.SetFileName(filename)
                 writer.SetInputData(vtk_grid)
-                writer.SetFileType(vtk.VTK_BINARY)
+                writer.SetFileType(VTK_BINARY)
                 writer.Write()
                 pbar.update(1)
