@@ -254,5 +254,5 @@ class Stack_dem(Stack_reframe):
         self.dem_filename = dem_filename
 
     def download_dem(self, geometry='auto', product='1s'):
-        print ('NOTE: Function is deprecated. Download DEM using GMT.download_dem(AOI) or')
-        print ('AWS.download_dem(AOI) functions and load with stack.load_dem() function.')
+        print ('NOTE: Function is removed. Download DEM using Tiles().download_dem()')
+        print ('and load with Stack.load_dem() function.')
