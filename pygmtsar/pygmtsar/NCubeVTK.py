@@ -63,6 +63,8 @@ class NCubeVTK:
         # https://corteva.github.io/rioxarray/stable/getting_started/getting_started.html
         #import rioxarray as rio
 
+        print ('NOTE: Function is deprecated. Convert Xarray dataset to VTK using Stack.as_vtk()')
+
         if band_mask is not None:
             if band_mask not in dataset.data_vars:
                 print (f'ERROR: {band_mask} variable not found')
