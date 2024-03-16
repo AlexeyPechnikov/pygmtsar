@@ -321,5 +321,6 @@ class Stack_export(Stack_ps):
                 writer = vtkStructuredGridWriter()
                 writer.SetFileName(filename)
                 writer.SetInputData(vtk_grid)
+                writer.SetFileType(vtk.VTK_BINARY)
                 writer.Write()
                 pbar.update(1)
