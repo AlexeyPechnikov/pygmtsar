@@ -166,6 +166,9 @@ class NCubeVTK:
             #print ('np.float64', np.issubdtype(dataset[coord].dtype, np.float64))
             if np.issubdtype(dataset[coord].dtype, np.datetime64):
                 data_array = vtkStringArray()
+                data_value = str(dataset[coord].dt.date.values)
+            elif np.issubdtype(dataset[coord].dtype, str):
+                data_array = vtkStringArray()
                 data_value = str(dataset[coord].values)
             elif np.issubdtype(dataset[coord].dtype, np.int64):
                 data_array = vtkIntArray()
