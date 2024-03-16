@@ -81,8 +81,8 @@ class Stack_landmask(Stack_multilooking):
         return landmask
 
     def download_landmask(self, product='1s', debug=False):
-        print ('NOTE: Function is deprecated. Download land mask using GMT.download_landmask()')
-        print ('function and load with Stack.load_landmask() function.')
+        print ('NOTE: Function is removed. Download land mask using Tiles().download_landmask()')
+        print ('and load with Stack.load_landmask() function.')
 
     def load_landmask(self, data, geometry='auto'):
         """
