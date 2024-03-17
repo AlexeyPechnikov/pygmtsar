@@ -44,7 +44,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -140,7 +140,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles
 
 """## Define 3 Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -309,16 +309,7 @@ plt.savefig('Phase, [rad].jpg')
 sbas.plot_correlation(corr)
 plt.savefig('Correlation.jpg')
 
-# prepare topography and phase
-dem = sbas.get_dem()
-intf_ll = sbas.cropna(sbas.ra2ll(intf))
-ds = xr.merge([dem.interp_like(intf_ll).where(np.isfinite(intf_ll)).rename('z'), intf_ll]).rename({'lat': 'y', 'lon': 'x'})
-# decimate large grid
-ds = ds.sel(y=ds.y[::10], x=ds.x[::10])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('intf.vtk')
-vtk_grid
+sbas.export_vtk(intf[::8,::8], 'intf', mask='auto')
 
 # build interactive 3D plot
 plotter = pv.Plotter(notebook=True)
@@ -379,17 +370,8 @@ plt.title('Cross-Comparison between Sentinel-1 Elevation and Copernicus GLO-30 D
 plt.grid(True)
 plt.show()
 
-# geocode to geographic coordinates and crop empty borders
-ele_ll = sbas.cropna(sbas.ra2ll(ele))
-# prepare topography and phase
-dem = sbas.get_dem().interp_like(ele_ll).where(np.isfinite(ele_ll))
-ds = xr.merge([dem.rename('z'), dem, ele_ll]).rename({'lat': 'y', 'lon': 'x'})
-# decimate large grid
-ds = ds.sel(y=ds.y[::8], x=ds.x[::8])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('ele.vtk')
-vtk_grid
+sbas.export_vtk(sbas.get_dem()[::10,::10], 'dem', mask='auto')
+sbas.export_vtk(ele[::8,::8], 'ele', mask='auto')
 
 plotter = pv.Plotter(shape=(1, 2), notebook=True)
 
@@ -398,7 +380,7 @@ plotter.add_mesh(pv.read('ele.vtk').scale([1, 1, 0.00002], inplace=True), scalar
 plotter.add_title(f'Interactive Sentinel-1 Elevation Map', font_size=32)
 
 plotter.subplot(0, 1)
-plotter.add_mesh(pv.read('ele.vtk').scale([1, 1, 0.00002], inplace=True), scalars='dem', cmap='turbo', ambient=0.1, show_scalar_bar=True)
+plotter.add_mesh(pv.read('dem.vtk').scale([1, 1, 0.00002], inplace=True), scalars='dem', cmap='turbo', ambient=0.1, show_scalar_bar=True)
 plotter.add_title(f'Interactive GLO-30 DEM', font_size=32)
 
 plotter.show_axes()
@@ -415,7 +397,8 @@ Save the results in geospatial data formats like to NetCDF, GeoTIFF and others. 
 """
 
 # save the results
-ele_ll.load().to_netcdf('elevation.nc', engine=sbas.netcdf_engine)
+# geocode to geographic coordinates and crop empty borders
+sbas.cropna(sbas.ra2ll(ele)).load().to_netcdf('elevation.nc', engine=sbas.netcdf_engine)
 
 """## Export from Google Colab"""
 

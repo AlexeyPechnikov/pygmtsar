@@ -42,7 +42,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -138,7 +138,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles, XYZTiles
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles, XYZTiles
 
 """## Define Processing Parameters"""
 
@@ -292,17 +292,11 @@ sbas.plot_correlations(corr_ll.where(corr_ll<0.2), cols=2, cmap='turbo', caption
 
 # prepare topography and correlation
 dem = sbas.get_dem().interp_like(corr_ll).where(np.isfinite(corr_ll.mean('pair')))
-gmap = XYZTiles().download(dem, 12).interp_like(corr_ll)
+gmap = XYZTiles().download(dem, 12)
+#.interp_like(corr_ll)
 
-for name, index in zip(['before', 'after'], [0,1]):
-    ds = xr.merge([dem.rename('z'),
-                gmap,
-                corr_ll[index],
-                ]).transpose('band', 'lat', 'lon').rename({'lat': 'y', 'lon': 'x'})
-    # convert to VTK structure
-    vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-    vtk_grid.save(f'{name}.vtk')
-vtk_grid
+sbas.export_vtk(corr_ll[0], 'before', image=gmap)
+sbas.export_vtk(corr_ll[1], 'after',  image=gmap)
 
 plotter = pv.Plotter(shape=(1, 2), notebook=True)
 axes = pv.Axes(show_actor=True, actor_scale=2.0, line_width=5)

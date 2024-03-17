@@ -42,7 +42,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -138,7 +138,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -336,14 +336,12 @@ sbas.plot_topo(dem.where(landmask), aspect='equal')
 sbas.plot_correlation(corr.where(landmask), aspect='equal')
 plt.savefig('Correlation.jpg')
 
-# prepare topography and phase
-ds = xr.merge([dem.where(landmask).rename('z'), intf.where(landmask)]).rename({'lat': 'y', 'lon': 'x'})
-# decimate large grid
-ds = ds.sel(y=ds.y[::2], x=ds.x[::2])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('intf.vtk')
-vtk_grid
+# crop a small land patch at top right corner
+from shapely.geometry import Polygon
+AOI_buffer = AOI.buffer(0.05).exterior.apply(lambda ring: Polygon(ring))
+intf_crop = sbas.as_geo(intf.where(landmask)).rio.clip(AOI_buffer)
+
+sbas.export_vtk(intf_crop[::2,::2], 'intf', mask='auto')
 
 # build interactive 3D plot
 plotter = pv.Plotter(notebook=True)

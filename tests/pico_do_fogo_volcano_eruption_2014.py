@@ -42,7 +42,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -138,7 +138,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles
 
 """## Define Processing Parameters"""
 
@@ -318,16 +318,7 @@ sbas.plot_topo(dem.where(landmask_ll), aspect='equal')
 sbas.plot_correlation(corr_ll.where(landmask_ll), aspect='equal')
 plt.savefig('Correlation.jpg')
 
-# prepare topography and phase
-ds = xr.merge([dem.where(landmask_ll).rename('z'), intf_ll.where(landmask_ll)]).rename({'lat': 'y', 'lon': 'x'})
-# crop grid
-ds = ds.isel(y=slice(40,-50),x=slice(90,-40))
-# decimate large grid
-#ds = ds.sel(y=ds.y[::2], x=ds.x[::2])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('intf.vtk')
-vtk_grid
+sbas.export_vtk(intf_ll.where(landmask_ll), 'intf', mask='auto')
 
 # build interactive 3D plot
 plotter = pv.Plotter(notebook=True)
@@ -350,8 +341,8 @@ Attention: in case of crash on MacOS Apple Silicon run Jupyter as
 `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES no_proxy='*' jupyter notebook`
 """
 
-# mask low-coherence areas using threshold value 0.1
-tqdm_dask(unwrap := sbas.unwrap_snaphu(intf.where(corr>=0.1), corr).persist(),
+# mask low-coherence areas using threshold value 0.075
+tqdm_dask(unwrap := sbas.unwrap_snaphu(intf.where(corr>=0.075), corr).persist(),
           desc='SNAPHU Unwrapping')
 
 # geocode to geographic coordinates and crop empty borders
@@ -360,16 +351,7 @@ unwrap_ll = sbas.ra2ll(unwrap.phase)
 sbas.plot_phase(unwrap_ll.where(landmask_ll), caption='Unwrapped Phase\nGeographic Coordinates, [rad]', quantile=[0.02, 0.99], aspect='equal')
 plt.savefig('Unwrapped Phase Geographic Coordinates, [rad].jpg')
 
-# prepare topography and phase
-ds = xr.merge([dem.where(landmask_ll).rename('z'), unwrap_ll.where(landmask_ll)]).rename({'lat': 'y', 'lon': 'x'})
-# crop grid
-ds = ds.isel(y=slice(40,-50),x=slice(90,-40))
-# decimate large grid
-#ds = ds.sel(y=ds.y[::2], x=ds.x[::2])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('unwrap.vtk')
-vtk_grid
+sbas.export_vtk(unwrap_ll.where(landmask_ll), 'unwrap', mask='auto')
 
 # build interactive 3D plot
 plotter = pv.Plotter(notebook=True)
@@ -391,14 +373,7 @@ los_disp_mm_ll = sbas.los_displacement_mm(unwrap_ll)
 sbas.plot_displacement(los_disp_mm_ll.where(landmask_ll), caption='LOS Displacement\nGeographic Coordinates, [mm]', quantile=[0.01, 0.99], aspect='equal')
 plt.savefig('LOS Displacement Geographic Coordinates, [mm].jpg')
 
-# prepare topography and phase
-ds = xr.merge([dem.where(landmask_ll).rename('z'), los_disp_mm_ll.where(landmask_ll)]).rename({'lat': 'y', 'lon': 'x'})
-# decimate large grid
-#ds = ds.sel(y=ds.y[::2], x=ds.x[::2])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('los.vtk')
-vtk_grid
+sbas.export_vtk(los_disp_mm_ll.where(landmask_ll), 'los', mask='auto')
 
 # build interactive 3D plot
 plotter = pv.Plotter(notebook=True)

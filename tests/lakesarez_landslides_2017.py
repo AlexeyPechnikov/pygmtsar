@@ -44,7 +44,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -142,7 +142,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles, XYZTiles, utils
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles, XYZTiles, utils
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -637,28 +637,16 @@ plt.show()
 
 """## 3D Interactive Map"""
 
-dem = sbas.get_dem()
-
 velocity_sbas_ll = sbas.ra2ll(velocity_sbas)
 velocity_ps_ll = sbas.ra2ll(velocity_ps)
 
 velocity_sbas_ll = sbas.as_geo(velocity_sbas_ll).rio.clip(AOI.geometry.envelope)
 velocity_ps_ll = sbas.as_geo(velocity_ps_ll).rio.clip(AOI.geometry.envelope)
 
-gmap_tiles = XYZTiles().download(velocity_sbas_ll, 15)
+gmap = XYZTiles().download(velocity_sbas_ll, 15)
 
-for name, velocity_ll in {'sbas': velocity_sbas_ll, 'ps': velocity_ps_ll}.items():
-    gmap = gmap_tiles.interp_like(velocity_ll, method='linear').round().astype(np.uint8)
-    ds = xr.merge([dem.interp_like(velocity_ll, method='linear').rename('z'), gmap, velocity_ll])
-    # decimate large grid
-    if name == 'sbas':
-        ds = ds.sel(lat=ds.lat[::3], lon=ds.lon[::2])
-    else:
-        ds = ds.sel(lat=ds.lat[::3], lon=ds.lon[::8])
-    # convert to VTK structure
-    vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds.rename({'lat': 'y', 'lon': 'x'})))
-    vtk_grid.save(f'velocity_{name}.vtk')
-    print (vtk_grid)
+sbas.export_vtk(velocity_sbas_ll[::3,::2], 'velocity_sbas', image=gmap)
+sbas.export_vtk(velocity_ps_ll[::3,::8],   'velocity_ps',   image=gmap)
 
 plotter = pv.Plotter(shape=(1, 2), notebook=True)
 axes = pv.Axes(show_actor=True, actor_scale=2.0, line_width=5)

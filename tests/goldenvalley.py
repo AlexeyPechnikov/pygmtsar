@@ -42,7 +42,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -140,7 +140,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles, XYZTiles
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles, XYZTiles
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -645,55 +645,36 @@ plt.show()
 
 """## 3D Interactive Map"""
 
-dem = sbas.get_dem()
-
 velocity_sbas_ll = sbas.ra2ll(velocity_sbas)
 velocity_ps_ll = sbas.ra2ll(velocity_ps)
+# crop to area
+velocity_sbas_ll = sbas.as_geo(velocity_sbas_ll).rio.clip(AOI.geometry.buffer(-BUFFER))
+velocity_ps_ll = sbas.as_geo(velocity_ps_ll).rio.clip(AOI.geometry.buffer(-BUFFER))
+# export VTK
+sbas.export_vtk(velocity_sbas_ll, 'velocity_sbas', mask='auto')
+sbas.export_vtk(velocity_ps_ll,   'velocity_ps', mask='auto')
 
-velocity_sbas_ll = sbas.as_geo(velocity_sbas_ll).rio.clip(AOI.geometry.buffer(-BUFFER).envelope)
-velocity_ps_ll = sbas.as_geo(velocity_ps_ll).rio.clip(AOI.geometry.buffer(-BUFFER).envelope)
-
-gmap_tiles = XYZTiles().download(velocity_sbas_ll, 15)
-
-gmap_tiles.plot.imshow()
-
-for name, velocity_ll in {'sbas': velocity_sbas_ll, 'ps': velocity_ps_ll}.items():
-    #sbas.as_geo(velocity_ll).rio.clip(AOI.geometry.buffer(-BUFFER))
-    gmap = gmap_tiles.interp_like(velocity_ll, method='linear').round().astype(np.uint8)
-
-    zmin, zmax = np.nanquantile(velocity_ll, [0.01, 0.99])
-    velocity_ll_norm = np.clip((velocity_ll - zmin) / (zmax - zmin), 0, 1)
-    cmap = plt.cm.get_cmap('turbo')
-    velocity_ll_colors = xr.DataArray(255*cmap(velocity_ll_norm)[..., :3].transpose(2,0,1), coords=gmap.coords)\
-        .round().astype(np.uint8)\
-        .rename('colors')
-    mask_invert = sbas.as_geo(velocity_ll_colors).rio.clip(AOI.geometry.buffer(-BUFFER), invert=True)
-    map_colors = xr.where(mask_invert.sum('band') == 0, velocity_ll_colors, gmap)
-    ds = xr.merge([dem.interp_like(velocity_ll, method='cubic').rename('z'),
-                   map_colors.transpose('band', 'lat', 'lon')])
-    # convert to VTK structure
-    vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds.rename({'lat': 'y', 'lon': 'x'})))
-    vtk_grid.save(f'velocity_{name}.vtk')
-vtk_grid
+gmap = XYZTiles().download(velocity_sbas_ll, 15)
+gmap.plot.imshow()
+sbas.export_vtk(None, 'gmap', image=gmap, mask='auto')
 
 plotter = pv.Plotter(shape=(1, 2), notebook=True)
 axes = pv.Axes(show_actor=True, actor_scale=2.0, line_width=5)
 
+vtk_map = pv.read('gmap.vtk').scale([1, 1, 0.00002]).rotate_z(135)
+
+
 plotter.subplot(0, 0)
-vtk_grid = pv.read('velocity_sbas.vtk')
-mesh = vtk_grid\
-    .scale([1, 1, 0.00002], inplace=True)\
-    .rotate_z(135, point=axes.origin, inplace=True)
-plotter.add_mesh(mesh, scalars='colors', rgb=True, ambient=0.2)
+vtk_grid = pv.read('velocity_sbas.vtk').scale([1, 1, 0.00002]).rotate_z(135)
+plotter.add_mesh(vtk_map.scale([1, 1, 0.999]), scalars='colors', rgb=True, ambient=0.2)
+plotter.add_mesh(vtk_grid, scalars='trend', ambient=0.5, opacity=0.8, cmap='turbo', clim=(-30,30), nan_opacity=0.1, nan_color='black')
 plotter.show_axes()
 plotter.add_title('SBAS LOS Velocity', font_size=32)
 
 plotter.subplot(0, 1)
-vtk_grid = pv.read('velocity_ps.vtk')
-mesh = vtk_grid\
-    .scale([1, 1, 0.00002], inplace=True)\
-    .rotate_z(135, point=axes.origin, inplace=True)
-plotter.add_mesh(mesh, scalars='colors', rgb=True, ambient=0.2)
+vtk_grid = pv.read('velocity_ps.vtk').scale([1, 1, 0.00002]).rotate_z(135)
+plotter.add_mesh(vtk_map.scale([1, 1, 0.999]), scalars='colors', rgb=True, ambient=0.2)
+plotter.add_mesh(vtk_grid, scalars='trend', ambient=0.5, opacity=0.8, cmap='turbo', clim=(-30,30), nan_opacity=0.1, nan_color='black')
 plotter.show_axes()
 plotter.add_title('PS LOS Velocity', font_size=32)
 

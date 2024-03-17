@@ -42,7 +42,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -138,7 +138,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 100)
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles
 
 """## Define 3 Sentinel-1 SLC Scenes and Processing Parameters
 
@@ -330,16 +330,7 @@ plt.savefig('Phase, [rad].jpg')
 sbas.plot_correlation(corr60m)
 plt.savefig('Correlation.jpg')
 
-# prepare topography and phase
-dem = sbas.get_dem()
-intf60m_ll = sbas.cropna(sbas.ra2ll(intf60m))
-ds = xr.merge([dem.interp_like(intf60m_ll).where(np.isfinite(intf60m_ll)).rename('z'), intf60m_ll]).rename({'lat': 'y', 'lon': 'x'})
-# decimate large grid
-ds = ds.sel(y=ds.y[::3], x=ds.x[::3])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('intf.vtk')
-vtk_grid
+sbas.export_vtk(intf60m[::3,::3], 'intf')
 
 # build interactive 3D plot
 plotter = pv.Plotter(notebook=True)
@@ -378,14 +369,7 @@ los_disp_mm_ll = sbas.cropna(sbas.ra2ll(sbas.los_displacement_mm(unwrap.phase)))
 sbas.plot_displacement(los_disp_mm_ll, caption='LOS Displacement\nGeographic Coordinates, [mm]', quantile=[0.01, 0.99])
 plt.savefig('LOS Displacement Geographic Coordinates, [mm].jpg')
 
-# prepare topography and phase
-ds = xr.merge([dem.interp_like(los_disp_mm_ll).where(np.isfinite(los_disp_mm_ll)).rename('z'), los_disp_mm_ll]).rename({'lat': 'y', 'lon': 'x'})
-# decimate large grid
-ds = ds.sel(y=ds.y[::3], x=ds.x[::3])
-# convert to VTK structure
-vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-vtk_grid.save('los.vtk')
-vtk_grid
+sbas.export_vtk(los_disp_mm_ll[::3,::3], 'los')
 
 # build interactive 3D plot
 plotter = pv.Plotter(notebook=True)

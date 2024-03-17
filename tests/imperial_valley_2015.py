@@ -42,7 +42,7 @@ if 'google.colab' in sys.modules:
         !export DEBIAN_FRONTEND=noninteractive
         !apt-get update > /dev/null
         !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt-dcw gmt-gshhg gmt  > /dev/null
+            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
         # GMTSAR codes are not so good to be compiled by modern GCC
         !apt install gcc-9 > /dev/null
         !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
@@ -132,7 +132,7 @@ plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # %matplotlib inline
 
-from pygmtsar import S1, Stack, tqdm_dask, NCubeVTK, ASF, ESA, Tiles
+from pygmtsar import S1, Stack, tqdm_dask, ASF, ESA, Tiles
 
 """## Define Sentinel-1 SLC Scenes and Processing Parameters"""
 
@@ -372,17 +372,7 @@ plt.savefig('Cumulative LOS Displacement POI, [mm].jpg')
 
 """## 3D Interactive Maps"""
 
-# prepare topography and phase
-dem = sbas.get_dem()
-dem_subset = dem.interp_like(disp_subset_ll).where(np.isfinite(disp_subset_ll[-1]))
-for idx, date in enumerate(disp_subset_ll.date):
-    ds = xr.merge([dem_subset.rename('z'), disp_subset_ll.sel(date=date)], compat='override').rename({'lat': 'y', 'lon': 'x'})
-    # decimate large grid
-    #ds = ds.sel(y=ds.y[::3], x=ds.x[::3])
-    # convert to VTK structure
-    vtk_grid = pv.StructuredGrid(NCubeVTK.ImageOnTopography(ds))
-    vtk_grid.save(f'disp_subset.{idx}.vtk')
-vtk_grid
+sbas.export_vtk(disp_subset_ll, 'disp_subset', mask='auto')
 
 # build interactive 3D plot
 def load_mesh(plotter, index, offset=None):
