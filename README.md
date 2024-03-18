@@ -62,7 +62,7 @@ For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro
 
 ## Projects and Publications Using PyGMTSAR
 
-Explore the diverse applications of PyGMTSAR in projects and academic research on the dedicated [Projects and Publications](PUBLICATIONS.md) page.
+Explore the diverse applications of PyGMTSAR in projects and academic research on the dedicated [Projects and Publications](/pubs/README.md) page.
 
 ## Announcements
 
