@@ -60,6 +60,10 @@ All steps in these notebooks are automated. This includes the software installat
 
 For subscribers, I share more complex SBAS and PSI use cases on Google Colab Pro through my [Patreon page](https://www.patreon.com/pechnikov). These use cases are suitable for InSAR learners, researchers, and industry specialists working on their challenging projects. Large areas and big stacks for thousands of interferograms, low-coherence territories, and extensive atmospheric phase delays - all these tasks can be addressed with PyGMTSAR. These examples can still be run online on the Google Colab Pro platform, which is cost-effective ($10/month) and provides a good balance between very fast data transfer speeds for downloading dozens of Sentinel-1 SLC scenes, available disk space to store the datasets and process them (approximately 220GB vs. 110GB for the free version of Google Colab), processing speed (8 vCPUs vs. 2 for the free version of Google Colab), and accessible memory (54GB vs. 12GB for the free version of Google Colab). I frequently utilize Google Colab Pro myself to manage up to five parallel InSAR projects, without concerns about disk space, memory, or processing performance limitations. Moreover, all the examples can be executed locally as well as on cloud hosts and remote servers.
 
+## Projects and Publications Using PyGMTSAR
+
+Explore the diverse applications of PyGMTSAR in projects and academic research on the dedicated [Projects and Publications](PUBLICATIONS.md) page.
+
 ## Announcements
 
 **E-Book Release: 'PyGMTSAR: Sentinel-1 Python InSAR: An Introduction'**
