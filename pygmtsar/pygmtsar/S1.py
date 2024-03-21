@@ -162,29 +162,8 @@ class S1():
         #geolocs = [shapely.geometry.MultiPoint(self.geoloc(path).geometry).minimum_rotated_rectangle for path in metapaths]
         #print ('geolocs', geolocs)
         #df = gpd.GeoDataFrame(df, geometry=geolocs)
-        def geoloc2bursts(metapath):
-            """
-            Read approximate bursts locations
-            """
-            from shapely.geometry import LineString, Polygon, MultiPolygon
-            df = S1.get_geoloc(S1.read_annotation(metapath))
-            # this code line works for a single scene
-            #lines = df.groupby('line')['geometry'].apply(lambda x: LineString(x.tolist()))
-            # more complex code is required for stitched scenes processing with repeating 'line' series
-            df['line_change'] = df['line'].diff().ne(0).cumsum()
-            # single-point lines possible for stitched scenes
-            grouped_lines = df.groupby('line_change')['geometry'].apply(lambda x: LineString(x.tolist()) if len(x) > 1 else None)
-            lines = grouped_lines.reset_index(drop=True)
-            #bursts = [Polygon([*line1.coords, *line2.coords[::-1]]) for line1, line2 in zip(lines[:-1], lines[1:])]
-            # to ignore None for single-point lines
-            bursts = []
-            prev_line = None
-            for line in lines:
-                if line is not None and prev_line is not None:
-                    bursts.append(Polygon([*prev_line.coords, *line.coords[::-1]]))
-                prev_line = line
-            return MultiPolygon(bursts)
-        bursts = [geoloc2bursts(path) for path in metapaths]
+
+        bursts = [S1.geoloc2bursts(path) for path in metapaths]
         df = gpd.GeoDataFrame(df, geometry=bursts)
 
         # define orbit directions
@@ -219,6 +198,30 @@ class S1():
             print ('NOTE: Found multiple scenes for a single day, use function Stack.reframe() to stitch the scenes')
 
         return df
+
+    @staticmethod
+    def geoloc2bursts(metapath):
+        """
+        Read approximate bursts locations
+        """
+        from shapely.geometry import LineString, Polygon, MultiPolygon
+        df = S1.get_geoloc(S1.read_annotation(metapath))
+        # this code line works for a single scene
+        #lines = df.groupby('line')['geometry'].apply(lambda x: LineString(x.tolist()))
+        # more complex code is required for stitched scenes processing with repeating 'line' series
+        df['line_change'] = df['line'].diff().ne(0).cumsum()
+        # single-point lines possible for stitched scenes
+        grouped_lines = df.groupby('line_change')['geometry'].apply(lambda x: LineString(x.tolist()) if len(x) > 1 else None)
+        lines = grouped_lines.reset_index(drop=True)
+        #bursts = [Polygon([*line1.coords, *line2.coords[::-1]]) for line1, line2 in zip(lines[:-1], lines[1:])]
+        # to ignore None for single-point lines
+        bursts = []
+        prev_line = None
+        for line in lines:
+            if line is not None and prev_line is not None:
+                bursts.append(Polygon([*prev_line.coords, *line.coords[::-1]]))
+            prev_line = line
+        return MultiPolygon(bursts)
 
     @staticmethod
     def read_annotation(filename):
