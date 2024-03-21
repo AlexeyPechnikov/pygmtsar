@@ -16,6 +16,8 @@ class ASF(tqdm_joblib):
 
     template_url = 'https://datapool.asf.alaska.edu/SLC/S{satellite}/{scene}.zip'
     template_safe = '*.SAFE/*/{mission}-iw{subswath}-slc-{polarization}-*'
+    # check for downloaded scene files
+    template_scene = 'S1?_IW_SLC__1S??_{start}_*.SAFE/*/s1?-{subswath_lowercase}-slc-{polarization_lowercase}-{start_lowercase}-*'
     # URL of the HTML page
     # see https://asf.alaska.edu/data-sets/sar-data-sets/sentinel-1/sentinel-1-data-and-imagery/
     # https://s1qc.asf.alaska.edu
