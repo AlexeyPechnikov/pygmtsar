@@ -240,3 +240,183 @@ class ASF(tqdm_joblib):
 
     def download(self, *args, **kwarg):
         print ('NOTE: Function is deprecated. Use ASF.download_scenes() and ASF.download_orbits().')
+
+    # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
+    def download_bursts(self, basedir, bursts, session=None, n_jobs=4, skip_exist=True):
+        import rioxarray as rio
+        import xmltodict
+        import pandas as pd
+        import asf_search
+        import joblib
+        from tqdm.auto import tqdm
+        import os
+        import glob
+        from datetime import datetime, timedelta
+        import warnings
+        # supress asf_search 'UserWarning: File already exists, skipping download'
+        warnings.filterwarnings("ignore", category=UserWarning)
+    
+        # create the directory if needed
+        os.makedirs(basedir, exist_ok=True)
+    
+        # skip existing bursts
+        if skip_exist:
+            bursts_missed = []
+            for burst in bursts:
+                #print (burst)
+                burst_parts = burst.split('_')
+                subswath = burst_parts[2]
+                polarization = burst_parts[4]
+                start = burst_parts[3]
+                #print ('start', start, 'subswath', subswath, 'polarization', polarization)
+                template = self.template_scene.format(start=start,
+                                                     subswath_lowercase = subswath.lower(),
+                                                     polarization_lowercase = polarization.lower(),
+                                                     start_lowercase = start.lower())
+                #print ('template', template)
+                files = glob.glob(template, root_dir=basedir)
+                exts =[ os.path.splitext(file)[-1] for file in files]
+                if sorted(exts) == ['.tiff', '.xml']:
+                    #print ('pass')
+                    pass
+                else:
+                    bursts_missed.append(burst)
+        else:
+            # process all the defined scenes
+            bursts_missed = bursts
+        #print ('bursts_missed', len(bursts_missed))
+        # do not use internet connection, work offline when all the scenes and orbits already available
+        if len(bursts_missed) == 0:
+            return
+    
+        def download_burst(result, basedir, session):
+            properties = result.geojson()['properties']
+            #print (properties)
+            polarization = properties['polarization']
+            #print ('polarization', polarization)
+            subswath = properties['burst']['subswath']
+            #print ('subswath', subswath)
+            # fake image number unique per polarizations
+            # the real image number is sequential between all the polarizations
+            # this trick allows to detect scene files without manifest downloading
+            imageNumber = '00' + subswath[-1:]
+            #print ('imageNumber', imageNumber)
+            # define new scene name
+            scene = properties['url'].split('/')[3]
+             #print ('scene', scene)
+            # use fake start and stop times to follow the burst naming
+            start_time = properties['sceneName'].split('_')[3]
+            start_time_dt = datetime.strptime(start_time, '%Y%m%dT%H%M%S')
+            stop_time_dt = (start_time_dt  + timedelta(seconds=3))
+            stop_time = stop_time_dt.strftime('%Y%m%dT%H%M%S')
+            #print ('start_time, stop_time', start_time, stop_time)
+            scene_parts = scene.split('_')
+            #scene_parts[5] = startTime.replace('-','').replace(':','')[:len(scene_parts[5])]
+            scene_parts[5] = start_time
+            #scene_parts[6] = stopTime.replace('-','').replace(':','')[:len(scene_parts[6])]
+            scene_parts[6] = stop_time
+            scene = '_'.join(scene_parts)
+            #print ('scene', scene)
+            scene_dir = os.path.join(basedir, scene + '.SAFE')
+            # define burst name
+            burst = '-'.join(['s1a-iw1-slc-vv'] + scene_parts[5:-1] + [imageNumber]).lower()
+            # 's1a-iw1-slc-vv-20240314t130744-20240314t130747-052978-0669c6-005'
+            #print ('burst', burst)
+    
+            # create the directories if needed
+            tif_dir = os.path.join(scene_dir, 'measurement')
+            xml_dir = os.path.join(scene_dir, 'annotation')
+            # save annotation using the burst and scene names
+            xml_file = os.path.join(xml_dir, burst + '.xml')
+            #rint ('xml_file', xml_file)
+            tif_file = os.path.join(tif_dir, burst + '.tiff')
+            #print ('tif_file', tif_file)
+            for dirname in [scene_dir, tif_dir, xml_dir]:
+                os.makedirs(dirname, exist_ok=True)
+    
+            # download tif
+            # properties['bytes'] is not an accurate file size but it looks about 40 kB smaller
+            if os.path.exists(tif_file) and os.path.getsize(tif_file) >= properties['bytes']:
+                #print (f'pass {tif_file}')
+                pass
+            else:
+                #print ('YYY', os.path.getsize(tif_file), properties['bytes'])
+                # remove potentially incomplete file if needed
+                if os.path.exists(tif_file):
+                    os.remove(tif_file)
+                # download burst tif file and save using the burst and scene names
+                #result.download(os.path.dirname(tif_file), filename=os.path.basename(tif_file))
+                result.download(scene_dir, filename=os.path.basename(tif_file))
+                # check if we can open the downloaded file without errors
+                tmp_file = os.path.join(scene_dir, os.path.basename(tif_file))
+                with rio.open_rasterio(tmp_file) as raster:
+                    raster.load()
+                    os.rename(tmp_file, tif_file)
+        
+            # download xml
+            if os.path.exists(xml_file) and os.path.getsize(xml_file) > 0:
+                #print (f'pass {xml_file}')
+                pass
+            else:
+                # get the file name
+                basename = os.path.basename(properties['additionalUrls'][0])
+                #print ('basename', '=>', basename)
+                manifest_file = os.path.join(scene_dir, basename)
+                # remove potentially incomplete manifest file if needed
+                if os.path.exists(manifest_file):
+                    os.remove(manifest_file)
+                # download and process manifest file even when it exists but is not processed to annotation xml
+                asf_search.download_urls(urls=properties['additionalUrls'], path=scene_dir, session=session)
+                # parse xml
+                with open(manifest_file, 'r') as file:
+                    xml_content = file.read()
+                subswathidx = int(subswath[-1:]) - 1 
+                annotation = xmltodict.parse(xml_content)['burst']['metadata']['product'][subswathidx]['content']
+                #imageNumber = annotation['adsHeader']['imageNumber']
+                #print ('imageNumber', imageNumber)
+                # filter GCPs for only the selected burst properties['burst']['burstIndex']
+                # filter GCPs by time
+                geoloc = annotation['geolocationGrid']['geolocationGridPointList']
+                # check data consistency
+                assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
+                # to produce 2 lines instead of single use time offset
+                startTime = properties['startTime']
+                #print ('startTime', startTime)
+                stopTime  = properties['stopTime']
+                #print ('stopTime', stopTime)
+                startTime_dt_buffer = datetime.strptime(startTime, '%Y-%m-%dT%H:%M:%S.%fZ') + timedelta(seconds=-3)
+                startTime_buffer = startTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S.%f') + 'Z'
+                stopTime_dt_buffer = datetime.strptime(stopTime, '%Y-%m-%dT%H:%M:%S.%fZ') + timedelta(seconds=0)
+                stopTime_buffer = stopTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S.%f') + 'Z'
+                #print ('stopTime_buffer', stopTime_buffer)
+                gcps = []
+                for gcp in geoloc['geolocationGridPoint']:
+                    if gcp['azimuthTime'] >= startTime_buffer and gcp['azimuthTime'] <= stopTime_buffer:
+                        #print (gcp)
+                        gcps.append(gcp)
+                geoloc['@count'] = str(len(gcps))
+                geoloc['geolocationGridPoint'] = gcps
+                annotation['geolocationGrid']['geolocationGridPointList'] = geoloc
+                with open(xml_file, 'w') as file:
+                    file.write(xmltodict.unparse({'product': annotation}, pretty=True, indent='  '))
+                # remove processed manifest file
+                if os.path.exists(manifest_file):
+                    os.remove(manifest_file)
+    
+        # prepare authorized connection
+        if session is None:
+            session = self._get_asf_session()
+    
+        with tqdm(desc=f'ASF Downloading Bursts Catalog', total=1) as pbar:
+            results = asf_search.granule_search(bursts_missed)
+            pbar.update(1)
+    
+        # download bursts
+        with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 Bursts', total=len(bursts_missed))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_burst)\
+                                    (result, basedir, session) for result in results)
+    
+        # parse processed bursts and convert to dataframe
+        bursts_downloaded = pd.DataFrame(bursts_missed, columns=['burst'])
+        # return the results in a user-friendly dataframe
+        return bursts_downloaded
