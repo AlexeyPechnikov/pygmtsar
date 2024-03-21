@@ -124,7 +124,7 @@ class ASF(tqdm_joblib):
             session = self._get_asf_session()
 
         # download scenes
-        with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 SLC', total=len(scenes_missed))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 SLC:', total=len(scenes_missed))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_scene)\
                                     (scene, subswaths, polarization, basedir, session) for scene in scenes_missed)
 
@@ -185,7 +185,7 @@ class ASF(tqdm_joblib):
             url = self.resorb_url if product_type == 'RESORB' else self.poeorb_url
 
             # get orbits HTML list
-            with tqdm(desc=f'Downloading {product_type} catalog:', total=1) as pbar:
+            with tqdm(desc=f'ASF Downloading {product_type} Catalog:', total=1) as pbar:
                 response = session.get(url)
                 pbar.update(1)
             response.raise_for_status()
@@ -221,7 +221,7 @@ class ASF(tqdm_joblib):
                     orbits_found.append(orbit)
 
             # this routine can use multiple threads but it does not provide a progress indicator
-            with self.tqdm_joblib(tqdm(desc=f'ASF Downloading {product_type} Orbits', total=len(orbits_found))) as progress_bar:
+            with self.tqdm_joblib(tqdm(desc=f'ASF Downloading {product_type} Orbits:', total=len(orbits_found))) as progress_bar:
                 joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(asf_search.download_urls)(urls=[url], path=basedir, session=session) \
                                                for url in urls)
 
