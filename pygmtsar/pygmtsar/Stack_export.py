@@ -363,7 +363,7 @@ class Stack_export(Stack_ps):
         
         # determine if data has a stack dimension and what it is
         stackvar = data.dims[0] if data is not None and len(data.dims) == 3 else None
-        print ('stackvar', stackvar)
+        #print ('stackvar', stackvar)
         if stackvar is not None and np.issubdtype(data[stackvar].dtype, np.datetime64):
             stackvals = data[stackvar].dt.date.astype(str).values
         elif stackvar is not None:
