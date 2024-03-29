@@ -711,7 +711,7 @@ class IO(datagrid):
         counter = 0
         digits = len(str(stacksize))
         # Splitting all the pairs into chunks, each containing approximately queue pairs.
-        n_chunks = stacksize // queue if stacksize >= queue else 1
+        n_chunks = stacksize // queue if stacksize > queue else 1
         for chunk in np.array_split(range(stacksize), n_chunks):
             dss = [data.isel({stackvar: ind}) for ind in chunk]
             if stackvar == 'date':
