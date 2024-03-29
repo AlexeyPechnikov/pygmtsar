@@ -14,26 +14,27 @@ from .PRM import PRM
 class Stack_phasediff(Stack_topo):
 
     def compute_interferogram(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
-                              psize=None, coarsen=None, queue=None, timeout=None, debug=False):
+                              psize=None, coarsen=None, queue=None, timeout=None, skip_exist=False, debug=False):
         import xarray as xr
         import numpy as np
         import dask
         # cleanup unused resources before start
         import gc; gc.collect()
-
-        # delete stack files if exist
-        self.delete_stack(name)
-
+    
+        if not skip_exist:
+            # delete stack files if exist
+            self.delete_stack(name)
+    
         # define anti-aliasing filter for the specified output resolution
         if wavelength is None:
             wavelength = resolution
-
+    
         if queue is None:
             queue = self.netcdf_queue
         if queue is None:
             # process all the pairs in a single operation
             queue = len(pairs)
-
+    
         # decimate the 1:4 multilooking grids to specified resolution
         if resolution is not None:
             decimator = self.decimator(resolution=resolution, grid=coarsen, debug=debug)
@@ -44,8 +45,15 @@ class Stack_phasediff(Stack_topo):
         counter = 0
         digits = len(str(len(pairs)))
         # Splitting all the pairs into chunks, each containing approximately queue pairs.
-        n_chunks = len(pairs) // queue if len(pairs) >= queue else 1
-        for chunk in np.array_split(pairs, n_chunks):
+        #n_chunks = len(pairs) // queue if len(pairs) >= queue else 1
+        if len(pairs) > queue:
+            chunks = [pairs[i:i + queue] for i in range(0, len(pairs), queue)]
+            n_chunks = len(chunks)
+        else:
+            chunks = [pairs]
+            n_chunks = 1
+        #for chunk in np.array_split(pairs, n_chunks):
+        for chunk in chunks:
             #print (f'Interferogram pairs: {len(pairs)}')
             chunk, dates = self.get_pairs(chunk, dates=True)
             # load Sentinel-1 data
@@ -88,24 +96,24 @@ class Stack_phasediff(Stack_topo):
             else:
                 out = xr.merge([intf_look, corr_look])
             del corr_look, intf_look
-            self.save_stack(out, name, timeout=timeout,
-                            caption=f'Saving Interferogram {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {len(pairs)}')
+            caption = f'Saving Interferogram {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {len(pairs)}'
+            self.save_stack(out, name, caption=caption, queue=queue, timeout=timeout)
             counter += len(chunk)
             del out, chunk, dates
 
     # single-look interferogram processing has a limited set of arguments
     # resolution and coarsen are not applicable here
     def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, psize=None,
-                                         queue=16, timeout=None, debug=False):
+                                         queue=16, timeout=None, skip_exist=False, debug=False):
         self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength,
-                                   psize=psize, queue=queue, timeout=timeout, debug=debug)
+                                   psize=psize, queue=queue, timeout=timeout, skip_exist=skip_exist, debug=debug)
 
     # Goldstein filter requires square grid cells means 1:4 range multilooking.
     # For multilooking interferogram we can use square grid always using coarsen = (1,4)
-    def compute_interferogram_multilook(self, pairs, name, resolution=None, weight=None, phase=None,
-                                        wavelength=None, psize=None, coarsen=(1,4), queue=16, timeout=None, debug=False):
+    def compute_interferogram_multilook(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
+                                        psize=None, coarsen=(1,4), queue=16, timeout=None, skip_exist=False, debug=False):
         self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase, wavelength=wavelength,
-                                   psize=psize, coarsen=coarsen, queue=queue, timeout=timeout, debug=debug)
+                                   psize=psize, coarsen=coarsen, queue=queue, timeout=timeout, skip_exist=skip_exist, debug=debug)
 
     @staticmethod
     def interferogram(phase, debug=False):
