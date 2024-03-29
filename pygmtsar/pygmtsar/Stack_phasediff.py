@@ -14,7 +14,8 @@ from .PRM import PRM
 class Stack_phasediff(Stack_topo):
 
     def compute_interferogram(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
-                              psize=None, coarsen=None, queue=None, timeout=None, skip_exist=False, debug=False):
+                              psize=None, coarsen=None, queue=None, timeout=None,
+                              skip_exist=False, joblib_backend=None, debug=False):
         import xarray as xr
         import numpy as np
         import dask
@@ -63,7 +64,7 @@ class Stack_phasediff(Stack_topo):
             amp_look = self.multilooking(intensity, wavelength=wavelength, coarsen=coarsen, debug=debug)
             del intensity
             # calculate phase difference with topography correction
-            phasediff = self.phasediff(chunk, data, phase=phase, debug=debug)
+            phasediff = self.phasediff(chunk, data, phase=phase, joblib_backend=joblib_backend, debug=debug)
             del data
             # Gaussian filtering 200m cut-off wavelength with optional range multilooking
             phasediff_look = self.multilooking(phasediff, weight=weight,
@@ -104,16 +105,20 @@ class Stack_phasediff(Stack_topo):
     # single-look interferogram processing has a limited set of arguments
     # resolution and coarsen are not applicable here
     def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, psize=None,
-                                         queue=16, timeout=None, skip_exist=False, debug=False):
+                                         queue=16, timeout=None,
+                                         skip_exist=False, joblib_backend=None, debug=False):
         self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength,
-                                   psize=psize, queue=queue, timeout=timeout, skip_exist=skip_exist, debug=debug)
+                                   psize=psize, queue=queue, timeout=timeout,
+                                   skip_exist=skip_exist, joblib_backend=joblib_backend, debug=debug)
 
     # Goldstein filter requires square grid cells means 1:4 range multilooking.
     # For multilooking interferogram we can use square grid always using coarsen = (1,4)
     def compute_interferogram_multilook(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
-                                        psize=None, coarsen=(1,4), queue=16, timeout=None, skip_exist=False, debug=False):
+                                        psize=None, coarsen=(1,4), queue=16, timeout=None,
+                                        skip_exist=False, joblib_backend=None, debug=False):
         self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase, wavelength=wavelength,
-                                   psize=psize, coarsen=coarsen, queue=queue, timeout=timeout, skip_exist=skip_exist, debug=debug)
+                                   psize=psize, coarsen=coarsen, queue=queue, timeout=timeout,
+                                   skip_exist=skip_exist, joblib_backend=joblib_backend, debug=debug)
 
     @staticmethod
     def interferogram(phase, debug=False):
@@ -424,7 +429,7 @@ class Stack_phasediff(Stack_topo):
 # 
 #         return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).rename('phasediff')
 
-    def phasediff(self, pairs, data='auto', topo='auto', phase=None, method='nearest', debug=False):
+    def phasediff(self, pairs, data='auto', topo='auto', phase=None, method='nearest', joblib_backend=None, debug=False):
         import pandas as pd
         import dask
         import dask.dataframe
@@ -432,6 +437,8 @@ class Stack_phasediff(Stack_topo):
         import numpy as np
         #from tqdm.auto import tqdm
         import joblib
+        from joblib.externals import loky
+        loky.get_reusable_executor(kill_workers=True).shutdown(wait=True)
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
@@ -440,6 +447,9 @@ class Stack_phasediff(Stack_topo):
 
         if debug:
             print ('DEBUG: phasediff')
+        
+        if joblib_backend is None and debug:
+            joblib_backend = 'sequential'
 
         # convert pairs (list, array, dataframe) to 2D numpy array
         pairs, dates = self.get_pairs(pairs, dates=True)
@@ -649,7 +659,7 @@ class Stack_phasediff(Stack_topo):
             return {(date1, date2): (prm1, prm2)}
 
         #with self.tqdm_joblib(tqdm(desc=f'Pre-Processing PRM', total=len(pairs))) as progress_bar:
-        prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair) for pair in pairs)
+        prms = joblib.Parallel(n_jobs=-1, backend=joblib_backend)(joblib.delayed(prepare_prms)(pair) for pair in pairs)
         # convert the list of dicts to a single dict
         prms = {k: v for d in prms for k, v in d.items()}
 
