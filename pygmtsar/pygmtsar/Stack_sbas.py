@@ -335,14 +335,14 @@ class Stack_sbas(Stack_detrend):
 
         return df
 
-    def sbas_pairs(self, days=100, meters=None, invert=False):
+    def sbas_pairs(self, days=100, meters=None, invert=False, dates=None):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
-
+    
         This function creates a list of baseline pairs for Sentinel-1 data, considering the given
         temporal and spatial constraints. The list includes pairs that meet the specified days and
         meters criteria.
-
+    
         Parameters
         ----------
         days : int, optional
@@ -351,41 +351,42 @@ class Stack_sbas(Stack_detrend):
             Maximum spatial separation between image pairs in meters (default is None).
         invert : bool, optional
             If True, invert the order of reference and repeat images (default is False).
-
+    
         Returns
         -------
         pandas.DataFrame
             A DataFrame containing the sorted list of baseline pairs with reference and repeat dates,
             timelines, and baselines.
-
+    
         """
         import numpy as np
         import pandas as pd
-
-        def baseline_table():
+    
+        def baseline_table(dates):
             """
             Generates a baseline table for Sentinel-1 data, containing dates, times, and baseline components.
-
+    
             This function creates a baseline table for Sentinel-1 data by processing the PRM files, which
             contain metadata for each image. The table includes dates, times, and parallel and perpendicular
             baseline components for each image.
             """
             import pandas as pd
             import numpy as np
-
-            datetimes = self.df.datetime
-
+    
             prm_ref = self.PRM()
             data = []
-            for (date, dt) in datetimes.items():
+            for date in dates:
                 prm_rep = self.PRM(date)
                 BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
                 data.append({'date':date, 'BPL':BPL, 'BPR':BPR})
             df = pd.DataFrame(data).set_index('date')
             df.index = pd.DatetimeIndex(df.index)
             return df
-
-        tbl = baseline_table()
+    
+        if dates is None:
+            dates = self.df.index
+    
+        tbl = baseline_table(dates)
         data = []
         for line1 in tbl.itertuples():
             counter = 0
@@ -395,7 +396,7 @@ class Stack_sbas(Stack_detrend):
                     continue
                 if meters is not None and not (abs(line1.BPR - line2.BPR)< meters + 1):
                     continue
-
+    
                 counter += 1
                 if not invert:
                     data.append({'ref':line1.Index, 'rep': line2.Index,
@@ -405,7 +406,7 @@ class Stack_sbas(Stack_detrend):
                     data.append({'ref':line2.Index, 'rep': line1.Index,
                                  'ref_baseline': np.round(line2.BPR, 2),
                                  'rep_baseline': np.round(line1.BPR, 2)})
-
+    
         df = pd.DataFrame(data).sort_values(['ref', 'rep'])
         return df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
                          baseline=df.rep_baseline - df.ref_baseline,
