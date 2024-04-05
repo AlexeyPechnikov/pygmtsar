@@ -12,8 +12,8 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_ps(Stack_stl):
 
-    def get_ps(self):
-        return self.open_cube('ps')
+    def get_ps(self, name='ps'):
+        return self.open_cube(name)
 
     #from pygmtsar import tqdm_dask
     #Stack.ps = ps    
@@ -25,7 +25,7 @@ class Stack_ps(Stack_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def compute_ps(self, dates=None, data='auto'):
+    def compute_ps(self, dates=None, data='auto', name='ps', interactive=False):
         import xarray as xr
         import numpy as np
         import dask
@@ -49,17 +49,19 @@ class Stack_ps(Stack_stl):
         del data, norm
         ds = xr.merge([stats[0].rename('average'), stats[1].rename('deviation'), mean[0].rename('stack_average')])
         del stats, mean
-        self.save_cube(ds, 'ps', 'Compute Stability Measures')
+        if interactive:
+            return ds
+        self.save_cube(ds, name, 'Compute Stability Measures')
         del ds
 
-    def psfunction(self, ps='auto'):
+    def psfunction(self, ps='auto', name='ps'):
         import numpy as np
         if isinstance(ps, str) and ps == 'auto':
-            ps = self.get_ps()
+            ps = self.get_ps(name)
         psfunction = (ps.average/(2*ps.deviation))
         return psfunction.where(np.isfinite(psfunction)).rename('psf')
 
-    def plot_psfunction(self, psfunction='auto', cmap='gray', quantile=None, vmin=None, vmax=None, **kwargs):
+    def plot_psfunction(self, psfunction='auto', caption='PS Function', cmap='gray', quantile=None, vmin=None, vmax=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -76,7 +78,7 @@ class Stack_ps(Stack_stl):
         psfunction.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
-        plt.title('PS Function')
+        plt.title(caption)
 
 #     def get_adi_threshold(self, threshold):
 #         """
