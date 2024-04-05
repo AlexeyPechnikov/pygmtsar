@@ -748,23 +748,24 @@ class Stack_sbas(Stack_detrend):
 
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
-                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True, tolerance=np.pi/2):
+                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True,
+                                   los=False, tolerance=np.pi/2, xlabel_rotation=45):
         """
         Performs 1D unwrapping, linear regression, and STL on a given set of phase values.
-
+    
         The linear regression model is represented as:
             y = β0 + β1 * x
-
+    
         Where:
             y: Dependent variable (the outcome being predicted).
             x: Independent variable (the predictor).
             β0: Intercept (the value of y when x is 0).
             β1: Slope or "velocity" (the rate of change in y for a one-unit change in x).
-
+    
         In this model, 'β' (beta) symbols followed by indices (0, 1, 2, ...) represent 
         the coefficients in the regression equation. β0 is always the intercept, and 
         β1, β2, etc., represent the coefficients of the predictor variables.
-
+    
         """
         import numpy as np
         import xarray as xr
@@ -773,23 +774,30 @@ class Stack_sbas(Stack_detrend):
         import matplotlib
         import matplotlib.pyplot as plt
         from matplotlib.cm import ScalarMappable
-
+    
         if not displacement and stl:
             print ("NOTE: Displacement is automatically set to 'True' because it is required for 'stl=True'.")
         assert isinstance(phase, xr.DataArray) and phase.dims == ('pair',), \
             'ERROR: Argument phase should be 1D Xarray with "pair" dimension'
         plt.figure()
         colors = matplotlib.cm.get_cmap(cmap)
-
+    
         df = phase.to_dataframe()
         df['corr'] = corr.values if corr is not None else 1
         pairs, dates = self.get_pairs(phase, dates=True)
         dates = pd.DatetimeIndex(dates)
         matrix = self.lstsq_matrix(pairs)
-
+    
         if unwrap:
             df['phase'] = self.unwrap_pairs(phase.values, df['corr'].values, matrix, tolerance)
-
+        
+        unit = 'rad'
+        name = 'Phase'
+        if los:
+            df['phase'] = self.los_displacement_mm(df['phase'])
+            unit = 'mm'
+            name = 'Displacement'
+    
         if displacement or stl:
             solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, matrix)
             #print ('solution', solution)
@@ -799,7 +807,7 @@ class Stack_sbas(Stack_detrend):
             #print (slope, intercept, r_value, p_value, std_err)
             velocity = np.round(slope*365.25, 2)
             values = intercept + slope*days
-
+    
         if stl:
             #assert displacement, 'ERROR: Argument value stl=True requires argument displacement=True'
             dt, dt_periodic = self.stl_periodic(dates, stl_freq)
@@ -815,7 +823,7 @@ class Stack_sbas(Stack_detrend):
             #velocity = (trend[-1] - trend[0])/years
             # for integral trend
             #velocity = np.round(years*np.nansum(trend - np.nanmin(trend))/trend.size, 2)
-
+    
         vmin = df['phase'].min()
         vmax = df['phase'].max()
         y_min = y_max = 0
@@ -859,34 +867,45 @@ class Stack_sbas(Stack_detrend):
             #print ('weighted PI-scaled rmse', np.round(rmse / np.pi, 2))
             plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label='LSQ')
             plt.plot(dates, values, color='blue', linestyle='-', linewidth=2,
-                     label=f'LSQ β1 {velocity:0.1f} and β0={intercept:0.1f} [rad/year], P-value={p_value:0.2f}')
-
+                     label=f'LSQ β1 {velocity:0.1f} and β0={intercept:0.1f} [{unit}/year], P-value={p_value:0.2f}')
+    
         if stl:
             plt.plot(dt_periodic.date, trend, color='blue', linestyle='--', linewidth=2,
-                     label=f'STL β1 {stl_velocity:0.1f} and β0={stl_intercept:0.1f} [rad/year]')
+                     label=f'STL β1 {stl_velocity:0.1f} and β0={stl_intercept:0.1f} [{unit}/year]')
             plt.plot(dt_periodic.date, seasonal, color='green', linestyle='--', linewidth=1, label='STL Seasonal')
             plt.plot(dt_periodic.date, resid, color='red', linestyle='--', linewidth=1, label='STL Residual')
-
+    
         plt.grid(axis='y')
-        y_min = np.floor(y_min / np.pi) * np.pi
-        y_max = np.ceil(y_max / np.pi) * np.pi
-        y_ticks = np.arange(y_min, y_max + np.pi, np.pi)
-        plt.yticks(y_ticks, [f'{y:.0f}π' if y != 0 else '0' for y in y_ticks / np.pi])
-
+        if unit == 'rad':
+            y_min = np.floor(y_min / np.pi) * np.pi
+            y_max = np.ceil(y_max / np.pi) * np.pi
+            y_ticks = np.arange(y_min, y_max + np.pi, np.pi)
+            plt.yticks(y_ticks, [f'{y:.0f}π' if y != 0 else '0' for y in y_ticks / np.pi])
+    
         if corr is not None:
             sm = ScalarMappable(cmap=colors, norm=plt.Normalize(vmin=0, vmax=1))
             sm.set_array([])
             cbar = plt.colorbar(sm, ax=plt.gca(), orientation='vertical')
             cbar.set_label('Correlation')
-
+    
+        plt.xticks(rotation=xlabel_rotation)
         plt.xlabel('Timeline')
-        plt.ylabel('Phase, [rad]')
+        plt.ylabel(f'{name}, [{unit}]')
         plt.title('Displacement' \
-                  + (f' RMSE={rmse:0.3f} [rad]' if displacement or stl else '') \
+                  + (f' RMSE={rmse:0.3f} [{unit}]' if displacement or stl else '') \
                   + (f'\n{caption}' if caption is not None else ''))
         plt.xlim([dates[0], dates[-1]])
         if displacement or stl:
             plt.legend()
+
+    def plot_baseline_displacement_los_mm(self, phase, corr=None, caption=None, cmap='turbo',
+                                   displacement=True, unwrap=True,
+                                   stl=False, stl_freq='W', stl_periods=52, stl_robust=True,
+                                   tolerance=np.pi/2, xlabel_rotation=45):
+        self.plot_baseline_displacement(phase=phase, corr=corr, caption=caption, cmap=cmap,
+                                   displacement=displacement, unwrap=unwrap,
+                                   stl=stl, stl_freq=stl_freq, stl_periods=stl_periods, stl_robust=stl_robust,
+                                   los=True, tolerance=tolerance, xlabel_rotation=xlabel_rotation)
 
     def rmse(self, data, solution, weight=None):
         """
