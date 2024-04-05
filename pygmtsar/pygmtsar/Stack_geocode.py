@@ -59,7 +59,7 @@ class Stack_geocode(Stack_sbas):
     def geocode(self, geometry, z_offset=None):
         """
         Inverse geocode input geodataframe with 2D or 3D points. 
-        
+
         Examples:
         ---------
         sbas.geocode(AOI.assign(col=0))
@@ -68,26 +68,29 @@ class Stack_geocode(Stack_sbas):
         sbas.geocode(AOI.geometry.item())
         sbas.geocode([AOI.geometry.item()])
         sbas.geocode(geometry)
+        
+        sbas.geocode(AOI).plot()
+        sbas.geocode(AOI.boundary.buffer(0.0001)).plot(color='g', alpha=0.5, ax=plt.gca())
+        sbas.geocode(AOI.boundary).plot(color='r', ax=plt.gca())
+        sbas.geocode(POI).plot(color='r', ax=plt.gca())
         """
         import numpy as np
         import geopandas as gpd
         import xarray as xr
-        from shapely.geometry import LineString, Point
-
+        from shapely.geometry import Point, LineString, Polygon
+    
         if isinstance(geometry, (gpd.GeoDataFrame, gpd.GeoSeries)):
             geometries = geometry.geometry
         elif isinstance(geometry, (list, tuple, np.ndarray)):
             geometries = geometry
         else:
             geometries = [geometry]
-
+    
         dem = self.get_dem()
         prm = self.PRM()
     
-        geoms = []
-        for geom in geometries:
-            #print (geom)
-            coords = np.asarray(geom.coords[:])
+        def coords_transform(coords):
+            # uses external variables dem, prm
             #print (len(coords))
             ele = dem.interp(lat=xr.DataArray(coords[:,1]),
                        lon=xr.DataArray(coords[:,0]), method='linear').compute()
@@ -95,19 +98,38 @@ class Stack_geocode(Stack_sbas):
                 z = coords[:,2] if coords.shape[1]==3 else 0
             else:
                 z = z_offset
-            points_ll = np.column_stack([coords[:,0], coords[:,1], ele.values + z])
-            #print (points_ll)
-            points_ra = prm.SAT_llt2rat(points_ll)
-            points_ra = points_ra[:,:2] if len(points_ll)>1 else [points_ra[:2]]
-            #print (points_ra)
+            coords_ll = np.column_stack([coords[:,0], coords[:,1], ele.values + z])
+            #print (coords_ll)
+            coords_ra = prm.SAT_llt2rat(coords_ll)
+            coords_ra = coords_ra[:,:2] if len(coords_ll)>1 else [coords_ra[:2]]
+            #print (coords_ra)
+            return coords_ra
+    
+        geoms = []
+        for geom in geometries:
+            #print (geom)
             geom_type = geom.type
             if geom_type == 'LineString':
-                geom = LineString(points_ra)
+                coords = np.asarray(geom.coords[:])
+                geom = LineString(coords_transform(coords))
             elif geom_type == 'Point':
-                geom = Point(points_ra)
+                coords = np.asarray(geom.coords[:])
+                geom = Point(coords_transform(coords))
+            elif geom_type == 'Polygon':
+                exterior_coords = np.asarray(geom.exterior.coords)
+                interiors_coords = [np.asarray(interior.coords) for interior in geom.interiors]
+                geom = Polygon(coords_transform(exterior_coords), [coords_transform(icoords) for icoords in interiors_coords])
+    #         elif geom_type == 'MultiPolygon':
+    #             polygons = []
+    #             for part in geom:
+    #                 ...
+    #                 polygons.append(Polygon(exterior, interiors))
+    #             geom = MultiPolygon(polygons)
+            else:
+                raise Exception(f'ERROR:: unsupported geometry type {geom_type}. Expected Point, LineString, Polygon.')
             #print (geom)
             geoms.append(geom)
-
+    
         # preserve original dataframe columns if exists
         if isinstance(geometry, gpd.GeoDataFrame):
             return gpd.GeoDataFrame(geometry, geometry=geoms, crs=3857)
