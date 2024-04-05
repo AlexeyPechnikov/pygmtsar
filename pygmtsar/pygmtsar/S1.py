@@ -103,7 +103,7 @@ class S1(tqdm_joblib):
         # TODO: unzip files
         def download_orbit(basedir, url):
             filename = os.path.join(basedir, os.path.basename(os.path.splitext(url)[0]))
-            print ('url', url, 'filename', filename)
+            #print ('url', url, 'filename', filename)
             with requests.get(url, timeout=S1.http_timeout) as response:
                 response.raise_for_status()
                 with open(filename, 'wb') as f:
