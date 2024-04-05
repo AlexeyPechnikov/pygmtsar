@@ -152,7 +152,7 @@ class Stack_landmask(Stack_multilooking):
 
         self.landmask_filename = landmask_filename
 
-    def plot_landmask(self, landmask='auto', caption='Land Mask', cmap='binary', aspect=None, **kwargs):
+    def plot_landmask(self, landmask='auto', caption='Land Mask', cmap='binary_r', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
 
         if isinstance(landmask, str) and landmask == 'auto':
