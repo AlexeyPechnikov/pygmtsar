@@ -750,7 +750,8 @@ class Stack_sbas(Stack_detrend):
     def plot_baseline_displacement(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
                                    stl=False, stl_freq='W', stl_periods=52, stl_robust=True,
-                                   los=False, tolerance=np.pi/2, xlabel_rotation=45):
+                                   los=False, tolerance=np.pi/2, xlabel_rotation=45,
+                                   legend=True, legend_alpha=None):
         """
         Performs 1D unwrapping, linear regression, and STL on a given set of phase values.
     
@@ -898,17 +899,19 @@ class Stack_sbas(Stack_detrend):
                   + (f' RMSE={rmse:0.3f} [{unit}]' if displacement or stl else '') \
                   + (f'\n{caption}' if caption is not None else ''))
         plt.xlim([dates[0], dates[-1]])
-        if displacement or stl:
-            plt.legend()
+        if (displacement or stl) and legend:
+            plt.legend(framealpha=legend_alpha)
 
     def plot_baseline_displacement_los_mm(self, phase, corr=None, caption=None, cmap='turbo',
                                    displacement=True, unwrap=True,
                                    stl=False, stl_freq='W', stl_periods=52, stl_robust=True,
-                                   tolerance=np.pi/2, xlabel_rotation=45):
+                                   tolerance=np.pi/2, xlabel_rotation=45,
+                                   legend=True, legend_alpha=None):
         self.plot_baseline_displacement(phase=phase, corr=corr, caption=caption, cmap=cmap,
                                    displacement=displacement, unwrap=unwrap,
                                    stl=stl, stl_freq=stl_freq, stl_periods=stl_periods, stl_robust=stl_robust,
-                                   los=True, tolerance=tolerance, xlabel_rotation=xlabel_rotation)
+                                   los=True, tolerance=tolerance, xlabel_rotation=xlabel_rotation,
+                                   legend=legend, legend_alpha=legend_alpha)
 
     def rmse(self, data, solution, weight=None):
         """
