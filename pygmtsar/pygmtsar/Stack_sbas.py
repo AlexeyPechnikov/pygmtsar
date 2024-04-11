@@ -63,8 +63,8 @@ class Stack_sbas(Stack_detrend):
         w[nanmask] = 0
         # check if x has enough valid values
         #print (f'{x.size}, {np.sum(nanmask)}, {matrix.shape[1]}')
-        if x.size - np.sum(nanmask) < matrix.shape[1]:
-            return np.nan * np.zeros(matrix.shape[1])
+        #if x.size - np.sum(nanmask) < matrix.shape[1]:
+        #    return np.nan * np.zeros(matrix.shape[1])
 
         try:
             if np.all(w == 1):
