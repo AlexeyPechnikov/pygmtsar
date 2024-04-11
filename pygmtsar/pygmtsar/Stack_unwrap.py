@@ -361,15 +361,19 @@ class Stack_unwrap(Stack_unwrap_snaphu):
                 #print ()
                 #break
     
-        # validity mask
-        mask = [idx in pairs_ok for idx in range(buffer.size)]
-        #mask = np.isin(np.arange(buffer.size), pairs_ok)
-        # output is the same size as input
-        #out = np.nan * np.zeros(data.size)
-        out = np.full(data.size, np.nan, dtype=np.float32)
-        out[~nanmask] = np.where(mask, buffer, np.nan)
-        #out[~nanmask] = np.where(mask[~nanmask], buffer[~nanmask], np.nan)
-        return out
+        # return unwrapped and original values
+        return buffer
+        
+#         # return unwrapped values only
+#         # validity mask
+#         mask = [idx in pairs_ok for idx in range(buffer.size)]
+#         #mask = np.isin(np.arange(buffer.size), pairs_ok)
+#         # output is the same size as input
+#         #out = np.nan * np.zeros(data.size)
+#         out = np.full(data.size, np.nan, dtype=np.float32)
+#         out[~nanmask] = np.where(mask, buffer, np.nan)
+#         #out[~nanmask] = np.where(mask[~nanmask], buffer[~nanmask], np.nan)
+#         return out
 
     def unwrap1d(self, data, weight=None, tolerance=np.pi/2):
         import xarray as xr
