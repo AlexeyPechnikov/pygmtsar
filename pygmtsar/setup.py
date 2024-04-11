@@ -46,7 +46,7 @@ setup(
                       'pandas>=2.2',
                       'geopandas',
                       'distributed>=2024.1.0',
-                      'dask[complete]<=2024.1.1',
+                      'dask[complete]>=2024.4.1',
                       'dask_image',
                       'joblib',
                       'tqdm',
