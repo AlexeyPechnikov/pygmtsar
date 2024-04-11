@@ -866,13 +866,15 @@ class Stack_sbas(Stack_detrend):
             #rmse = np.sqrt(np.sum(errors**2) / errors.size)
             rmse = np.sqrt(np.sum(weights * (errors**2)) / np.sum(weights) / errors.size)
             #print ('weighted PI-scaled rmse', np.round(rmse / np.pi, 2))
-            plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label='LSQ')
+            lsq_mean = np.nanmean(solution)
+            plt.plot(dates, solution, color='black', linestyle='--', linewidth=2, label=f'LSQ mean={lsq_mean:0.2f} [{unit}]')
+            plt.axhline(y=lsq_mean, color='black', linestyle=':')
             plt.plot(dates, values, color='blue', linestyle='-', linewidth=2,
-                     label=f'LSQ β1 {velocity:0.1f} and β0={intercept:0.1f} [{unit}/year], P-value={p_value:0.2f}')
+                     label=f'LSQ β1={velocity:0.1f} and β0={intercept:0.1f} [{unit}/year], P-value={p_value:0.2f}')
     
         if stl:
             plt.plot(dt_periodic.date, trend, color='blue', linestyle='--', linewidth=2,
-                     label=f'STL β1 {stl_velocity:0.1f} and β0={stl_intercept:0.1f} [{unit}/year]')
+                     label=f'STL β1={stl_velocity:0.1f} and β0={stl_intercept:0.1f} [{unit}/year]')
             plt.plot(dt_periodic.date, seasonal, color='green', linestyle='--', linewidth=1, label='STL Seasonal')
             plt.plot(dt_periodic.date, resid, color='red', linestyle='--', linewidth=1, label='STL Residual')
     
