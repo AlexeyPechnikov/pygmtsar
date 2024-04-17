@@ -7,7 +7,7 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-__version__ = '2024.3.15.post4'
+__version__ = '2024.3.15.post8'
 
 # unified progress indicators
 from .tqdm_joblib import tqdm_joblib
@@ -24,7 +24,6 @@ from .NCubeVTK import NCubeVTK
 # ASF, AWS, ESA, GMT downloading functions
 from .ASF import ASF
 from .AWS import AWS
-from .ESA import ESA
 from .GMT import GMT
 # tiles downloading
 from .Tiles import Tiles
