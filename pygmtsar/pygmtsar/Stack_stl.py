@@ -12,6 +12,12 @@ from .tqdm_dask import tqdm_dask
 
 class Stack_stl(Stack_tidal):
 
+    def velocity(self, data):
+        years = ((data.date.max() - data.date.min()).dt.days/365.25).item()
+        #print ('years', np.round(years, 3))
+        velocity = data.mean('date')/years
+        return velocity
+
     def trend(self, data, deg=1):
         import xarray as xr
 
