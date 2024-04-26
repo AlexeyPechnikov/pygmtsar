@@ -17,7 +17,7 @@ class ASF(tqdm_joblib):
     template_url = 'https://datapool.asf.alaska.edu/SLC/S{satellite}/{scene}.zip'
     template_safe = '*.SAFE/*/{mission}-iw{subswath}-slc-{polarization}-*'
     # check for downloaded scene files
-    template_scene = 'S1?_IW_SLC__1S??_{start}_*.SAFE/*/s1?-{subswath_lowercase}-slc-{polarization_lowercase}-{start_lowercase}-*'
+    template_scene = 'S1?_IW_SLC__1S??_{start}_*.SAFE/*/s1?-iw{subswath_lowercase}-slc-{polarization_lowercase}-{start_lowercase}-*'
     # URL of the HTML page
     # see https://asf.alaska.edu/data-sets/sar-data-sets/sentinel-1/sentinel-1-data-and-imagery/
     # https://s1qc.asf.alaska.edu
@@ -56,6 +56,7 @@ class ASF(tqdm_joblib):
         from tqdm.auto import tqdm
         import os
         import re
+        import glob
         from datetime import datetime, timedelta
         import warnings
         # supress asf_search 'UserWarning: File already exists, skipping download'
@@ -70,8 +71,28 @@ class ASF(tqdm_joblib):
 
         # skip existing scenes
         if skip_exist:
-            # check scenes folders 
-            scenes_missed = np.unique([scene for scene in scenes if f'{scene}.SAFE' not in files])
+            # collect all the existing files once
+            files = glob.glob('**', root_dir=basedir, recursive=True)
+            #print ('files', len(files))
+            # check scenes folders only
+            #scenes_missed = np.unique([scene for scene in scenes if f'{scene}.SAFE' not in files])
+            scenes_missed = []
+            for scene in scenes:
+                scene_path = '/'.join([scene + '.SAFE'] + self.template_scene.split('/')[1:])
+                #print ('scene_path', scene_path)
+                for subswath in str(subswaths):
+                    pattern = scene_path.format(
+                                         subswath_lowercase = subswath.lower(),
+                                         polarization_lowercase = polarization.lower(),
+                                         start_lowercase = '*')
+                    #print ('pattern', pattern)
+                    matching = [filename for filename in files if fnmatch.fnmatch(filename, pattern)]
+                    exts = [os.path.splitext(fname)[1] for fname in matching]
+                    if '.tiff' in exts and '.xml'in exts:
+                        pass
+                    else:
+                        scenes_missed.append(scene)
+    
         else:
             # process all the defined scenes
             scenes_missed = scenes
@@ -117,9 +138,23 @@ class ASF(tqdm_joblib):
                             pass
                         else:
                             #print (f'download {fullname}')
-                            #with open(fullname, 'wb') as file:
-                            #    file.write(remotezip.read(filename))
-                            remotezip.extract(filename, basedir)
+                            # create the directory if needed
+                            try:
+                                os.makedirs(os.path.dirname(fullname), exist_ok=True)
+                                if os.path.exists(fullname + '.tmp'):
+                                    os.remove(fullname + '.tmp')
+                                with open(fullname + '.tmp', 'wb') as file:
+                                    file.write(remotezip.read(filename))
+                                assert os.path.getsize(fullname + '.tmp') == filesize, \
+                                    f'ERROR: Downloaded incomplete scene content'
+                                os.rename(fullname + '.tmp', fullname)
+                            except Exception as e:
+                                print(e)
+                                raise
+                            finally:
+                                if os.path.exists(fullname + '.tmp'):
+                                    os.remove(fullname + '.tmp')
+                            #remotezip.extract(filename, basedir)
 
         # prepare authorized connection
         if session is None:
