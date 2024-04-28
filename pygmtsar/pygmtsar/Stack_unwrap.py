@@ -220,7 +220,12 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         assert weight.ndim == 1 or weight.ndim == 0
         assert matrix.ndim == 2
         assert data.shape[0] == matrix.shape[0]
-    
+        
+        # for now, xr.apply_ufunc always call specified function with float64 arguments
+        # this error should be resolved controlling the output datatype
+        #assert data.dtype   == np.float32, f'ERROR: data argument should be float32 array but it is {data.dtype}'
+        #assert weight.dtype == np.float32, f'ERROR: weight argument should be float32 array but it is {weight.dtype}'
+
         if np.all(np.isnan(data)) or (weight.size != 0 and np.all(np.isnan(weight))):
             return np.full(data.size, np.nan, dtype=np.float32)
     
@@ -232,6 +237,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
             return np.full(data.size, np.nan, dtype=np.float32)
     
         # the buffer variable will be modified
+        # buffer datatype is the same as input data datatype
         buffer = data[~nanmask].copy()
         if weight.size != 0:
             weight = weight[~nanmask]
@@ -363,7 +369,8 @@ class Stack_unwrap(Stack_unwrap_snaphu):
     
         # return original values when unwrapping is not possible at all
         if len(pairs_ok) == 0:
-            return buffer
+            # buffer datatype is the same as input data datatype
+            return buffer.astype(np.float32)
         # return unwrapped values
         # validity mask
         mask = [idx in pairs_ok for idx in range(buffer.size)]
