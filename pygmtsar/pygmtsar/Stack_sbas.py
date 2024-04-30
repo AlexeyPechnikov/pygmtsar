@@ -407,6 +407,7 @@ class Stack_sbas(Stack_detrend):
                                  'ref_baseline': np.round(line2.BPR, 2),
                                  'rep_baseline': np.round(line1.BPR, 2)})
     
+        assert len(data) > 0, 'ERROR: No baseline pairs exist for the specified parameters'
         df = pd.DataFrame(data).sort_values(['ref', 'rep'])
         return df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
                          baseline=df.rep_baseline - df.ref_baseline,
