@@ -942,38 +942,43 @@ class Stack_phasediff(Stack_topo):
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
 
-    def plot_correlation_stack(self, corr_stack, threshold='auto', caption='Correlation Stack', bins=100, cmap='auto'):
+    def plot_correlation_stack(self, corr_stack, threshold=None, caption='Correlation Stack', bins=100, cmap='auto'):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
-
+    
         if isinstance(cmap, str) and cmap == 'auto':
             cmap = mcolors.LinearSegmentedColormap.from_list(
                 name='custom_gray', 
                 colors=['black', 'whitesmoke']
             )
-
+    
         data = corr_stack.values.flatten()
-        median_value = np.nanmedian(data)
-        if isinstance(threshold, str) and threshold == 'auto':
-            threshold = median_value
-
+    
         fig, axs = plt.subplots(1, 2)
-
+    
         ax2 = axs[0].twinx()
         axs[0].hist(data, range=(0, 1), bins=bins, density=False, cumulative=False, color='gray', edgecolor='black', alpha=0.5)
         ax2.hist(data, range=(0, 1), bins=bins, density=False, cumulative=True, color='orange', edgecolor='black', alpha=0.25)
-
-        axs[0].axvline(median_value, color='red', linestyle='dashed')
+    
+        mean_value = np.nanmean(data)
+        axs[0].axvline(mean_value, color='b', label=f'Average {mean_value:0.3f}')
+        median_value = np.nanmedian(data)
+        axs[0].axvline(median_value, color='g', label=f'Median {median_value:0.3f}')
         axs[0].set_xlim([0, 1])
         axs[0].grid()
-        axs[0].set_title(f'Histogram Median={median_value:.3f}')
         axs[0].set_xlabel('Correlation')
         axs[0].set_ylabel('Count')
         ax2.set_ylabel('Cumulative Count', color='orange')
-
-        corr_stack.where(corr_stack >= threshold).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
-        axs[1].set_title(f'Threshold >= {threshold:0.3f}')
-
+    
+        axs[0].set_title('Histogram')
+        if threshold is not None:
+            corr_stack.where(corr_stack > threshold).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
+            axs[1].set_title(f'Threshold = {threshold:0.3f}')
+            axs[0].axvline(threshold, linestyle='dashed', color='black', label=f'Threshold {threshold:0.3f}')
+        else:
+            corr_stack.where(corr_stack).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
+    
+        axs[0].legend()
         plt.suptitle(caption)
         plt.tight_layout()
