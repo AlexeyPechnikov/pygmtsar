@@ -156,8 +156,8 @@ class Stack_detrend(Stack_unwrap):
                  yy, xx,
                  yy**2, xx**2, yy*xx,
                  yy**3, xx**3, yy**2*xx, xx**2*yy], corr_sbas)
-
-
+    
+    
         topo = sbas.interferogram(topophase)
         inc = decimator(sbas.incidence_angle())
         yy, xx = xr.broadcast(topo.y, topo.x)
@@ -173,7 +173,7 @@ class Stack_detrend(Stack_unwrap):
         from sklearn.linear_model import SGDRegressor
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
-
+    
         # find stack dim
         stackvar = data.dims[0] if len(data.dims) >= 3 else 'stack'
         #print ('stackvar', stackvar)
@@ -181,7 +181,7 @@ class Stack_detrend(Stack_unwrap):
         #print ('shape2d', shape2d)
         chunk2d = data.chunks[1:] if len(data.dims) == 3 else data.chunks
         #print ('chunk2d', chunk2d)
-
+    
         def regression_block(data, weight, *args, **kwargs):
             #assert 0, stack.shape
             data_values  = data.ravel().astype(np.float64)
@@ -191,7 +191,7 @@ class Stack_detrend(Stack_unwrap):
             variables_values = variables_stack.reshape(variables_stack.shape[0], -1)
             del variables_stack
             #assert 0, f'TEST: {data_values.shape}, {variables_values.shape}'
-
+    
             nanmask_data = ~np.isfinite(data_values)
             nanmask_values = np.any(~np.isfinite(variables_values), axis=0)
             if weight.size > 1:
@@ -203,13 +203,13 @@ class Stack_detrend(Stack_unwrap):
                 weight_values = None
                 nanmask_weight = None
                 nanmask = nanmask_data | nanmask_values
-
+    
             # regression requires enough amount of valid pixels
             if data_values.size - np.sum(nanmask) < valid_pixels_threshold:
                 del data_values, variables_values, weight_values
                 del nanmask_data, nanmask_values, nanmask_weight, nanmask
                 return np.nan * np.zeros(data.shape)
-
+    
             # build prediction model with or without plane removal (fit_intercept)
             algorithm = kwargs.pop('algorithm', 'linear')
             if algorithm == 'sgd':
@@ -227,24 +227,33 @@ class Stack_detrend(Stack_unwrap):
             del variables_values, regr
             del nanmask_data, nanmask_values, nanmask_weight, nanmask
             return model.reshape(data.shape).astype(np.float32)
-
+    
         dshape = data[0].shape if data.ndim==3 else data.shape
         if isinstance(variables, (list, tuple)):
             vshapes = [v[0].shape if v.ndim==3 else v.shape for v in variables]
             equals = np.all([vshape == dshape for vshape in vshapes])
-            assert equals, f'ERROR: shapes of variables slices {vshapes} and data slice {dshape} differ.'
+            if not equals:
+                print (f'NOTE: shapes of variables slices {vshapes} and data slice {dshape} differ.')
             #assert equals, f'{dshape} {vshapes}, {equals}'
-            variables_stack = [v.chunk(dict(y=chunk2d[0], x=chunk2d[1])) for v in variables]
+            variables_stack = [v.reindex_like(data).chunk(dict(y=chunk2d[0], x=chunk2d[1]))  for v in variables]
         else:
             vshape = variables[0].shape if variables.ndim==3 else variables.shape
-            assert {vshape} == {dshape}, f'ERROR: shapes of variables slice {vshape} and data slice {dshape} differ.'
-            variables_stack = [variables.chunk(dict(y=chunk2d[0], x=chunk2d[1]))]
+            if not {vshape} == {dshape}:
+                print (f'NOTE: shapes of variables slice {vshape} and data slice {dshape} differ.')
+            variables_stack = [variables.reindex_like(data).chunk(dict(y=chunk2d[0], x=chunk2d[1]))]
+    
+        if weight is not None:
+            if not weight.shape == data.shape:
+                print (f'NOTE: shapes of weight {weight.shape} and data {data.shape} differ.')
+            weight_stack = weight.reindex_like(data).chunk(dict(y=chunk2d[0], x=chunk2d[1]))
+        else:
+            weight_stack = None
 
         # xarray wrapper
         model = xr.apply_ufunc(
             regression_block,
             data,
-            weight.chunk(dict(y=chunk2d[0], x=chunk2d[1])) if weight is not None else weight,
+            weight_stack,
             *variables_stack,
             dask='parallelized',
             vectorize=False,
