@@ -335,7 +335,7 @@ class Stack_sbas(Stack_detrend):
 
         return df
 
-    def sbas_pairs(self, days=100, meters=None, invert=False, dates=None):
+    def sbas_pairs(self, days=None, meters=None, invert=False, dates=None):
         """
         Generates a sorted list of baseline pairs based on specified temporal and spatial criteria.
     
@@ -346,7 +346,7 @@ class Stack_sbas(Stack_detrend):
         Parameters
         ----------
         days : int, optional
-            Maximum temporal separation between image pairs in days (default is 100).
+            Maximum temporal separation between image pairs in days (default is None).
         meters : int, optional
             Maximum spatial separation between image pairs in meters (default is None).
         invert : bool, optional
@@ -361,6 +361,10 @@ class Stack_sbas(Stack_detrend):
         """
         import numpy as np
         import pandas as pd
+        
+        if days is None:
+            # use large number for unlimited time interval in days
+            days = 1e6
     
         def baseline_table(dates):
             """
