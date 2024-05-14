@@ -42,6 +42,10 @@ class XYZTiles(datagrid, tqdm_joblib):
         kwargs['url'] = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
         return self.download(geometry, zoom, filename, **kwargs)
 
+    def download_openrailwaymap(self, geometry, zoom, filename=None, **kwargs):
+        kwargs['url'] = 'https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}'
+        return self.download(geometry, zoom, filename, **kwargs)
+
     def download(self, geometry, zoom, filename=None, url='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', n_jobs=8, skip_exist=True, debug=False):
         """
         Downloads map tiles for a specified geometry and zoom level from a given tile map service.
