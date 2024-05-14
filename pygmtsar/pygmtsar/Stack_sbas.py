@@ -756,7 +756,7 @@ class Stack_sbas(Stack_detrend):
                                    displacement=True, unwrap=True,
                                    stl=False, stl_freq='W', stl_periods=52, stl_robust=True,
                                    los=False, tolerance=np.pi/2, xlabel_rotation=45,
-                                   legend=True, legend_alpha=None):
+                                   legend=True, legend_alpha=None, linewidth=0.5):
         """
         Performs 1D unwrapping, linear regression, and STL on a given set of phase values.
     
@@ -857,7 +857,7 @@ class Stack_sbas(Stack_detrend):
             y_max = max(y_max, start, row['phase'] + start)
             plt.plot([row['ref'], row['rep']], [start, row['phase'] + start],
                      c=colors(row['corr']) if corr is not None else 'grey', alpha=0.8,
-                     linewidth=0.5)
+                     linewidth=linewidth)
         #print ('errors', errors)
         #print ('y_min', y_min, 'y_max', y_max)
         if displacement or stl:
@@ -911,12 +911,12 @@ class Stack_sbas(Stack_detrend):
                                    displacement=True, unwrap=True,
                                    stl=False, stl_freq='W', stl_periods=52, stl_robust=True,
                                    tolerance=np.pi/2, xlabel_rotation=45,
-                                   legend=True, legend_alpha=None):
+                                   legend=True, legend_alpha=None, linewidth=0.5):
         self.plot_baseline_displacement(phase=phase, corr=corr, caption=caption, cmap=cmap,
                                    displacement=displacement, unwrap=unwrap,
                                    stl=stl, stl_freq=stl_freq, stl_periods=stl_periods, stl_robust=stl_robust,
                                    los=True, tolerance=tolerance, xlabel_rotation=xlabel_rotation,
-                                   legend=legend, legend_alpha=legend_alpha)
+                                   legend=legend, legend_alpha=legend_alpha, linewidth=linewidth)
 
     def rmse(self, data, solution, weight=None):
         """
