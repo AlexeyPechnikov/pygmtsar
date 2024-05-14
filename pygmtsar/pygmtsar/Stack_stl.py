@@ -13,9 +13,14 @@ from .tqdm_dask import tqdm_dask
 class Stack_stl(Stack_tidal):
 
     def velocity(self, data):
-        years = ((data.date.max() - data.date.min()).dt.days/365.25).item()
-        #print ('years', np.round(years, 3))
-        velocity = data.mean('date')/years
+        print('NOTE: Velocity calculation is changed to use least squares linear fit and can produce different results.')
+        #years = ((data.date.max() - data.date.min()).dt.days/365.25).item()
+        #nanoseconds = data.date.max().astype(int) - data.date.min().astype(int)
+        #print ('years', np.round(years, 3), 'nanoseconds', nanoseconds)
+        #velocity = nanoseconds*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1)/years
+        nanoseconds_per_year = 365.25*24*60*60*1e9
+        # calculate slope per year
+        velocity = nanoseconds_per_year*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1).rename('trend')
         return velocity
 
     def trend(self, data, deg=1):
