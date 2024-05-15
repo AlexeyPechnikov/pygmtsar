@@ -436,25 +436,21 @@ disp_sbas = sbas.sync_cube(disp_sbas, 'disp_sbas')
 
 sbas.plot_displacements(disp_sbas[::3], caption='SBAS Cumulative LOS Displacement, [mm]', quantile=[0.01, 0.99])
 
-"""### STL model for LOS Displacement, mm"""
+"""### Least-squares model for LOS Displacement, mm"""
 
-stl_sbas = sbas.stl(disp_sbas)
-stl_sbas
+velocity_sbas = sbas.velocity(disp_sbas)
+velocity_sbas
 
 # optionally, materialize to disk and open
-stl_sbas = sbas.sync_cube(stl_sbas, 'stl_sbas')
-
-years = ((stl_sbas.date.max() - stl_sbas.date.min()).dt.days/365.25).item()
-print ('years', np.round(years, 3))
-velocity_sbas = stl_sbas.trend.mean('date')/years
-velocity_sbas
+velocity_sbas = sbas.sync_cube(velocity_sbas, 'velocity_sbas')
 
 fig = plt.figure(figsize=(12,4), dpi=300)
 
 zmin, zmax = np.nanquantile(velocity_sbas, [0.01, 0.99])
+zminmax = max(abs(zmin), zmax)
 
 ax = fig.add_subplot(1, 2, 1)
-velocity_sbas.plot.imshow(cmap='turbo', vmin=zmin, vmax=zmax, ax=ax)
+velocity_sbas.plot.imshow(cmap='turbo', vmin=-zminmax, vmax=zminmax, ax=ax)
 sbas.geocode(AOI.buffer(-BUFFER).boundary).plot(ax=ax)
 sbas.geocode(POI).plot(ax=ax, marker='x', c='r', markersize=100, label='POI')
 sbas.geocode(POI0).plot(ax=ax, marker='x', c='b', markersize=100, label='POI$\Theta$')
@@ -463,29 +459,31 @@ ax.set_title('Velocity, mm/year', fontsize=16)
 
 ax = fig.add_subplot(1, 2, 2)
 sbas.as_geo(sbas.ra2ll(velocity_sbas)).rio.clip(AOI.geometry.buffer(-BUFFER))\
-    .plot.imshow(cmap='turbo', vmin=zmin, vmax=zmax, ax=ax)
+    .plot.imshow(cmap='turbo', vmin=-zminmax, vmax=zminmax, ax=ax)
 AOI.buffer(-BUFFER).boundary.plot(ax=ax)
 POI.plot(ax=ax, marker='x', c='r', markersize=100, label='POI')
 POI0.plot(ax=ax, marker='x', c='b', markersize=100, label='POI$\Theta$')
 ax.legend(loc='upper left', fontsize=14)
 ax.set_title('Velocity, mm/year', fontsize=16)
 
-plt.suptitle('SBAS LOS Velocity STL Decompose, 2021', fontsize=18)
+plt.suptitle('SBAS LOS Velocity, 2021', fontsize=18)
 plt.tight_layout()
 plt.show()
+
+"""### STL model for LOS Displacement, mm"""
 
 plt.figure(figsize=(12, 4), dpi=300)
 
 x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI).geometry][0]
 disp_pixel = disp_sbas.sel(y=y, x=x, method='nearest')
-stl_pixel = stl_sbas.sel(y=y, x=x, method='nearest')
+stl_pixel = sbas.stl(disp_sbas.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='r', lw=2, label='Displacement POI')
 plt.plot(stl_pixel.date, stl_pixel.trend, c='r', ls='--', lw=2, label='Trend POI')
 plt.plot(stl_pixel.date, stl_pixel.seasonal, c='r', lw=1, label='Seasonal POI')
 
 x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI0).geometry][0]
 disp_pixel = disp_sbas.sel(y=y, x=x, method='nearest')
-stl_pixel = stl_sbas.sel(y=y, x=x, method='nearest')
+stl_pixel = sbas.stl(disp_sbas.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='b', lw=2, label='Displacement POI$\Theta$')
 plt.plot(stl_pixel.date, stl_pixel.trend, c='b', ls='--', lw=2, label='Trend POI$\Theta$')
 plt.plot(stl_pixel.date, stl_pixel.seasonal, c='b', lw=1, label='Seasonal POI$\Theta$')
@@ -531,25 +529,21 @@ disp_ps = sbas.sync_cube(disp_ps, 'disp_ps')
 zmin, zmax = np.nanquantile(disp_ps, [0.01, 0.99])
 sbas.plot_displacements(disp_ps[::3], caption='PS Cumulative LOS Displacement, [mm]', vmin=zmin, vmax=zmax)
 
-"""### STL model for LOS Displacement, mm"""
+"""### Least-squares model for LOS Displacement, mm"""
 
-stl_ps = sbas.stl(disp_ps)
-stl_ps
+velocity_ps = sbas.velocity(disp_ps)
+velocity_ps
 
 # optionally, materialize to disk and open
-stl_ps = sbas.sync_cube(stl_ps, 'stl_ps')
-
-years = ((stl_ps.date.max() - stl_ps.date.min()).dt.days/365.25).item()
-print ('years', np.round(years, 3))
-velocity_ps = stl_ps.trend.mean('date')/years
-velocity_ps
+velocity_ps = sbas.sync_cube(velocity_ps, 'velocity_ps')
 
 fig = plt.figure(figsize=(12,4), dpi=300)
 
 zmin, zmax = np.nanquantile(velocity_ps, [0.01, 0.99])
+zminmax = max(abs(zmin), zmax)
 
 ax = fig.add_subplot(1, 2, 1)
-velocity_ps.plot.imshow(cmap='turbo', vmin=zmin, vmax=zmax, ax=ax)
+velocity_ps.plot.imshow(cmap='turbo', vmin=-zminmax, vmax=zminmax, ax=ax)
 sbas.geocode(AOI.buffer(-BUFFER).boundary).plot(ax=ax)
 sbas.geocode(POI).plot(ax=ax, marker='x', c='r', markersize=100, label='POI')
 sbas.geocode(POI0).plot(ax=ax, marker='x', c='b', markersize=100, label='POI$\Theta$')
@@ -558,29 +552,31 @@ ax.set_title('Velocity, mm/year', fontsize=16)
 
 ax = fig.add_subplot(1, 2, 2)
 sbas.as_geo(sbas.ra2ll(velocity_ps)).rio.clip(AOI.geometry.buffer(-BUFFER))\
-    .plot.imshow(cmap='turbo', vmin=zmin, vmax=zmax, ax=ax)
+    .plot.imshow(cmap='turbo', vmin=-zminmax, vmax=zminmax, ax=ax)
 AOI.buffer(-BUFFER).boundary.plot(ax=ax)
 POI.plot(ax=ax, marker='x', c='r', markersize=100, label='POI')
 POI0.plot(ax=ax, marker='x', c='b', markersize=100, label='POI$\Theta$')
 ax.legend(loc='upper left', fontsize=14)
 ax.set_title('Velocity, mm/year', fontsize=16)
 
-plt.suptitle('PS LOS Velocity STL Decompose, 2021', fontsize=18)
+plt.suptitle('PS LOS Velocity, 2021', fontsize=18)
 plt.tight_layout()
 plt.show()
+
+"""### STL model for LOS Displacement, mm"""
 
 plt.figure(figsize=(12, 4), dpi=300)
 
 x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI).geometry][0]
 disp_pixel = disp_ps.sel(y=y, x=x, method='nearest')
-stl_pixel = stl_ps.sel(y=y, x=x, method='nearest')
+stl_pixel = sbas.stl(disp_ps.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='r', lw=2, label='Displacement POI')
 plt.plot(stl_pixel.date, stl_pixel.trend, c='r', ls='--', lw=2, label='Trend POI')
 plt.plot(stl_pixel.date, stl_pixel.seasonal, c='r', lw=1, label='Seasonal POI')
 
 x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI0).geometry][0]
 disp_pixel = disp_ps.sel(y=y, x=x, method='nearest')
-stl_pixel = stl_ps.sel(y=y, x=x, method='nearest')
+stl_pixel = sbas.stl(disp_ps.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='b', lw=2, label='Displacement POI$\Theta$')
 plt.plot(stl_pixel.date, stl_pixel.trend, c='b', ls='--', lw=2, label='Trend POI$\Theta$')
 plt.plot(stl_pixel.date, stl_pixel.seasonal, c='b', lw=1, label='Seasonal POI$\Theta$')
@@ -591,20 +587,24 @@ plt.ylabel('Displacement, mm', fontsize=16)
 plt.show()
 
 x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI0).geometry][0]
-sbas.plot_baseline_displacement(disp_ps_pairs.sel(y=y, x=x, method='nearest')/sbas.los_displacement_mm(1),
+sbas.plot_baseline_displacement_los_mm(disp_ps_pairs.sel(y=y, x=x, method='nearest')/sbas.los_displacement_mm(1),
                                 corr_ps.sel(y=y, x=x, method='nearest'),
                                caption='POI0', stl=True)
 
 x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI).geometry][0]
-sbas.plot_baseline_displacement(disp_ps_pairs.sel(y=y, x=x, method='nearest')/sbas.los_displacement_mm(1),
+sbas.plot_baseline_displacement_los_mm(disp_ps_pairs.sel(y=y, x=x, method='nearest')/sbas.los_displacement_mm(1),
                                 corr_ps.sel(y=y, x=x, method='nearest'),
                                caption='POI', stl=True)
 
-rmse = sbas.rmse(disp_ps_pairs, disp_ps, corr_ps)
-rmse
+"""### RMSE Error Estimation"""
 
-rmse.plot.imshow(cmap='turbo', vmin=0, vmax=0.3)
-_ = plt.title('RMSE Correlation Aware', fontsize=18)
+rmse_ps = sbas.rmse(disp_ps_pairs, disp_ps, corr_ps)
+rmse_ps
+
+# optionally, materialize to disk and open
+rmse_ps = sbas.sync_cube(rmse_ps, 'rmse_ps')
+
+sbas.plot_rmse(rmse_ps, caption='RMSE Correlation Aware, [mm]')
 
 """## SBAS vs PS Comparision"""
 
@@ -629,7 +629,7 @@ min_value = min(velocity_sbas.min(), velocity_ps.min())
 plt.plot([min_value, max_value], [min_value, max_value], 'k--')
 
 plt.xlabel('Velocity SBAS, mm/year', fontsize=16)
-plt.ylabel('Velocity PS, mm/years', fontsize=16)
+plt.ylabel('Velocity PS, mm/year', fontsize=16)
 plt.title('Cross-Comparison between SBAS and PS Velocity', fontsize=18)
 plt.grid(True)
 plt.show()
