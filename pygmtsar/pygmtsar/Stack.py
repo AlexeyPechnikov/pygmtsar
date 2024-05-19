@@ -115,13 +115,13 @@ class Stack(Stack_export):
             marker_color = kwargs['marker_color']
         geometry.plot(ax=plt.gca(), marker=marker, markersize=marker_size, color=marker_color)
 
-    def plot_scenes(self, dem='auto', image=None, caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
+    def plot_scenes(self, dem='auto', image=None, alpha=None, caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
         import matplotlib
 
         plt.figure()
         if image is not None:
-            image.plot.imshow(cmap='gray', add_colorbar=False)
+            image.plot.imshow(cmap='gray', alpha=alpha, add_colorbar=False)
         if isinstance(dem, str) and dem == 'auto':
             if self.dem_filename is not None:
                 dem = self.get_dem()
@@ -133,9 +133,9 @@ class Stack(Stack_export):
         cmap = matplotlib.colormaps[cmap]
         colors = dict([(v, cmap(k)) for k, v in enumerate(gdf.index.unique())])
         # too small an alpha becomes invisible
-        alpha = 0.5/len(gdf)
-        alpha = alpha if alpha>=0.002 else 0.002
-        gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=alpha, edgecolor='black', ax=plt.gca())
+        gdf_alpha = 0.5/len(gdf)
+        gdf_alpha = gdf_alpha if gdf_alpha>=0.002 else 0.002
+        gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=gdf_alpha, edgecolor='black', ax=plt.gca())
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         if aspect is not None:
