@@ -115,11 +115,13 @@ class Stack(Stack_export):
             marker_color = kwargs['marker_color']
         geometry.plot(ax=plt.gca(), marker=marker, markersize=marker_size, color=marker_color)
 
-    def plot_scenes(self, dem='auto', caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
+    def plot_scenes(self, dem='auto', image=None, caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
         import matplotlib
 
         plt.figure()
+        if image is not None:
+            image.plot.imshow(cmap='gray', add_colorbar=False)
         if isinstance(dem, str) and dem == 'auto':
             if self.dem_filename is not None:
                 dem = self.get_dem()
