@@ -670,7 +670,7 @@ class Stack_sbas(Stack_detrend):
             # Normalize the average values for coloring
             norm = mcolors.Normalize(vmin=vmin if vmin is not None else np.nanmin(averages),
                                      vmax=vmax if vmax is not None else np.nanmax(averages))
-            cmap = plt.cm.get_cmap(cmap)
+            cmap = plt.colormaps[cmap]
 
             for i in range(len(bin_midpoints)):
                 bin_color = 'white' if np.isnan(averages[i]) else cmap(norm(averages[i]))
@@ -681,7 +681,7 @@ class Stack_sbas(Stack_detrend):
         elif column is not None:
             norm = mcolors.Normalize(vmin=vmin if vmin is not None else baseline_pairs[column].min(),
                                      vmax=vmax if vmax is not None else baseline_pairs[column].max())
-            cmap = plt.cm.get_cmap(cmap)
+            cmap = plt.colormaps[cmap]
 
             for i in range(len(bins) - 1):
                 bin_data = baseline_pairs[(baseline_pairs.duration >= bins[i]) & (baseline_pairs.duration < bins[i + 1])]
@@ -787,7 +787,7 @@ class Stack_sbas(Stack_detrend):
         assert isinstance(phase, xr.DataArray) and phase.dims == ('pair',), \
             'ERROR: Argument phase should be 1D Xarray with "pair" dimension'
         plt.figure()
-        colors = matplotlib.cm.get_cmap(cmap)
+        colors = plt.colormaps[cmap]
     
         df = phase.to_dataframe()
         df['corr'] = corr.values if corr is not None else 1
@@ -995,7 +995,13 @@ class Stack_sbas(Stack_detrend):
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
 
-    def plot_velocity(self, data, caption='Velocity, mm/year',
+    def plot_displacements_los_mm(self, data, caption='Cumulative LOS Displacement, [mm]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
+                           quantile=None, vmin=None, vmax=None, symmetrical=False):
+        self.plot_displacements(self.los_displacement_mm(data),
+                                caption=caption, cols=cols, size=size, nbins=nbins, aspect=aspect, y=y,
+                                quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical)
+
+    def plot_velocity(self, data, caption='Velocity, [rad/year]',
                       quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, alpha=1, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
@@ -1020,7 +1026,13 @@ class Stack_sbas(Stack_detrend):
             plt.gca().set_aspect(aspect)
         plt.title(caption)
 
-    def plot_rmse(self, rmse, caption='RMSE', cmap='turbo',
+    def plot_velocity_los_mm(self, data, caption='Velocity, [mm/year]',
+                      quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, alpha=1, **kwargs):
+        self.plot_velocity(self.los_displacement_mm(data),
+                           caption=caption, aspect=aspect, alpha=alpha,
+                           quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical, **kwargs)
+                      
+    def plot_rmse(self, rmse, caption='RMSE, [rad]', cmap='turbo',
                   quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
@@ -1047,3 +1059,9 @@ class Stack_sbas(Stack_detrend):
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         plt.title(caption)
+
+    def plot_rmse_los_mm(self, rmse, caption='RMSE, [mm]', cmap='turbo',
+                  quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
+        self.plot_rmse(abs(self.los_displacement_mm(rmse)),
+                       caption=caption, cmap=cmap,
+                       quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical, **kwargs)
