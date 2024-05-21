@@ -190,13 +190,13 @@ class Stack_reframe(Stack_reframe_gmtsar):
         stacksize = len(dates)
         counter = 0
         digits = len(str(stacksize))
-        # Splitting all the pairs into chunks, each containing approximately queue pairs.
+        # Splitting all the dates into chunks, each containing approximately queue dates.
         #n_chunks = stacksize // queue if stacksize > queue else 1
         if stacksize > queue:
             chunks = [dates[i:i + queue] for i in range(0, stacksize, queue)]
             n_chunks = len(chunks)
         else:
-            chunks = [pairs]
+            chunks = [dates]
             n_chunks = 1
         for chunk in chunks:
             if n_chunks > 1:
