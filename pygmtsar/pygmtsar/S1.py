@@ -20,7 +20,11 @@ class S1(tqdm_joblib):
     # see _select_orbit.py in sentineleof package
     #Orbital period of Sentinel-1 in seconds
     #T_ORBIT = (12 * 86400.0) / 175.0
-    orbit_offset_start = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
+    # ESA orbits doe not follow the specification and some orbits are missed
+    # example scene: S1A_IW_SLC__1SDV_20240505T002709_20240505T002733_053728_06870F_8D20
+    #orbit_offset_start = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
+    # less strict rule allows to find the required orbits
+    orbit_offset_start = timedelta(seconds=3600)
     orbit_offset_end = timedelta(seconds=300)
 
     """
@@ -71,7 +75,7 @@ class S1(tqdm_joblib):
         df = df.groupby(['date', 'mission'])['datetime'].first().reset_index()
         del df['date']
         
-        def download_index(mission, dt):
+        def download_index(mission, dt, orbit_offset_start, orbit_offset_end):
             url = S1.orbits_url.format(mission=mission,
                                        year=dt.date().year,
                                        month=dt.date().month,
@@ -85,16 +89,16 @@ class S1(tqdm_joblib):
                 orbits['product']    = orbits['orbit'].apply(lambda name: name.split('_')[3])
                 orbits['mission']    = orbits['orbit'].apply(lambda name: name[:3])
                 orbits['time']       = orbits['orbit'].apply(lambda name: datetime.strptime(name.split('_')[5], '%Y%m%dT%H%M%S'))
-            
+            # detect suitable orbit and select the first one
             for orbit in orbits.itertuples():
                 #print ('orbit', orbit)
                 orbit_parts = orbit.orbit.split('.')[0].split('_')
                 #print ('orbit_parts', orbit_parts)
                 if orbit.product == 'RESORB':
                     # select the one covering the interval
-                    time_start = datetime.strptime(orbit_parts[6][1:],  '%Y%m%dT%H%M%S') + S1.orbit_offset_start
-                    time_end   = datetime.strptime(orbit_parts[7], '%Y%m%dT%H%M%S') - S1.orbit_offset_end
-                    #print ('time_start', time_start, 'time_end', time_end, 'flag', flag)
+                    time_start = datetime.strptime(orbit_parts[6][1:],  '%Y%m%dT%H%M%S') + orbit_offset_start
+                    time_end   = datetime.strptime(orbit_parts[7], '%Y%m%dT%H%M%S') - orbit_offset_end
+                    #print ('time_start', time_start, 'time_end', time_end)
                     if not ((time_start <= dt) & (time_end >= dt)):
                         continue
                     return (orbit.orbit, url)
@@ -104,6 +108,8 @@ class S1(tqdm_joblib):
                 else:
                     # in case of data parse or another error
                     raise ValueError(f'Unexpected orbit product {orbit.product}')
+            # downloading is not possible
+            raise ValueError(f'Orbit product not found for mission {mission} and timestamp {dt}')
     
         # TODO: unzip files
         def download_orbit(basedir, url):
@@ -124,10 +130,13 @@ class S1(tqdm_joblib):
                         xmltodict.parse(orbit_content)
                         f.write(orbit_content)
     
-        # download orbits index files and detect the orbits
+        # download orbits index files and detect the orbits.
+        # joblib reads the class file from disk,
+        # and to allow modification of orbit_offset_* on the fly, add them to the arguments
         with S1.tqdm_joblib(tqdm(desc='Downloading Sentinel-1 Orbits Index:', total=len(df))) as progress_bar:
             orbits = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(download_index)\
-                                    (scene.mission, scene.datetime) for scene in df.itertuples())
+                                    (scene.mission, scene.datetime,
+                                    S1.orbit_offset_start, S1.orbit_offset_end) for scene in df.itertuples())
         # convert to dataframe for processing
         orbits = pd.DataFrame(orbits, columns=['orbit', 'url'])
         # exclude duplicates if needed 
