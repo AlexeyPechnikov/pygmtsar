@@ -141,3 +141,58 @@ class Stack(Stack_export):
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
+
+    @staticmethod
+    def plots_AOI(fg, geometry=None, **kwargs):
+        import matplotlib.pyplot as plt
+        if 'AOI' not in kwargs:
+            return
+        geometry = kwargs['AOI']
+        if geometry is None:
+            return
+        if 'boundary_color' not in kwargs:
+            boundary_color = 'red'
+        else:
+            boundary_color = kwargs['boundary_color']
+        boundaries = geometry.boundary
+        #geometry[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color=boundary_color)
+        #geometry[boundaries.is_empty].plot(ax=plt.gca(), color=boundary_color)
+        # plot geopandas data on each subplot
+        def plot_geopandas_on_subplot():
+            #geometry.plot(ax=plt.gca(), marker=marker, markersize=marker_size, color=marker_color)
+            ax = plt.gca()
+            geometry[~boundaries.is_empty].boundary.plot(ax=ax, color=boundary_color)
+            geometry[boundaries.is_empty].plot(ax=ax, color=boundary_color)
+            # fix subplot aspect
+            ax.set_aspect('auto')
+        fg.map(plot_geopandas_on_subplot)
+
+    @staticmethod
+    def plots_POI(fg, geometry=None, **kwargs):
+        import matplotlib.pyplot as plt
+        if 'POI' not in kwargs:
+            return
+        geometry = kwargs['POI']
+        if geometry is None:
+            return
+        if 'marker' not in kwargs:
+            marker = '*'
+        else:
+            marker = kwargs['marker']
+        if 'marker_size' not in kwargs:
+            marker_size = 100
+        else:
+            marker_size = kwargs['marker_size']
+        if 'marker_color' not in kwargs:
+            marker_color = 'red'
+        else:
+            marker_color = kwargs['marker_color']
+        #geometry.plot(ax=plt.gca(), marker=marker, markersize=marker_size, color=marker_color)
+        # plot geopandas data on each subplot
+        def plot_geopandas_on_subplot():
+            #geometry.plot(ax=plt.gca(), marker=marker, markersize=marker_size, color=marker_color)
+            ax = plt.gca()
+            geometry.plot(ax=ax, marker=marker, markersize=marker_size, color=marker_color)
+            # fix subplot aspect
+            ax.set_aspect('auto')
+        fg.map(plot_geopandas_on_subplot)
