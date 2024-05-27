@@ -137,3 +137,64 @@ class Stack_ps(Stack_stl):
 #         df = gpd.GeoDataFrame(columns, crs="EPSG:4326")
 #         del columns
 #         return df
+
+#     sbas.plot_amplitudes(dates=sbas.df.index[:8], intensity=True, quantile=[0.01, 0.99],
+#                         func=lambda data: data.sel(y=slice(920,960), x=slice(4500,4550)),
+#                         marker='x', marker_size=200, POI=sbas.geocode(POI))
+#     #AOI=sbas.geocode(AOI.buffer(-0.001))
+    def plot_amplitudes(self, dates=None, data='auto', norm='auto', func=None, intensity=False,
+                       caption='auto', cmap='gray', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
+                       quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import types
+
+        if isinstance(data, str) and data == 'auto':
+            # open SLC data as real amplitudes
+            #data = np.abs(self.open_data(dates=dates))
+            # magick scale for better plots readability
+            scale = np.sqrt(2.5e-07) if intensity else 2.5e-07
+            data = np.abs(self.open_data(dates=dates, scale=scale))
+            if intensity:
+                data = np.square(data)
+
+        if func is not None:
+            data = func(data)
+
+        if isinstance(norm, str) and norm == 'auto':
+            # normilize SLC grids using average
+            stack_average = data.mean(['y','x'])
+            norm_multiplier = stack_average.mean(dim='date') / stack_average
+            #print ('norm_multiplier', norm_multiplier.values)
+            data = norm_multiplier * data
+        elif norm is not None:
+            data = norm * data
+
+        if isinstance(caption, str) and caption == 'auto':
+            caption = 'SLC Intensity' if intensity else 'SLC Amplitude'
+
+        if quantile is not None:
+            assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
+
+        if quantile is not None:
+            vmin, vmax = np.nanquantile(data, quantile)
+
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
+
+        # multi-plots ineffective for linked lazy data
+        fg = data.plot.imshow(
+            col='date',
+            col_wrap=cols, size=size, aspect=aspect,
+            vmin=vmin, vmax=vmax, cmap=cmap,
+            interpolation='none' # Disable interpolation
+        )
+        fg.set_axis_labels('Range', 'Azimuth')
+        fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
+        fg.fig.suptitle(caption, y=y)
+
+        self.plots_AOI(fg, **kwargs)
+        self.plots_POI(fg, **kwargs)
