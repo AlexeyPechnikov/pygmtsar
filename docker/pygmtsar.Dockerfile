@@ -84,7 +84,8 @@ USER    ${NB_UID}
 WORKDIR "${HOME}"
 
 # Clone only the pygmtsar2 branch
-RUN git clone --branch pygmtsar2 --single-branch https://github.com/AlexeyPechnikov/pygmtsar.git \
+RUN git config --global http.postBuffer 524288000 \
+&& git clone --branch pygmtsar2 --single-branch https://github.com/AlexeyPechnikov/pygmtsar.git \
 && mv pygmtsar/notebooks ./notebooks \
 && mv pygmtsar/README.md ./ \
 && rm -rf pygmtsar work
