@@ -183,7 +183,9 @@ class Tiles(datagrid, tqdm_joblib):
         if len(tile_xarrays) == 0:
             return
         da = xr.combine_by_coords(tile_xarrays)
-        #return da
+        # drop duplicate indices for SRTM DEM when neighboring tiles share the same edge coordinates
+        da = da.sel(lat=~da.indexes['lat'].duplicated(), lon=~da.indexes['lon'].duplicated())
+        
         if isinstance(da, xr.Dataset):
             da = da[list(da.data_vars)[0]]
         # crop geometry extent        

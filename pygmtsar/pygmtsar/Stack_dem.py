@@ -207,6 +207,7 @@ class Stack_dem(Stack_reframe):
         import numpy as np
         import rioxarray as rio
         import geopandas as gpd
+        import pandas as pd
         import os
 
         dem_filename = os.path.join(self.basedir, 'DEM_WGS84.nc')
@@ -234,6 +235,12 @@ class Stack_dem(Stack_reframe):
             print ('ERROR: filename extension is not recognized. Should be one from .tiff, .tif, .TIF, .nc, .netcdf, .grd')
         else:
             print ('ERROR: argument is not an Xarray object and it is not a file name')
+
+        # unique indices required for interpolation
+        lat_index = pd.Index(ortho.coords['lat'])
+        lon_index = pd.Index(ortho.coords['lon'])
+        duplicates = lat_index[lat_index.duplicated()].tolist() + lon_index[lon_index.duplicated()].tolist()
+        assert len(duplicates) == 0, 'ERROR: DEM grid includes duplicated coordinates, possibly on merged tiles edges'
 
         # crop to reference scene extent
         geometry_auto = type(geometry) == str and geometry == 'auto'
