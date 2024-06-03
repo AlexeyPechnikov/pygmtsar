@@ -10,36 +10,6 @@
 
 class PRM_gmtsar:
 
-    @staticmethod
-    def gmtsar_sharedir():
-        """
-        Get the location of the GMTSAR shared directory.
-
-        Returns
-        -------
-        str
-            The path to the GMTSAR shared directory.
-
-        Notes
-        -----
-        This method calls the GMTSAR tool 'gmtsar_sharedir.csh' to obtain the location of the GMTSAR shared directory.
-        The shared directory contains essential files and data used by GMTSAR.
-        """
-        import os
-        import subprocess
-
-        argv = ['gmtsar_sharedir.csh']
-        p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
-        stdout_data, stderr_data = p.communicate()
-
-        stderr_data = stderr_data.strip()
-        if stderr_data is not None and len(stderr_data):
-            print ('gmtsar_sharedir', stderr_data)
-        data = stdout_data.strip()
-        if data == '':
-            return stderr_data
-        return data
-
     def calc_dop_orb(self, earth_radius=0, doppler_centroid=0, inplace=False, debug=False):
         """
         Calculate the Doppler orbit.

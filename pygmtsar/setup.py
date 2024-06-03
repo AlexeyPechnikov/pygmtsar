@@ -40,6 +40,10 @@ setup(
     author_email='alexey@pechnikov.dev',
     license='BSD-3-Clause',
     packages=['pygmtsar'],
+    include_package_data=True,
+    package_data={
+        'pygmtsar': ['data/geoid_egm96_icgem.grd'],
+    },
     install_requires=['xarray>=2024.1.0',
                       'numpy>=1.22.4',
                       'numba',

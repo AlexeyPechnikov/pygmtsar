@@ -60,10 +60,10 @@ class Stack_dem(Stack_reframe):
         """
         import xarray as xr
         import os
+        import importlib.resources as resources
 
-        gmtsar_sharedir = PRM().gmtsar_sharedir()
-        geoid_filename = os.path.join(gmtsar_sharedir, 'geoid_egm96_icgem.grd')
-        geoid = xr.open_dataarray(geoid_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize).rename({'y': 'lat', 'x': 'lon'})
+        with resources.as_file(resources.files('pygmtsar.data') / 'geoid_egm96_icgem.grd') as geoid_filename:
+            geoid = xr.open_dataarray(geoid_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize).rename({'y': 'lat', 'x': 'lon'})
         if grid is not None:
             geoid = geoid.interp_like(grid, method='cubic')
         return geoid
