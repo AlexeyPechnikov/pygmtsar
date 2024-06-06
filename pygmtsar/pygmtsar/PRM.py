@@ -883,6 +883,116 @@ class PRM(datagrid, PRM_gmtsar):
             return scale * (xr.merge([re, im]).astype(np.float32))
         return xr.merge([re, im])
 
+    def read_LED(self):
+        """
+        Read an associated LED file and extract the metadata and data into a dictionary and a DataFrame.
+    
+        Parameters:
+        None
+    
+        Returns:
+        tuple: A tuple containing the metadata dictionary and the data DataFrame.
+    
+        Metadata Dictionary:
+        - 'nd' (str): Number of given points in the list.
+        - 'iy' (str): Year.
+        - 'id' (str): Julian day.
+        - 'isec' (str): Seconds of the day.
+        - 'idsec' (str): Delta seconds.
+    
+        Data DataFrame:
+        - 'iy' (int): Year.
+        - 'id' (int): Julian day.
+        - 'isec' (float): Seconds of the day.
+        - 'px' (float): X-coordinate.
+        - 'py' (float): Y-coordinate.
+        - 'pz' (float): Z-coordinate.
+        - 'vx' (float): X-velocity.
+        - 'vy' (float): Y-velocity.
+        - 'vz' (float): Z-velocity.
+        - 'time' (datetime): Combined datetime.
+        """
+        import pandas as pd
+        from datetime import datetime, timedelta
+    
+        led_file = self.get('led_file')
+        with open(led_file, 'r') as file:
+            first_line = file.readline()
+        columns = ['nd', 'iy', 'id', 'isec', 'idsec']
+        meta = dict(zip(columns, first_line.split()))
+    
+        # Define the column headers based on the structure in the code
+        headers = ['iy', 'id', 'isec', 'px', 'py', 'pz', 'vx', 'vy', 'vz']
+        # Read the file with pandas, specifying space as the delimiter and skipping the first row
+        df = pd.read_csv(led_file, delimiter=' ', header=None, skiprows=1, names=headers, index_col=False)
+        df.attrs = meta
+        
+        # add a time column
+        #df['time'] = df.apply(lambda row: datetime(int(row['iy']), 1, 1) + timedelta(days=int(row['id']), seconds=float(row['isec'])), axis=1)
+        # add seconds from Jan 1
+        df['clock'] = (24 * 60 * 60) * df['id'] + df['isec']
+
+        return df
+
+    def get_seconds(self):
+        start = (24 * 60 * 60) * self.get('clock_start') \
+              + (self.get('ashift') + self.get('sub_int_a') + (self.get('nrows') - self.get('num_valid_az'))/2) / self.get('PRF')
+        end = start + self.get('num_patches') * self.get('num_valid_az') / self.get('PRF')
+        return start, end
+
+    def get_height(self, x, y, z):
+        import numpy as np
+
+        r = np.sqrt(x**2 + y**2 + z**2)
+        rlat = np.arcsin(z / r)
+        arg = np.cos(rlat)**2 / self.get('equatorial_radius')**2 + np.sin(rlat)**2 / self.get('polar_radius')**2
+        re = 1 / np.sqrt(arg)
+        return r - re, re
+
+    # baseline can be scalar or vector
+    def get_baseline_projections(self, other, baseline, alpha):
+        import scipy
+        import numpy as np
+    
+        dr = 0.5 * scipy.constants.speed_of_light / self.get('rng_samp_rate')
+        ra = self.get('earth_radius')
+        rc = ra + self.get('SC_height')
+    
+        far_range = other.get('near_range') + dr * other.get('num_rng_bins')
+        # calculate the look angle 1/2 way between the near and far range
+        arg1 = (other.get('near_range')**2 + rc**2 - ra**2) / (2 * other.get('near_range') * rc)
+        arg2 = (far_range**2 + rc**2 - ra**2) / (2 * far_range * rc)
+        rlook = np.arccos((arg1 + arg2) / 2.0)
+        # add the incidence angle correction to get the incidence angle
+        arg1 = (-other.get('near_range')**2 + rc**2 + ra**2) / (2 * ra * rc)
+        arg2 = (-far_range**2 + rc**2 + ra**2) / (2 * ra * rc)
+        rlook = rlook + np.arccos((arg1 + arg2) / 2.0)
+    
+        bpara = np.linalg.norm(baseline) * np.sin(rlook - np.radians(alpha))
+        bperp = np.linalg.norm(baseline) * np.cos(rlook - np.radians(alpha))
+        return bpara, bperp
+
+    def get_components(self, baseline, ref_pos, rep_pos):
+        import numpy as np
+    
+        x11, y11, _ = ref_pos
+        x21, y21, _ = rep_pos
+        rlnref = np.arctan2(y11, x11)
+        rlnrep = np.arctan2(y21, x21)
+        sign = 1
+        if self.get('orbdir') == 'D':
+            sign *= -1
+        if self.get('lookdir') == 'L':
+            sign *= -1
+        if rlnrep < rlnref:
+            sign *= -1
+    
+        #xu, yu, zu = ref_pos/np.linalg.norm(ref_pos)
+        #bv = baseline[0] * xu + baseline[1] * yu + baseline[2] * zu
+        bv = np.dot(baseline, ref_pos) / np.linalg.norm(ref_pos)
+        bh = sign * np.sqrt(np.dot(baseline, baseline) - bv ** 2)
+        return bv, bh
+
 #     @staticmethod
 #     def goldstein_filter(data, corr, psize):
 #         import xarray as xr
