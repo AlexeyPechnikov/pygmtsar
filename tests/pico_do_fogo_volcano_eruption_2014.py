@@ -57,12 +57,6 @@ if 'google.colab' in sys.modules:
         !cd /usr/local/GMTSAR && ./configure --with-orbits-dir=/tmp > /dev/null
         !cd /usr/local/GMTSAR && make 1>/dev/null 2>/dev/null
         !cd /usr/local/GMTSAR && make install >/dev/null
-        # fix for missed script, use bash instead of csh interpretator
-        # note: csh messes stdout and stderr in Docker environment, it's resolved in PyGMTSAR code
-        !echo '#!/bin/sh' > /usr/local/GMTSAR/bin/gmtsar_sharedir.csh
-        !echo echo /usr/local/GMTSAR/share/gmtsar >> /usr/local/GMTSAR/bin/gmtsar_sharedir.csh
-        !chmod a+x /usr/local/GMTSAR/bin/gmtsar_sharedir.csh
-        !/usr/local/GMTSAR/bin/gmtsar_sharedir.csh
         # test one GMTSAR binary
         !/usr/local/GMTSAR/bin/make_s1a_tops 2>&1 | head -n 2
 
