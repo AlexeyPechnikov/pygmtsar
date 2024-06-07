@@ -233,12 +233,18 @@ class datagrid:
         import geopandas as gpd
         import xarray as xr
     
-        if isinstance(geometry, (xr.DataArray, xr.Dataset)):
+        if isinstance(geometry, (xr.DataArray, xr.Dataset)) and ('lat' in geometry.dims and 'lon' in geometry.dims):
             lon_start = geometry.lon.min().item()
             lat_start = geometry.lat.min().item()
             lon_end   = geometry.lon.max().item()
             lat_end   = geometry.lat.max().item()
             bounds = lon_start, lat_start, lon_end, lat_end
+        elif isinstance(geometry, (xr.DataArray, xr.Dataset)):
+            x_start = geometry.x.min().item()
+            y_start = geometry.y.min().item()
+            x_end   = geometry.x.max().item()
+            y_end   = geometry.y.max().item()
+            bounds = x_start, y_start, x_end, y_end
         elif isinstance(geometry, gpd.GeoDataFrame):
             bounds = geometry.dissolve().envelope.item().bounds
         elif isinstance(geometry, gpd.GeoSeries):
