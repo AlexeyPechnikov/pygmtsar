@@ -25,7 +25,7 @@ class Stack_ps(Stack_stl):
     #adi_dec = adi.coarsen({'y': 4, 'x': 16}, boundary='trim').min()
     #adi_dec
     # define PS candidates using Amplitude Dispersion Index (ADI)
-    def compute_ps(self, dates=None, data='auto', name='ps', interactive=False):
+    def compute_ps(self, geometry=None, dates=None, data='auto', name='ps', interactive=False):
         import xarray as xr
         import numpy as np
         import dask
@@ -39,6 +39,12 @@ class Stack_ps(Stack_stl):
         if isinstance(data, str) and data == 'auto':
             # open SLC data as real intensities
             data = np.square(np.abs(self.open_data(dates=dates)))
+
+        if geometry is not None:
+            bounds = self.get_bounds(geometry)
+            data = data.sel(y=slice(bounds[1], bounds[3]), x=slice(bounds[0], bounds[2]))
+            if isinstance(geometry, xr.DataArray):
+                data = data.where(geometry).where(np.isfinite(geometry))
 
         # normalize image amplitudes (intensities)
         tqdm_dask(mean := dask.persist(data.mean(dim=['y','x'])), desc='Intensity Normalization')
