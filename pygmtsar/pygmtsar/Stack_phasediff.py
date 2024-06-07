@@ -41,6 +41,9 @@ class Stack_phasediff(Stack_topo):
             decimator = self.decimator(resolution=resolution, grid=coarsen, debug=debug)
         else:
             decimator = None
+        
+        if weight is not None:
+            bounds = self.get_bounds(weight)
     
         # Applying iterative processing to prevent Dask scheduler deadlocks.
         counter = 0
@@ -59,6 +62,8 @@ class Stack_phasediff(Stack_topo):
             chunk, dates = self.get_pairs(chunk, dates=True)
             # load Sentinel-1 data
             data = self.open_data(dates, debug=debug)
+            if weight is not None:
+                data = data.sel(y=slice(bounds[1], bounds[3]), x=slice(bounds[0], bounds[2]))
             intensity = np.square(np.abs(data))
             # Gaussian filtering 200m cut-off wavelength with optional range multilooking on Sentinel-1 amplitudes
             amp_look = self.multilooking(intensity, wavelength=wavelength, coarsen=coarsen, debug=debug)
