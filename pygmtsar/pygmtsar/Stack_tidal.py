@@ -529,3 +529,84 @@ class Stack_tidal(Stack_incidence):
 #         return pd.DataFrame(np.asarray(outs).reshape(-1,5),
 #                             columns=['lon', 'lat', 'dx', 'dy', 'dz'],
 #                             index=np.repeat(dates, len(coords)))
+
+    def plot_tidal(self, data=None, caption='Tidal Displacement Amplitude, [mm]', cmap='turbo', cols=4, size=4, nbins=5, aspect=0.8, y=1.05):
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import xarray as xr
+    
+        if data is None:
+            data = self.get_tidal()
+    
+        # calculate displacement amplitude
+        data = np.sqrt(data.dx**2 + data.dy**2 + data.dz**2)
+    
+        # Create a new figure with subplots
+        fig, axes = plt.subplots(
+            nrows=int(np.ceil(data.date.size / cols)),
+            ncols=cols,
+            figsize=(cols * size, int(np.ceil(data.date.size / cols)) * size * aspect)
+        )
+        axes = axes.flatten()
+    
+        for i, date in enumerate(data.date.values):
+            # Select the data for the specific date
+            date_data = data.sel(date=date)
+    
+            im = date_data.plot.imshow(
+                ax=axes[i],
+                cmap=cmap,
+                add_colorbar=False
+            )
+            axes[i].set_title(str(date)[:10])
+            axes[i].set_xlabel('Range')
+            axes[i].set_ylabel('Azimuth')
+            # Add colorbar for each subplot
+            fig.colorbar(im, ax=axes[i])
+    
+        # Hide any remaining empty axes
+        for j in range(len(data.date.values), len(axes)):
+            axes[j].set_visible(False)
+    
+        fig.suptitle(caption, y=y)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_tidal_los_rad(self, data=None, caption='Tidal Phase, [rad]', cmap='turbo', cols=4, size=4, nbins=5, aspect=0.8, y=1.05):
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import xarray as xr
+    
+        if data is None:
+            data = self.tidal_los_rad()
+    
+        # Create a new figure with subplots
+        fig, axes = plt.subplots(
+            nrows=int(np.ceil(data.pair.size / cols)),
+            ncols=cols,
+            figsize=(cols * size, int(np.ceil(data.pair.size / cols)) * size * aspect)
+        )
+        axes = axes.flatten()
+    
+        for i, date in enumerate(data.pair.values):
+            # Select the data for the specific date
+            date_data = data.sel(pair=date)
+    
+            im = date_data.plot.imshow(
+                ax=axes[i],
+                cmap=cmap,
+                add_colorbar=False
+            )
+            axes[i].set_title(str(date)[:10])
+            axes[i].set_xlabel('Range')
+            axes[i].set_ylabel('Azimuth')
+            # Add colorbar for each subplot
+            fig.colorbar(im, ax=axes[i])
+    
+        # Hide any remaining empty axes
+        for j in range(len(data.pair.values), len(axes)):
+            axes[j].set_visible(False)
+    
+        fig.suptitle(caption, y=y)
+        plt.tight_layout()
+        plt.show()
