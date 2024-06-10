@@ -20,7 +20,7 @@ class Stack_stl(Stack_tidal):
         #velocity = nanoseconds*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1)/years
         nanoseconds_per_year = 365.25*24*60*60*1e9
         # calculate slope per year
-        velocity = nanoseconds_per_year*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1).rename('trend')
+        velocity = nanoseconds_per_year*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1).astype(np.float32).rename('trend')
         return velocity
 
     def trend(self, data, deg=1):
