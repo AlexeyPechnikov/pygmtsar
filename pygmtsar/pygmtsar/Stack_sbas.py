@@ -253,6 +253,10 @@ class Stack_sbas(Stack_detrend):
         def lstq_block(ys, xs):
             # 3D array
             data_block = data.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
+            if np.isnan(data_block).all():
+                # do not process an empty block
+                shape = (matrix.shape[1], *data_block.shape[:2])
+                return np.full(shape, np.nan, dtype=np.float32)
             # weights can be defined by multiple ways or be set to None
             if isinstance(weight, xr.DataArray):
                 # 3D array
