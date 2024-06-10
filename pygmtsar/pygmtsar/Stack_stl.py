@@ -13,6 +13,7 @@ from .tqdm_dask import tqdm_dask
 class Stack_stl(Stack_tidal):
 
     def velocity(self, data):
+        import numpy as np
         print('NOTE: Velocity calculation is changed to use least squares linear fit and can produce different results.')
         #years = ((data.date.max() - data.date.min()).dt.days/365.25).item()
         #nanoseconds = (data.date.max().astype(int) - data.date.min().astype(int)).item()
