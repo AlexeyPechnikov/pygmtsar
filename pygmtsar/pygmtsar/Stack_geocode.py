@@ -99,10 +99,12 @@ class Stack_geocode(Stack_sbas):
             else:
                 z = z_offset
             coords_ll = np.column_stack([coords[:,0], coords[:,1], ele.values + z])
-            #print (coords_ll)
-            coords_ra = prm.SAT_llt2rat(coords_ll)
-            coords_ra = coords_ra[:,:2] if len(coords_ll)>1 else [coords_ra[:2]]
-            #print (coords_ra)
+            #print ('coords_ll', coords_ll)
+            coords_ra = prm.SAT_llt2rat(coords_ll).reshape(-1, 5)
+            #print ('coords_ra1', coords_ra)
+            #coords_ra = coords_ra[:,:2] if len(coords_ll)>1 else [coords_ra[:2]]
+            coords_ra = coords_ra[:,:2]
+            #print ('coords_ra2', coords_ra)
             return coords_ra
     
         geoms = []
@@ -111,7 +113,11 @@ class Stack_geocode(Stack_sbas):
             geom_type = geom.type
             if geom_type == 'LineString':
                 coords = np.asarray(geom.coords[:])
-                geom = LineString(coords_transform(coords))
+                coords = coords_transform(coords)
+                if coords.shape[0] <= 1:
+                    geom = LineString([])
+                else:
+                    geom = LineString(coords)
             elif geom_type == 'Point':
                 coords = np.asarray(geom.coords[:])
                 geom = Point(coords_transform(coords))
