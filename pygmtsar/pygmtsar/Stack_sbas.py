@@ -943,7 +943,9 @@ class Stack_sbas(Stack_detrend):
             error_pairs.append(error_pair**2)
         # form 3D stack
         error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': pairs.pair})
-        return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs))
+        if weight is not None:
+            return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs)).rename('rmse')
+        return np.sqrt((error).sum('pair') / len(pairs)).rename('rmse')
 
     def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]',
                           quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, **kwargs):
