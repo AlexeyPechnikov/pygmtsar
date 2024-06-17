@@ -95,25 +95,22 @@ class Stack(Stack_export):
 
     @staticmethod
     def plot_POI(geometry=None, **kwargs):
+        import geopandas as gpd
         import matplotlib.pyplot as plt
+
         if 'POI' not in kwargs:
             return
         geometry = kwargs['POI']
         if geometry is None:
             return
-        if 'marker' not in kwargs:
-            marker = '*'
-        else:
-            marker = kwargs['marker']
-        if 'marker_size' not in kwargs:
-            marker_size = 100
-        else:
-            marker_size = kwargs['marker_size']
-        if 'marker_color' not in kwargs:
-            marker_color = 'red'
-        else:
-            marker_color = kwargs['marker_color']
-        geometry.plot(ax=plt.gca(), marker=marker, markersize=marker_size, color=marker_color)
+
+        attrs = {'marker': '*', 'marker_size': 100, 'marker_color': 'red', 'marker_label': None}
+        attrs.update({key: kwargs.get(key, attrs[key]) for key in attrs})
+
+        geometry.plot(ax=plt.gca(), marker=attrs['marker'], markersize=attrs['marker_size'], color=attrs['marker_color'])
+        if isinstance(geometry, gpd.GeoDataFrame) and attrs['marker_label'] is not None:
+            for rec in geometry.itertuples():
+                plt.gca().annotate(getattr(rec, attrs['marker_label']), xy=(rec.geometry.x, rec.geometry.y), xytext=(3, 3), textcoords="offset points")
 
     def plot_scenes(self, dem='auto', image=None, alpha=None, caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
