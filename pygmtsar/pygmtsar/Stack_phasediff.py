@@ -13,8 +13,8 @@ from .PRM import PRM
 
 class Stack_phasediff(Stack_topo):
 
-    def compute_interferogram(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
-                              psize=None, coarsen=None, queue=None, timeout=None,
+    def compute_interferogram(self, pairs, name, resolution=None, weight=None, phase=None, method=None,
+                              wavelength=None, psize=None, coarsen=None, queue=None, timeout=None,
                               skip_exist=False, joblib_backend=None, debug=False):
         import xarray as xr
         import numpy as np
@@ -69,7 +69,7 @@ class Stack_phasediff(Stack_topo):
             amp_look = self.multilooking(intensity, wavelength=wavelength, coarsen=coarsen, debug=debug)
             del intensity
             # calculate phase difference with topography correction
-            phasediff = self.phasediff(chunk, data, phase=phase, joblib_backend=joblib_backend, debug=debug)
+            phasediff = self.phasediff(chunk, data, phase=phase, method=method, joblib_backend=joblib_backend, debug=debug)
             del data
             # Gaussian filtering 200m cut-off wavelength with optional range multilooking
             phasediff_look = self.multilooking(phasediff, weight=weight,
@@ -109,20 +109,20 @@ class Stack_phasediff(Stack_topo):
 
     # single-look interferogram processing has a limited set of arguments
     # resolution and coarsen are not applicable here
-    def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, psize=None,
+    def compute_interferogram_singlelook(self, pairs, name, weight=None, phase=None, wavelength=None, method='nearest', psize=None,
                                          queue=16, timeout=None,
                                          skip_exist=False, joblib_backend=None, debug=False):
-        self.compute_interferogram(pairs, name, weight=weight, phase=phase, wavelength=wavelength,
+        self.compute_interferogram(pairs, name, weight=weight, phase=phase, method=method, wavelength=wavelength,
                                    psize=psize, queue=queue, timeout=timeout,
                                    skip_exist=skip_exist, joblib_backend=joblib_backend, debug=debug)
 
     # Goldstein filter requires square grid cells means 1:4 range multilooking.
     # For multilooking interferogram we can use square grid always using coarsen = (1,4)
-    def compute_interferogram_multilook(self, pairs, name, resolution=None, weight=None, phase=None, wavelength=None,
-                                        psize=None, coarsen=(1,4), queue=16, timeout=None,
+    def compute_interferogram_multilook(self, pairs, name, resolution=None, weight=None, phase=None, method='nearest',
+                                        wavelength=None, psize=None, coarsen=(1,4), queue=16, timeout=None,
                                         skip_exist=False, joblib_backend=None, debug=False):
-        self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase, wavelength=wavelength,
-                                   psize=psize, coarsen=coarsen, queue=queue, timeout=timeout,
+        self.compute_interferogram(pairs, name, resolution=resolution, weight=weight, phase=phase, method=method,
+                                   wavelength=wavelength, psize=psize, coarsen=coarsen, queue=queue, timeout=timeout,
                                    skip_exist=skip_exist, joblib_backend=joblib_backend, debug=debug)
 
     @staticmethod
