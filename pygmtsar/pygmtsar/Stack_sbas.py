@@ -422,14 +422,14 @@ class Stack_sbas(Stack_detrend):
                          duration=(df['rep'] - df['ref']).dt.days,
                          rel=np.datetime64('nat'))
 
-    def sbas_pairs_extend(self, baseline_pairs):
+    def sbas_pairs_extend(self, pairs):
         import pandas as pd
         import numpy as np
 
-        refreps = [(key[0], key[1]) for key in baseline_pairs[['ref', 'rep']].values]
-        pairs = []
-        for _, row1 in baseline_pairs.iterrows():
-            for _, row2 in baseline_pairs.iterrows():
+        refreps = [(key[0], key[1]) for key in pairs[['ref', 'rep']].values]
+        pairs_new = []
+        for _, row1 in pairs.iterrows():
+            for _, row2 in pairs.iterrows():
                 if row1['ref'] >= row2['rep']:
                     continue
                 pair = (row1['ref'], row2['rep'], row1['rep'], row1['ref_baseline'], row2['rep_baseline'])
@@ -437,9 +437,9 @@ class Stack_sbas(Stack_detrend):
                 if key in refreps:
                     continue
                 refreps.append(key)
-                pairs.append(pair)
-        df = pd.DataFrame(pairs, columns=['ref', 'rep', 'rel', 'ref_baseline', 'rep_baseline'])
-        return pd.concat([baseline_pairs.assign(rel=np.datetime64('nat')),
+                pairs_new.append(pair)
+        df = pd.DataFrame(pairs_new, columns=['ref', 'rep', 'rel', 'ref_baseline', 'rep_baseline'])
+        return pd.concat([pairs.assign(rel=np.datetime64('nat')),
                           df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
                                     baseline=df.rep_baseline - df.ref_baseline,
                                     duration=(df['rep'] - df['ref']).dt.days)]).sort_values(['ref', 'rep'])
@@ -477,14 +477,14 @@ class Stack_sbas(Stack_detrend):
     def sbas_pairs_covering_correlation(self, pairs, count, column='corr'):
         return self.sbas_pairs_covering(pairs, column, count, 'max')
 
-    def sbas_pairs_extend(self, baseline_pairs):
+    def sbas_pairs_extend(self, pairs):
         import pandas as pd
         import numpy as np
 
-        refreps = [(key[0], key[1]) for key in baseline_pairs[['ref', 'rep']].values]
-        pairs = []
-        for _, row1 in baseline_pairs.iterrows():
-            for _, row2 in baseline_pairs.iterrows():
+        refreps = [(key[0], key[1]) for key in pairs[['ref', 'rep']].values]
+        pairs_new = []
+        for _, row1 in pairs.iterrows():
+            for _, row2 in pairs.iterrows():
                 if row1['ref'] >= row2['rep']:
                     continue
                 if row1['rep'] != row2['ref']:
@@ -494,21 +494,19 @@ class Stack_sbas(Stack_detrend):
                 if key in refreps:
                     continue
                 refreps.append(key)
-                pairs.append(pair)
-        df = pd.DataFrame(pairs, columns=['ref', 'rep', 'rel', 'ref_baseline', 'rep_baseline'])
-        return pd.concat([baseline_pairs.assign(rel=np.datetime64('nat')),
+                pairs_new.append(pair)
+        df = pd.DataFrame(pairs_new, columns=['ref', 'rep', 'rel', 'ref_baseline', 'rep_baseline'])
+        return pd.concat([pairs.assign(rel=np.datetime64('nat')),
                           df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
                                     baseline=df.rep_baseline - df.ref_baseline,
                                     duration=(df['rep'] - df['ref']).dt.days)]).sort_values(['ref', 'rep'])
 
-    def correlation_extend(self, corr, baseline_pairs):
+    def correlation_extend(self, corr, pairs):
         import xarray as xr
         import pandas as pd
     
         corr_rels = []
-        for (ref, rel, rep) in zip(baseline_pairs.ref,
-                                   baseline_pairs.rel,
-                                   baseline_pairs.rep):
+        for (ref, rel, rep) in zip(pairs.ref, pairs.rel, pairs.rep):
             #print (ref, rel, rep)
             if pd.isnull(rel):
                 #print (corr.sel(pair=f'{ref} {rep}'))
@@ -523,14 +521,12 @@ class Stack_sbas(Stack_detrend):
                 del corr_ref, corr_rep, corr_rel
         return xr.concat(corr_rels, dim='pair')
 
-    def interferogram_extend(self, phase, baseline_pairs, wrap=True):
+    def interferogram_extend(self, phase, pairs, wrap=True):
         import xarray as xr
         import pandas as pd
     
         phase_rels = []
-        for (ref, rel, rep) in zip(baseline_pairs.ref,
-                                   baseline_pairs.rel,
-                                   baseline_pairs.rep):
+        for (ref, rel, rep) in zip(pairs.ref, pairs.rel, pairs.rep):
             #print (ref, rel, rep)
             if pd.isnull(rel):
                 #print (phase.sel(pair=f'{ref} {rep}'))
@@ -554,24 +550,24 @@ class Stack_sbas(Stack_detrend):
         import pandas as pd
         import numpy as np
 
-        baseline_pairs = self.get_pairs(data)
+        pairs = self.get_pairs(data)
     
-        matrix = self.lstsq_matrix(baseline_pairs).max(axis=0)
+        matrix = self.lstsq_matrix(pairs).max(axis=0)
         #print ('matrix', matrix)
-        dates = self.get_pairs(baseline_pairs, dates=True)[1]
+        dates = self.get_pairs(pairs, dates=True)[1]
         #print ('dates', dates)
         # ignore the first date
-        pairs = []
+        pairs_new = []
         for date in dates[matrix==0][1:]:
             date_idx = np.where(dates==date)[0][0]
             #print ('np.where(dates==date)', np.where(dates==date))
             date_prev = dates[date_idx-1]
             #print (date_prev, '=>', date)
-            pairs.append([pd.Timestamp(date_prev), pd.Timestamp(date)])
-        if pairs == []:
+            pairs_new.append([pd.Timestamp(date_prev), pd.Timestamp(date)])
+        if pairs_new == []:
             return
     
-        df = pd.DataFrame(pairs, columns=['ref', 'rep'])
+        df = pd.DataFrame(pairs_new, columns=['ref', 'rep'])
         return df.assign(pair=[f'{ref} {rep}' for ref, rep in zip(df['ref'].dt.date, df['rep'].dt.date)],
                                     duration=(df['rep'] - df['ref']).dt.days).sort_values(['ref', 'rep'])
 
@@ -611,11 +607,11 @@ class Stack_sbas(Stack_detrend):
             corrs.append(empty.assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep))
         return xr.concat(corrs, dim='pair')
 
-    def baseline_plot(self, baseline_pairs):
+    def baseline_plot(self, pairs):
         print ('NOTE: this function is deprecated, use instead Stack.plot_baseline()')
-        self.plot_baseline(baseline_pairs)
+        self.plot_baseline(pairs)
         
-    def plot_baseline(self, baseline_pairs):
+    def plot_baseline(self, pairs):
         import numpy as np
         import pandas as pd
         import seaborn as sns
@@ -625,19 +621,19 @@ class Stack_sbas(Stack_detrend):
         plt.figure()
 
         # plot dates/baselines marks
-        df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', 'ref_baseline']],
-                                     baseline_pairs[['rep', 'rep_baseline']]]),
+        df = pd.DataFrame(np.concatenate([pairs[['ref', 'ref_baseline']],
+                                     pairs[['rep', 'rep_baseline']]]),
                     columns=['date', 'baseline']).drop_duplicates()
         sns.scatterplot(x='date', y='baseline', data=df, marker='o', color='b', s=40)
         # plot reference date on top
         sns.scatterplot(x='date', y='baseline', data=df[df.date==self.reference], marker='o', color='r', s=40, zorder=1000)
 
         # plot pairs
-        for _, row in baseline_pairs.iterrows():
+        for _, row in pairs.iterrows():
             plt.plot([row['ref'], row['rep']], [row['ref_baseline'], row['rep_baseline']],
                      c='#30a2da' if pd.isnull(row['rel']) else '#2dda30', lw=0.5)
         # highlight the longest pair
-        # for _, row in self.get_pairs(baseline_pairs).sort_values('duration', ascending=False).head(1).iterrows():
+        # for _, row in self.get_pairs(pairs).sort_values('duration', ascending=False).head(1).iterrows():
         #     plt.plot([row['ref'], row['rep']], [row['ref_baseline'], row['rep_baseline']], c='red', lw=1)
 
         # Create annotations with adjust_text
@@ -652,13 +648,13 @@ class Stack_sbas(Stack_detrend):
         plt.title('Baseline')
         plt.grid()
 
-    def plot_baseline_duration(self, baseline_pairs, interval_days=6, caption='Durations Histogram',
+    def plot_baseline_duration(self, pairs, interval_days=6, caption='Durations Histogram',
                                column=None, ascending=None, cmap='turbo', vmin=None, vmax=None):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
 
-        max_duration = baseline_pairs.duration.max()
+        max_duration = pairs.duration.max()
         bins = np.arange(interval_days / 2, max_duration + interval_days, interval_days)
         bin_midpoints = (bins[:-1] + bins[1:]) / 2
         #print ('bins', len(bins), bins)
@@ -667,8 +663,8 @@ class Stack_sbas(Stack_detrend):
 
         if column is not None and ascending is None:
             # Calculate histogram with average column values
-            counts, edges = np.histogram(baseline_pairs.duration, bins=bins)
-            sums, _ = np.histogram(baseline_pairs.duration, bins=bins, weights=baseline_pairs[column])
+            counts, edges = np.histogram(pairs.duration, bins=bins)
+            sums, _ = np.histogram(pairs.duration, bins=bins, weights=pairs[column])
             averages = sums / counts
 
             # Normalize the average values for coloring
@@ -683,12 +679,12 @@ class Stack_sbas(Stack_detrend):
 
             plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, label=f'Average {column}')
         elif column is not None:
-            norm = mcolors.Normalize(vmin=vmin if vmin is not None else baseline_pairs[column].min(),
-                                     vmax=vmax if vmax is not None else baseline_pairs[column].max())
+            norm = mcolors.Normalize(vmin=vmin if vmin is not None else pairs[column].min(),
+                                     vmax=vmax if vmax is not None else pairs[column].max())
             cmap = plt.colormaps[cmap]
 
             for i in range(len(bins) - 1):
-                bin_data = baseline_pairs[(baseline_pairs.duration >= bins[i]) & (baseline_pairs.duration < bins[i + 1])]
+                bin_data = pairs[(pairs.duration >= bins[i]) & (pairs.duration < bins[i + 1])]
                 bin_data = bin_data.sort_values(by=column, ascending=ascending)
                 #print (i, bin_data[column].mean())
 
@@ -702,7 +698,7 @@ class Stack_sbas(Stack_detrend):
 
             plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, label=f'{column} value')
         else:
-            ax.hist(baseline_pairs.duration, bins=bins, color='skyblue', edgecolor='black', align='mid', zorder=3)
+            ax.hist(pairs.duration, bins=bins, color='skyblue', edgecolor='black', align='mid', zorder=3)
 
         ax.set_xlabel('Duration [days]')
         ax.set_ylabel('Count')
@@ -714,7 +710,7 @@ class Stack_sbas(Stack_detrend):
             label.set_horizontalalignment('center')
         ax.grid(True, color='lightgrey', zorder=0)
 
-    def plot_baseline_attribute(self, baseline_pairs, pairs_best=None, column=None, caption='Baseline Attribute'):
+    def plot_baseline_attribute(self, pairs, pairs_best=None, column=None, caption='Baseline Attribute'):
         import numpy as np
         import pandas as pd
         import seaborn as sns
@@ -725,7 +721,7 @@ class Stack_sbas(Stack_detrend):
         plt.figure()
 
         # plot dates/baselines marks
-        df = pd.DataFrame(np.concatenate([baseline_pairs[['ref', column]], baseline_pairs[['rep', column]]]),
+        df = pd.DataFrame(np.concatenate([pairs[['ref', column]], pairs[['rep', column]]]),
                                          columns=['date', column]).drop_duplicates()
         sns.scatterplot(x='date', y=column, data=df, marker='o', color='r', s=10, label='All Pairs')
 
@@ -735,7 +731,7 @@ class Stack_sbas(Stack_detrend):
             sns.scatterplot(x='date', y=column, data=df_best, marker='o', color='g', s=40, label='Selected Pairs')
 
         # plot pairs
-        for _, row in baseline_pairs.iterrows():
+        for _, row in pairs.iterrows():
             plt.plot([row['ref'], row['rep']], [row[column], row[column]], c='r', lw=0.5)
 
         if pairs_best is not None:
@@ -748,13 +744,13 @@ class Stack_sbas(Stack_detrend):
         plt.title(caption, y=1.2)
         plt.grid()
 
-    def plot_baseline_correlation(self, baseline_pairs, pairs_best=None, column='corr'):
+    def plot_baseline_correlation(self, pairs, pairs_best=None, column='corr'):
         #print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
-        self.plot_baseline_attribute(baseline_pairs, pairs_best, column=column, caption='Baseline Correlation')
+        self.plot_baseline_attribute(pairs, pairs_best, column=column, caption='Baseline Correlation')
 
-    def plot_baseline_deviation(self, baseline_pairs, pairs_best=None, column='stddev'):
+    def plot_baseline_deviation(self, pairs, pairs_best=None, column='stddev'):
         #print ('NOTE: this function is deprecated, use instead Stack.plot_baseline_attribute()')
-        self.plot_baseline_attribute(baseline_pairs, pairs_best, column=column, caption='Baseline Deviation')
+        self.plot_baseline_attribute(pairs, pairs_best, column=column, caption='Baseline Deviation')
 
     def plot_baseline_displacement(self, phase, corr=None, caption='LSQ and STL Displacement Models, [rad]', cmap='turbo',
                                    displacement=True, unwrap=True,
