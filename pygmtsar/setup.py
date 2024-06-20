@@ -35,7 +35,7 @@ setup(
     description='PyGMTSAR (Python GMTSAR): Powerful and Accessible Satellite Interferometry',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/AlexeyPechnikov/gmtsar',
+    url='https://github.com/AlexeyPechnikov/pygmtsar',
     author='Alexey Pechnikov',
     author_email='alexey@pechnikov.dev',
     license='BSD-3-Clause',
@@ -80,6 +80,7 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
+        'Natural Language :: English',
         'License :: OSI Approved :: BSD License',
         'Operating System :: POSIX',
         'Operating System :: POSIX :: Linux',
@@ -88,5 +89,6 @@ setup(
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11'
     ],
-    python_requires='>=3.10'
+    python_requires='>=3.10',
+    keywords='satellite interferometry, InSAR, remote sensing, geospatial analysis, Sentinel-1, SBAS, PSI'
 )
