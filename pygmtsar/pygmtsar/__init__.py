@@ -7,7 +7,7 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-__version__ = '2024.6.3'
+__version__ = '2024.6.3.post7'
 
 # unified progress indicators
 from .tqdm_joblib import tqdm_joblib
@@ -31,3 +31,5 @@ from .Tiles import Tiles
 from .XYZTiles import XYZTiles
 # morphology and other helper functions
 from .utils import utils
+# managing any type of object instances
+from .MultiInstanceManager import MultiInstanceManager
