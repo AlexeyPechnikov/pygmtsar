@@ -177,7 +177,7 @@ class ASF(tqdm_joblib):
         print ('NOTE: Function is deprecated. Use ASF.download_scenes() and ASF.download_orbits().')
 
     # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
-    def download_bursts(self, basedir, bursts, session=None, n_jobs=4, skip_exist=True):
+    def download_bursts(self, basedir, bursts, session=None, n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
         import rioxarray as rio
         import xmltodict
         import pandas as pd
@@ -271,7 +271,7 @@ class ASF(tqdm_joblib):
     
             # download tif
             # properties['bytes'] is not an accurate file size but it looks about 40 kB smaller
-            if os.path.exists(tif_file) and os.path.getsize(tif_file) >= properties['bytes']:
+            if os.path.exists(tif_file) and os.path.getsize(tif_file) >= int(properties['bytes']):
                 #print (f'pass {tif_file}')
                 pass
             else:
@@ -319,10 +319,10 @@ class ASF(tqdm_joblib):
                 #print ('startTime', startTime)
                 stopTime  = properties['stopTime']
                 #print ('stopTime', stopTime)
-                startTime_dt_buffer = datetime.strptime(startTime, '%Y-%m-%dT%H:%M:%S.%fZ') + timedelta(seconds=-3)
-                startTime_buffer = startTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S.%f') + 'Z'
-                stopTime_dt_buffer = datetime.strptime(stopTime, '%Y-%m-%dT%H:%M:%S.%fZ') + timedelta(seconds=0)
-                stopTime_buffer = stopTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S.%f') + 'Z'
+                startTime_dt_buffer = datetime.strptime(startTime, '%Y-%m-%dT%H:%M:%SZ') + timedelta(seconds=-3)
+                startTime_buffer = startTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
+                stopTime_dt_buffer = datetime.strptime(stopTime, '%Y-%m-%dT%H:%M:%SZ') + timedelta(seconds=0)
+                stopTime_buffer = stopTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
                 #print ('stopTime_buffer', stopTime_buffer)
                 gcps = []
                 for gcp in geoloc['geolocationGridPoint']:
@@ -346,9 +346,13 @@ class ASF(tqdm_joblib):
             results = asf_search.granule_search(bursts_missed)
             pbar.update(1)
     
+        if n_jobs is None or debug == True:
+            print ('Note: sequential joblib processing is applied when "n_jobs" is None or "debug" is True.')
+            joblib_backend = 'sequential'
+
         # download bursts
         with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 Bursts', total=len(bursts_missed))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_burst)\
+            joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(download_burst)\
                                     (result, basedir, session) for result in results)
     
         # parse processed bursts and convert to dataframe
