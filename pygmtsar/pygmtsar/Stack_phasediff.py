@@ -29,6 +29,9 @@ class Stack_phasediff(Stack_topo):
         # define anti-aliasing filter for the specified output resolution
         if wavelength is None:
             wavelength = resolution
+
+        if isinstance(weight, str) and weight == 'auto':
+            weight = self.psfunction()
     
         if queue is None:
             queue = self.netcdf_queue
