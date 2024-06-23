@@ -27,7 +27,7 @@ class Tiles(datagrid, tqdm_joblib):
         'DNT': '1',
     }
     
-    def _download_tile(self, base_url, path_id, tile_id, archive, filetype, product, lon, lat, debug=False):
+    def _download_tile(self, base_url, path_id, tile_id, file_id, archive, filetype, product, lon, lat, debug=False):
         """
         Download gzipped NetCDF tiles.
         """
@@ -36,6 +36,7 @@ class Tiles(datagrid, tqdm_joblib):
         import requests
         import os
         import tempfile
+        import zipfile
         import gzip
         import io
 
@@ -46,19 +47,25 @@ class Tiles(datagrid, tqdm_joblib):
             resolution = '90'
         else:
             resolution = ''
-        SN2 = f'{"S" if lat<0 else "N"}{abs(lat):02}'
-        WE3 = f'{"W" if lon<0 else "E"}{abs(lon):03}'
+        # substitute all the allowed parameters
         params = {
             'product': product,
             'product1': product1,
             'resolution': resolution,
-            'SN2': SN2,
-            'WE3': WE3
+            # 1 degree grid
+            'SN2':    f'{"S" if lat<0 else "N"}{abs(lat):02}',
+            'SN3':    f'{"S" if lat<0 else "N"}{abs(lat):03}',
+            'WE3':    f'{"W" if lon<0 else "E"}{abs(lon):03}',
+            # 5 degree grid
+            'SN2x5': f'{"S" if lat<0 else "N"}{abs(lat) - (abs(lat) % 5):02}',
+            'SN3x5': f'{"S" if lat<0 else "N"}{abs(lat) - (abs(lat) % 5):03}',
+            'WE3x5': f'{"W" if lon<0 else "E"}{abs(lon) - (abs(lon) % 5):03}'
         }
         if debug:
             print ('DEBUG _download_tile: params', params)
         url = base_url.format(**params)
         path = path_id.format(**params)
+        file = file_id.format(**params) if file_id is not None else None
         tile = tile_id.format(**params)
         tile_url = f'{url}/{path}/{tile}'
         if archive is not None and len(archive)>0:
@@ -68,10 +75,11 @@ class Tiles(datagrid, tqdm_joblib):
         else:
             tile_filename = os.path.join(tempfile.gettempdir(), tile)
         if debug:
+            print ('DEBUG _download_tile: file', file)
             print ('DEBUG _download_tile: tile_url', tile_url)
             print ('DEBUG _download_tile: tile_filename', tile_filename)
         try:
-            if archive is not None and len(archive)>0:
+            #if archive is not None and len(archive)>0:
 #                 with requests.get(tile_url, stream=True, headers=self.headers, timeout=self.http_timeout) as response:
 #                     response.raise_for_status()
 #                     # Stream the content under the context of gzip decompression
@@ -89,7 +97,22 @@ class Tiles(datagrid, tqdm_joblib):
 #                     with gzip.GzipFile(fileobj=response.raw) as gz:
 #                         with open(tile_filename, 'wb') as f:
 #                             f.write(gz.read())
-
+            if archive is not None and archive == 'zip':
+                with requests.get(tile_url, headers=self.headers, timeout=self.http_timeout) as response:
+                    response.raise_for_status()
+                    compressed_content = io.BytesIO(response.content)
+                    with zipfile.ZipFile(compressed_content, 'r') as zip:
+                        zip_files = zip.namelist()
+                        if debug:
+                            print ('DEBUG _download_tile: zip files', zip_files)
+                        if len(zip_files) == 0:
+                            raise Exception('ERROR: Downloaded file is empty zip archive.')
+                        if file not in zip_files:
+                            raise Exception(f'ERROR: Downloaded zip archive does not includes file {file}')
+                        # extract specific file content
+                        with open(tile_filename, 'wb') as f:
+                            f.write(zip.read(file))
+            elif archive is not None and archive == 'gz':
                 with requests.get(tile_url, headers=self.headers, timeout=self.http_timeout) as response:
                     response.raise_for_status()
                     # Since we're not streaming, response.content contains the entire gzip-compressed content
@@ -138,7 +161,7 @@ class Tiles(datagrid, tqdm_joblib):
         return tile
 
     def download(self, base_url, path_id, tile_id, archive, filetype,
-                  geometry, filename=None, product='1s',
+                  geometry, file_id=None, filename=None, product='1s',
                   n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
         """
         Download and merge gzipped NetCDF tiles from a defined access point.
@@ -176,7 +199,7 @@ class Tiles(datagrid, tqdm_joblib):
 
         with self.tqdm_joblib(tqdm(desc=f'Tiles Parallel Downloading', total=(right-left+1)*(top-bottom+1))) as progress_bar:
             tile_xarrays = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._download_tile)\
-                                (base_url, path_id, tile_id, archive, filetype, product, x, y, debug)\
+                                (base_url, path_id, tile_id, file_id, archive, filetype, product, x, y, debug)\
                                 for x in range(left, right + 1) for y in range(bottom, top + 1))
 
         tile_xarrays = [tile for tile in tile_xarrays if tile is not None]
@@ -277,6 +300,31 @@ class Tiles(datagrid, tqdm_joblib):
                          n_jobs         = n_jobs,
                          debug          = debug)
 
+    # Define new method to download ALOS DEM
+    # https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2404/N025E040/N027E042.zip N027E042/ALPSMLC30_N027E042_DSM.tif
+    def download_dem_alos(self, geometry, filename=None, product='1s', skip_exist=True, n_jobs=8, debug=False):
+            """
+            Download JAXA ALOS Digital Elevation Model tiles from open JAXA storage.
+    
+            from pygmtsar import Tiles
+            Tiles().download_dem_alos(AOI, filename=DEM).plot.imshow(cmap='terrain')
+            """
+            assert product in ['1s'], f'ERROR: only product="1s" is supported for JAXA ALOS DEM.'
+            return self.download(
+                             base_url       = 'https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2404/',
+                             #base_url       = 'https://alosdem1s.pechnikov.workers.dev',
+                             path_id        = '{SN3x5}{WE3x5}',
+                             tile_id        = '{SN3}{WE3}.zip',
+                             file_id        = '{SN3}{WE3}/ALPSMLC30_{SN3}{WE3}_DSM.tif',
+                             archive        = 'zip',
+                             filetype       = 'geotif',
+                             geometry       = geometry,
+                             filename       = filename,
+                             product        = product,
+                             skip_exist     = skip_exist,
+                             n_jobs         = n_jobs,
+                             debug          = debug)
+
     def download_dem(self, geometry, filename=None, product='1s', provider='GLO', skip_exist=True, n_jobs=8, debug=False):
         """
         Downloads Copernicus or SRTM Digital Elevation Model (DEM) at 30m or 90m resolution.
@@ -290,7 +338,7 @@ class Tiles(datagrid, tqdm_joblib):
         product : str, optional
             The resolution of the DEM. Valid options are '1s' (for 30m) and '3s' (for 90m). Default is '1s'.
         provider : str, optional
-            The provider of the DEM. Valid options are 'GLO' (for Copernicus Global Land Service) and 'SRTM'. Default is 'GLO'.
+            The provider of the DEM. Valid options are 'GLO' (for Copernicus Global Land Service), 'SRTM', and 'ALOS'. Default is 'GLO'.
         skip_exist : bool, optional
             If True, skips the download if the file already exists. Default is True.
         n_jobs : int, optional
@@ -318,8 +366,10 @@ class Tiles(datagrid, tqdm_joblib):
                       skip_exist = skip_exist,
                       n_jobs     = n_jobs,
                       debug=debug)
-        assert provider in ['GLO', 'SRTM'], f'ERROR: provider name is invalid: {provider}. Expected names are "GLO", "SRTM".'
+        assert provider in ['GLO', 'SRTM', 'ALOS'], f'ERROR: provider name is invalid: {provider}. Expected names are "GLO", "SRTM", "ALOS".'
         if provider == 'SRTM':
             return self.download_dem_srtm(**kwargs)
-        if provider == 'GLO':
+        elif provider == 'GLO':
             return self.download_dem_glo(**kwargs)
+        elif provider == 'ALOS':
+            return self.download_dem_alos(**kwargs)
