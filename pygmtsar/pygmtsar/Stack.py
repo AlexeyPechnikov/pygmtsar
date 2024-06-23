@@ -78,39 +78,43 @@ class Stack(Stack_export):
 #        return (gauss_dec, matrix)
 
     @staticmethod
-    def plot_AOI(geometry=None, **kwargs):
+    def plot_AOI(geometry=None, ax='auto', **kwargs):
         import matplotlib.pyplot as plt
         if 'AOI' not in kwargs:
             return
         geometry = kwargs['AOI']
         if geometry is None:
             return
+        if isinstance(ax, str) and ax == 'auto':
+            ax = plt.gca()
         if 'boundary_color' not in kwargs:
             boundary_color = 'red'
         else:
             boundary_color = kwargs['boundary_color']
         boundaries = geometry.boundary
-        geometry[~boundaries.is_empty].boundary.plot(ax=plt.gca(), color=boundary_color)
-        geometry[boundaries.is_empty].plot(ax=plt.gca(), color=boundary_color)
-
+        geometry[~boundaries.is_empty].boundary.plot(ax=ax, color=boundary_color)
+        geometry[boundaries.is_empty].plot(ax=ax, color=boundary_color)
+    
     @staticmethod
-    def plot_POI(geometry=None, **kwargs):
+    def plot_POI(geometry=None, ax='auto', **kwargs):
         import geopandas as gpd
         import matplotlib.pyplot as plt
-
+    
         if 'POI' not in kwargs:
             return
         geometry = kwargs['POI']
         if geometry is None:
             return
-
+        if isinstance(ax, str) and ax == 'auto':
+            ax = plt.gca()
+    
         attrs = {'marker': '*', 'marker_size': 100, 'marker_color': 'red', 'marker_label': None}
         attrs.update({key: kwargs.get(key, attrs[key]) for key in attrs})
-
-        geometry.plot(ax=plt.gca(), marker=attrs['marker'], markersize=attrs['marker_size'], color=attrs['marker_color'])
+    
+        geometry.plot(ax=ax, marker=attrs['marker'], markersize=attrs['marker_size'], color=attrs['marker_color'])
         if isinstance(geometry, gpd.GeoDataFrame) and attrs['marker_label'] is not None:
             for rec in geometry.itertuples():
-                plt.gca().annotate(getattr(rec, attrs['marker_label']), xy=(rec.geometry.x, rec.geometry.y), xytext=(3, 3), textcoords="offset points")
+                ax.annotate(getattr(rec, attrs['marker_label']), xy=(rec.geometry.x, rec.geometry.y), xytext=(3, 3), textcoords="offset points")
 
     def plot_scenes(self, dem='auto', image=None, alpha=None, caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
