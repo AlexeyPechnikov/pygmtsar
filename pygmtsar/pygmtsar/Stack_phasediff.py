@@ -867,7 +867,7 @@ class Stack_phasediff(Stack_topo):
         plt.title(caption)
 
     def plot_phases(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
-                    quantile=None, vmin=None, vmax=None, symmetrical=False):
+                    quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -892,6 +892,9 @@ class Stack_phasediff(Stack_topo):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
+        
+        self.plots_AOI(fg, **kwargs)
+        self.plots_POI(fg, **kwargs)
 
     def plot_interferogram(self, data, caption='Phase, [rad]', cmap='gist_rainbow_r', aspect=None, **kwargs):
         import numpy as np
@@ -905,7 +908,7 @@ class Stack_phasediff(Stack_topo):
             plt.gca().set_aspect(aspect)
         plt.title(caption)
 
-    def plot_interferograms(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05):
+    def plot_interferograms(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -918,6 +921,9 @@ class Stack_phasediff(Stack_topo):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
+        
+        self.plots_AOI(fg, **kwargs)
+        self.plots_POI(fg, **kwargs)
 
     def plot_correlation(self, data, caption='Correlation', cmap='gray', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
@@ -930,7 +936,7 @@ class Stack_phasediff(Stack_topo):
             plt.gca().set_aspect(aspect)
         plt.title(caption)
 
-    def plot_correlations(self, data, caption='Correlation', cmap='auto', cols=4, size=4, nbins=5, aspect=1.2, y=1.05):
+    def plot_correlations(self, data, caption='Correlation', cmap='auto', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, **kwargs):
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
 
@@ -949,8 +955,11 @@ class Stack_phasediff(Stack_topo):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
+        
+        self.plots_AOI(fg, **kwargs)
+        self.plots_POI(fg, **kwargs)
 
-    def plot_correlation_stack(self, corr_stack, threshold=None, caption='Correlation Stack', bins=100, cmap='auto'):
+    def plot_correlation_stack(self, data, threshold=None, caption='Correlation Stack', bins=100, cmap='auto'):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
@@ -961,17 +970,17 @@ class Stack_phasediff(Stack_topo):
                 colors=['black', 'whitesmoke']
             )
     
-        data = corr_stack.values.flatten()
+        data_flatten = data.values.ravel()
     
         fig, axs = plt.subplots(1, 2)
     
         ax2 = axs[0].twinx()
-        axs[0].hist(data, range=(0, 1), bins=bins, density=False, cumulative=False, color='gray', edgecolor='black', alpha=0.5)
-        ax2.hist(data, range=(0, 1), bins=bins, density=False, cumulative=True, color='orange', edgecolor='black', alpha=0.25)
+        axs[0].hist(data_flatten, range=(0, 1), bins=bins, density=False, cumulative=False, color='gray', edgecolor='black', alpha=0.5)
+        ax2.hist(data_flatten, range=(0, 1), bins=bins, density=False, cumulative=True, color='orange', edgecolor='black', alpha=0.25)
     
-        mean_value = np.nanmean(data)
+        mean_value = np.nanmean(data_flatten)
         axs[0].axvline(mean_value, color='b', label=f'Average {mean_value:0.3f}')
-        median_value = np.nanmedian(data)
+        median_value = np.nanmedian(data_flatten)
         axs[0].axvline(median_value, color='g', label=f'Median {median_value:0.3f}')
         axs[0].set_xlim([0, 1])
         axs[0].grid()
@@ -981,11 +990,11 @@ class Stack_phasediff(Stack_topo):
     
         axs[0].set_title('Histogram')
         if threshold is not None:
-            corr_stack.where(corr_stack > threshold).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
+            data.where(data > threshold).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
             axs[1].set_title(f'Threshold = {threshold:0.3f}')
             axs[0].axvline(threshold, linestyle='dashed', color='black', label=f'Threshold {threshold:0.3f}')
         else:
-            corr_stack.where(corr_stack).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
+            data.where(data).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
     
         axs[0].legend()
         plt.suptitle(caption)
