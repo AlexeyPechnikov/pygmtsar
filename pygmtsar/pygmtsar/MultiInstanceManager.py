@@ -34,30 +34,21 @@ class MultiInstanceManager:
     def __exit__(self, exc_type, exc_value, traceback):
         self.context_params = {}
 
-    def apply(self, **kwargs):
+    def set_context(self, **kwargs):
         """Prepare specific attributes or arguments for each instance."""
         # import collections.abc to check for iterable
         import collections.abc
         for key, value in kwargs.items():
-            # Check if the value is an iterable (but not a string)
             if isinstance(value, collections.abc.Iterable) and not isinstance(value, (str, bytes)):
                 value_list = list(value)
                 if len(value_list) != len(self.instances):
-                    raise ValueError(f"Each key in apply must have a list of values equal to the number of instances")
+                    raise ValueError(f"Expected a list of {len(self.instances)} values for '{key}', but got {len(value_list)}")
                 self.context_params[key] = value_list
             else:
-                raise ValueError("Non-iterable or incorrect number of elements provided")
+                raise ValueError(f"Provided value for '{key}' is not an appropriate iterable")
         return self
 
-#     def lambda_(self, func):
-#         results = []
-#         for instance in self.instances:
-#             instance_args = {k: v[self.instances.index(instance)] for k, v in self.context_params.items()}
-#             # Provide the instance directly to the function
-#             results.append(func(instance, **instance_args))
-#         return results
-
-    def lambda_(self, func):
+    def run_callable(self, func):
         """
         Execute a lambda function or any callable across all managed instances, 
         passing each instance and its context-specific arguments to the callable.
@@ -76,8 +67,8 @@ class MultiInstanceManager:
     
         Example:
             # Assuming 'func' is a function defined to operate on an instance 'inst' with additional arguments
-            with sbas.apply(arg1=value1, arg2=value2):
-                results = sbas.lambda_(lambda inst, arg1, arg2: inst.custom_method(arg1, arg2))
+            with sbas.set_context(arg1=value1, arg2=value2):
+                results = sbas.run_callable(lambda inst, arg1, arg2: inst.custom_method(arg1, arg2))
     
         Note:
             The function passed to this method should be capable of handling the specific attributes
@@ -87,25 +78,10 @@ class MultiInstanceManager:
         results = []
         for instance in self.instances:
             instance_args = {k: v[self.instances.index(instance)] for k, v in self.context_params.items()}
-            # Provide the instance directly to the function
             results.append(func(instance, **instance_args))
         return results
 
-#     def method(self, method_name, **method_args):
-#         """
-#         with sbas.apply(da=psf):
-#             psf = sbas.method('conncomp_main', data=xr.where(np.isfinite(da), 1, 0).chunk(-1))
-#         """
-#         results = []
-#         for instance in self.instances:
-#             # Fetch the method from the instance
-#             method = getattr(instance, method_name)
-#             # Call the method with the arguments processed for each instance
-#             processed_args = {k: v[self.instances.index(instance)] for k, v in self.context_params.items()}
-#             results.append(method(**processed_args, **method_args))
-#         return results
-
-    def execute(self, method_name, **method_args):
+    def run_method(self, method_name, **method_args):
         """
         Execute a specified method on all managed instances with given arguments,
         considering any context-specific adjustments.
@@ -119,17 +95,15 @@ class MultiInstanceManager:
 
         Example:
             with sbas.apply(da=psf):
-                psf = sbas.execute('conncomp_main', data=xr.where(np.isfinite(da), 1, 0).chunk(-1))
+                psf = sbas.run_method('conncomp_main', data=xr.where(np.isfinite(da), 1, 0).chunk(-1))
 
         Raises:
             AttributeError: If the specified method is not found on an instance.
         """
         results = []
         for instance in self.instances:
-            # Fetch the method from the instance
             if hasattr(instance, method_name):
                 method = getattr(instance, method_name)
-                # Combine context-specific and direct method arguments
                 instance_args = {**{k: v[self.instances.index(instance)] for k, v in self.context_params.items()}, **method_args}
                 results.append(method(**instance_args))
             else:
