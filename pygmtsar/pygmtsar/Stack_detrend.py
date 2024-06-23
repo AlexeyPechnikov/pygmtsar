@@ -323,6 +323,11 @@ class Stack_detrend(Stack_unwrap):
         import xarray as xr
         import pandas as pd
         import numpy as np
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
 
         pairs, dates = self.get_pairs(data, dates=True)
 
@@ -406,13 +411,13 @@ class Stack_detrend(Stack_unwrap):
 # 
 #         return out.rename(data.name)
 
-    def gaussian(self, grid, wavelength, truncate=3.0, resolution=60, debug=False):
+    def gaussian(self, data, wavelength, truncate=3.0, resolution=60, debug=False):
         """
         Apply a lazy Gaussian filter to an input 2D or 3D data array.
 
         Parameters
         ----------
-        dataarray : xarray.DataArray
+        data : xarray.DataArray
             The input data array with NaN values allowed.
         wavelength : float
             The cut-off wavelength for the Gaussian filter in meters.
@@ -454,12 +459,12 @@ class Stack_detrend(Stack_unwrap):
 #         warnings.filterwarnings('ignore', module='dask')
 #         warnings.filterwarnings('ignore', module='dask.core')
 
-        assert self.is_ra(grid), 'ERROR: the processing requires grid in radar coordinates'
-        assert np.issubdtype(grid.dtype, np.floating), 'ERROR: expected float datatype input grid'
+        assert self.is_ra(data), 'ERROR: the processing requires grid in radar coordinates'
+        assert np.issubdtype(data.dtype, np.floating), 'ERROR: expected float datatype input data'
         assert wavelength is not None, 'ERROR: Gaussian filter cut-off wavelength is not defined'
 
         # ground pixel size
-        dy, dx = self.get_spacing(grid)
+        dy, dx = self.get_spacing(data)
         # downscaling
         yscale, xscale = int(np.round(resolution/dy)), int(np.round(resolution/dx))
         # gaussian kernel
@@ -469,7 +474,7 @@ class Stack_detrend(Stack_unwrap):
             print (f'DEBUG: gaussian: ground pixel size in meters: y={dy:.1f}, x={dx:.1f}')
         if (xscale <=1 and yscale <=1) or (wavelength/resolution <= 3):
             # decimation is useless
-            return self.multilooking(grid, wavelength=wavelength, coarsen=None, debug=debug)
+            return self.multilooking(data, wavelength=wavelength, coarsen=None, debug=debug)
 
         # define filter on decimated grid, the correction value is typically small
         wavelength_dec = np.sqrt(wavelength**2 - resolution**2)
@@ -479,34 +484,34 @@ class Stack_detrend(Stack_unwrap):
             print (f'DEBUG: gaussian: filtering on {resolution}m grid using wavelength {wavelength_dec:.1f}')
 
         # find stack dim
-        stackvar = grid.dims[0] if len(grid.dims) == 3 else 'stack'
+        stackvar = data.dims[0] if len(data.dims) == 3 else 'stack'
         #print ('stackvar', stackvar)
 
         # split coordinate grid to equal chunks and rest
-        ys_blocks = np.array_split(grid.y, np.arange(0, grid.y.size, self.chunksize)[1:])
-        xs_blocks = np.array_split(grid.x, np.arange(0, grid.x.size, self.chunksize)[1:])
+        ys_blocks = np.array_split(data.y, np.arange(0, data.y.size, self.chunksize)[1:])
+        xs_blocks = np.array_split(data.x, np.arange(0, data.x.size, self.chunksize)[1:])
 
-        grid_dec = self.multilooking(grid, wavelength=resolution, coarsen=(yscale,xscale), debug=debug)
-        grid_dec_gauss = self.multilooking(grid_dec, wavelength=wavelength_dec, debug=debug)
-        del grid_dec
+        data_dec = self.multilooking(data, wavelength=resolution, coarsen=(yscale,xscale), debug=debug)
+        data_dec_gauss = self.multilooking(data_dec, wavelength=wavelength_dec, debug=debug)
+        del data_dec
     
         stack = []
-        for stackval in grid[stackvar].values if len(grid.dims) == 3 else [None]:
-            grid_in = grid_dec_gauss.sel({stackvar: stackval}) if stackval is not None else grid_dec_gauss
-            grid_out = grid_in.reindex({'y': grid.y, 'x': grid.x}, method='nearest').chunk(self.chunksize)
-            del grid_in
-            stack.append(grid_out)
-            del grid_out
+        for stackval in data[stackvar].values if len(data.dims) == 3 else [None]:
+            data_in = data_dec_gauss.sel({stackvar: stackval}) if stackval is not None else data_dec_gauss
+            data_out = data_in.reindex({'y': data.y, 'x': data.x}, method='nearest').chunk(self.chunksize)
+            del data_in
+            stack.append(data_out)
+            del data_out
 
         # wrap lazy Dask array to Xarray dataarray
-        if len(grid.dims) == 2:
+        if len(data.dims) == 2:
             out = stack[0]
         else:
             out = xr.concat(stack, dim=stackvar)
         del stack
 
-        # append source grid coordinates excluding removed y, x ones
-        for (k,v) in grid.coords.items():
+        # append source data coordinates excluding removed y, x ones
+        for (k,v) in data.coords.items():
             if k not in ['y','x']:
                 out[k] = v
 

@@ -349,13 +349,13 @@ class Stack_incidence(Stack_geocode):
         plt.ylabel('Azimuth')
         plt.title(caption)
 
-    def vertical_displacement_mm(self, unwrap):
+    def vertical_displacement_mm(self, data):
         """
         Compute vertical displacement in millimeters in radar coordinates.
 
         Parameters
         ----------
-        unwrap : xarray.DataArray or xarray.Dataset
+        data : xarray.DataArray or xarray.Dataset
             Unwrapped phase grid(s) in radar coordinates.
 
         Returns
@@ -369,19 +369,19 @@ class Stack_incidence(Stack_geocode):
         """
         import numpy as np
 
-        assert self.is_ra(unwrap), 'ERROR: unwrapped phase needs to be defined in radar coordinates'
+        assert self.is_ra(data), 'ERROR: argument data needs to be defined in radar coordinates'
 
-        los_disp = self.los_displacement_mm(unwrap)
+        los_disp = self.los_displacement_mm(data)
         incidence = self.incidence_angle().reindex_like(los_disp, method='nearest')
         return los_disp/np.cos(incidence)
 
-    def eastwest_displacement_mm(self, unwrap):
+    def eastwest_displacement_mm(self, data):
         """
         Compute East-West displacement in millimeters.
 
         Parameters
         ----------
-        unwraps : xarray.DataArray or xarray.Dataset
+        data : xarray.DataArray or xarray.Dataset
             Unwrapped phase grid(s) in geographic coordinates.
 
         Returns
@@ -404,17 +404,17 @@ class Stack_incidence(Stack_geocode):
         # this displacement is not symmetrical for the orbits due to scene geometries
         orbit = self.df.orbit.unique()[0]
         sign = 1 if orbit == 'D' else -1
-        los_disp = self.los_displacement_mm(unwrap)
+        los_disp = self.los_displacement_mm(data)
         incidence_ll = self.incidence_angle().reindex_like(los_disp, method='nearest')
         return sign * los_disp/np.sin(incidence_ll)
 
-    def elevation_m(self, unwrap, baseline):
+    def elevation_m(self, data, baseline):
         """
         Compute elevation in meters in radar coordinates.
 
         Parameters
         ----------
-        unwrap : xarray.DataArray or xarray.Dataset
+        data : xarray.DataArray or xarray.Dataset
             Unwrapped phase grid(s) in radar coordinates.
 
         Returns
@@ -429,16 +429,16 @@ class Stack_incidence(Stack_geocode):
         import xarray as xr
         import numpy as np
 
-        assert self.is_ra(unwrap), 'ERROR: unwrapped phase needs to be defined in radar coordinates'
+        assert self.is_ra(data), 'ERROR: unwrapped phase needs to be defined in radar coordinates'
 
         # expected accuracy about 0.01%
         #wavelength, slant_range = self.PRM().get('radar_wavelength','SC_height')
         wavelength, slant_range_start,slant_range_end = self.PRM().get('radar_wavelength', 'SC_height_start', 'SC_height_end')
-        slant_range = xr.DataArray(np.linspace(slant_range_start,slant_range_end, unwrap.shape[1]),
-                                   coords=[unwrap.coords['x']])
-        incidence = self.incidence_angle().reindex_like(unwrap, method='nearest')
+        slant_range = xr.DataArray(np.linspace(slant_range_start,slant_range_end, data.shape[1]),
+                                   coords=[data.coords['x']])
+        incidence = self.incidence_angle().reindex_like(data, method='nearest')
         # sign corresponding to baseline and phase signs
-        return -(wavelength*unwrap*slant_range*np.cos(incidence)/(4*np.pi*baseline)).rename('ele')
+        return -(wavelength*data*slant_range*np.cos(incidence)/(4*np.pi*baseline)).rename('ele')
 
     def compute_satellite_look_vector(self, interactive=False):
         #import dask
