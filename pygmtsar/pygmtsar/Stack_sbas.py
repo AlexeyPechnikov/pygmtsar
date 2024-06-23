@@ -969,7 +969,7 @@ class Stack_sbas(Stack_detrend):
         plt.title(caption)
 
     def plot_displacements(self, data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
-                           quantile=None, vmin=None, vmax=None, symmetrical=False):
+                           quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
@@ -994,12 +994,15 @@ class Stack_sbas(Stack_detrend):
         fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
+        
+        self.plots_AOI(fg, **kwargs)
+        self.plots_POI(fg, **kwargs)
 
     def plot_displacements_los_mm(self, data, caption='Cumulative LOS Displacement, [mm]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
-                           quantile=None, vmin=None, vmax=None, symmetrical=False):
+                           quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         self.plot_displacements(self.los_displacement_mm(data),
                                 caption=caption, cols=cols, size=size, nbins=nbins, aspect=aspect, y=y,
-                                quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical)
+                                quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical, **kwargs)
 
     def plot_velocity(self, data, caption='Velocity, [rad/year]',
                       quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, alpha=1, **kwargs):
