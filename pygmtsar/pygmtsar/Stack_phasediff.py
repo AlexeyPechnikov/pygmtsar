@@ -959,7 +959,7 @@ class Stack_phasediff(Stack_topo):
         self.plots_AOI(fg, **kwargs)
         self.plots_POI(fg, **kwargs)
 
-    def plot_correlation_stack(self, data, threshold=None, caption='Correlation Stack', bins=100, cmap='auto'):
+    def plot_correlation_stack(self, data, threshold=None, caption='Correlation Stack', bins=100, cmap='auto', **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
@@ -995,7 +995,8 @@ class Stack_phasediff(Stack_topo):
             axs[0].axvline(threshold, linestyle='dashed', color='black', label=f'Threshold {threshold:0.3f}')
         else:
             data.where(data).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
-    
         axs[0].legend()
+        self.plot_AOI(ax=axs[1], **kwargs)
+        self.plot_POI(ax=axs[1], **kwargs)
         plt.suptitle(caption)
         plt.tight_layout()
