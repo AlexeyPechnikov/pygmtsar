@@ -902,3 +902,54 @@ class Stack_detrend(Stack_unwrap):
                           for ref, rep in zip(pairs['ref'], pairs['rep'])], dim='pair')
 
         return phase_turbo.rename('turbulence')
+
+    def velocity(self, data):
+        import numpy as np
+        #years = ((data.date.max() - data.date.min()).dt.days/365.25).item()
+        #nanoseconds = (data.date.max().astype(int) - data.date.min().astype(int)).item()
+        #print ('years', np.round(years, 3), 'nanoseconds', nanoseconds)
+        #velocity = nanoseconds*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1)/years
+        nanoseconds_per_year = 365.25*24*60*60*1e9
+        # calculate slope per year
+        velocity = nanoseconds_per_year*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1).astype(np.float32).rename('trend')
+        return velocity
+
+#     def trend(self, data, deg=1):
+#         import xarray as xr
+#         if 'date' in data.dims:
+#             return xr.polyval(data.date, data.polyfit('date', deg).polyfit_coefficients).rename('trend')
+#         elif 'pair' in data.dims:
+#             return xr.polyval(data.pair, data.polyfit('pair', deg).polyfit_coefficients).rename('trend')
+#         raise ValueError("The 'data' argument must include a 'date' or 'pair' dimension to detect trends.")
+#     
+
+    def trend(self, data, dim='auto', deg=1):
+        import xarray as xr
+        import pandas as pd
+        import numpy as np
+    
+        stackdim = [_dim for _dim in ['date', 'pair'] if _dim in data.dims]
+        if len(stackdim) != 1:
+            raise ValueError("The 'data' argument must include a 'date' or 'pair' dimension to detect trends.")
+        stackdim = stackdim[0]
+    
+        if isinstance(dim, str) and dim == 'auto':
+            dim = stackdim
+    
+        # add new coordinate using 'dim' values
+        if not isinstance(dim, str):
+            if isinstance(dim, (xr.DataArray, pd.DataFrame, pd.Series)):
+                dim_da = xr.DataArray(dim.values, dims=[stackdim])
+            else:
+                dim_da = xr.DataArray(dim, dims=[stackdim])
+            data_dim = data.assign_coords(polyfit_coord=dim_da).swap_dims({'pair': 'polyfit_coord'})
+            fit_coeff = data_dim.polyfit('polyfit_coord', deg).polyfit_coefficients.astype(np.float32)
+            fit = xr.polyval(data_dim['polyfit_coord'], fit_coeff)\
+                .swap_dims({'polyfit_coord': stackdim}).drop_vars('polyfit_coord').astype(np.float32).rename('trend')
+            return xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
+    
+        # fit existing coordinate values
+        fit_coeff = data.polyfit(dim, deg).polyfit_coefficients.astype(np.float32)
+        fit = xr.polyval(data[dim], fit_coeff).astype(np.float32).rename('trend')
+        return xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
+
