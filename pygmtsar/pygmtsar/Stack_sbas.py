@@ -1035,7 +1035,7 @@ class Stack_sbas(Stack_detrend):
                            caption=caption, aspect=aspect, alpha=alpha,
                            quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical, **kwargs)
                       
-    def plot_rmse(self, rmse, caption='RMSE, [rad]', cmap='turbo',
+    def plot_rmse(self, data, caption='RMSE, [rad]', cmap='turbo',
                   quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
@@ -1049,7 +1049,7 @@ class Stack_sbas(Stack_detrend):
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
 
         if quantile is not None:
-            vmin, vmax = np.nanquantile(rmse, quantile)
+            vmin, vmax = np.nanquantile(data, quantile)
 
         # define symmetrical boundaries
         if symmetrical is True and vmax > 0:
@@ -1058,13 +1058,13 @@ class Stack_sbas(Stack_detrend):
             vmax =  minmax
 
         plt.figure()
-        rmse.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
+        data.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         plt.title(caption)
 
-    def plot_rmse_los_mm(self, rmse, caption='RMSE, [mm]', cmap='turbo',
+    def plot_rmse_los_mm(self, data, caption='RMSE, [mm]', cmap='turbo',
                   quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
-        self.plot_rmse(abs(self.los_displacement_mm(rmse)),
+        self.plot_rmse(abs(self.los_displacement_mm(data)),
                        caption=caption, cmap=cmap,
                        quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical, **kwargs)
