@@ -991,7 +991,7 @@ class Stack_sbas(Stack_detrend):
             col_wrap=cols, size=size, aspect=aspect,
             vmin=vmin, vmax=vmax, cmap='turbo'
         )
-        fg.set_axis_labels('Range', 'Azimuth')
+        #fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         
