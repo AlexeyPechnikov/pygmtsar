@@ -67,23 +67,26 @@ class Stack_ps(Stack_stl):
         psfunction = (ps.average/(2*ps.deviation))
         return psfunction.where(np.isfinite(psfunction)).rename('psf')
 
-    def plot_psfunction(self, psfunction='auto', caption='PS Function', cmap='gray', quantile=None, vmin=None, vmax=None, **kwargs):
+    def plot_psfunction(self, data='auto', caption='PS Function', cmap='gray', quantile=None, vmin=None, vmax=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
-        if isinstance(psfunction, str) and psfunction == 'auto':
-            psfunction = self.psfunction()
+        if isinstance(data, str) and data == 'auto':
+            data = self.psfunction()
 
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
 
         if quantile is not None:
-            vmin, vmax = np.nanquantile(psfunction, quantile)
+            vmin, vmax = np.nanquantile(data, quantile)
 
         plt.figure()
-        psfunction.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
+        data.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
+        if self.is_ra(data):
+            plt.xlabel('Range')
+            plt.ylabel('Azimuth')
         plt.title(caption)
 
 #     def get_adi_threshold(self, threshold):
@@ -198,7 +201,8 @@ class Stack_ps(Stack_stl):
             vmin=vmin, vmax=vmax, cmap=cmap,
             interpolation='none' # Disable interpolation
         )
-        fg.set_axis_labels('Range', 'Azimuth')
+        if self.is_ra(data):
+            fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
 

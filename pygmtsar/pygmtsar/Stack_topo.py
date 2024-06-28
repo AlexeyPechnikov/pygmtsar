@@ -31,20 +31,20 @@ class Stack_topo(Stack_trans_inv):
         """
         return self.get_trans_inv()['ele'].rename('topo')
 
-    def plot_topo(self, topo='auto', caption='Topography on WGS84 ellipsoid, [m]',
+    def plot_topo(self, data='auto', caption='Topography on WGS84 ellipsoid, [m]',
                   quantile=None, vmin=None, vmax=None, symmetrical=False,
                   cmap='gray', aspect=None, **kwargs):
         import numpy as np
         import matplotlib.pyplot as plt
 
-        if isinstance(topo, str) and topo == 'auto':
-            topo = self.get_topo()
+        if isinstance(data, str) and data == 'auto':
+            data = self.get_topo()
             
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
 
         if quantile is not None:
-            vmin, vmax = np.nanquantile(topo, quantile)
+            vmin, vmax = np.nanquantile(data, quantile)
 
         # define symmetrical boundaries
         if symmetrical is True and vmax > 0:
@@ -53,13 +53,14 @@ class Stack_topo(Stack_trans_inv):
             vmax =  minmax
 
         plt.figure()
-        topo.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
+        data.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.xlabel('Range')
-        plt.ylabel('Azimuth')
+        if self.is_ra(data):
+            plt.xlabel('Range')
+            plt.ylabel('Azimuth')
         plt.title(caption)
 
     def topo_phase(self, pairs, topo='auto', debug=False):

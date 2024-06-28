@@ -889,7 +889,8 @@ class Stack_phasediff(Stack_topo):
             col_wrap=cols, size=size, aspect=aspect,
             vmin=vmin, vmax=vmax, cmap='turbo'
         )
-        fg.set_axis_labels('Range', 'Azimuth')
+        if self.is_ra(data):
+            fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         
@@ -918,7 +919,8 @@ class Stack_phasediff(Stack_topo):
             col_wrap=cols, size=size, aspect=aspect,
             vmin=-np.pi, vmax=np.pi, cmap='gist_rainbow_r'
         )
-        fg.set_axis_labels('Range', 'Azimuth')
+        if self.is_ra(data):
+            fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         
@@ -952,7 +954,8 @@ class Stack_phasediff(Stack_topo):
             col_wrap=cols, size=size, aspect=aspect,
             vmin=0, vmax=1, cmap=cmap
         )
-        fg.set_axis_labels('Range', 'Azimuth')
+        if self.is_ra(data):
+            fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         

@@ -991,7 +991,8 @@ class Stack_sbas(Stack_detrend):
             col_wrap=cols, size=size, aspect=aspect,
             vmin=vmin, vmax=vmax, cmap='turbo'
         )
-        #fg.set_axis_labels('Range', 'Azimuth')
+        if self.is_ra(data):
+            fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         
@@ -1027,6 +1028,9 @@ class Stack_sbas(Stack_detrend):
         self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
+        if self.is_ra(data):
+            plt.xlabel('Range')
+            plt.ylabel('Azimuth')
         plt.title(caption)
 
     def plot_velocity_los_mm(self, data, caption='Velocity, [mm/year]',

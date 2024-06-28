@@ -544,6 +544,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
             col_wrap=cols, size=size, aspect=aspect,
             cmap=cmap, vmin=0, vmax=10
         )
-        fg.set_axis_labels('Range', 'Azimuth')
+        if self.is_ra(data):
+            fg.set_axis_labels('Range', 'Azimuth')
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)

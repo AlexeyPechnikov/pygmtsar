@@ -548,7 +548,8 @@ class Stack_tidal(Stack_incidence):
             figsize=(cols * size, int(np.ceil(data.date.size / cols)) * size * aspect)
         )
         axes = axes.flatten()
-    
+
+        is_ra = self.is_ra(data)
         for i, date in enumerate(data.date.values):
             # Select the data for the specific date
             date_data = data.sel(date=date)
@@ -559,8 +560,9 @@ class Stack_tidal(Stack_incidence):
                 add_colorbar=False
             )
             axes[i].set_title(str(date)[:10])
-            axes[i].set_xlabel('Range')
-            axes[i].set_ylabel('Azimuth')
+            if is_ra:
+                axes[i].set_xlabel('Range')
+                axes[i].set_ylabel('Azimuth')
             # Add colorbar for each subplot
             fig.colorbar(im, ax=axes[i])
     
@@ -598,8 +600,9 @@ class Stack_tidal(Stack_incidence):
                 add_colorbar=False
             )
             axes[i].set_title(str(date)[:10])
-            axes[i].set_xlabel('Range')
-            axes[i].set_ylabel('Azimuth')
+            if self.is_ra(data):
+                axes[i].set_xlabel('Range')
+                axes[i].set_ylabel('Azimuth')
             # Add colorbar for each subplot
             fig.colorbar(im, ax=axes[i])
     

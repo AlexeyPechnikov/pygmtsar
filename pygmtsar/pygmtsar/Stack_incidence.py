@@ -333,20 +333,21 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = np.arctan2(np.sqrt(sat_look.look_E**2 + sat_look.look_N**2), sat_look.look_U).rename('incidence_angle')
         return incidence_ll
 
-    def plot_incidence_angle(self, incidence_angle='auto', caption='Incidence Angle in Radar Coordinates, [rad]', cmap='gray', aspect=None, **kwargs):
+    def plot_incidence_angle(self, data='auto', caption='Incidence Angle in Radar Coordinates, [rad]', cmap='gray', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
 
         plt.figure()
-        if isinstance(incidence_angle, str) and incidence_angle == 'auto':
-            self.incidence_angle().plot.imshow(cmap=cmap)
-        else:
-            incidence_angle.plot.imshow(cmap=cmap)
+        if isinstance(data, str) and data == 'auto':
+            data = self.incidence_angle()
+
+        data.plot.imshow(cmap=cmap)
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
-        plt.xlabel('Range')
-        plt.ylabel('Azimuth')
+        if self.is_ra(data):
+            plt.xlabel('Range')
+            plt.ylabel('Azimuth')
         plt.title(caption)
 
     def vertical_displacement_mm(self, data):
