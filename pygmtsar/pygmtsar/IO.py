@@ -351,6 +351,14 @@ class IO(datagrid):
         chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
         # Re-chunk the dataset using the chunks dictionary
         data = data.chunk(chunks)
+        
+        if 'stack' in data.dims:
+            if 'y' in data.coords and 'x' in data.coords:
+                multi_index_names = ['y', 'x']
+            elif 'lat' in data.coords and 'lon' in data.coords:
+                multi_index_names = ['lat', 'lon']
+            multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
+            data = data.assign_coords(stack=multi_index)
 
         # attributes are empty when dataarray is prezented as dataset
         # revert dataarray converted to dataset
@@ -428,6 +436,7 @@ class IO(datagrid):
         stack.save_cube(intf90m.isel(pair=0).phase.compute(), 'intf90m') # save 2d dataarray
         """
         import xarray as xr
+        import pandas as pd
         import dask
         import os
         import warnings
@@ -447,6 +456,10 @@ class IO(datagrid):
             name = data.name
         elif name is None:
             raise ValueError('Specify name for the output NetCDF file')
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            # replace multiindex by sequential numbers 0,1,...
+            data = data.reset_index('stack')
 
         for dim in ['y', 'x', 'lat', 'lon']:
             if dim in data.dims:
@@ -514,7 +527,7 @@ class IO(datagrid):
         import pandas as pd
         import numpy as np
         import glob
-
+    
         if stack is None:
             # look for all stack files
             #filenames = self.get_filenames(['*'], name)[0]
@@ -528,22 +541,33 @@ class IO(datagrid):
             # pairs
             filenames = self.get_filenames(stack, name)
         #print ('filenames', filenames)
-
+    
         data = xr.open_mfdataset(
             filenames,
             engine=self.netcdf_engine,
-            chunks=self.chunksize,
+            chunks=-1,
             parallel=True,
             concat_dim='stackvar',
             combine='nested'
         )
-
+        # Determine the proper chunk sizes
+        chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
+        data = data.chunk(chunks)
+    
+        if 'stack' in data.dims:
+            if 'y' in data.coords and 'x' in data.coords:
+                multi_index_names = ['y', 'x']
+            elif 'lat' in data.coords and 'lon' in data.coords:
+                multi_index_names = ['lat', 'lon']
+            multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
+            data = data.assign_coords(stack=multi_index)
+    
         # revert dataarray converted to dataset
         data_vars = list(data.data_vars)
         if len(data_vars) == 1 and 'dataarray' in data.attrs:
             assert data.attrs['dataarray'] == data_vars[0]
             data = data[data_vars[0]]
-
+    
         # attributes are empty when dataarray is prezented as dataset, convert it first
         # restore missed coordinates
         for dim in ['y', 'x', 'lat', 'lon']:
@@ -565,14 +589,14 @@ class IO(datagrid):
                 del data.attrs[f'step_{dim}']
                 del data.attrs[f'stop_{dim}']
                 del data.attrs[f'size_{dim}']
-
+    
         for dim in ['pair', 'date']:
             if dim in data.coords:
                 if data[dim].shape == ():
                     data = data.rename({'stackvar': dim})
                 else:
                     data = data.swap_dims({'stackvar': dim})
-
+    
         # convert string (or already timestamp) dates to dates
         for dim in ['date', 'ref', 'rep']:
             if dim in data.dims:
@@ -580,7 +604,7 @@ class IO(datagrid):
                     data[dim] = pd.to_datetime(data[dim])
                 else:
                     data[dim].values = pd.to_datetime(data['date'].values)
-
+    
         return data
 
 #     # simple sequential realization is not suitable for a large stack
@@ -655,6 +679,7 @@ class IO(datagrid):
     def save_stack(self, data, name, caption='Saving 2D Stack', queue=None, timeout=None):
         import numpy as np
         import xarray as xr
+        import pandas as pd
         import dask
         import os
         from dask.distributed import get_client
@@ -671,7 +696,7 @@ class IO(datagrid):
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
         from dask.distributed import utils_perf
         utils_perf.disable_gc_diagnosis()
-
+    
         # Dask cluster client
         client = get_client()
         
@@ -685,13 +710,17 @@ class IO(datagrid):
             raise Exception('Argument grid is not xr.Dataset or xr.DataArray object')
         #print ('is_dask', is_dask, 'stackvar', stackvar)
         stacksize = data[stackvar].size
-
+    
         if queue is None:
             queue = self.netcdf_queue
         if queue is None:
             # process all the stack items in a single operation
             queue = stacksize
-
+    
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            # replace multiindex by sequential numbers 0,1,...
+            data = data.reset_index('stack')
+        
         for dim in ['y', 'x', 'lat', 'lon']:
             if dim in data.dims:
                 # use attributes to hold grid spacing to prevent xarray Dask saving issues
@@ -701,12 +730,12 @@ class IO(datagrid):
                     f'stop_{dim}':  data[dim].values[-1],
                     f'size_{dim}':  data[dim].size
                 })
-
+    
         if isinstance(data, xr.DataArray):
             data = data.to_dataset().assign_attrs({'dataarray': data.name})
         encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
         #print ('encoding', encoding)
-
+    
         # Applying iterative processing to prevent Dask scheduler deadlocks.
         counter = 0
         digits = len(str(stacksize))
