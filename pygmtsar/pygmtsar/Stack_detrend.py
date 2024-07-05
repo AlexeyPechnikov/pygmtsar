@@ -329,6 +329,18 @@ class Stack_detrend(Stack_unwrap):
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
 
+        multi_index = None
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            multi_index = data['stack']
+            data = data.reset_index('stack')
+            if weight is not None:
+                if not ('stack' in weight.dims and isinstance(weight.coords['stack'].to_index(), pd.MultiIndex)):
+                    raise ValueError('ERROR: "weight", if provided, must be stacked consistently with "data".')
+                data = data.reset_index('stack')
+        else:
+            if 'stack' in weight.dims and isinstance(weight.coords['stack'].to_index(), pd.MultiIndex):
+                raise ValueError('ERROR: "weight", if provided, must be stacked consistently with "data".')
+                
         pairs, dates = self.get_pairs(data, dates=True)
 
         models = []
@@ -362,8 +374,10 @@ class Stack_detrend(Stack_unwrap):
 
         out = xr.concat([(model.sel(date=ref).drop('date') - model.sel(date=rep).drop('date'))\
                                  .assign_coords(pair=str(ref.date()) + ' ' + str(rep.date()), ref=ref, rep=rep) \
-                          for ref, rep in zip(pairs['ref'], pairs['rep'])], dim='pair')
-        return out.rename(data.name)
+                          for ref, rep in zip(pairs['ref'], pairs['rep'])], dim='pair').rename(data.name)
+        if multi_index is not None:
+            return out.assign_coords(stack=multi_index)
+        return out
 
 #     def polyfit(self, data, weight=None, degree=0, variable=None, count=None):
 #         import xarray as xr
@@ -872,6 +886,8 @@ class Stack_detrend(Stack_unwrap):
         import xarray as xr
         import pandas as pd
 
+        print ('NOTE: this function is deprecated, use instead Stack.polyfit()')
+
         pairs, dates = self.get_pairs(phase, dates=True)
 
         turbos = []
@@ -904,14 +920,22 @@ class Stack_detrend(Stack_unwrap):
         return phase_turbo.rename('turbulence')
 
     def velocity(self, data):
+        import pandas as pd
         import numpy as np
         #years = ((data.date.max() - data.date.min()).dt.days/365.25).item()
         #nanoseconds = (data.date.max().astype(int) - data.date.min().astype(int)).item()
         #print ('years', np.round(years, 3), 'nanoseconds', nanoseconds)
+        multi_index = None
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            multi_index = data.coords['stack']
+            # replace multiindex by sequential numbers 0,1,...
+            data = data.reset_index('stack')
         #velocity = nanoseconds*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1)/years
         nanoseconds_per_year = 365.25*24*60*60*1e9
         # calculate slope per year
         velocity = nanoseconds_per_year*data.polyfit('date', 1).polyfit_coefficients.sel(degree=1).astype(np.float32).rename('trend')
+        if multi_index is not None:
+            return velocity.assign_coords(stack=multi_index)
         return velocity
 
 #     def trend(self, data, deg=1):
@@ -927,7 +951,12 @@ class Stack_detrend(Stack_unwrap):
         import xarray as xr
         import pandas as pd
         import numpy as np
-    
+
+        multi_index = None
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            multi_index = data['stack']
+            data = data.reset_index('stack')
+
         stackdim = [_dim for _dim in ['date', 'pair'] if _dim in data.dims]
         if len(stackdim) != 1:
             raise ValueError("The 'data' argument must include a 'date' or 'pair' dimension to detect trends.")
@@ -951,5 +980,7 @@ class Stack_detrend(Stack_unwrap):
         # fit existing coordinate values
         fit_coeff = data.polyfit(dim, deg).polyfit_coefficients.astype(np.float32)
         fit = xr.polyval(data[dim], fit_coeff).astype(np.float32).rename('trend')
-        return xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
-
+        out = xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
+        if multi_index is not None:
+            return out.assign_coords(stack=multi_index)
+        return out

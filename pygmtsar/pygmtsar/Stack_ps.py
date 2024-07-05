@@ -69,10 +69,13 @@ class Stack_ps(Stack_stl):
 
     def plot_psfunction(self, data='auto', caption='PS Function', cmap='gray', quantile=None, vmin=None, vmax=None, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
 
         if isinstance(data, str) and data == 'auto':
             data = self.psfunction()
+        elif 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
@@ -155,6 +158,7 @@ class Stack_ps(Stack_stl):
                        caption='auto', cmap='gray', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
                        quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
         import types
 
@@ -166,6 +170,8 @@ class Stack_ps(Stack_stl):
             data = np.abs(self.open_data(dates=dates, scale=scale))
             if intensity:
                 data = np.square(data)
+        elif 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if func is not None:
             data = func(data)

@@ -204,12 +204,13 @@ class Stack_sbas(Stack_detrend):
         if debug:
             print ('DEBUG: data', data)
 
-        chunks_z, chunks_y, chunks_x = data.chunks
-        if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
-            print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
-            chunks_y = chunks_x = self.netcdf_chunksize//2
-            print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
-            data = data.chunk({'y': chunks_y, 'x': chunks_x})
+        if not 'stack' in data.dims:
+            chunks_z, chunks_y, chunks_x = data.chunks
+            if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+                print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
+                chunks_y = chunks_x = self.netcdf_chunksize//2
+                print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
+                data = data.chunk({'y': chunks_y, 'x': chunks_x})
 
         if weight is None:
             # this case should be processed inside lstq_block function
@@ -250,29 +251,45 @@ class Stack_sbas(Stack_detrend):
             if debug:
                 print ('DEBUG: Use user-supplied matrix')
 
-        def lstq_block(ys, xs):
-            # 3D array
-            data_block = data.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
+        def lstq_block(ys, xs, stacks=None):
+            if stacks is None:
+                # 3D array
+                data_block = data.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
+            else:
+                # 2D array
+                data_block = data.isel(stack=stacks).compute(n_workers=1).values.transpose(1,0)
             if np.isnan(data_block).all():
                 # do not process an empty block
-                shape = (matrix.shape[1], *data_block.shape[:2])
+                if stacks is None:
+                    shape = (matrix.shape[1], *data_block.shape[:2])
+                else:
+                    shape = (matrix.shape[1], data_block.shape[0])
                 return np.full(shape, np.nan, dtype=np.float32)
             # weights can be defined by multiple ways or be set to None
             if isinstance(weight, xr.DataArray):
-                # 3D array
-                weight_block = weight.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
+                if stacks is None:
+                    # 3D array
+                    weight_block = weight.isel(y=ys, x=xs).compute(n_workers=1).values.transpose(1,2,0)
+                else:
+                    weight_block = weight.isel(stack=stacks).compute(n_workers=1).values.transpose(1,0)
                 # weight=1 is not allowed for the used weighted least squares calculation function 
                 weight_block = np.where(weight_block>=1, 1, weight_block)
                 # Vectorize vec_lstsq
                 vec_lstsq = np.vectorize(lambda x, w: self.lstsq1d(x, w, matrix, cumsum), signature='(n),(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
-                block = vec_lstsq(data_block, weight_block).transpose(2,0,1)
+                if stacks is None:
+                    block = vec_lstsq(data_block, weight_block).transpose(2,0,1)
+                else:
+                    block = vec_lstsq(data_block, weight_block).transpose(1,0)
                 del weight_block, vec_lstsq
             else:
                 # Vectorize vec_lstsq
                 vec_lstsq = np.vectorize(lambda x: self.lstsq1d(x, weight, matrix, cumsum), signature='(n)->(m)')
                 # Apply vec_lstsq to data_block and weight_block and revert the original dimensions order
-                block = vec_lstsq(data_block).transpose(2,0,1)
+                if stacks is None:
+                    block = vec_lstsq(data_block).transpose(2,0,1)
+                else:
+                    block = vec_lstsq(data_block).transpose(1,0)
                 del vec_lstsq
             del data_block
             return block
@@ -280,25 +297,41 @@ class Stack_sbas(Stack_detrend):
         # split to chunks
         # use indices instead of the coordinate values to prevent the weird error raising occasionally:
         # "Reindexing only valid with uniquely valued Index objects"
-        # re-check the chunk sizes as it can be tunned above
-        chunks_z, chunks_y, chunks_x = data.chunks
-        ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
-        xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
-
-        blocks_total = []
-        for ys_block in ys_blocks:
-            blocks = []
-            for xs_block in xs_blocks:
-                block = dask.array.from_delayed(dask.delayed(lstq_block)(ys_block, xs_block),
-                                                shape=(len(dates), ys_block.size, xs_block.size),
+        if not 'stack' in data.dims:
+            # re-check the chunk sizes as it can be tunned above
+            chunks_z, chunks_y, chunks_x = data.chunks
+            ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
+            xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
+    
+            blocks_total = []
+            for ys_block in ys_blocks:
+                blocks = []
+                for xs_block in xs_blocks:
+                    block = dask.array.from_delayed(dask.delayed(lstq_block)(ys_block, xs_block),
+                                                    shape=(len(dates), ys_block.size, xs_block.size),
+                                                    dtype=np.float32)
+                    blocks.append(block)
+                    del block
+                blocks_total.append(blocks)
+                del blocks
+            model = dask.array.block(blocks_total)
+            del blocks_total
+            coords = {'date': pd.to_datetime(dates), 'y': data.y.values, 'x': data.x.values}
+        else:
+            # TODO
+            chunks_z, chunks_stack = data.chunks
+            stacks_blocks = np.array_split(np.arange(data['stack'].size), np.cumsum(chunks_stack)[:-1])
+            blocks_total = []
+            for stacks_block in stacks_blocks:
+                block = dask.array.from_delayed(dask.delayed(lstq_block)(None, None, stacks_block),
+                                                shape=(len(dates), stacks_block.size),
                                                 dtype=np.float32)
-                blocks.append(block)
+                blocks_total.append(block)
                 del block
-            blocks_total.append(blocks)
-            del blocks
-        model = dask.array.block(blocks_total)
-        del blocks_total
-        coords = {'date': pd.to_datetime(dates), 'y': data.y.values, 'x': data.x.values}
+            model = dask.array.block(blocks_total)
+            del blocks_total
+            coords = {'date': pd.to_datetime(dates), 'stack': data['stack']}
+            
         model = xr.DataArray(model, coords=coords).rename('displacement')
 
         return model
@@ -926,7 +959,26 @@ class Stack_sbas(Stack_detrend):
         """
         import numpy as np
         import xarray as xr
-    
+        import pandas as pd
+
+        multi_index = None
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            assert 'stack' in solution.dims, 'ERROR: "solution" must be stacked consistently with "data".'
+            if 'y' in data.coords and 'x' in data.coords:
+                multi_index_names = ['y', 'x']
+            elif 'lat' in data.coords and 'lon' in data.coords:
+                multi_index_names = ['lat', 'lon']
+            multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
+            data = data.reset_index('stack')
+            solution = solution.reset_index('stack')
+            if weight is not None:
+                assert 'stack' in weight.dims, 'ERROR: "weight" must be stacked consistently with "data".'
+                weight = weight.reset_index('stack')
+        elif not 'stack' in data.dims:
+            assert not 'stack' in solution.dims, 'ERROR: "solution" must be stacked consistently with "data".'
+            if weight is not None:
+                assert not 'stack' in weight.dims, 'ERROR: "weight" must be stacked consistently with "data".'
+        
         # extract pairs
         pairs = self.get_pairs(data)
         # unify data and solution
@@ -941,12 +993,19 @@ class Stack_sbas(Stack_detrend):
         error = xr.concat(error_pairs, dim='pair').assign_coords({'pair': pairs.pair})
         if weight is not None:
             return np.sqrt((weight * error).sum('pair') / weight.sum('pair') / len(pairs)).rename('rmse')
-        return np.sqrt((error).sum('pair') / len(pairs)).rename('rmse')
+        rmse = np.sqrt((error).sum('pair') / len(pairs)).rename('rmse')
+        if multi_index is not None:
+            return rmse.assign_coords(stack=multi_index)
+        return rmse
 
     def plot_displacement(self, data, caption='Cumulative LOS Displacement, [rad]',
                           quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
@@ -971,7 +1030,11 @@ class Stack_sbas(Stack_detrend):
     def plot_displacements(self, data, caption='Cumulative LOS Displacement, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
                            quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
@@ -1008,8 +1071,12 @@ class Stack_sbas(Stack_detrend):
     def plot_velocity(self, data, caption='Velocity, [rad/year]',
                       quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, alpha=1, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
-    
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
+
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
     
@@ -1042,12 +1109,16 @@ class Stack_sbas(Stack_detrend):
     def plot_rmse(self, data, caption='RMSE, [rad]', cmap='turbo',
                   quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
         warnings.filterwarnings('ignore')
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"

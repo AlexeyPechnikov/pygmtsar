@@ -848,7 +848,11 @@ class Stack_phasediff(Stack_topo):
                    quantile=None, vmin=None, vmax=None, symmetrical=False,
                    cmap='turbo', aspect=None, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
@@ -873,7 +877,11 @@ class Stack_phasediff(Stack_topo):
     def plot_phases(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05,
                     quantile=None, vmin=None, vmax=None, symmetrical=False, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if quantile is not None:
             assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
@@ -903,7 +911,11 @@ class Stack_phasediff(Stack_topo):
 
     def plot_interferogram(self, data, caption='Phase, [rad]', cmap='gist_rainbow_r', aspect=None, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         plt.figure()
         data.plot.imshow(vmin=-np.pi, vmax=np.pi, cmap=cmap)
@@ -915,7 +927,11 @@ class Stack_phasediff(Stack_topo):
 
     def plot_interferograms(self, data, caption='Phase, [rad]', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         # multi-plots ineffective for linked lazy data
         fg = data.plot.imshow(
@@ -932,7 +948,11 @@ class Stack_phasediff(Stack_topo):
         self.plots_POI(fg, **kwargs)
 
     def plot_correlation(self, data, caption='Correlation', cmap='gray', aspect=None, **kwargs):
+        import pandas as pd
         import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         plt.figure()
         data.plot.imshow(vmin=0, vmax=1, cmap=cmap)
@@ -943,8 +963,12 @@ class Stack_phasediff(Stack_topo):
         plt.title(caption)
 
     def plot_correlations(self, data, caption='Correlation', cmap='auto', cols=4, size=4, nbins=5, aspect=1.2, y=1.05, **kwargs):
+        import pandas as pd
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
 
         if isinstance(cmap, str) and cmap == 'auto':
             cmap = mcolors.LinearSegmentedColormap.from_list(
@@ -968,9 +992,13 @@ class Stack_phasediff(Stack_topo):
 
     def plot_correlation_stack(self, data, threshold=None, caption='Correlation Stack', bins=100, cmap='auto', **kwargs):
         import numpy as np
+        import pandas as pd
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
-    
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
+
         if isinstance(cmap, str) and cmap == 'auto':
             cmap = mcolors.LinearSegmentedColormap.from_list(
                 name='custom_gray', 

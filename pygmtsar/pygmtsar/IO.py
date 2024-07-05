@@ -347,10 +347,6 @@ class IO(datagrid):
 
         # Workaround: open the dataset without chunking
         data = xr.open_dataset(filename, engine=self.netcdf_engine)
-        # Determine the proper chunk sizes
-        chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
-        # Re-chunk the dataset using the chunks dictionary
-        data = data.chunk(chunks)
         
         if 'stack' in data.dims:
             if 'y' in data.coords and 'x' in data.coords:
@@ -359,6 +355,13 @@ class IO(datagrid):
                 multi_index_names = ['lat', 'lon']
             multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
             data = data.assign_coords(stack=multi_index)
+            chunksize = self.chunksize1d
+        else:
+            chunksize = self.chunksize
+
+        # set the proper chunk sizes
+        chunks = {dim: 1 if dim in ['pair', 'date'] else chunksize for dim in data.dims}
+        data = data.chunk(chunks)
 
         # attributes are empty when dataarray is prezented as dataset
         # revert dataarray converted to dataset
@@ -457,9 +460,12 @@ class IO(datagrid):
         elif name is None:
             raise ValueError('Specify name for the output NetCDF file')
 
+        chunksize = None
         if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
             # replace multiindex by sequential numbers 0,1,...
             data = data.reset_index('stack')
+            # single-dimensional data compression required
+            chunksize = self.netcdf_chunksize1d
 
         for dim in ['y', 'x', 'lat', 'lon']:
             if dim in data.dims:
@@ -477,7 +483,8 @@ class IO(datagrid):
             data = data.to_dataset().assign_attrs({'dataarray': data.name})
 
         is_dask = isinstance(data[list(data.data_vars)[0]].data, dask.array.Array)
-        encoding = {varname: self._compression(data[varname].shape) for varname in data.data_vars}
+        encoding = {varname: self._compression(data[varname].shape, chunksize=chunksize) for varname in data.data_vars}
+        #print ('save_cube encoding', encoding)
         #print ('is_dask', is_dask, 'encoding', encoding)
 
         # save to NetCDF file
@@ -550,10 +557,7 @@ class IO(datagrid):
             concat_dim='stackvar',
             combine='nested'
         )
-        # Determine the proper chunk sizes
-        chunks = {dim: 1 if dim in ['pair', 'date'] else self.chunksize for dim in data.dims}
-        data = data.chunk(chunks)
-    
+        
         if 'stack' in data.dims:
             if 'y' in data.coords and 'x' in data.coords:
                 multi_index_names = ['y', 'x']
@@ -561,7 +565,14 @@ class IO(datagrid):
                 multi_index_names = ['lat', 'lon']
             multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
             data = data.assign_coords(stack=multi_index)
-    
+            chunksize = self.chunksize1d
+        else:
+            chunksize = self.chunksize
+
+        # set the proper chunk sizes
+        chunks = {dim: 1 if dim in ['stackvar'] else chunksize for dim in data.dims}
+        data = data.chunk(chunks)
+
         # revert dataarray converted to dataset
         data_vars = list(data.data_vars)
         if len(data_vars) == 1 and 'dataarray' in data.attrs:
@@ -734,7 +745,7 @@ class IO(datagrid):
         if isinstance(data, xr.DataArray):
             data = data.to_dataset().assign_attrs({'dataarray': data.name})
         encoding = {varname: self._compression(data[varname].shape[1:]) for varname in data.data_vars}
-        #print ('encoding', encoding)
+        #print ('save_stack encoding', encoding)
     
         # Applying iterative processing to prevent Dask scheduler deadlocks.
         counter = 0

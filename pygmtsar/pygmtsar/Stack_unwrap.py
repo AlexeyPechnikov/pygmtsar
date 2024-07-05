@@ -385,28 +385,32 @@ class Stack_unwrap(Stack_unwrap_snaphu):
     def unwrap1d(self, data, weight=None, tolerance=np.pi/2):
         import xarray as xr
         import numpy as np
-
-        chunks_z, chunks_y, chunks_x = data.chunks
-        if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
-            print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
-            chunks_y = chunks_x = self.netcdf_chunksize//2
-            print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
-        else:
-            # use the existing data chunks size
-            chunks_y = np.max(chunks_y)
-            chunks_x = np.max(chunks_x)
-
+    
         pairs = self.get_pairs(data)
         matrix = self.lstsq_matrix(pairs)
-
+    
+        if not 'stack' in data.dims:
+            chunks_z, chunks_y, chunks_x = data.chunks
+            if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+                print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
+                chunks_y = chunks_x = self.netcdf_chunksize//2
+                print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
+            else:
+                # use the existing data chunks size
+                chunks_y = np.max(chunks_y)
+                chunks_x = np.max(chunks_x)
+            chunks = dict(pair=-1, y=chunks_y, x=chunks_x)
+        else:
+            chunks = dict(pair=-1)
+        
         # xarray wrapper
         input_core_dims = [['pair']]
-        args = [data.chunk(dict(pair=-1, y=chunks_y, x=chunks_x))]
+        args = [data.chunk(chunks)]
         if weight is not None:
             # sdd another 'pair' dimension for weight
             input_core_dims.append(['pair'])
             # add weight to the arguments
-            args.append(weight.chunk(dict(pair=-1, y=chunks_y, x=chunks_x)))
+            args.append(weight.chunk(chunks))
         model = xr.apply_ufunc(
             self.unwrap_pairs,
             *args,
@@ -418,7 +422,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
             kwargs={'matrix': matrix, 'tolerance': tolerance}
         ).transpose('pair',...)
         del args
-
+    
         return model.rename('unwrap')
 
     def unwrap_snaphu(self, phase, weight=None, conf=None, conncomp=False):

@@ -39,9 +39,11 @@ class datagrid:
     #amplitude_threshold = 5.e-21
     # NetCDF options, see https://docs.xarray.dev/en/stable/user-guide/io.html#zarr-compressors-and-filters
     chunksize = 2048
+    chunksize1d = 16384
     netcdf_engine = 'h5netcdf'
     #netcdf_engine = 'netcdf4'
     netcdf_chunksize = 512
+    netcdf_chunksize1d = 65536
     netcdf_compression_algorithm = 'zlib'
     netcdf_complevel = -1
     netcdf_shuffle = True
@@ -78,7 +80,11 @@ class datagrid:
         """
         import numpy as np
 
-        if chunksize is None:
+        if chunksize is None and len(shape) == 1:
+            # (stacked) single-dimensional grid 
+            chunksize = self.netcdf_chunksize1d
+        elif chunksize is None:
+            # common 2+D grid
             chunksize = self.netcdf_chunksize
 
         assert chunksize is not None, 'compression() chunksize is None'
