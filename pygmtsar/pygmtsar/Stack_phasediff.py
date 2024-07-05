@@ -106,7 +106,7 @@ class Stack_phasediff(Stack_topo):
                 out = xr.merge([intf_look, corr_look])
             del corr_look, intf_look
 
-            if isinstance(stack, xr.Dataarray):
+            if isinstance(stack, xr.DataArray):
                 out = out.stack(stack=['y', 'x']).sel(stack=stack)
 
             caption = f'Saving Interferogram {(counter+1):0{digits}}...{(counter+len(chunk)):0{digits}} from {len(pairs)}'
