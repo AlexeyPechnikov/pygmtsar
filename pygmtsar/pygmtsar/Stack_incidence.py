@@ -409,23 +409,27 @@ class Stack_incidence(Stack_geocode):
         incidence_ll = self.incidence_angle().reindex_like(los_disp, method='nearest')
         return sign * los_disp/np.sin(incidence_ll)
 
-    def elevation_m(self, data, baseline):
+    def elevation_m(self, data, baseline=1):
         """
-        Compute elevation in meters in radar coordinates.
+        Computes the elevation in meters from unwrapped phase grids in radar coordinates.
 
         Parameters
         ----------
         data : xarray.DataArray or xarray.Dataset
-            Unwrapped phase grid(s) in radar coordinates.
+            The unwrapped phase grid(s) in radar coordinates.
+        
+        baseline : numeric, optional
+            The perpendicular baseline in meters, by default 1.
 
         Returns
         -------
         xarray.DataArray
-            Elevation grid(s) in meters.
+            The elevation grid(s) in meters.
 
         Examples
         --------
-        ...
+        # Example usage
+        elevation_data = sbas.elevation_m(phase_data, baseline=300)
         """
         import xarray as xr
         import numpy as np
