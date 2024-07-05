@@ -607,11 +607,11 @@ class Stack_sbas(Stack_detrend):
             corrs.append(empty.assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep))
         return xr.concat(corrs, dim='pair')
 
-    def baseline_plot(self, pairs):
+    def baseline_plot(self, pairs, caption='Baseline'):
         print ('NOTE: this function is deprecated, use instead Stack.plot_baseline()')
-        self.plot_baseline(pairs)
+        self.plot_baseline(pairs, caption)
         
-    def plot_baseline(self, pairs):
+    def plot_baseline(self, pairs, caption='Baseline'):
         import numpy as np
         import pandas as pd
         import seaborn as sns
@@ -645,7 +645,7 @@ class Stack_sbas(Stack_detrend):
 
         plt.xlabel('Timeline')
         plt.ylabel('Perpendicular Baseline, [m]')
-        plt.title('Baseline')
+        plt.title(caption)
         plt.grid()
 
     def plot_baseline_duration(self, pairs, interval_days=6, caption='Durations Histogram',
