@@ -311,8 +311,8 @@ class Tiles(datagrid, tqdm_joblib):
             """
             assert product in ['1s'], f'ERROR: only product="1s" is supported for JAXA ALOS DEM.'
             return self.download(
-                             base_url       = 'https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2404/',
-                             #base_url       = 'https://alosdem1s.pechnikov.workers.dev',
+                             #base_url       = 'https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2404/',
+                             base_url       = 'https://alosdem1s.pechnikov.workers.dev',
                              path_id        = '{SN3x5}{WE3x5}',
                              tile_id        = '{SN3}{WE3}.zip',
                              file_id        = '{SN3}{WE3}/ALPSMLC30_{SN3}{WE3}_DSM.tif',
