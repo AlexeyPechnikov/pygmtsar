@@ -354,7 +354,7 @@ class IO(datagrid):
             elif 'lat' in data.coords and 'lon' in data.coords:
                 multi_index_names = ['lat', 'lon']
             multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
-            data = data.assign_coords(stack=multi_index)
+            data = data.assign_coords(stack=multi_index).set_index({'stack': ['y', 'x']})
             chunksize = self.chunksize1d
         else:
             chunksize = self.chunksize
@@ -564,7 +564,7 @@ class IO(datagrid):
             elif 'lat' in data.coords and 'lon' in data.coords:
                 multi_index_names = ['lat', 'lon']
             multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
-            data = data.assign_coords(stack=multi_index)
+            data = data.assign_coords(stack=multi_index).set_index({'stack': ['y', 'x']})
             chunksize = self.chunksize1d
         else:
             chunksize = self.chunksize
@@ -603,7 +603,7 @@ class IO(datagrid):
     
         for dim in ['pair', 'date']:
             if dim in data.coords:
-                if data[dim].shape == ():
+                if data[dim].shape == () or 'stack' in data.dims:
                     data = data.rename({'stackvar': dim})
                 else:
                     data = data.swap_dims({'stackvar': dim})
