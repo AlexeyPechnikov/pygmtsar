@@ -320,6 +320,10 @@ class Stack_detrend(Stack_unwrap):
                                max_iter=max_iter, tol=tol, alpha=alpha, l1_ratio=l1_ratio)
 
     def polyfit(self, data, weight=None, degree=0, days=None, count=None):
+        print ('NOTE: Function is deprecated. Use Stack.regression_pairs() instead.')
+        return self.regression_pairs(data=data, weight=weight, degree=degree, days=days, count=count)
+
+    def regression_pairs(self, data, weight=None, degree=0, days=None, count=None):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -947,7 +951,11 @@ class Stack_detrend(Stack_unwrap):
 #         raise ValueError("The 'data' argument must include a 'date' or 'pair' dimension to detect trends.")
 #     
 
-    def trend(self, data, dim='auto', deg=1):
+    def trend(self, data, dim='auto', degree=1):
+        print ('NOTE: Function is deprecated. Use Stack.regression1d() instead.')
+        return self.regression1d(data=data, dim=dim, degree=degree)
+
+    def regression1d(self, data, dim='auto', degree=1):
         import xarray as xr
         import pandas as pd
         import numpy as np
@@ -972,13 +980,13 @@ class Stack_detrend(Stack_unwrap):
             else:
                 dim_da = xr.DataArray(dim, dims=[stackdim])
             data_dim = data.assign_coords(polyfit_coord=dim_da).swap_dims({'pair': 'polyfit_coord'})
-            fit_coeff = data_dim.polyfit('polyfit_coord', deg).polyfit_coefficients.astype(np.float32)
+            fit_coeff = data_dim.polyfit('polyfit_coord', degree).polyfit_coefficients.astype(np.float32)
             fit = xr.polyval(data_dim['polyfit_coord'], fit_coeff)\
                 .swap_dims({'polyfit_coord': stackdim}).drop_vars('polyfit_coord').astype(np.float32).rename('trend')
             return xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
     
         # fit existing coordinate values
-        fit_coeff = data.polyfit(dim, deg).polyfit_coefficients.astype(np.float32)
+        fit_coeff = data.polyfit(dim, degree).polyfit_coefficients.astype(np.float32)
         fit = xr.polyval(data[dim], fit_coeff).astype(np.float32).rename('trend')
         out = xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
         if multi_index is not None:
