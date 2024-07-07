@@ -205,12 +205,19 @@ class Stack_sbas(Stack_detrend):
             print ('DEBUG: data', data)
 
         if not 'stack' in data.dims:
-            chunks_z, chunks_y, chunks_x = data.chunks
+            chunks_z, chunks_y, chunks_x = data.chunks if data.chunks is not None else np.inf, np.inf, np.inf
             if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
                 print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
                 chunks_y = chunks_x = self.netcdf_chunksize//2
                 print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
                 data = data.chunk({'y': chunks_y, 'x': chunks_x})
+        else:
+            chunks_z, chunks_stack = data.chunks if data.chunks is not None else np.inf, np.inf
+            if np.max(chunks_stack) > self.chunksize1d:
+                print (f'Note: data chunk size ({np.max(chunks_stack)} is too large for stack processing')
+                # 1D chunk size can be defined straightforward
+                chunks_stack = self.chunksize1d
+                print (f'Note: auto tune data chunk size to 1D chunk: ({chunks_stack})')
 
         if weight is None:
             # this case should be processed inside lstq_block function
@@ -229,9 +236,14 @@ class Stack_sbas(Stack_detrend):
         elif isinstance(weight, xr.DataArray) and len(weight.dims) == 3:
             # this case should be processed inside lstq_block function
             assert weight.shape == data.shape, 'ERROR: data and weight dataarrays should have the same dimensions'
-            if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
-                print ('Note: auto tune weight chunk size to a half of NetCDF chunk')
-                weight = weight.chunk({'y': chunks_y, 'x': chunks_x})
+            #if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+            #    print ('Note: auto tune weight chunk size to a half of NetCDF chunk')
+            #    weight = weight.chunk({'y': chunks_y, 'x': chunks_x})
+            weight = weight.chunk({'y': chunks_y, 'x': chunks_x})
+        elif 'stack' in weight.dims:
+            # this case should be processed inside lstq_block function
+            assert weight.shape == data.shape, 'ERROR: data and weight dataarrays should have the same dimensions'
+            weight = weight.chunk({'stack': chunks_stack})
         else:
             raise ValueError(f"Argument weight can be 1D or 3D Xarray object or Pandas Series or Numpy array or Python list")
         if debug:
@@ -318,7 +330,6 @@ class Stack_sbas(Stack_detrend):
             del blocks_total
             coords = {'date': pd.to_datetime(dates), 'y': data.y.values, 'x': data.x.values}
         else:
-            # TODO
             chunks_z, chunks_stack = data.chunks
             stacks_blocks = np.array_split(np.arange(data['stack'].size), np.cumsum(chunks_stack)[:-1])
             blocks_total = []
@@ -335,7 +346,6 @@ class Stack_sbas(Stack_detrend):
         model = xr.DataArray(model, coords=coords).rename('displacement')
 
         return model
-        #self.save_cube(model, caption='[Correlation-Weighted] Least Squares Computing')
 
     def baseline_pairs(self, days=100, meters=None, invert=False, **kwargs):
         print('Note: function baseline_pairs() renamed to sbas_pairs(). Use separate filtering functions when needed.')
