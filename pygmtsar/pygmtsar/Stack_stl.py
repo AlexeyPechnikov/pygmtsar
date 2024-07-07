@@ -130,13 +130,23 @@ class Stack_stl(Stack_lstsq):
 
         assert data.dims[0] == 'date', 'The first data dimension should be date'
 
-        chunks_z, chunks_y, chunks_x = data.chunks
-        if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
-            print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
-            chunks_y = chunks_x = self.netcdf_chunksize//2
-            print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
-            data = data.chunk({'y': chunks_y, 'x': chunks_x})
-
+        if not 'stack' in data.dims:
+            chunks_z, chunks_y, chunks_x = data.chunks if data.chunks is not None else np.inf, np.inf, np.inf
+            if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
+                print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
+                chunks_y = chunks_x = self.netcdf_chunksize//2
+                print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
+            chunks = {'y': chunks_y, 'x': chunks_x}
+        else:
+            chunks_z, chunks_stack = data.chunks if data.chunks is not None else np.inf, np.inf
+            if np.max(chunks_stack) > self.chunksize1d:
+                print (f'Note: data chunk size ({np.max(chunks_stack)} is too large for stack processing')
+                # 1D chunk size can be defined straightforward
+                chunks_stack = self.chunksize1d
+                print (f'Note: auto tune data chunk size to 1D chunk: ({chunks_stack})')
+            chunks = {'stack': chunks_stack}
+        data = data.chunk(chunks)
+        
         if isinstance(data, xr.DataArray):
             pass
         else:
@@ -144,42 +154,61 @@ class Stack_stl(Stack_lstsq):
 
         dt, dt_periodic = self.stl_periodic(data.date, freq)
 
-        def stl_block(ys, xs):
+        def stl_block(ys, xs, stacks=None):
             # use external variables dt, dt_periodic, periods, robust
-            # 3D array
-            data_block = data.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            if stacks is None:
+                # 3D array
+                data_block = data.isel(y=ys, x=xs).chunk(-1).compute(n_workers=1).values.transpose(1,2,0)
+            else:
+                # 2D array
+                data_block = data.isel(stack=stacks).chunk(-1).compute(n_workers=1).values.transpose(1,0)
             # Vectorize vec_lstsq
             #vec_stl = np.vectorize(lambda data: self.stl(data, dt, dt_periodic, periods, robust), signature='(n)->(3,m)')
             vec_stl = np.vectorize(lambda data: self.stl1d(data, dt, dt_periodic, periods, robust), signature='(n)->(m),(m),(m)')
             # Apply vec_lstsq to data_block and revert the original dimensions order
-            block = vec_stl(data_block)
+            block = np.asarray(vec_stl(data_block))
             del vec_stl, data_block
-            return np.asarray(block).transpose(0,3,1,2)
+            if stacks is None:
+                return block.transpose(0,3,1,2)
+            return block.transpose(0,2,1)
 
         # split to chunks
         # use indices instead of the coordinate values to prevent the weird error raising occasionally:
         # "Reindexing only valid with uniquely valued Index objects"
-        # re-check the chunk sizes as it can be tunned above
-        chunks_z, chunks_y, chunks_x = data.chunks
-        ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
-        xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
-
         blocks_total = []
-        for ys_block in ys_blocks:
-            blocks = []
-            for xs_block in xs_blocks:
-                block = dask.array.from_delayed(dask.delayed(stl_block)(ys_block, xs_block),
-                                                shape=(3, len(dt_periodic), ys_block.size, xs_block.size),
+        if not 'stack' in data.dims:
+            # re-check the chunk sizes as it can be tunned above
+            chunks_z, chunks_y, chunks_x = data.chunks
+            ys_blocks = np.array_split(np.arange(data.y.size), np.cumsum(chunks_y)[:-1])
+            xs_blocks = np.array_split(np.arange(data.x.size), np.cumsum(chunks_x)[:-1])
+    
+            for ys_block in ys_blocks:
+                blocks = []
+                for xs_block in xs_blocks:
+                    block = dask.array.from_delayed(dask.delayed(stl_block)(ys_block, xs_block),
+                                                    shape=(3, len(dt_periodic), ys_block.size, xs_block.size),
+                                                    dtype=np.float32)
+                    blocks.append(block)
+                    del block
+                blocks_total.append(blocks)
+                del blocks
+            # specify 3D output coordinates
+            coords = {'date': dt_periodic.astype('datetime64[ns]'), 'y': data.y, 'x': data.x}
+        else:
+            chunks_z, chunks_stack = data.chunks
+            stacks_blocks = np.array_split(np.arange(data['stack'].size), np.cumsum(chunks_stack)[:-1])
+            for stacks_block in stacks_blocks:
+                block = dask.array.from_delayed(dask.delayed(stl_block)(None, None, stacks_block),
+                                                shape=(3, len(dt_periodic), stacks_block.size),
                                                 dtype=np.float32)
-                blocks.append(block)
+                blocks_total.append(block)
                 del block
-            blocks_total.append(blocks)
-            del blocks
+            # specify 2D output coordinates
+            coords = {'date': dt_periodic.astype('datetime64[ns]'), 'stack': data['stack']}
         models = dask.array.block(blocks_total)
         del blocks_total
 
         # transform to separate variables
-        coords = {'date': dt_periodic.astype('datetime64[ns]'), 'y': data.y, 'x': data.x}
         # transform to separate variables variables returned from Stack.stl() function
         varnames = ['trend', 'seasonal', 'resid']
         keys_vars = {varname: xr.DataArray(models[varidx], coords=coords) for (varidx, varname) in enumerate(varnames)}
@@ -187,4 +216,3 @@ class Stack_stl(Stack_lstsq):
         del models
 
         return model
-        #self.save_cube(model, name='stl', caption='Seasonal-Trend decomposition using LOESS')
