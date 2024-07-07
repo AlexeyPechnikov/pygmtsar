@@ -7,10 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from .Stack_tidal import Stack_tidal
+from .Stack_lstsq import Stack_lstsq
 from .tqdm_dask import tqdm_dask
 
-class Stack_stl(Stack_tidal):
+class Stack_stl(Stack_lstsq):
 
     @staticmethod
     def stl1d(ts, dt, dt_periodic, periods=52, robust=False):

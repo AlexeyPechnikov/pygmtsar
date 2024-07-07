@@ -951,6 +951,44 @@ class Stack_detrend(Stack_unwrap):
 #         raise ValueError("The 'data' argument must include a 'date' or 'pair' dimension to detect trends.")
 #     
 
+    def plot_velocity(self, data, caption='Velocity, [rad/year]',
+                      quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, alpha=1, **kwargs):
+        import numpy as np
+        import pandas as pd
+        import matplotlib.pyplot as plt
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            data = data.unstack('stack')
+
+        if quantile is not None:
+            assert vmin is None and vmax is None, "ERROR: arguments 'quantile' and 'vmin', 'vmax' cannot be used together"
+    
+        if quantile is not None:
+            vmin, vmax = np.nanquantile(data, quantile)
+    
+        # define symmetrical boundaries
+        if symmetrical is True and vmax > 0:
+            minmax = max(abs(vmin), vmax)
+            vmin = -minmax
+            vmax =  minmax
+    
+        plt.figure()
+        data.plot.imshow(vmin=vmin, vmax=vmax, alpha=alpha, cmap='turbo')
+        self.plot_AOI(**kwargs)
+        self.plot_POI(**kwargs)
+        if aspect is not None:
+            plt.gca().set_aspect(aspect)
+        if self.is_ra(data):
+            plt.xlabel('Range')
+            plt.ylabel('Azimuth')
+        plt.title(caption)
+
+    def plot_velocity_los_mm(self, data, caption='Velocity, [mm/year]',
+                      quantile=None, vmin=None, vmax=None, symmetrical=False, aspect=None, alpha=1, **kwargs):
+        self.plot_velocity(self.los_displacement_mm(data),
+                           caption=caption, aspect=aspect, alpha=alpha,
+                           quantile=quantile, vmin=vmin, vmax=vmax, symmetrical=symmetrical, **kwargs)
+
     def trend(self, data, dim='auto', degree=1):
         print ('NOTE: Function is deprecated. Use Stack.regression1d() instead.')
         return self.regression1d(data=data, dim=dim, degree=degree)
