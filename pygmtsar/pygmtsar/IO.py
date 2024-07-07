@@ -604,7 +604,7 @@ class IO(datagrid):
         for dim in ['pair', 'date']:
             if dim in data.coords:
                 if data[dim].shape == () or 'stack' in data.dims:
-                    data = data.rename({'stackvar': dim})
+                    data = data.rename({'stackvar': dim}).set_index({dim: dim})
                 else:
                     data = data.swap_dims({'stackvar': dim})
     
