@@ -84,7 +84,7 @@ class Stack_multilooking(Stack_phasediff):
             with dask.config.set(**{'array.slicing.split_large_chunks': True}):
                 #if func not in ['mean', 'min', 'max', 'count', 'sum']:
                 #    raise ValueError(f"Unsupported function {func}. Should be 'mean','min','max','count', or 'sum'")
-                return getattr(da.coarsen(coarsen_args, boundary='trim'), func)()\
+                return getattr((da.unstack('stack') if 'stack' in da.dims else da).coarsen(coarsen_args, boundary='trim'), func)()\
                        .chunk({yname: self.chunksize, xname: self.chunksize})
 
         # return callback function and set common chunk size
