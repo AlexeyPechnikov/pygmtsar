@@ -370,7 +370,7 @@ class Stack_detrend(Stack_unwrap):
                 .swap_dims({'pair': 'time'})\
                 .sortby(['ref', 'rep'])\
                 .polyfit(dim='time', deg=degree)
-            model = linear_fit.polyfit_coefficients.sel(degree=degree)
+            model = linear_fit.polyfit_coefficients.sel(degree=degree).astype(np.float32)
             models.append(model.assign_coords(date=pd.to_datetime(date)))
             del data_pairs, stack, stack_days, stack_days_selected, linear_fit, model
         model = xr.concat(models, dim='date')
