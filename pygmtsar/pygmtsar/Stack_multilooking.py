@@ -75,6 +75,9 @@ class Stack_multilooking(Stack_phasediff):
             warnings.filterwarnings('ignore')
             warnings.filterwarnings('ignore', module='dask')
             warnings.filterwarnings('ignore', module='dask.core')
+            # iunstack data if needed
+            if 'stack' in da.dims:
+                da = da.unstack('stack')
             # workaround for Google Colab when we cannot save grids with x,y coordinate names
             # also supports geographic coordinates
             yname = [varname for varname in ['y', 'lat', 'a'] if varname in da.dims][0]
@@ -84,7 +87,7 @@ class Stack_multilooking(Stack_phasediff):
             with dask.config.set(**{'array.slicing.split_large_chunks': True}):
                 #if func not in ['mean', 'min', 'max', 'count', 'sum']:
                 #    raise ValueError(f"Unsupported function {func}. Should be 'mean','min','max','count', or 'sum'")
-                return getattr((da.unstack('stack') if 'stack' in da.dims else da).coarsen(coarsen_args, boundary='trim'), func)()\
+                return getattr(da.coarsen(coarsen_args, boundary='trim'), func)()\
                        .chunk({yname: self.chunksize, xname: self.chunksize})
 
         # return callback function and set common chunk size
