@@ -209,6 +209,7 @@ class Stack_lstsq(Stack_tidal):
                 print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
                 chunks_y = chunks_x = self.netcdf_chunksize//2
                 print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
+            chunks = {'y': chunks_y, 'x': chunks_x}
         else:
             chunks_z, chunks_stack = data.chunks if data.chunks is not None else np.inf, np.inf
             if np.max(chunks_stack) > self.chunksize1d:
@@ -216,7 +217,8 @@ class Stack_lstsq(Stack_tidal):
                 # 1D chunk size can be defined straightforward
                 chunks_stack = self.chunksize1d
                 print (f'Note: auto tune data chunk size to 1D chunk: ({chunks_stack})')
-        data = data.chunk({'y': chunks_y, 'x': chunks_x})
+            chunks = {'stack': chunks_stack}
+        data = data.chunk(chunks)
 
         if weight is None:
             # this case should be processed inside lstq_block function
@@ -345,7 +347,6 @@ class Stack_lstsq(Stack_tidal):
         model = xr.DataArray(model, coords=coords).rename('displacement')
 
         return model
-
 
     def rmse(self, data, solution, weight=None):
         """
