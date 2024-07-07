@@ -385,23 +385,33 @@ class Stack_unwrap(Stack_unwrap_snaphu):
     def unwrap1d(self, data, weight=None, tolerance=np.pi/2):
         import xarray as xr
         import numpy as np
-    
+
         pairs = self.get_pairs(data)
         matrix = self.lstsq_matrix(pairs)
     
         if not 'stack' in data.dims:
-            chunks_z, chunks_y, chunks_x = data.chunks
+            chunks_z, chunks_y, chunks_x = data.chunks if data.chunks is not None else np.inf, np.inf, np.inf
             if np.max(chunks_y) > self.netcdf_chunksize or np.max(chunks_x) > self.netcdf_chunksize:
                 print (f'Note: data chunk size ({np.max(chunks_y)}, {np.max(chunks_x)}) is too large for stack processing')
+                # 1/4 NetCDF chunk is the smallest reasonable processing chunk 
                 chunks_y = chunks_x = self.netcdf_chunksize//2
                 print (f'Note: auto tune data chunk size to a half of NetCDF chunk: ({chunks_y}, {chunks_x})')
-            else:
-                # use the existing data chunks size
-                chunks_y = np.max(chunks_y)
-                chunks_x = np.max(chunks_x)
+            #else:
+            #    # use the existing data chunks size
+            #    chunks_y = np.max(chunks_y)
+            #    chunks_x = np.max(chunks_x)
             chunks = dict(pair=-1, y=chunks_y, x=chunks_x)
         else:
-            chunks = dict(pair=-1)
+            chunks_z, chunks_stack = data.chunks if data.chunks is not None else np.inf, np.inf
+            if np.max(chunks_stack) > self.chunksize1d:
+                print (f'Note: data chunk size ({np.max(chunks_stack)} is too large for stack processing')
+                # 1D chunk size can be defined straightforward
+                chunks_stack = self.chunksize1d
+                print (f'Note: auto tune data chunk size to 1D chunk: ({chunks_stack})')
+            #else:
+            #    # use the existing data chunks size
+            #    chunks_stack = np.max(chunks_stack)
+            chunks = dict(pair=-1, stack=chunks_stack)
         
         # xarray wrapper
         input_core_dims = [['pair']]
