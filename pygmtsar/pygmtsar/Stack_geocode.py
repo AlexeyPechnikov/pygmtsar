@@ -177,7 +177,7 @@ class Stack_geocode(Stack_sbas):
         import numpy as np
 
         if 'stack' in data.dims and 'y' in data.coords and 'x' in data.coords:
-            trans_inv = self.get_trans_inv().interp(y=data.y, x=data.x, method='nearest')
+            trans_inv = self.get_trans_inv().interp(y=data.y, x=data.x, method='linear')
             return data.assign_coords(
                 lat=('stack', trans_inv['lt'].data),
                 lon=('stack', trans_inv['ll'].data)
@@ -348,7 +348,7 @@ class Stack_geocode(Stack_sbas):
         import numpy as np
 
         if 'stack' in data.dims and 'lat' in data.coords and 'lon' in data.coords:
-            trans = self.get_trans().interp(lat=data.lat, lon=data.lon, method='nearest')
+            trans = self.get_trans().interp(lat=data.lat, lon=data.lon, method='linear')
             return data.assign_coords(
                 y=('stack', trans['azi'].data),
                 x=('stack', trans['rng'].data)
