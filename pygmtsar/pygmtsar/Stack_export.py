@@ -197,7 +197,7 @@ class Stack_export(Stack_ps):
                 self.as_geo(self.ra2ll(grid) if not self.is_geo(grid) else grid).rio.to_raster(filename)
                 pbar.update(1)
 
-    def export_geojson(self, data, name, caption='Exporting WGS84 GeoJSON', pivotal=True, digits=1):
+    def export_geojson(self, data, name, caption='Exporting WGS84 GeoJSON', pivotal=True, digits=2, coord_digits=6):
         """
         Export GeoJSON file "velocity.geojson":
         sbas.export_geojson(velocity, 'velocity')
@@ -221,46 +221,68 @@ class Stack_export(Stack_ps):
         else:
             grid = data
 
-        # split to equal chunks and rest
-        lats_blocks = np.array_split(np.arange(grid.lat.size), np.arange(0, grid.lat.size, self.netcdf_chunksize//2)[1:])
-        lons_blocks = np.array_split(np.arange(grid.lon.size), np.arange(0, grid.lon.size, self.netcdf_chunksize//2)[1:])
+        def block_as_json(block, stackvar, name):
+            df = block.compute().to_dataframe().dropna().reset_index()
+            df[name] = df[name].apply(lambda x: float(f"{x:.{digits}f}"))
+            for col in df.columns:
+                if np.issubdtype(df[col].dtype, np.datetime64):
+                    df[col] = df[col].dt.date.astype(str)
+            if stackvar is not None and np.issubdtype(df[stackvar].dtype, np.datetime64):
+                df[stackvar] = df[stackvar].dt.date.astype(str)
+            if stackvar is not None and pivotal:
+                df = df.pivot_table(index=['lat', 'lon'], columns=stackvar,
+                                    values=name, fill_value=np.nan).reset_index()
+            # convert to geodataframe with value and geometry columns
+            gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon.round(coord_digits), df.lat.round(coord_digits)))
+            del df, gdf['lat'], gdf['lon']
+            chunk_json = None
+            if len(gdf):
+                chunk_json = gdf.to_json(drop_id=True)
+                # crop GeoJSON header and footer and split lines
+                chunk_json = chunk_json[43:-2].replace('}}, ', '}},\n')
+            del gdf
+            return chunk_json
 
+        # json header flag
         empty = True
-        # prepare the progress bar
-        with tqdm(desc=caption, total=len(lats_blocks)*len(lons_blocks)) as pbar:
-            with open(f'{name}.geojson', 'w') as f:
-                # GeoJSON header
-                f.write('{"type": "FeatureCollection", "features": [\n')
-                for lats_block in lats_blocks:
-                    for lons_block in lons_blocks:
-                        block = grid.isel(lat=lats_block, lon=lons_block).compute()
-                        df = block.to_dataframe().dropna().reset_index()
+        with open(f'{name}.geojson', 'w') as f:
+            # GeoJSON header
+            f.write('{"type": "FeatureCollection", "features": [\n')
+    
+            if 'stack' in data.dims:
+                stack_blocks = np.array_split(np.arange(grid['stack'].size), np.arange(0, grid['stack'].size, self.chunksize1d)[1:])
+                # prepare the progress bar
+                with tqdm(desc=caption, total=len(stack_blocks)) as pbar:
+                    for stack_block in stack_blocks:
+                        block = grid.isel(stack=stack_block).drop_vars(['y','x'])
+                        chunk_json = block_as_json(block, stackvar, data.name)
                         del block
-                        df[data.name] = df[data.name].apply(lambda x: float(f"{x:.{digits}f}"))
-                        for col in df.columns:
-                            if np.issubdtype(df[col].dtype, np.datetime64):
-                                df[col] = df[col].dt.date.astype(str)
-                        if stackvar is not None and np.issubdtype(df[stackvar].dtype, np.datetime64):
-                            df[stackvar] = df[stackvar].dt.date.astype(str)
-                        if stackvar is not None and pivotal:
-                            df = df.pivot_table(index=['lat', 'lon'], columns=stackvar,
-                                                values=data.name, fill_value=np.nan).reset_index()
-                        # convert to geodataframe with value and geometry columns
-                        gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon.round(6), df.lat.round(6)))
-                        del df, gdf['lat'], gdf['lon']
-                        if len(gdf):
-                            # crop GeoJSON header and footer and split lines
-                            chunk_str = gdf.to_json(drop_id=True)[43:-2].replace('}}, ', '}},\n')
-                            f.write(chunk_str if empty else ',' + chunk_str)
+                        if chunk_json is not None:
+                            f.write(('' if empty else ',') + chunk_json)
                             empty = False
-                            del chunk_str
-                        del gdf
                         pbar.update(1)
-                # GeoJSON footer
-                f.write(']}')
+            else:
+                # split to equal chunks and rest
+                # 1/4 NetCDF chunk is the smallest reasonable processing chunk
+                lats_blocks = np.array_split(np.arange(grid.lat.size), np.arange(0, grid.lat.size, self.netcdf_chunksize//2)[1:])
+                lons_blocks = np.array_split(np.arange(grid.lon.size), np.arange(0, grid.lon.size, self.netcdf_chunksize//2)[1:])
+                # prepare the progress bar
+                with tqdm(desc=caption, total=len(lats_blocks)*len(lons_blocks)) as pbar:
+                    for lats_block in lats_blocks:
+                        for lons_block in lons_blocks:
+                            block = grid.isel(lat=lats_block, lon=lons_block)
+                            chunk_json = block_as_json(block, stackvar, data.name)
+                            del block
+                            if chunk_json is not None:
+                                f.write(('' if empty else ',') + chunk_json)
+                                empty = False
+                            pbar.update(1)
+
+            # GeoJSON footer
+            f.write(']}')
         del grid
 
-    def export_csv(self, data, name, caption='Exporting WGS84 CSV', digits=1, delimiter=','):
+    def export_csv(self, data, name, caption='Exporting WGS84 CSV', delimiter=',', digits=2, coord_digits=6):
         """
         Export CSV file "velocity.csv":
         sbas.export_csv(velocity, 'velocity')
@@ -274,41 +296,40 @@ class Stack_export(Stack_ps):
     
         assert isinstance(data, xr.DataArray), 'Argument data is not an xr.DataArray object'
     
-        # determine if data has a stack dimension and what it is
-        stackvar = data.dims[0] if len(data.dims) == 3 else None
-    
         # convert the data to geographic coordinates if necessary
         if not self.is_geo(data):
             grid = self.ra2ll(data)
         else:
             grid = data
+
+        # determine if data has a stack dimension and what it is
+        if 'stack' in data.dims:
+            stackvar = data.dims[0] if len(data.dims) == 2 else None
+        else:
+            stackvar = data.dims[0] if len(data.dims) == 3 else None
     
-        # split to equal chunks and rest
-        lats_blocks = np.array_split(np.arange(grid.lat.size), np.arange(0, grid.lat.size, self.netcdf_chunksize//2)[1:])
-        lons_blocks = np.array_split(np.arange(grid.lon.size), np.arange(0, grid.lon.size, self.netcdf_chunksize//2)[1:])
-    
-        # prepare the progress bar
-        with tqdm(desc=caption, total=len(lats_blocks)*len(lons_blocks)) as pbar:
-            with open(f'{name}.csv', 'w') as f:
-                # CSV header
-                f.write(delimiter.join(filter(None, [stackvar, 'lon', 'lat', data.name])) + '\n')
-                for lats_block in lats_blocks:
-                    for lons_block in lons_blocks:
-                        block = grid.isel(lat=lats_block, lon=lons_block).compute()
+        with open(f'{name}.csv', 'w') as f:
+            # CSV header
+            f.write(delimiter.join(filter(None, [stackvar, 'lon', 'lat', data.name])) + '\n')
+            if 'stack' in data.dims:
+                stack_blocks = np.array_split(np.arange(grid['stack'].size), np.arange(0, grid['stack'].size, self.chunksize1d)[1:])
+                # prepare the progress bar
+                with tqdm(desc=caption, total=len(stack_blocks)) as pbar:
+                    for stack_block in stack_blocks:
+                        block = grid.isel(stack=stack_block).drop_vars(['y','x']).compute()
                         block_val = block.round(digits).values
-                        block_lat = block.lat.round(6).values
-                        block_lon = block.lon.round(6).values
+                        block_lat = block.lat.round(coord_digits).values
+                        block_lon = block.lon.round(coord_digits).values
                         if stackvar is not None:
                             stackvals = block[stackvar]
                             if np.issubdtype(stackvals.dtype, np.datetime64):
-                                stackvals = stackvals.dt.date.astype(str)                           
-                            stackvals, lats, lons = np.meshgrid(stackvals, block_lat, block_lon, indexing='ij')
-                            block_csv = np.column_stack((stackvals.ravel(), lons.ravel(), lats.ravel(), block_val.ravel()))
-                            del stackvals, lats, lons
+                                stackvals = stackvals.dt.date.astype(str)
+                            block_csv = np.column_stack((np.repeat(stackvals, block_lon.size),
+                                                         np.repeat(block_lon, stackvals.size),
+                                                         np.repeat(block_lat, stackvals.size),
+                                                         block_val.ravel()))
                         else:
-                            lats, lons = np.meshgrid(block_lat, block_lon, indexing='ij')
-                            block_csv = np.column_stack((lons.ravel(), lats.ravel(), block_val.astype(str).ravel()))
-                            del lats, lons
+                            block_csv = np.column_stack((block_lon, block_lat, block_val.astype(str).ravel()))
                         del block, block_lat, block_lon
                         block_csv = block_csv[np.isfinite(block_val.ravel())]
                         del block_val
@@ -316,6 +337,37 @@ class Stack_export(Stack_ps):
                             np.savetxt(f, block_csv, delimiter=delimiter, fmt='%s')
                         del block_csv
                         pbar.update(1)
+            else:
+                # split to equal chunks and rest
+                # 1/4 NetCDF chunk is the smallest reasonable processing chunk
+                lats_blocks = np.array_split(np.arange(grid.lat.size), np.arange(0, grid.lat.size, self.netcdf_chunksize//2)[1:])
+                lons_blocks = np.array_split(np.arange(grid.lon.size), np.arange(0, grid.lon.size, self.netcdf_chunksize//2)[1:])
+                # prepare the progress bar
+                with tqdm(desc=caption, total=len(lats_blocks)*len(lons_blocks)) as pbar:
+                    for lats_block in lats_blocks:
+                        for lons_block in lons_blocks:
+                            block = grid.isel(lat=lats_block, lon=lons_block).compute()
+                            block_val = block.round(digits).values
+                            block_lat = block.lat.round(coord_digits).values
+                            block_lon = block.lon.round(coord_digits).values
+                            if stackvar is not None:
+                                stackvals = block[stackvar]
+                                if np.issubdtype(stackvals.dtype, np.datetime64):
+                                    stackvals = stackvals.dt.date.astype(str)
+                                stackvals, lats, lons = np.meshgrid(stackvals, block_lat, block_lon, indexing='ij')
+                                block_csv = np.column_stack((stackvals.ravel(), lons.ravel(), lats.ravel(), block_val.ravel()))
+                                del stackvals, lats, lons
+                            else:
+                                lats, lons = np.meshgrid(block_lat, block_lon, indexing='ij')
+                                block_csv = np.column_stack((lons.ravel(), lats.ravel(), block_val.astype(str).ravel()))
+                                del lats, lons
+                            del block, block_lat, block_lon
+                            block_csv = block_csv[np.isfinite(block_val.ravel())]
+                            del block_val
+                            if block_csv.size > 0:
+                                np.savetxt(f, block_csv, delimiter=delimiter, fmt='%s')
+                            del block_csv
+                            pbar.update(1)
         del grid
 
     def export_netcdf(self, data, name, caption='Exporting WGS84 NetCDF', engine='netcdf4', format='NETCDF3_64BIT'):
@@ -324,6 +376,7 @@ class Stack_export(Stack_ps):
         sbas.export_netcdf(velocity, 'velocity')
         """
         import xarray as xr
+        import pandas as pd
         import numpy as np
         import dask
         import os
@@ -338,6 +391,10 @@ class Stack_export(Stack_ps):
             grid = self.ra2ll(data)
         else:
             grid = data
+
+        if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
+            print (f"NOTE: open as xr.open_dataarray('{name}.nc').set_index(stack=['lat', 'lon'])")
+            grid = grid.reset_index('stack')
     
         filename = f'{name}.nc'
         if os.path.exists(filename):
