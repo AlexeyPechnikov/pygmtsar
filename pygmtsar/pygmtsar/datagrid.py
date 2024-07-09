@@ -130,6 +130,9 @@ class datagrid:
             True if the grid is in radar coordinates, False otherwise.
         """
         dims = grid.dims
+        coords = grid.coords
+        if 'stack' in dims and 'y' in coords and 'x' in coords:
+            return True
         if 'y' in dims and 'x' in dims:
             return True
         return False
@@ -150,6 +153,9 @@ class datagrid:
             True if the grid is in geographic coordinates, False otherwise.
         """
         dims = grid.dims
+        coords = grid.coords
+        if 'stack' in dims and 'lat' in coords and 'lon' in coords:
+            return True
         if 'lat' in dims and 'lon' in dims:
             return True
         return False
