@@ -279,7 +279,7 @@ class ASF(tqdm_joblib):
                     os.remove(tmp_file)
                 # download burst tif file and save using the burst and scene names
                 #result.download(os.path.dirname(tif_file), filename=os.path.basename(tif_file))
-                result.download(scene_dir, filename=os.path.basename(tif_file))
+                result.download(scene_dir, filename=os.path.basename(tif_file), session=session)
                 with rio.open_rasterio(tmp_file) as raster:
                     raster.load()
                     os.rename(tmp_file, tif_file)
