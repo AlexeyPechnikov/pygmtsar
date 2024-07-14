@@ -60,6 +60,7 @@ setup(
                       'scikit-learn',
                       'xmltodict',
                       'rioxarray',
+                      'tifffile',
                       'ipywidgets',
                       'h5netcdf>=1.3.0',
                       'h5py',
