@@ -275,7 +275,7 @@ class ASF(tqdm_joblib):
                     os.remove(tif_file)
                 # check if we can open the downloaded file without errors
                 tmp_file = os.path.join(scene_dir, os.path.basename(tif_file))
-                if os.path.exists(tif_file):
+                if os.path.exists(tmp_file):
                     os.remove(tmp_file)
                 # download burst tif file and save using the burst and scene names
                 #result.download(os.path.dirname(tif_file), filename=os.path.basename(tif_file))
