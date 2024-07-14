@@ -18,20 +18,6 @@ class ASF(tqdm_joblib):
     template_safe = '*.SAFE/*/{mission}-iw{subswath}-slc-{polarization}-*'
     # check for downloaded scene files
     template_scene = 'S1?_IW_SLC__1S??_{start}_*.SAFE/*/s1?-iw{subswath_lowercase}-slc-{polarization_lowercase}-{start_lowercase}-*'
-    # URL of the HTML page
-    # see https://asf.alaska.edu/data-sets/sar-data-sets/sentinel-1/sentinel-1-data-and-imagery/
-    # https://s1qc.asf.alaska.edu
-    poeorb_url = 'https://s1qc.asf.alaska.edu/aux_poeorb/'
-    resorb_url = 'https://s1qc.asf.alaska.edu/aux_resorb/'
-    # resorb - 69108
-    # poeorb - 9811
-    #pattern_orbit  = r'S1\w_OPER_AUX_\w{3}ORB_OPOD_\d{8}T\d{6}_V\d{8}T\d{6}_\d{8}T\d{6}.EOF'
-    pattern_orbit  = r'S1\w_OPER_AUX_(POE|RES)ORB_OPOD_\d{8}T\d{6}_V\d{8}T\d{6}_\d{8}T\d{6}.EOF'
-    # see _select_orbit.py in sentineleof package
-    #Orbital period of Sentinel-1 in seconds
-    #T_ORBIT = (12 * 86400.0) / 175.0
-    offset_start = timedelta(seconds=(12 * 86400.0) // 175.0 + 60)
-    offset_end = timedelta(seconds=300)
 
     def __init__(self, username=None, password=None):
         import asf_search
@@ -98,7 +84,7 @@ class ASF(tqdm_joblib):
             scenes_missed = scenes
         #print ('scenes_missed', len(scenes_missed))
 
-        # do not use internet connection, work offline when all the scenes and orbits already available
+        # do not use internet connection, work offline when all the scenes already available
         if len(scenes_missed) == 0:
             return
 
@@ -174,11 +160,12 @@ class ASF(tqdm_joblib):
         return scenes_downloaded
 
     def download(self, *args, **kwarg):
-        print ('NOTE: Function is deprecated. Use ASF.download_scenes() and ASF.download_orbits().')
+        print ('NOTE: Function is deprecated. Use ASF.download_scenes() and ASF.download_bursts().')
 
     # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
     def download_bursts(self, basedir, bursts, session=None, n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
         import rioxarray as rio
+        from tifffile import TiffFile
         import xmltodict
         import pandas as pd
         import asf_search
@@ -190,7 +177,12 @@ class ASF(tqdm_joblib):
         import warnings
         # supress asf_search 'UserWarning: File already exists, skipping download'
         warnings.filterwarnings("ignore", category=UserWarning)
-    
+
+        def filter_azimuth_time(items, start_utc_dt, stop_utc_dt, delta=3):
+            return [item for item in items if
+                 datetime.strptime(item['azimuthTime'], '%Y-%m-%dT%H:%M:%S.%f') >= start_utc_dt - timedelta(seconds=delta) and 
+                 datetime.strptime(item['azimuthTime'], '%Y-%m-%dT%H:%M:%S.%f') <= stop_utc_dt + timedelta(seconds=delta)]
+
         # create the directory if needed
         os.makedirs(basedir, exist_ok=True)
     
@@ -220,13 +212,15 @@ class ASF(tqdm_joblib):
             # process all the defined scenes
             bursts_missed = bursts
         #print ('bursts_missed', len(bursts_missed))
-        # do not use internet connection, work offline when all the scenes and orbits already available
+        # do not use internet connection, work offline when all the scenes already available
         if len(bursts_missed) == 0:
             return
     
         def download_burst(result, basedir, session):
             properties = result.geojson()['properties']
             #print (properties)
+            burstIndex = properties['burst']['burstIndex']
+            platform = properties['platform'][-2:]
             polarization = properties['polarization']
             #print ('polarization', polarization)
             subswath = properties['burst']['subswath']
@@ -234,7 +228,7 @@ class ASF(tqdm_joblib):
             # fake image number unique per polarizations
             # the real image number is sequential between all the polarizations
             # this trick allows to detect scene files without manifest downloading
-            imageNumber = '00' + subswath[-1:]
+            #imageNumber = '00' + subswath[-1:]
             #print ('imageNumber', imageNumber)
             # define new scene name
             scene = properties['url'].split('/')[3]
@@ -254,8 +248,8 @@ class ASF(tqdm_joblib):
             #print ('scene', scene)
             scene_dir = os.path.join(basedir, scene + '.SAFE')
             # define burst name
-            burst = '-'.join(['s1a-iw1-slc-vv'] + scene_parts[5:-1] + [imageNumber]).lower()
-            # 's1a-iw1-slc-vv-20240314t130744-20240314t130747-052978-0669c6-005'
+            burst = '-'.join([f's{platform.lower()}-{subswath.lower()}-slc-{polarization.lower()}'] + scene_parts[5:-1] + ['001']).lower()
+            # s1a-iw2-slc-vv-20240314t130744-20240314t130747-052978-0669c6-001
             #print ('burst', burst)
     
             # create the directories if needed
@@ -279,11 +273,13 @@ class ASF(tqdm_joblib):
                 # remove potentially incomplete file if needed
                 if os.path.exists(tif_file):
                     os.remove(tif_file)
+                # check if we can open the downloaded file without errors
+                tmp_file = os.path.join(scene_dir, os.path.basename(tif_file))
+                if os.path.exists(tif_file):
+                    os.remove(tmp_file)
                 # download burst tif file and save using the burst and scene names
                 #result.download(os.path.dirname(tif_file), filename=os.path.basename(tif_file))
                 result.download(scene_dir, filename=os.path.basename(tif_file))
-                # check if we can open the downloaded file without errors
-                tmp_file = os.path.join(scene_dir, os.path.basename(tif_file))
                 with rio.open_rasterio(tmp_file) as raster:
                     raster.load()
                     os.rename(tmp_file, tif_file)
@@ -293,6 +289,12 @@ class ASF(tqdm_joblib):
                 #print (f'pass {xml_file}')
                 pass
             else:
+                # get TiFF file information
+                with TiffFile(tif_file) as tif:
+                    page = tif.pages[0]
+                    offset = page.dataoffsets[0]
+                #print ('offset', offset)
+                
                 # get the file name
                 basename = os.path.basename(properties['additionalUrls'][0])
                 #print ('basename', '=>', basename)
@@ -305,38 +307,84 @@ class ASF(tqdm_joblib):
                 # parse xml
                 with open(manifest_file, 'r') as file:
                     xml_content = file.read()
-                subswathidx = int(subswath[-1:]) - 1 
-                annotation = xmltodict.parse(xml_content)['burst']['metadata']['product'][subswathidx]['content']
-                #imageNumber = annotation['adsHeader']['imageNumber']
-                #print ('imageNumber', imageNumber)
-                # filter GCPs for only the selected burst properties['burst']['burstIndex']
-                # filter GCPs by time
-                geoloc = annotation['geolocationGrid']['geolocationGridPointList']
-                # check data consistency
-                assert int(geoloc['@count']) == len(geoloc['geolocationGridPoint'])
-                # to produce 2 lines instead of single use time offset
-                startTime = properties['startTime']
-                #print ('startTime', startTime)
-                stopTime  = properties['stopTime']
-                #print ('stopTime', stopTime)
-                startTime_dt_buffer = datetime.strptime(startTime, '%Y-%m-%dT%H:%M:%SZ') + timedelta(seconds=-3)
-                startTime_buffer = startTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
-                stopTime_dt_buffer = datetime.strptime(stopTime, '%Y-%m-%dT%H:%M:%SZ') + timedelta(seconds=0)
-                stopTime_buffer = stopTime_dt_buffer.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
-                #print ('stopTime_buffer', stopTime_buffer)
-                gcps = []
-                for gcp in geoloc['geolocationGridPoint']:
-                    if gcp['azimuthTime'] >= startTime_buffer and gcp['azimuthTime'] <= stopTime_buffer:
-                        #print (gcp)
-                        gcps.append(gcp)
-                geoloc['@count'] = str(len(gcps))
-                geoloc['geolocationGridPoint'] = gcps
-                annotation['geolocationGrid']['geolocationGridPointList'] = geoloc
-                with open(xml_file, 'w') as file:
-                    file.write(xmltodict.unparse({'product': annotation}, pretty=True, indent='  '))
-                # remove processed manifest file
+                # remove manifest file
                 if os.path.exists(manifest_file):
                     os.remove(manifest_file)
+
+                subswathidx = int(subswath[-1:]) - 1 
+                content = xmltodict.parse(xml_content)['burst']['metadata']['product'][subswathidx]
+                assert polarization == content['polarisation'], 'ERROR: XML polarization differs from burst polarization'
+                annotation = content['content']
+
+                annotation_burst = annotation['swathTiming']['burstList']['burst'][burstIndex]
+                start_utc = annotation_burst['azimuthTime']
+                start_utc_dt = datetime.strptime(start_utc, '%Y-%m-%dT%H:%M:%S.%f')
+                #print ('start_utc', start_utc, start_utc_dt)
+                
+                length = annotation['swathTiming']['linesPerBurst']
+                azimuth_time_interval = annotation['imageAnnotation']['imageInformation']['azimuthTimeInterval']
+                burst_time_interval = timedelta(seconds=(int(length) - 1) * float(azimuth_time_interval))
+                stop_utc_dt = start_utc_dt + burst_time_interval
+                stop_utc = stop_utc_dt.strftime('%Y-%m-%dT%H:%M:%S.%f')
+                #print ('stop_utc', stop_utc, stop_utc_dt)
+                
+                # output xml
+                product = {}
+                
+                adsHeader = annotation['adsHeader']
+                adsHeader['startTime'] = start_utc
+                adsHeader['stopTime'] = stop_utc
+                adsHeader['imageNumber'] = '001'
+                product = product   | {'adsHeader': adsHeader}
+                
+                qualityInformation = {'productQualityIndex': annotation['qualityInformation']['productQualityIndex']} |\
+                                      {'qualityDataList':     annotation['qualityInformation']['qualityDataList']}
+                product = product   | {'qualityInformation': qualityInformation}
+
+                generalAnnotation = annotation['generalAnnotation']
+                # filter annotation['generalAnnotation']['replicaInformationList'] by azimuthTime
+                product = product   | {'generalAnnotation': generalAnnotation}
+                
+                imageAnnotation = annotation['imageAnnotation']
+                imageAnnotation['imageInformation']['productFirstLineUtcTime'] = start_utc
+                imageAnnotation['imageInformation']['productLastLineUtcTime'] = stop_utc
+                imageAnnotation['imageInformation']['productComposition'] = 'Assembled'
+                imageAnnotation['imageInformation']['sliceNumber'] = '0'
+                imageAnnotation['imageInformation']['sliceList'] = {'@count': '0'}
+                imageAnnotation['imageInformation']['numberOfLines'] = str(length)
+                # imageStatistics and inputDimensionsList are not updated
+                product = product   | {'imageAnnotation': imageAnnotation}
+                
+                dopplerCentroid = annotation['dopplerCentroid']
+                items = filter_azimuth_time(dopplerCentroid['dcEstimateList']['dcEstimate'], start_utc_dt, stop_utc_dt)
+                dopplerCentroid['dcEstimateList'] = {'@count': len(items), 'dcEstimate': items}
+                product = product   | {'dopplerCentroid': dopplerCentroid}
+                
+                antennaPattern = annotation['antennaPattern']
+                items = filter_azimuth_time(antennaPattern['antennaPatternList']['antennaPattern'], start_utc_dt, stop_utc_dt)
+                antennaPattern['antennaPatternList'] = {'@count': len(items), 'antennaPattern': items}
+                product = product   | {'antennaPattern': antennaPattern}
+                
+                swathTiming = annotation['swathTiming']
+                items = filter_azimuth_time(swathTiming['burstList']['burst'], start_utc_dt, start_utc_dt, 1)
+                assert len(items) == 1, 'ERROR: unexpected bursts count, should be 1'
+                # add TiFF file information
+                items[0]['byteOffset'] = offset
+                swathTiming['burstList'] = {'@count': len(items), 'burst': items}
+                product = product   | {'swathTiming': swathTiming}
+                
+                geolocationGrid = annotation['geolocationGrid']
+                items = filter_azimuth_time(geolocationGrid['geolocationGridPointList']['geolocationGridPoint'], start_utc_dt, stop_utc_dt, 1)
+                # re-numerate line numbers for the burst
+                for item in items: item['line'] = str(int(item['line']) - (int(length) * burstIndex))
+                geolocationGrid['geolocationGridPointList'] = {'@count': len(items), 'geolocationGridPoint': items}
+                product = product   | {'geolocationGrid': geolocationGrid}
+                
+                product = product   | {'coordinateConversion': annotation['coordinateConversion']}
+                product = product   | {'swathMerging': annotation['swathMerging']}
+
+                with open(xml_file, 'w') as file:
+                    file.write(xmltodict.unparse({'product': product}, pretty=True, indent='  '))
     
         # prepare authorized connection
         if session is None:
