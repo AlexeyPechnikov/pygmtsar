@@ -144,8 +144,14 @@ When you need more scenes and SBAS analysis  see examples on PyGMTSAR GitHub pag
 
 ### Descending Orbit Configuration
 
-https://search.asf.alaska.edu/#/?polygon=POINT(72.66%2038.25)&start=2016-12-31T17:00:00Z&end=2017-12-31T16:59:59Z&productTypes=SLC&resultsLoaded=true&zoom=7.131&center=74.457,35.638&path=5-5&frame=466-466
+https://search.asf.alaska.edu/#/?polygon=POINT(72.66%2038.25)&start=2017-05-11T00:00:01Z&end=2017-12-25T23:59:59Z&productTypes=SLC&resultsLoaded=true&zoom=7.131&center=74.457,35.638&path=5-5&frame=466-466
 """
+
+# The subswath is required for partial scene downloads and is not used for burst downloads.
+# The orbit is used to define directory names.
+ORBIT    = 'D'
+SUBSWATH = 2
+REFERENCE = '2017-08-27'
 
 SCENES = """
 S1A_IW_SLC__1SDV_20171225T011405_20171225T011433_019852_021C64_4328
@@ -170,10 +176,53 @@ S1A_IW_SLC__1SDV_20170511T011400_20170511T011428_016527_01B650_1364
 """
 SCENES = list(filter(None, SCENES.split('\n')))
 print (f'Scenes defined: {len(SCENES)}')
+# no scenes to download
+SCENES = None
 
-ORBIT     = 'D'
-SUBSWATH  = 2
-REFERENCE = '2017-08-27'
+"""https://search.asf.alaska.edu/#/?polygon=POLYGON((72.72%2038.26,72.6936%2038.3236,72.63%2038.35,72.5664%2038.3236,72.54%2038.26,72.5664%2038.1964,72.63%2038.17,72.6936%2038.1964,72.72%2038.26))&start=2017-05-11T00:00:01Z&end=2017-12-25T23:59:59Z&resultsLoaded=true&zoom=10.025&center=72.469,38.068&path=5-5&frame=466-466&granule=S1_009440_IW2_20171225T011414_VV_4328-BURST&dataset=SENTINEL-1%20BURSTS&polarizations=VV"""
+
+BURSTS = """
+S1_009440_IW2_20171225T011414_VV_4328-BURST
+S1_009439_IW2_20171225T011411_VV_4328-BURST
+S1_009440_IW2_20171213T011414_VV_7F07-BURST
+S1_009439_IW2_20171213T011412_VV_7F07-BURST
+S1_009440_IW2_20171201T011415_VV_9E02-BURST
+S1_009439_IW2_20171201T011412_VV_9E02-BURST
+S1_009440_IW2_20171119T011415_VV_0E4F-BURST
+S1_009439_IW2_20171119T011412_VV_0E4F-BURST
+S1_009440_IW2_20171107T011415_VV_2D73-BURST
+S1_009439_IW2_20171107T011412_VV_2D73-BURST
+S1_009440_IW2_20171026T011415_VV_3CBC-BURST
+S1_009439_IW2_20171026T011413_VV_3CBC-BURST
+S1_009440_IW2_20171014T011415_VV_0578-BURST
+S1_009439_IW2_20171014T011413_VV_0578-BURST
+S1_009440_IW2_20171002T011415_VV_47CF-BURST
+S1_009439_IW2_20171002T011412_VV_47CF-BURST
+S1_009440_IW2_20170920T011415_VV_C9FA-BURST
+S1_009439_IW2_20170920T011412_VV_C9FA-BURST
+S1_009440_IW2_20170908T011414_VV_3B58-BURST
+S1_009439_IW2_20170908T011412_VV_3B58-BURST
+S1_009440_IW2_20170827T011414_VV_DD3B-BURST
+S1_009439_IW2_20170827T011411_VV_DD3B-BURST
+S1_009440_IW2_20170815T011413_VV_4FCB-BURST
+S1_009439_IW2_20170815T011411_VV_4FCB-BURST
+S1_009440_IW2_20170803T011413_VV_D70F-BURST
+S1_009439_IW2_20170803T011410_VV_D70F-BURST
+S1_009440_IW2_20170722T011412_VV_6CEC-BURST
+S1_009439_IW2_20170722T011409_VV_6CEC-BURST
+S1_009440_IW2_20170710T011411_VV_09CC-BURST
+S1_009439_IW2_20170710T011409_VV_09CC-BURST
+S1_009440_IW2_20170616T011410_VV_6B1C-BURST
+S1_009439_IW2_20170616T011407_VV_6B1C-BURST
+S1_009440_IW2_20170604T011409_VV_6EF9-BURST
+S1_009439_IW2_20170604T011407_VV_6EF9-BURST
+S1_009440_IW2_20170523T011409_VV_C1C8-BURST
+S1_009439_IW2_20170523T011406_VV_C1C8-BURST
+S1_009440_IW2_20170511T011408_VV_1364-BURST
+S1_009439_IW2_20170511T011405_VV_1364-BURST
+"""
+BURSTS = list(filter(None, BURSTS.split('\n')))
+print (f'Bursts defined: {len(BURSTS)}')
 
 WORKDIR = 'raw_sarez2017_' + 'desc'  if ORBIT == 'D' else 'asc'
 DATADIR = 'data_sarez2017_' + 'desc' if ORBIT == 'D' else 'asc'
@@ -225,19 +274,19 @@ The credentials below are available at the time the notebook is validated.
 asf_username = 'GoogleColab2023'
 asf_password = 'GoogleColab_2023'
 
-esa_username = 'sifts0_spangle@icloud.com'
-esa_password = 'cnjwdchuwe&e9d0We9'
-
 # Set these variables to None and you will be prompted to enter your username and password below.
 asf = ASF(asf_username, asf_password)
 # Optimized scene downloading from ASF - only the required subswaths and polarizations.
-print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+if SCENES is not None:
+    print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+if BURSTS is not None:
+    print(asf.download_bursts(DATADIR, BURSTS))
 
 # scan the data directory for SLC scenes and download missed orbits
 S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 
 # download Copernicus Global DEM 1 arc-second
-Tiles().download_dem(AOI, filename=DEM)
+Tiles().download_dem(AOI, filename=DEM).plot.imshow(cmap='gray')
 
 """## Run Local Dask Cluster
 
@@ -259,9 +308,7 @@ Search recursively for measurement (.tiff) and annotation (.xml) and orbit (.EOF
 Use filters to find required subswath, polarization and orbit in original scenes .SAFE directories in the data directory.
 """
 
-scenes = S1.scan_slc(DATADIR, subswath=SUBSWATH)
-# use only the specified scenes
-scenes = scenes[scenes.index.str.replace('-','').isin([scene.split('_')[5][:8] for scene in SCENES])]
+scenes = S1.scan_slc(DATADIR)
 
 sbas = Stack(WORKDIR, drop_if_exists=True).set_scenes(scenes).set_reference(REFERENCE)
 sbas.to_dataframe()

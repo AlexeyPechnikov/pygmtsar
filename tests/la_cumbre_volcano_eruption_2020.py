@@ -147,10 +147,28 @@ SUBSWATH = 2
 ### Descending Orbit Configuration
 """
 
-SCENES = ['S1B_IW_SLC__1SDV_20200110T114920_20200110T114950_019754_02559E_5E5F',
-          'S1A_IW_SLC__1SDV_20200116T115016_20200116T115044_030825_03895F_D200']
+# The subswath is required for partial scene downloads and is not used for burst downloads.
+# The orbit is used to define directory names.
 ORBIT    = 'D'
 SUBSWATH = 12
+
+SCENES = ['S1B_IW_SLC__1SDV_20200110T114920_20200110T114950_019754_02559E_5E5F',
+          'S1A_IW_SLC__1SDV_20200116T115016_20200116T115044_030825_03895F_D200']
+# no scenes to download
+SCENES = None
+
+BURSTS = """
+S1_273867_IW2_20200116T115028_VV_D200-BURST
+S1_273867_IW1_20200116T115027_VV_D200-BURST
+S1_273866_IW2_20200116T115025_VV_D200-BURST
+S1_273866_IW1_20200116T115024_VV_D200-BURST
+S1_273867_IW2_20200110T114946_VV_5E5F-BURST
+S1_273867_IW1_20200110T114945_VV_5E5F-BURST
+S1_273866_IW2_20200110T114943_VV_5E5F-BURST
+S1_273866_IW1_20200110T114942_VV_5E5F-BURST
+"""
+BURSTS = list(filter(None, BURSTS.split('\n')))
+print (f'Bursts defined: {len(BURSTS)}')
 
 WORKDIR      = 'raw_lacumbre_desc'  if ORBIT == 'D' else 'raw_lacumbre_asc'
 DATADIR      = 'data_lacumbre_desc' if ORBIT == 'D' else 'data_lacumbre_asc'
@@ -190,16 +208,19 @@ asf_password = 'GoogleColab_2023'
 # Set these variables to None and you will be prompted to enter your username and password below.
 asf = ASF(asf_username, asf_password)
 # Optimized scene downloading from ASF - only the required subswaths and polarizations.
-print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+if SCENES is not None:
+    print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+if BURSTS is not None:
+    print(asf.download_bursts(DATADIR, BURSTS))
 
 # scan the data directory for SLC scenes and download missed orbits
 S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 
 # download Copernicus Global DEM 1 arc-second
-Tiles().download_dem(AOI, filename=DEM)
+Tiles().download_dem(AOI, filename=DEM).plot.imshow(cmap='gray')
 
 # download land mask 1 arc-second
-Tiles().download_landmask(AOI, filename=LANDMASK)
+Tiles().download_landmask(AOI, filename=LANDMASK).plot.imshow(cmap='binary')
 
 """## Run Local Dask Cluster
 

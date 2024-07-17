@@ -143,6 +143,14 @@ When you need more scenes and SBAS analysis  see examples on PyGMTSAR GitHub pag
 ### Descending Orbit Configuration
 """
 
+# The subswath is required for partial scene downloads and is not used for burst downloads.
+# The orbit is used to define directory names.
+ORBIT     = 'D'
+SUBSWATH  = 3
+REFERENCE = '2021-07-05'
+
+"""https://search.asf.alaska.edu/#/?polygon=POLYGON((-118.4711%2034.3916,-118.47%2034.3915,-118.4688%2034.3916,-118.467%2034.3921,-118.4658%2034.3924,-118.4646%2034.3928,-118.4629%2034.3936,-118.461%2034.3942,-118.4578%2034.3939,-118.4595%2034.399,-118.46%2034.3994,-118.4631%2034.3976,-118.4674%2034.3952,-118.469%2034.394,-118.4699%2034.3934,-118.471%2034.3926,-118.4717%2034.3918,-118.4711%2034.3916))&start=2021-01-05T17:00:00Z&end=2021-12-20T16:59:59Z&resultsLoaded=true&granule=S1A_IW_SLC__1SDV_20211208T135244_20211208T135312_040918_04DBF1_5BB3-SLC&productTypes=SLC&flightDirs=Descending&zoom=7.663&center=-117.645,32.567&path=71-71&frame=480-480"""
+
 SCENES = """
 S1A_IW_SLC__1SDV_20211220T135243_20211220T135311_041093_04E1C6_571D
 S1A_IW_SLC__1SDV_20211208T135244_20211208T135312_040918_04DBF1_5BB3
@@ -178,9 +186,51 @@ S1A_IW_SLC__1SDV_20210106T135238_20210106T135305_036018_043864_D0B4
 SCENES = list(filter(None, SCENES.split('\n')))
 print (f'Scenes defined: {len(SCENES)}')
 
-ORBIT     = 'D'
-SUBSWATH  = 3
-REFERENCE = '2021-07-05'
+SCENES = None
+
+"""https://search.asf.alaska.edu/#/?polygon=POLYGON((-118.4711%2034.3916,-118.47%2034.3915,-118.4688%2034.3916,-118.467%2034.3921,-118.4658%2034.3924,-118.4646%2034.3928,-118.4629%2034.3936,-118.461%2034.3942,-118.4578%2034.3939,-118.4595%2034.399,-118.46%2034.3994,-118.4631%2034.3976,-118.4674%2034.3952,-118.469%2034.394,-118.4699%2034.3934,-118.471%2034.3926,-118.4717%2034.3918,-118.4711%2034.3916))&start=2021-01-05T17:00:00Z&end=2021-12-20T16:59:59Z&resultsLoaded=true&granule=S1_151226_IW3_20211220T135244_VV_571D-BURST&flightDirs=Descending&zoom=9.794&center=-118.575,34.110&path=71-71&frame=480-480&dataset=SENTINEL-1%20BURSTS&polarizations=VV"""
+
+BURSTS = """
+S1_151226_IW3_20211220T135244_VV_571D-BURST
+S1_151226_IW3_20211208T135245_VV_5BB3-BURST
+S1_151226_IW3_20211126T135245_VV_F7BC-BURST
+S1_151226_IW3_20211114T135246_VV_582A-BURST
+S1_151226_IW3_20211102T135246_VV_06BA-BURST
+S1_151226_IW3_20211021T135246_VV_AC92-BURST
+S1_151226_IW3_20211009T135246_VV_8A1C-BURST
+S1_151226_IW3_20210927T135246_VV_080A-BURST
+S1_151226_IW3_20210915T135245_VV_B51B-BURST
+S1_151226_IW3_20210903T135245_VV_6CBC-BURST
+S1_151226_IW3_20210822T135244_VV_7922-BURST
+S1_151226_IW3_20210810T135244_VV_A317-BURST
+S1_151226_IW3_20210729T135243_VV_1A1B-BURST
+S1_151226_IW3_20210717T135242_VV_0ABE-BURST
+S1_151226_IW3_20210705T135242_VV_0F30-BURST
+S1_151226_IW3_20210623T135241_VV_7E2B-BURST
+S1_151226_IW3_20210611T135240_VV_D775-BURST
+S1_151226_IW3_20210530T135240_VV_A70D-BURST
+S1_151226_IW3_20210518T135239_VV_660C-BURST
+S1_151226_IW3_20210506T135238_VV_2C81-BURST
+S1_151226_IW3_20210424T135238_VV_82DC-BURST
+S1_151226_IW3_20210412T135237_VV_7DB6-BURST
+S1_151226_IW3_20210331T135237_VV_91F1-BURST
+S1_151226_IW3_20210319T135236_VV_34F9-BURST
+S1_151226_IW3_20210307T135236_VV_0C1D-BURST
+S1_151226_IW3_20210223T135236_VV_883C-BURST
+S1_151226_IW3_20210211T135237_VV_DAE0-BURST
+S1_151226_IW3_20210130T135237_VV_30E3-BURST
+S1_151226_IW3_20210118T135237_VV_5815-BURST
+S1_151226_IW3_20210106T135238_VV_D0B4-BURST
+"""
+BURSTS = list(filter(None, BURSTS.split('\n')))
+print (f'Bursts defined: {len(BURSTS)}')
+
+# select the only 1A satellite bursts corresponding to the scenes above
+# import re
+# scene_dates = [re.search(r'\d{8}T\d{6}', scene).group(0)[:8] for scene in SCENES]
+# burst_dates = [re.search(r'\d{8}T\d{6}', burst).group(0)[:8] for burst in BURSTS]
+# matching_bursts = [burst for burst in BURSTS if any(date in burst for date in scene_dates)]
+# for burst in matching_bursts: print (burst)
 
 WORKDIR = 'raw_golden_desc'  if ORBIT == 'D' else 'raw_golden_asc'
 DATADIR = 'data_golden_desc' if ORBIT == 'D' else 'data_golden_asc'
@@ -272,13 +322,16 @@ asf_password = 'GoogleColab_2023'
 # Set these variables to None and you will be prompted to enter your username and password below.
 asf = ASF(asf_username, asf_password)
 # Optimized scene downloading from ASF - only the required subswaths and polarizations.
-print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+if SCENES is not None:
+    print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+if BURSTS is not None:
+    print(asf.download_bursts(DATADIR, BURSTS))
 
 # scan the data directory for SLC scenes and download missed orbits
 S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 
 # download NASA SRTM DEM 1 arc-second
-Tiles().download_dem_srtm(AOI, filename=DEM)
+Tiles().download_dem_srtm(AOI, filename=DEM).plot.imshow(cmap='gray')
 
 """## Run Local Dask Cluster
 
