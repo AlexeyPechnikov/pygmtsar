@@ -46,8 +46,12 @@ RUN pip3 install \
     h5netcdf==1.3.0 \
     h5py==3.10.0 \
     ipywidgets==8.1.1 \
+    ipyleaflet==0.19.1 \
     remotezip==0.12.2 \
-    pygmtsar
+    pygmtsar \
+&& jupyter lab build \
+&& jupyter labextension install jupyter-leaflet \
+&& jupyter labextension list
 
 # modify start-notebook.py to start Xvfb
 RUN sed -i '/import sys/a \
