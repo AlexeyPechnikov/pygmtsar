@@ -439,11 +439,20 @@ class Stack_incidence(Stack_geocode):
         # expected accuracy about 0.01%
         #wavelength, slant_range = self.PRM().get('radar_wavelength','SC_height')
         wavelength, slant_range_start,slant_range_end = self.PRM().get('radar_wavelength', 'SC_height_start', 'SC_height_end')
-        slant_range = xr.DataArray(np.linspace(slant_range_start,slant_range_end, data.shape[1]),
-                                   coords=[data.coords['x']])
-        incidence = self.incidence_angle().reindex_like(data, method='nearest')
+
+        incidence_angle = self.incidence_angle()
+        slant_range = xr.DataArray(np.linspace(slant_range_start,slant_range_end, incidence_angle.shape[1]),
+                                       coords=[incidence_angle.coords['x']])
+
+        if 'stack' in data.dims and 'y' in data.coords and 'x' in data.coords:
+            incidence = incidence_angle.interp(y=data.y, x=data.x, method='linear')
+            slant = slant_range.interp(x=data.x, method='linear')
+        else:
+            incidence = incidence_angle.reindex_like(data, method='nearest')
+            slant = slant_range.reindex_like(data.x, method='nearest')
+
         # sign corresponding to baseline and phase signs
-        return -(wavelength*data*slant_range*np.cos(incidence)/(4*np.pi*baseline)).rename('ele')
+        return -(wavelength*data*slant*np.cos(incidence)/(4*np.pi*baseline)).rename('ele')
 
     def compute_satellite_look_vector(self, interactive=False):
         #import dask

@@ -1001,6 +1001,10 @@ class Stack_detrend(Stack_unwrap):
         multi_index = None
         if 'stack' in data.dims and isinstance(data.coords['stack'].to_index(), pd.MultiIndex):
             multi_index = data['stack']
+            # detect unused coordinates
+            unused_coords = [d for d in multi_index.coords if not d in multi_index.dims and not d in multi_index.indexes]
+            # cleanup multiindex to merge it with the processed dataset later
+            multi_index = multi_index.drop_vars(unused_coords)
             data = data.reset_index('stack')
 
         stackdim = [_dim for _dim in ['date', 'pair'] if _dim in data.dims]
@@ -1018,10 +1022,14 @@ class Stack_detrend(Stack_unwrap):
             else:
                 dim_da = xr.DataArray(dim, dims=[stackdim])
             data_dim = data.assign_coords(polyfit_coord=dim_da).swap_dims({'pair': 'polyfit_coord'})
+            # Polynomial coefficients, highest power first, see numpy.polyfit
             fit_coeff = data_dim.polyfit('polyfit_coord', degree).polyfit_coefficients.astype(np.float32)
             fit = xr.polyval(data_dim['polyfit_coord'], fit_coeff)\
                 .swap_dims({'polyfit_coord': stackdim}).drop_vars('polyfit_coord').astype(np.float32).rename('trend')
-            return xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
+            out = xr.merge([fit, fit_coeff]).rename(polyfit_coefficients='coefficients')
+            if multi_index is not None:
+                return out.assign_coords(stack=multi_index)
+            return out
     
         # fit existing coordinate values
         fit_coeff = data.polyfit(dim, degree).polyfit_coefficients.astype(np.float32)
