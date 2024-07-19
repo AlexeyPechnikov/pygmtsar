@@ -521,14 +521,14 @@ plt.show()
 
 plt.figure(figsize=(12, 4), dpi=300)
 
-x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI).geometry][0]
+x, y = [(geom.x, geom.y) for geom in sbas.geocode(POI).geometry][0]
 disp_pixel = disp_sbas.sel(y=y, x=x, method='nearest')
 stl_pixel = sbas.stl(disp_sbas.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='r', lw=2, label='Displacement POI')
 plt.plot(stl_pixel.date, stl_pixel.trend, c='r', ls='--', lw=2, label='Trend POI')
 plt.plot(stl_pixel.date, stl_pixel.seasonal, c='r', lw=1, label='Seasonal POI')
 
-x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI0).geometry][0]
+x, y = [(geom.x, geom.y) for geom in sbas.geocode(POI0).geometry][0]
 disp_pixel = disp_sbas.sel(y=y, x=x, method='nearest')
 stl_pixel = sbas.stl(disp_sbas.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='b', lw=2, label='Displacement POI$\Theta$')
@@ -614,14 +614,14 @@ plt.show()
 
 plt.figure(figsize=(12, 4), dpi=300)
 
-x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI).geometry][0]
+x, y = [(geom.x, geom.y) for geom in sbas.geocode(POI).geometry][0]
 disp_pixel = disp_ps.sel(y=y, x=x, method='nearest')
 stl_pixel = sbas.stl(disp_ps.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='r', lw=2, label='Displacement POI')
 plt.plot(stl_pixel.date, stl_pixel.trend, c='r', ls='--', lw=2, label='Trend POI')
 plt.plot(stl_pixel.date, stl_pixel.seasonal, c='r', lw=1, label='Seasonal POI')
 
-x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI0).geometry][0]
+x, y = [(geom.x, geom.y) for geom in sbas.geocode(POI0).geometry][0]
 disp_pixel = disp_ps.sel(y=y, x=x, method='nearest')
 stl_pixel = sbas.stl(disp_ps.sel(y=[y], x=[x], method='nearest')).isel(x=0, y=0)
 plt.plot(disp_pixel.date, disp_pixel, c='b', lw=2, label='Displacement POI$\Theta$')
@@ -633,12 +633,12 @@ plt.title('PS LOS Displacement STL Decompose, 2021', fontsize=18)
 plt.ylabel('Displacement, mm', fontsize=16)
 plt.show()
 
-x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI0).geometry][0]
+x, y = [(geom.x, geom.y) for geom in sbas.geocode(POI0).geometry][0]
 sbas.plot_baseline_displacement_los_mm(disp_ps_pairs.sel(y=y, x=x, method='nearest')/sbas.los_displacement_mm(1),
                                 corr_ps.sel(y=y, x=x, method='nearest'),
                                caption='POI0', stl=True)
 
-x, y = [(geom.x.item(), geom.y.item()) for geom in sbas.geocode(POI).geometry][0]
+x, y = [(geom.x, geom.y) for geom in sbas.geocode(POI).geometry][0]
 sbas.plot_baseline_displacement_los_mm(disp_ps_pairs.sel(y=y, x=x, method='nearest')/sbas.los_displacement_mm(1),
                                 corr_ps.sel(y=y, x=x, method='nearest'),
                                caption='POI', stl=True)
