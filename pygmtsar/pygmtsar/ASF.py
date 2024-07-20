@@ -33,7 +33,28 @@ class ASF(tqdm_joblib):
         import asf_search
         return asf_search.ASFSession().auth_with_creds(self.username, self.password)
 
-    def download_scenes(self, basedir, scenes, subswaths, polarization='VV', session=None, n_jobs=4, skip_exist=True):
+    def download(self, basedir, scenes_or_bursts, subswaths=None, polarization='VV',
+                 session=None, n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
+        import pandas as pd
+
+        bursts = [item for item in scenes_or_bursts if item.endswith('-BURST')]
+        scenes = [item[:-4] if item.endswith('-SLC') else item for item in scenes_or_bursts if item not in bursts]
+
+        results = []
+        if len(bursts):
+            result = self.download_bursts(basedir, bursts,
+                                          session=session,
+                                          n_jobs=n_jobs, joblib_backend=joblib_backend, skip_exist=skip_exist, debug=debug)
+            results.append(result.rename({'burst': 'burst_or_scene'}, axis=1))
+        if len(scenes):
+            result = self.download_scenes(basedir, scenes, subswaths=subswaths, polarization=polarization,
+                                          session=session,
+                                          n_jobs=n_jobs, joblib_backend=joblib_backend, skip_exist=skip_exist, debug=debug)
+            results.append(result.rename({'scene': 'burst_or_scene'}, axis=1))
+        return pd.concat(results)
+
+    def download_scenes(self, basedir, scenes, subswaths, polarization='VV', session=None,
+                        n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
         import pandas as pd
         import numpy as np
         import asf_search
@@ -146,9 +167,13 @@ class ASF(tqdm_joblib):
         if session is None:
             session = self._get_asf_session()
 
+        if n_jobs is None or debug == True:
+            print ('Note: sequential joblib processing is applied when "n_jobs" is None or "debug" is True.')
+            joblib_backend = 'sequential'
+
         # download scenes
         with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 SLC:', total=len(scenes_missed))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(download_scene)\
+            joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(download_scene)\
                                     (scene, subswaths, polarization, basedir, session) for scene in scenes_missed)
 
         # parse processed scenes and convert to dataframe
@@ -158,9 +183,6 @@ class ASF(tqdm_joblib):
         #scenes_downloaded['scene'] = scenes_downloaded.scene\
         #                             .apply(lambda name: self.template_url.format(satellite=name[2:3], scene=name))
         return scenes_downloaded
-
-    def download(self, *args, **kwarg):
-        print ('NOTE: Function is deprecated. Use ASF.download_scenes() and ASF.download_bursts().')
 
     # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
     def download_bursts(self, basedir, bursts, session=None, n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
