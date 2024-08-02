@@ -1,1 +1,2 @@
 include pygmtsar/data/geoid_egm96_icgem.grd
+include pygmtsar/data/google_colab.sh
