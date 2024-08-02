@@ -382,12 +382,31 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         #out[~nanmask] = np.where(mask[~nanmask], buffer[~nanmask], np.nan)
         return out
 
+    def unwrap_matrix(self, pairs):
+        """
+        Create a matrix for use in the least squares computation based on interferogram date pairs.
+
+        Parameters
+        ----------
+        pairs : pandas.DataFrame or xarray.DataArray or xarray.Dataset
+            DataFrame or DataArray containing interferogram date pairs.
+
+        Returns
+        -------
+        numpy.ndarray
+            A matrix with one row for every interferogram and one column for every date.
+            Each element in the matrix is a float, with 1 indicating the start date,
+            -1 indicating the end date, 0 if the date is covered by the corresponding
+            interferogram timeline, and NaN otherwise.
+        """
+        return self.get_pairs_matrix(pairs)
+
     def unwrap1d(self, data, weight=None, tolerance=np.pi/2):
         import xarray as xr
         import numpy as np
 
         pairs = self.get_pairs(data)
-        matrix = self.lstsq_matrix(pairs)
+        matrix = self.unwrap_matrix(pairs)
     
         if not 'stack' in data.dims:
             chunks_z, chunks_y, chunks_x = data.chunks if data.chunks is not None else np.inf, np.inf, np.inf

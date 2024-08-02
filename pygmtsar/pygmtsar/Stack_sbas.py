@@ -495,6 +495,8 @@ class Stack_sbas(Stack_detrend):
             print ("NOTE: Displacement is automatically set to 'True' because it is required for 'stl=True'.")
         assert isinstance(phase, xr.DataArray) and phase.dims == ('pair',), \
             'ERROR: Argument phase should be 1D Xarray with "pair" dimension'
+        assert phase.name is not None, \
+            'ERROR: Argument phase should be named Xarray array'
         plt.figure()
         colors = plt.colormaps[cmap]
     
@@ -502,10 +504,11 @@ class Stack_sbas(Stack_detrend):
         df['corr'] = corr.values if corr is not None else 1
         pairs, dates = self.get_pairs(phase, dates=True)
         dates = pd.DatetimeIndex(dates)
-        matrix = self.lstsq_matrix(pairs)
+        lstsq_matrix = self.lstsq_matrix(pairs)
+        unwrap_matrix = self.unwrap_matrix(pairs)
     
         if unwrap:
-            df['phase'] = self.unwrap_pairs(phase.values, df['corr'].values, matrix, tolerance)
+            df['phase'] = self.unwrap_pairs(phase.values, df['corr'].values, unwrap_matrix, tolerance)
         
         unit = 'rad'
         name = 'Phase'
@@ -515,7 +518,7 @@ class Stack_sbas(Stack_detrend):
             name = 'Displacement'
     
         if displacement or stl:
-            solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, matrix)
+            solution = self.lstsq1d(df['phase'].values, 0.999*df['corr'].values if corr is not None else None, lstsq_matrix)
             #print ('solution', solution)
             days = (dates - dates[0]).days
             #print ('days', days)

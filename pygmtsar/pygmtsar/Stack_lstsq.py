@@ -90,7 +90,7 @@ class Stack_lstsq(Stack_tidal):
 
         Parameters
         ----------
-        pairs : pandas.DataFrame
+        pairs : pandas.DataFrame or Xarray object
             DataFrame containing interferogram date pairs.
 
         Returns
@@ -100,26 +100,8 @@ class Stack_lstsq(Stack_tidal):
             Each element in the matrix is an integer, with 1 representing that the date
             is between the corresponding interferogram's reference and repeat dates, and
             0 otherwise.
-
-        Notes
-        -----
-        This function also calculates image capture dates from the interferogram date pairs.
-
         """
-        import numpy as np
-        import pandas as pd
-
-        # also define image capture dates from interferogram date pairs
-        pairs, dates = self.get_pairs(pairs, dates=True)
-        pairs = pairs[['ref', 'rep']].astype(str).values
-
-        # here are one row for every interferogram and one column for every date
-        matrix = []
-        for pair in pairs:
-            mrow = [date>pair[0] and date<=pair[1] for date in dates]
-            matrix.append(mrow)
-        matrix = np.stack(matrix).astype(int)
-        return matrix
+        return (self.get_pairs_matrix(pairs)>=0).astype(int)
 
     def lstsq_matrix_edge(self, pairs):
         """
@@ -127,7 +109,7 @@ class Stack_lstsq(Stack_tidal):
 
         Parameters
         ----------
-        pairs : pandas.DataFrame
+        pairs : pandas.DataFrame or Xarray object
             DataFrame containing interferogram date pairs.
 
         Returns
@@ -136,33 +118,10 @@ class Stack_lstsq(Stack_tidal):
             Matrix with one row for every interferogram and one column for every date.
             Each element in the matrix is an integer, with 1 representing the end date,
             -1 the start date and 0 otherwise.
-
-        Notes
-        -----
-        This function also calculates image capture dates from the interferogram date pairs.
-
         """
+        print ('NOTE: this function is not used in the code and created for test purposes only.')
         import numpy as np
-        import pandas as pd
-
-        # also define image capture dates from interferogram date pairs
-        pairs, dates = self.get_pairs(pairs, dates=True)
-        pairs = pairs[['ref', 'rep']].astype(str).values
-
-        def edge(date, date1, date2):
-            if date == date1:
-                return -1
-            if date == date2:
-                return 1
-            return 0
-        
-        # here are one row for every interferogram and one column for every date
-        matrix = []
-        for pair in pairs:
-            mrow = [edge(date, pair[0], pair[1]) for date in dates]
-            matrix.append(mrow)
-        matrix = np.stack(matrix).astype(int)
-        return matrix
+        return np.nan_to_num(self.get_pairs_matrix(pairs)).astype(int)
 
     def lstsq(self, data, weight=None, matrix='auto', cumsum=True, debug=False):
         """

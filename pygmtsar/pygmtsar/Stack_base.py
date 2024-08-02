@@ -251,3 +251,37 @@ class Stack_base(tqdm_joblib, IO):
             dates = np.unique(pairs[['ref', 'rep']].astype(str).values.flatten())
             return (pairs, dates)
         return pairs
+
+    def get_pairs_matrix(self, pairs):
+        """
+        Create a matrix based on interferogram dates and pairs.
+
+        Parameters
+        ----------
+        pairs : pandas.DataFrame or xarray.DataArray or xarray.Dataset
+            DataFrame or DataArray containing interferogram date pairs.
+        
+        Returns
+        -------
+        numpy.ndarray
+            A matrix with one row for every interferogram and one column for every date.
+            Each element in the matrix is a float, with 1 indicating the start date,
+            -1 indicating the end date, 0 if the date is covered by the corresponding 
+            interferogram timeline, and NaN otherwise.
+
+        """
+        import numpy as np
+        import pandas as pd
+
+        # also define image capture dates from interferogram date pairs
+        pairs, dates = self.get_pairs(pairs, dates=True)
+        pairs = pairs[['ref', 'rep']].astype(str).values
+
+        # here are one row for every interferogram and one column for every date
+        matrix = []
+        for pair in pairs:
+            #mrow = [date>=pair[0] and date<=pair[1] for date in dates]
+            mrow = [(-1 if date==pair[0] else (1 if date==pair[1] else (0 if date>pair[0] and date<pair[1] else np.nan))) for date in dates]
+            matrix.append(mrow)
+        matrix = np.stack(matrix).astype(np.float32)
+        return matrix
