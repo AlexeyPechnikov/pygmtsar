@@ -42,7 +42,7 @@ setup(
     packages=['pygmtsar'],
     include_package_data=True,
     package_data={
-        'pygmtsar': ['data/geoid_egm96_icgem.grd'],
+        'pygmtsar': ['data/geoid_egm96_icgem.grd','data/google_colab.sh'],
     },
     install_requires=['xarray>=2024.1.0',
                       'numpy>=1.22.4',
