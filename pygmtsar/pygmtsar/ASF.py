@@ -185,7 +185,7 @@ class ASF(tqdm_joblib):
         return scenes_downloaded
 
     # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
-    def download_bursts(self, basedir, bursts, session=None, n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
+    def download_bursts(self, basedir, bursts, session=None, n_jobs=8, retries=8, joblib_backend='loky', skip_exist=True, debug=False):
         import rioxarray as rio
         from tifffile import TiffFile
         import xmltodict
@@ -301,7 +301,16 @@ class ASF(tqdm_joblib):
                     os.remove(tmp_file)
                 # download burst tif file and save using the burst and scene names
                 #result.download(os.path.dirname(tif_file), filename=os.path.basename(tif_file))
-                result.download(scene_dir, filename=os.path.basename(tif_file), session=session)
+                for retry in range(retries):
+                    try:
+                        result.download(scene_dir, filename=os.path.basename(tif_file), session=session)
+                        if os.path.exists(tmp_file):
+                            break
+                    except Exception as e:
+                        print(f"Failed attempt {retry+1} to download {tmp_file}: {e}")
+                # check if the file is really downloaded
+                assert os.path.exists(tmp_file), f'ERROR: TiFF file {tmp_file} is not downloaded'
+                # check file validity opening it
                 with rio.open_rasterio(tmp_file) as raster:
                     raster.load()
                     os.rename(tmp_file, tif_file)
@@ -325,7 +334,15 @@ class ASF(tqdm_joblib):
                 if os.path.exists(manifest_file):
                     os.remove(manifest_file)
                 # download and process manifest file even when it exists but is not processed to annotation xml
-                asf_search.download_urls(urls=properties['additionalUrls'], path=scene_dir, session=session)
+                for retry in range(retries):
+                    try:
+                        asf_search.download_urls(urls=properties['additionalUrls'], path=scene_dir, session=session)
+                        if os.path.exists(manifest_file):
+                            break
+                    except Exception as e:
+                        print(f"Failed attempt {retry+1} to download {manifest_file}: {e}")
+                # check if the file is really downloaded
+                assert os.path.exists(manifest_file), f'ERROR: manifest file {manifest_file} is not downloaded'
                 # parse xml
                 with open(manifest_file, 'r') as file:
                     xml_content = file.read()
