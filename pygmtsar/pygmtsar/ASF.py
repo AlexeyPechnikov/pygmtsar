@@ -185,7 +185,7 @@ class ASF(tqdm_joblib):
         return scenes_downloaded
 
     # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
-    def download_bursts(self, basedir, bursts, session=None, n_jobs=8, retries=8, joblib_backend='loky', skip_exist=True, debug=False):
+    def download_bursts(self, basedir, bursts, session=None, n_jobs=8, joblib_backend='loky', skip_exist=True, debug=False):
         import rioxarray as rio
         from tifffile import TiffFile
         import xmltodict
@@ -196,9 +196,13 @@ class ASF(tqdm_joblib):
         import os
         import glob
         from datetime import datetime, timedelta
+        import time
         import warnings
         # supress asf_search 'UserWarning: File already exists, skipping download'
         warnings.filterwarnings("ignore", category=UserWarning)
+        # repeat failed downloads
+        retries = 100
+        retries_timeout = 2
 
         def filter_azimuth_time(items, start_utc_dt, stop_utc_dt, delta=3):
             return [item for item in items if
@@ -304,16 +308,20 @@ class ASF(tqdm_joblib):
                 for retry in range(retries):
                     try:
                         result.download(scene_dir, filename=os.path.basename(tif_file), session=session)
-                        if os.path.exists(tmp_file):
+                        if not os.path.exists(tmp_file):
+                            continue
+                        # check file validity opening it
+                        with rio.open_rasterio(tmp_file) as raster:
+                            raster.load()
+                            # TiFF file is well loaded
                             break
                     except Exception as e:
                         print(f"Failed attempt {retry+1} to download {tmp_file}: {e}")
+                        time.sleep(retries_timeout)
                 # check if the file is really downloaded
-                assert os.path.exists(tmp_file), f'ERROR: TiFF file {tmp_file} is not downloaded'
-                # check file validity opening it
-                with rio.open_rasterio(tmp_file) as raster:
-                    raster.load()
-                    os.rename(tmp_file, tif_file)
+                assert os.path.exists(tmp_file), f'ERROR: TiFF file {tmp_file} is not downloaded and validated'
+                # move to persistent name
+                os.rename(tmp_file, tif_file)
         
             # download xml
             if os.path.exists(xml_file) and os.path.getsize(xml_file) > 0:
@@ -337,12 +345,18 @@ class ASF(tqdm_joblib):
                 for retry in range(retries):
                     try:
                         asf_search.download_urls(urls=properties['additionalUrls'], path=scene_dir, session=session)
-                        if os.path.exists(manifest_file):
+                        if not os.path.exists(manifest_file):
+                            continue
+                        # parse xml
+                        with open(manifest_file, 'r') as file:
+                            _ = xmltodict.parse(file.read())['burst']['metadata']['product'][0]
+                            # xml file is well parsed
                             break
                     except Exception as e:
-                        print(f"Failed attempt {retry+1} to download {manifest_file}: {e}")
+                        print(f"Failed attempt {retry+1} to download and parse {manifest_file}: {e}")
+                        time.sleep(retries_timeout)
                 # check if the file is really downloaded
-                assert os.path.exists(manifest_file), f'ERROR: manifest file {manifest_file} is not downloaded'
+                assert os.path.exists(manifest_file), f'ERROR: manifest file {manifest_file} is not downloaded and validated'
                 # parse xml
                 with open(manifest_file, 'r') as file:
                     xml_content = file.read()
