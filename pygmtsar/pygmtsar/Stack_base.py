@@ -285,3 +285,47 @@ class Stack_base(tqdm_joblib, IO):
             matrix.append(mrow)
         matrix = np.stack(matrix).astype(np.float32)
         return matrix
+
+    def phase_to_positive_range(phase):
+        """
+        Convert phase from the range [-pi, pi] to [0, 2pi].
+    
+        Parameters
+        ----------
+        phase : array_like
+            Input phase values in the range [-pi, pi].
+    
+        Returns
+        -------
+        ndarray
+            Phase values converted to the range [0, 2pi].
+        
+        Examples
+        --------
+        >>> phase_to_positive_range(np.array([-np.pi, -np.pi/2, np.pi, 2*-np.pi-1e-6, 2*-np.pi]))
+        array([3.14159265, 4.71238898, 3.14159265, 6.28318431, 0.        ])
+        """
+        import numpy as np
+        return (phase + 2 * np.pi) % (2 * np.pi)
+    
+    def phase_to_symmetric_range(phase):
+        """
+        Convert phase from the range [0, 2pi] to [-pi, pi].
+    
+        Parameters
+        ----------
+        phase : array_like
+            Input phase values in the range [0, 2pi].
+    
+        Returns
+        -------
+        ndarray
+            Phase values converted to the range [-pi, pi].
+        
+        Examples
+        --------
+        >>> phase_to_symmetric_range(np.array([0, np.pi, 3*np.pi/2, 2*np.pi]))
+        array([ 0.        ,  3.14159265, -1.57079633,  0.        ])
+        """
+        import numpy as np
+        return (phase + np.pi) % (2 * np.pi) - np.pi
