@@ -286,6 +286,7 @@ class Stack_base(tqdm_joblib, IO):
         matrix = np.stack(matrix).astype(np.float32)
         return matrix
 
+    @staticmethod
     def phase_to_positive_range(phase):
         """
         Convert phase from the range [-pi, pi] to [0, 2pi].
@@ -308,6 +309,7 @@ class Stack_base(tqdm_joblib, IO):
         import numpy as np
         return (phase + 2 * np.pi) % (2 * np.pi)
     
+    @staticmethod
     def phase_to_symmetric_range(phase):
         """
         Convert phase from the range [0, 2pi] to [-pi, pi].
