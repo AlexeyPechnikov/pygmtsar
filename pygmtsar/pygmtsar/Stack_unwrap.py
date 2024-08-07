@@ -217,10 +217,15 @@ class Stack_unwrap(Stack_unwrap_snaphu):
         #import numpy as np
     
         assert data.ndim   == 1
-        assert weight.ndim == 1 or weight.ndim == 0
+        assert weight.ndim <= 1
         assert matrix.ndim == 2
         assert data.shape[0] == matrix.shape[0]
-        
+        # asserts with error text are not compatible to numba
+#         assert data.ndim == 1, f'ERROR: Data argument should have a single dimension, but it has {data.ndim}'
+#         assert weight.ndim <= 1, f'ERROR: Weight argument should have zero or one dimension, but it has {weight.ndim}'
+#         assert matrix.ndim == 2, f'ERROR: Matrix should be 2-dimensional, but it has shape {matrix.shape}'
+#         assert data.shape[0] == matrix.shape[0], f'ERROR: Data and weight argument first dimension is not equal: {data.shape[0]} vs {matrix.shape[0]}'
+
         # for now, xr.apply_ufunc always call specified function with float64 arguments
         # this error should be resolved controlling the output datatype
         #assert data.dtype   == np.float32, f'ERROR: data argument should be float32 array but it is {data.dtype}'
