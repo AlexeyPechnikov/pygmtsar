@@ -69,8 +69,12 @@ class Stack_trans_inv(Stack_trans):
         def trans_inv_block(azis, rngs, tolerance, chunksize):
             from scipy.spatial import cKDTree
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-            from dask.distributed import utils_perf
-            utils_perf.disable_gc_diagnosis()
+            try:
+                from dask.distributed import utils_perf
+                utils_perf.disable_gc_diagnosis()
+            except ImportError:
+                from distributed.gc import disable_gc_diagnosis
+                disable_gc_diagnosis()
             import warnings
             warnings.filterwarnings('ignore')
 

@@ -451,8 +451,12 @@ class IO(datagrid):
         # prevent warnings "RuntimeWarning: All-NaN slice encountered"
         logging.getLogger('distributed.nanny').setLevel(logging.ERROR)
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
+        try:
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        except ImportError:
+            from distributed.gc import disable_gc_diagnosis
+            disable_gc_diagnosis()
 
         if name is None and isinstance(data, xr.DataArray):
             assert data.name is not None, 'Define data name or use "name" argument for the NetCDF filename'
@@ -705,8 +709,12 @@ class IO(datagrid):
         # Suppress Dask "Restarting worker" warnings
         logging.getLogger('distributed.nanny').setLevel(logging.ERROR)
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
+        try:
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        except ImportError:
+            from distributed.gc import disable_gc_diagnosis
+            disable_gc_diagnosis()
     
         # Dask cluster client
         client = get_client()

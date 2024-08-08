@@ -125,8 +125,12 @@ class Stack_stl(Stack_lstsq):
         import pandas as pd
         import dask
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
+        try:
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        except ImportError:
+            from distributed.gc import disable_gc_diagnosis
+            disable_gc_diagnosis()
 
         assert data.dims[0] == 'date', 'The first data dimension should be date'
 

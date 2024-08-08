@@ -113,8 +113,12 @@ class Stack_topo(Stack_trans_inv):
         def block_phase(prm1, prm2, ylim, xlim):
             # use outer variables date, stack_prm
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-            from dask.distributed import utils_perf
-            utils_perf.disable_gc_diagnosis()
+            try:
+                from dask.distributed import utils_perf
+                utils_perf.disable_gc_diagnosis()
+            except ImportError:
+                from distributed.gc import disable_gc_diagnosis
+                disable_gc_diagnosis()
             import warnings
             # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
             warnings.filterwarnings('ignore')

@@ -109,8 +109,12 @@ class Stack_trans(Stack_align):
         # exclude latitude and longitude columns as redundant
         def trans_block(lats, lons, amin=-np.inf, amax=np.inf, rmin=-np.inf, rmax=np.inf, filename=None):
             # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-            from dask.distributed import utils_perf
-            utils_perf.disable_gc_diagnosis()
+            try:
+                from dask.distributed import utils_perf
+                utils_perf.disable_gc_diagnosis()
+            except ImportError:
+                from distributed.gc import disable_gc_diagnosis
+                disable_gc_diagnosis()
             import warnings
             warnings.filterwarnings('ignore')
 

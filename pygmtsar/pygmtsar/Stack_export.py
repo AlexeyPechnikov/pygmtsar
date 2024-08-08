@@ -207,8 +207,12 @@ class Stack_export(Stack_ps):
         import numpy as np
         from tqdm.auto import tqdm
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
+        try:
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        except ImportError:
+            from distributed.gc import disable_gc_diagnosis
+            disable_gc_diagnosis()
 
         assert isinstance(data, xr.DataArray), 'Argument data is not an xr.DataArray object'
 
@@ -291,9 +295,13 @@ class Stack_export(Stack_ps):
         import numpy as np
         from tqdm.auto import tqdm
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
-    
+        try:
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        except ImportError:
+            from distributed.gc import disable_gc_diagnosis
+            disable_gc_diagnosis()
+
         assert isinstance(data, xr.DataArray), 'Argument data is not an xr.DataArray object'
     
         # convert the data to geographic coordinates if necessary
@@ -381,8 +389,12 @@ class Stack_export(Stack_ps):
         import dask
         import os
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
+        try:
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        except ImportError:
+            from distributed.gc import disable_gc_diagnosis
+            disable_gc_diagnosis()
     
         assert isinstance(data, xr.DataArray), 'Argument data is not an xr.DataArray object'
     

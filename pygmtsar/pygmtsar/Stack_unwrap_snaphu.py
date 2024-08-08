@@ -53,8 +53,12 @@ class Stack_unwrap_snaphu(Stack_landmask):
         from datetime import datetime
         import uuid
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-        from dask.distributed import utils_perf
-        utils_perf.disable_gc_diagnosis()
+        try:
+            from dask.distributed import utils_perf
+            utils_perf.disable_gc_diagnosis()
+        except ImportError:
+            from distributed.gc import disable_gc_diagnosis
+            disable_gc_diagnosis()
 
         if conf is None:
             conf = self.snaphu_config()
