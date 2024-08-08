@@ -137,7 +137,7 @@ class Stack(Stack_export):
         # Calculate overlaps including self-overlap
         overlap_count = [sum(1 for geom2 in gdf.geometry if geom1.intersects(geom2)) for geom1 in gdf.geometry]
         # define transparency for the calculated overlaps and apply minimum transparency threshold
-        gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=max(2/max(overlap_count), 0.002), edgecolor='black', ax=plt.gca())
+        gdf.reset_index().plot(color=[colors[k] for k in gdf.index], alpha=max(1/max(overlap_count), 0.002), edgecolor='black', ax=plt.gca())
         self.plot_AOI(**kwargs)
         self.plot_POI(**kwargs)
         if aspect is not None:
