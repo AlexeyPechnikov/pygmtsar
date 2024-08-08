@@ -45,13 +45,16 @@ class ASF(tqdm_joblib):
             result = self.download_bursts(basedir, bursts,
                                           session=session,
                                           n_jobs=n_jobs, joblib_backend=joblib_backend, skip_exist=skip_exist, debug=debug)
-            results.append(result.rename({'burst': 'burst_or_scene'}, axis=1))
+            if result is not None:
+                results.append(result.rename({'burst': 'burst_or_scene'}, axis=1))
         if len(scenes):
             result = self.download_scenes(basedir, scenes, subswaths=subswaths, polarization=polarization,
                                           session=session,
                                           n_jobs=n_jobs, joblib_backend=joblib_backend, skip_exist=skip_exist, debug=debug)
-            results.append(result.rename({'scene': 'burst_or_scene'}, axis=1))
-        return pd.concat(results)
+            if result is not None:
+                results.append(result.rename({'scene': 'burst_or_scene'}, axis=1))
+        if len(results):
+            return pd.concat(results)
 
     def download_scenes(self, basedir, scenes, subswaths, polarization='VV', session=None,
                         n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
