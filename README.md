@@ -39,9 +39,9 @@ All steps in these notebooks are automated. This includes the software installat
 
 <img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/7357a56a-d69f-451b-91ab-367cbf2af410" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/bcd807f9-5d48-4bb4-ac13-803305f3b6da" width="50%">
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h4XxJZwFfm7EC8NUzl34cCkOVUG2uJr4?usp=sharing) Imperial Valley SBAS analysis, 2015.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h4XxJZwFfm7EC8NUzl34cCkOVUG2uJr4?usp=sharing) Imperial Valley SBAS analysis, 2015. The resulting InSAR velocity map is available as a standalone web page at [Imperial_Valley_2015.html](https://insar.dev/ui/Imperial_Valley_2015.html).
 
-<img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/bbe0f043-af09-4724-9e50-5549d3f24adc" width="50%"><img src="https://github.com/AlexeyPechnikov/pygmtsar/assets/7342379/cd1d8c33-3488-41af-aece-985b4d4202ae" width="50%">
+<img src="https://github.com/user-attachments/assets/66f936af-ce21-485d-b11d-f3539aa82cdc" width="50%"><img src="https://github.com/user-attachments/assets/d2f55e44-dc26-4a0f-bebe-cd0f4950b4f3" width="50%">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1aqAr9KWKzGx9XpVie1M000C3vUxzNDxu?usp=sharing) Flooding [Correlation] Map: Kalkarindji, NT Australia, 2024.
 
