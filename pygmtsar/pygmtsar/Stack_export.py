@@ -157,7 +157,7 @@ class Stack_export(Stack_ps):
         # required for 3D interactive rendering on Google Colab
         return sgrid
 
-    def export_geotiff(self, data, name, caption='Exporting WGS84 GeoTIFF(s)'):
+    def export_geotiff(self, data, name, caption='Exporting WGS84 GeoTIFF(s)', compress='LZW'):
         """
         Export single GeoTIFF file "velocity.tif":
         sbas.export_geotiff(velocity, 'velocity')
@@ -194,7 +194,7 @@ class Stack_export(Stack_ps):
                 filename = f'{name}.{stackval}.tif' if stackvar is not None else f'{name}.tif'
                 #print ('filename', filename)
                 # convert the data to geographic coordinates if necessary and export to GeoTIFF
-                self.as_geo(self.ra2ll(grid) if not self.is_geo(grid) else grid).rio.to_raster(filename)
+                self.as_geo(self.ra2ll(grid) if not self.is_geo(grid) else grid).rio.to_raster(filename, compress=compress)
                 pbar.update(1)
 
     def export_geojson(self, data, name, caption='Exporting WGS84 GeoJSON', pivotal=True, digits=2, coord_digits=6):
