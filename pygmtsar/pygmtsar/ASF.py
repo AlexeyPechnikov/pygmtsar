@@ -33,8 +33,36 @@ class ASF(tqdm_joblib):
         import asf_search
         return asf_search.ASFSession().auth_with_creds(self.username, self.password)
 
-    def download(self, basedir, scenes_or_bursts, subswaths=None, polarization='VV',
-                 session=None, n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
+    def download(self, basedir, scenes_or_bursts, subswaths=None, polarization='VV', **kwargs):
+        """
+        Downloads the specified subswaths or bursts extracted from Sentinel-1 SLC scenes.
+    
+        Parameters
+        ----------
+        basedir : str
+            The directory where the downloaded scenes will be saved.
+        scenes_or_bursts : list of str
+            List of scene and bursts identifiers to download.
+        subswaths : list of str
+            Number representing the subswaths to download for each scene (e.g., 1 or 123). Ignored if a burst ID is provided.
+        polarization : str, optional
+            The polarization to download ('VV' by default). Ignored if the burst ID is provided.
+        session : asf_search.ASFSession, optional
+            The session object for authentication. If None, a new session is created.
+        n_jobs : int, optional
+            The number of concurrent download jobs. Default is 8.
+        joblib_backend : str, optional
+            The backend for parallel processing. Default is 'loky'.
+        skip_exist : bool, optional
+            If True, skips downloading scenes that already exist. Default is True.
+        debug : bool, optional
+            If True, prints debugging information. Default is False.
+    
+        Returns
+        -------
+        pandas.DataFrame
+            A DataFrame containing the list of downloaded scenes and bursts.
+        """
         import pandas as pd
 
         bursts = [item for item in scenes_or_bursts if item.endswith('-BURST')]
@@ -42,15 +70,11 @@ class ASF(tqdm_joblib):
 
         results = []
         if len(bursts):
-            result = self.download_bursts(basedir, bursts,
-                                          session=session,
-                                          n_jobs=n_jobs, joblib_backend=joblib_backend, skip_exist=skip_exist, debug=debug)
+            result = self.download_bursts(basedir, bursts, **kwargs)
             if result is not None:
                 results.append(result.rename({'burst': 'burst_or_scene'}, axis=1))
         if len(scenes):
-            result = self.download_scenes(basedir, scenes, subswaths=subswaths, polarization=polarization,
-                                          session=session,
-                                          n_jobs=n_jobs, joblib_backend=joblib_backend, skip_exist=skip_exist, debug=debug)
+            result = self.download_scenes(basedir, scenes, subswaths=subswaths, polarization=polarization, **kwargs)
             if result is not None:
                 results.append(result.rename({'scene': 'burst_or_scene'}, axis=1))
         if len(results):
@@ -58,6 +82,35 @@ class ASF(tqdm_joblib):
 
     def download_scenes(self, basedir, scenes, subswaths, polarization='VV', session=None,
                         n_jobs=4, joblib_backend='loky', skip_exist=True, debug=False):
+        """
+        Downloads the specified subswaths extracted from Sentinel-1 SLC scenes.
+    
+        Parameters
+        ----------
+        basedir : str
+            The directory where the downloaded scenes will be saved.
+        scenes : list of str
+            List of scene identifiers to download.
+        subswaths : list of str
+            Number representing the subswaths to download for each scene (e.g., 1 or 123).
+        polarization : str, optional
+            The polarization to download ('VV' by default).
+        session : asf_search.ASFSession, optional
+            The session object for authentication. If None, a new session is created.
+        n_jobs : int, optional
+            The number of concurrent download jobs. Default is 4.
+        joblib_backend : str, optional
+            The backend for parallel processing. Default is 'loky'.
+        skip_exist : bool, optional
+            If True, skips downloading scenes that already exist. Default is True.
+        debug : bool, optional
+            If True, prints debugging information. Default is False.
+    
+        Returns
+        -------
+        pandas.DataFrame
+            A DataFrame containing the list of downloaded scenes.
+        """
         import pandas as pd
         import numpy as np
         import asf_search
@@ -189,6 +242,31 @@ class ASF(tqdm_joblib):
 
     # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
     def download_bursts(self, basedir, bursts, session=None, n_jobs=8, joblib_backend='loky', skip_exist=True, debug=False):
+        """
+        Downloads the specified bursts extracted from Sentinel-1 SLC scenes.
+    
+        Parameters
+        ----------
+        basedir : str
+            The directory where the downloaded bursts will be saved.
+        bursts : list of str
+            List of burst identifiers to download.
+        session : asf_search.ASFSession, optional
+            The session object for authentication. If None, a new session is created.
+        n_jobs : int, optional
+            The number of concurrent download jobs. Default is 8.
+        joblib_backend : str, optional
+            The backend for parallel processing. Default is 'loky'.
+        skip_exist : bool, optional
+            If True, skips downloading bursts that already exist. Default is True.
+        debug : bool, optional
+            If True, prints debugging information. Default is False.
+    
+        Returns
+        -------
+        pandas.DataFrame
+            A DataFrame containing the list of downloaded bursts.
+        """
         import rioxarray as rio
         from tifffile import TiffFile
         import xmltodict

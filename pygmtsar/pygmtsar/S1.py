@@ -35,6 +35,32 @@ class S1(tqdm_joblib):
     @staticmethod
     def download_orbits(basedir: str, scenes: list | pd.DataFrame,
                         n_jobs: int = 8, joblib_backend='loky', skip_exist: bool = True):
+        """
+        Downloads orbit files corresponding to the specified Sentinel-1 scenes.
+    
+        Parameters
+        ----------
+        basedir : str
+            The directory where the downloaded orbit files will be saved.
+        scenes : list or pandas.DataFrame
+            List of scene identifiers or a DataFrame containing scenes for which the orbits are to be downloaded.
+        n_jobs : int, optional
+            The number of concurrent download jobs. Default is 8.
+        joblib_backend : str, optional
+            The backend for parallel processing. Default is 'loky'.
+        skip_exist : bool, optional
+            If True, skips downloading orbits that already exist. Default is True.
+    
+        Returns
+        -------
+        pandas.Series
+            A Series containing the names of the downloaded orbit files.
+    
+        Raises
+        ------
+        ValueError
+            If an invalid scenes argument is provided or no suitable orbit files are found.
+        """
         import pandas as pd
         import requests
         import os
@@ -151,16 +177,12 @@ class S1(tqdm_joblib):
     @staticmethod
     def scan_slc(datadir, orbit=None, mission=None, subswath=None, polarization=None):
         """
-        Initialize an instance of the Stack class.
-
+        Scans the specified directory for Sentinel-1 SLC (Single Look Complex) data and filters it based on the provided parameters.
+    
         Parameters
         ----------
         datadir : str
             The directory containing the data files.
-        dem_filename : str, optional
-            The filename of the DEM (Digital Elevation Model) WGS84 NetCDF file. Default is None.
-        landmask_filename : str, optional
-            The filename of the landmask WGS84 NetCDF file. Default is None.
         orbit : str, optional
             Filter for orbit direction. Use 'A' for Ascending, 'D' for Descending, or None for no filter. Default is None.
         mission : str, optional
@@ -169,11 +191,16 @@ class S1(tqdm_joblib):
             Filter for subswath number. Use a single or sequential numbers 1, 2, 3, 12, 23, 123, or None for no filter. Default is None.
         polarization : str, optional
             Filter for polarization. Use 'VV', 'VH', 'HH', 'HV', or None for no filter. Default is None.
-
-        Examples
-        --------
-        Initialize an Stack object with the data directory 'data':
-        stack = S1('data')
+    
+        Returns
+        -------
+        pandas.DataFrame
+            A DataFrame containing metadata about the filtered SLC scenes, including their paths and other relevant properties.
+    
+        Raises
+        ------
+        ValueError
+            If the filtered scenes contain inconsistencies, such as mismatched .tiff and .xml files, or if invalid filter parameters are provided.
         """
         import os
         import shutil

@@ -67,12 +67,18 @@ class XYZTiles(datagrid, tqdm_joblib):
             This is typically referred to as an Area of Interest (AOI).
         zoom : int
             The zoom level for the map tiles. Higher zoom levels correspond to higher resolution.
+        filename : str or None, optional
+            The name of the file to save the downloaded DEM. If None, a default name will be generated. Default is None.
         url : str, optional
             The URL template of the tile map service. The placeholders {x}, {y}, {z} should be present in the URL. 
             Default is Google Satellite Hybrid 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'.
         n_jobs : int, optional
             The number of concurrent download jobs. Default is 8.
-
+        skip_exist : bool, optional
+            If True, skips the download if the file already exists. Default is True.
+        debug : bool, optional
+            If True, prints debugging information. Default is False.
+        
         Returns
         -------
         Xarray
