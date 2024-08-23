@@ -8,7 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .datagrid import datagrid
-from pygmtsar import tqdm_dask
+from .tqdm_dask import tqdm_dask
 
 class IO(datagrid):
 
