@@ -282,8 +282,8 @@ class ASF(tqdm_joblib):
         # supress asf_search 'UserWarning: File already exists, skipping download'
         warnings.filterwarnings("ignore", category=UserWarning)
         # repeat failed downloads
-        retries = 100
-        retries_timeout = 2
+        retries = 300
+        retries_timeout = 3
 
         def filter_azimuth_time(items, start_utc_dt, stop_utc_dt, delta=3):
             return [item for item in items if
@@ -400,7 +400,7 @@ class ASF(tqdm_joblib):
                         print(f"Failed attempt {retry+1} to download {tmp_file}: {e}")
                         time.sleep(retries_timeout)
                 # check if the file is really downloaded
-                assert os.path.exists(tmp_file), f'ERROR: TiFF file {tmp_file} is not downloaded and validated'
+                assert os.path.exists(tmp_file), f'ERROR: TiFF file {tmp_file} is not downloaded and validated in {retries} retries'
                 # move to persistent name
                 os.rename(tmp_file, tif_file)
         
@@ -437,7 +437,7 @@ class ASF(tqdm_joblib):
                         print(f"Failed attempt {retry+1} to download and parse {manifest_file}: {e}")
                         time.sleep(retries_timeout)
                 # check if the file is really downloaded
-                assert os.path.exists(manifest_file), f'ERROR: manifest file {manifest_file} is not downloaded and validated'
+                assert os.path.exists(manifest_file), f'ERROR: manifest file {manifest_file} is not downloaded and validated in {retries} retries'
                 # parse xml
                 with open(manifest_file, 'r') as file:
                     xml_content = file.read()
