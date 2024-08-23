@@ -552,11 +552,19 @@ class IO(datagrid):
             # pairs
             filenames = self.get_filenames(stack, name)
         #print ('filenames', filenames)
-    
+
+        # define the proper chunk sizes
+        data0 = xr.open_dataset(filenames[0], engine=self.netcdf_engine)
+        if 'stack' in data0.dims:
+            chunksize = self.chunksize1d
+        else:
+            chunksize = self.chunksize
+        del data0
+
         data = xr.open_mfdataset(
             filenames,
             engine=self.netcdf_engine,
-            chunks=-1,
+            chunks=chunksize,
             parallel=True,
             concat_dim='stackvar',
             combine='nested'
@@ -569,13 +577,6 @@ class IO(datagrid):
                 multi_index_names = ['lat', 'lon']
             multi_index = pd.MultiIndex.from_arrays([data.y.values, data.x.values], names=multi_index_names)
             data = data.assign_coords(stack=multi_index).set_index({'stack': ['y', 'x']})
-            chunksize = self.chunksize1d
-        else:
-            chunksize = self.chunksize
-
-        # set the proper chunk sizes
-        chunks = {dim: 1 if dim in ['stackvar'] else chunksize for dim in data.dims}
-        data = data.chunk(chunks)
 
         # revert dataarray converted to dataset
         data_vars = list(data.data_vars)
@@ -608,6 +609,8 @@ class IO(datagrid):
         for dim in ['pair', 'date']:
             if dim in data.coords:
                 if data[dim].shape == () or 'stack' in data.dims:
+                    if data[dim].shape == ():
+                        data = data.assign_coords(pair=('stackvar', [data[dim].values]))
                     data = data.rename({'stackvar': dim}).set_index({dim: dim})
                 else:
                     data = data.swap_dims({'stackvar': dim})
