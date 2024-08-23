@@ -9,6 +9,7 @@
 # ----------------------------------------------------------------------------
 from .Stack_reframe import Stack_reframe
 from .PRM import PRM
+from .tqdm_dask import tqdm_dask
 
 class Stack_dem(Stack_reframe):
 
@@ -59,13 +60,45 @@ class Stack_dem(Stack_reframe):
         See EGM96 geoid heights on http://icgem.gfz-potsdam.de/tom_longtime
         """
         import xarray as xr
+        import dask.array as da
         import os
         import importlib.resources as resources
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
+        
+        # use outer variable geoid
+        def interpolate_chunk(grid_chunk, grid_lat_chunk, grid_lon_chunk, method='cubic'):
+            dlat, dlon = float(geoid.lat.diff('lat')[0]), float(geoid.lon.diff('lon')[0])
+            geoid_chunk = geoid.sel(
+                                lat=slice(grid_lat_chunk[0]-2*dlat, grid_lat_chunk[-1]+2*dlat),
+                                lon=slice(grid_lon_chunk[0]-2*dlon, grid_lon_chunk[-1]+2*dlon)
+                          ).compute()
+            #print ('geoid_chunk', geoid_chunk)
+            return geoid_chunk.interp({'lat': grid_lat_chunk, 'lon': grid_lon_chunk}, method=method)
+
 
         with resources.as_file(resources.files('pygmtsar.data') / 'geoid_egm96_icgem.grd') as geoid_filename:
             geoid = xr.open_dataarray(geoid_filename, engine=self.netcdf_engine, chunks=self.netcdf_chunksize).rename({'y': 'lat', 'x': 'lon'})
         if grid is not None:
-            geoid = geoid.interp_like(grid, method='cubic')
+            # Xarray interpolation struggles with large grids
+            #geoid = geoid.interp_like(grid.coords, method='linear')
+            # grid.data is needed only to prevent excessive memory usage during interpolation
+            geoid_grid = da.blockwise(
+                interpolate_chunk,
+                'ij',
+                grid.data,
+                'ij',
+                grid.lat.data,
+                'i',
+                grid.lon.data,
+                'j',
+                dtype=geoid.dtype
+            )
+            return xr.DataArray(geoid_grid, coords=grid.coords).rename(geoid.name)
+
         return geoid
 
     def set_dem(self, dem_filename):
@@ -205,6 +238,7 @@ class Stack_dem(Stack_reframe):
         """
         import xarray as xr
         import numpy as np
+        import dask
         import rioxarray as rio
         import geopandas as gpd
         import pandas as pd
@@ -255,10 +289,15 @@ class Stack_dem(Stack_reframe):
         if os.path.exists(dem_filename):
             os.remove(dem_filename)
         encoding = {'dem': self._compression(ortho.shape)}
-        (ortho + geoid).rename('dem').load()\
-            .to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
+        # (ortho + geoid).rename('dem')\
+        #     .to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine)
+
+        delayed = (ortho + geoid).rename('dem')\
+            .to_netcdf(dem_filename, encoding=encoding, engine=self.netcdf_engine, compute=False)
+        tqdm_dask(result := dask.persist(delayed), desc='Save DEM on WGS84 Ellipsoid')
 
         self.dem_filename = dem_filename
+
 
     def download_dem(self, geometry='auto', product='1s'):
         print ('NOTE: Function is removed. Download DEM using Tiles().download_dem()')
