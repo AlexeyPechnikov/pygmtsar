@@ -231,9 +231,15 @@ class Stack_base(tqdm_joblib, IO):
             # workaround for baseline_pairs() output
             pairs = pairs.rename(columns={'ref_date': 'ref', 'rep_date': 'rep'})
         elif isinstance(pairs, (xr.DataArray, xr.Dataset)):
+            # pairs = pd.DataFrame({
+#                 'ref': pairs.coords['ref'].values,
+#                 'rep': pairs.coords['rep'].values
+#             })
+            refs = pairs.coords['ref'].values
+            reps = pairs.coords['rep'].values
             pairs = pd.DataFrame({
-                'ref': pairs.coords['ref'].values,
-                'rep': pairs.coords['rep'].values
+                'ref': refs if isinstance(refs, np.ndarray) else [refs],
+                'rep': reps if isinstance(reps, np.ndarray) else [reps]
             })
         else:
             # Convert numpy array to DataFrame
