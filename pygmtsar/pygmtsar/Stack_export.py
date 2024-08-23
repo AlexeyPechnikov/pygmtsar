@@ -57,13 +57,23 @@ class Stack_export(Stack_ps):
     @staticmethod
     def as_vtk(dataset):
         """
-        Map a 2D image onto a 3D topography.
+        Map a 2D image onto a 3D topography and convert it to a VTK structure for visualization.
 
-        Parameters:
-            dataset: A file name or Xarray Dataset to use for mapping the image.
+        Parameters
+        ----------
+        dataset : xarray.Dataset
+            The input dataset containing the 2D image and topography information.
 
-        Returns:
-            A vtkStructuredGrid representing the image mapped onto the topography.
+        Returns
+        -------
+        vtk.vtkStructuredGrid
+            A VTK structured grid representing the image mapped onto the topography.
+
+        Notes
+        -----
+        This method converts an xarray dataset into a VTK structured grid, which can be used for 3D visualization. 
+        The dataset should contain spatial dimensions and optionally topography information (e.g., elevation data).
+        If the dataset contains RGB or RGBA bands, they will be properly handled and mapped as colors.
         """
         from vtk import vtkPoints, vtkStructuredGrid, vtkThreshold, vtkDataObject, \
             VTK_FLOAT, VTK_UNSIGNED_CHAR, vtkStringArray, vtkFloatArray, vtkIntArray
@@ -159,17 +169,34 @@ class Stack_export(Stack_ps):
 
     def export_geotiff(self, data, name, caption='Exporting WGS84 GeoTIFF(s)', compress='LZW'):
         """
-        Export single GeoTIFF file "velocity.tif":
-        sbas.export_geotiff(velocity, 'velocity')
-        
-        Export pair-based stack of GeoTIFF files like corr.2024-01-01_2024-01-02.tif, ...:
-        sbas.export_geotiff(corr, 'corr')
-        
-        Export date-based stack of GeoTIFF files (ike disp.2024-01-01.tif, ...:
-        sbas.export_geotiff(disp, 'disp')
+        Export the provided data to a GeoTIFF file.
 
-        The exported GeoTIFF files can be converted to KMZ for Google Earth Engine using GDAL tools:
-        gdalwarp -of KMLSUPEROVERLAY -co FORMAT=PNG velocity.tif velocity.kmz
+        Parameters
+        ----------
+        data : xarray.DataArray
+            The data to be exported as a GeoTIFF.
+        name : str
+            The base name for the GeoTIFF file(s).
+        caption : str, optional
+            A description for the export process, used for progress display. Default is 'Exporting WGS84 GeoTIFF(s)'.
+        compress : str, optional
+            The compression method to use for the GeoTIFF. Default is 'LZW'.
+
+        Returns
+        -------
+        None
+            The function writes the GeoTIFF file(s) to disk with the specified name.
+            
+        Examples
+        --------
+        Export a single GeoTIFF file "velocity.tif":
+        sbas.export_geotiff(velocity, 'velocity')
+
+        Export a stack of GeoTIFF files like corr.2024-01-01_2024-01-02.tif:
+        sbas.export_geotiff(corr, 'corr')
+
+        Export date-based stack of GeoTIFF files like disp.2024-01-01.tif:
+        sbas.export_geotiff(disp, 'disp')
         """
         import xarray as xr
         import numpy as np
@@ -199,7 +226,31 @@ class Stack_export(Stack_ps):
 
     def export_geojson(self, data, name, caption='Exporting WGS84 GeoJSON', pivotal=True, digits=2, coord_digits=6):
         """
-        Export GeoJSON file "velocity.geojson":
+        Export the provided data to a GeoJSON file.
+
+        Parameters
+        ----------
+        data : xarray.DataArray
+            The data to be exported as GeoJSON.
+        name : str
+            The base name for the GeoJSON file(s).
+        caption : str, optional
+            A description for the export process, used for progress display. Default is 'Exporting WGS84 GeoJSON'.
+        pivotal : bool, optional
+            Whether to pivot the data. Default is True.
+        digits : int, optional
+            Number of decimal places to round the data values. Default is 2.
+        coord_digits : int, optional
+            Number of decimal places to round the coordinates. Default is 6.
+    
+        Returns
+        -------
+        None
+            The function writes the GeoJSON file(s) to disk with the specified name.
+            
+        Examples
+        --------
+        Export a GeoJSON file "velocity.geojson":
         sbas.export_geojson(velocity, 'velocity')
         """
         import xarray as xr
@@ -288,7 +339,31 @@ class Stack_export(Stack_ps):
 
     def export_csv(self, data, name, caption='Exporting WGS84 CSV', delimiter=',', digits=2, coord_digits=6):
         """
-        Export CSV file "velocity.csv":
+        Export the provided data to a CSV file.
+    
+        Parameters
+        ----------
+        data : xarray.DataArray
+            The data to be exported as CSV.
+        name : str
+            The base name for the CSV file(s).
+        caption : str, optional
+            A description for the export process, used for progress display. Default is 'Exporting WGS84 CSV'.
+        delimiter : str, optional
+            The delimiter to use in the CSV file. Default is ','.
+        digits : int, optional
+            Number of decimal places to round the data values. Default is 2.
+        coord_digits : int, optional
+            Number of decimal places to round the coordinates. Default is 6.
+
+        Returns
+        -------
+        None
+            The function writes the CSV file(s) to disk with the specified name.
+            
+        Examples
+        --------
+        Export a CSV file "velocity.csv":
         sbas.export_csv(velocity, 'velocity')
         """
         import xarray as xr
@@ -380,7 +455,29 @@ class Stack_export(Stack_ps):
 
     def export_netcdf(self, data, name, caption='Exporting WGS84 NetCDF', engine='netcdf4', format='NETCDF3_64BIT'):
         """
-        Export NetCDF file "velocity.nc":
+        Export the provided data to a NetCDF file.
+    
+        Parameters
+        ----------
+        data : xarray.DataArray
+            The data to be exported as NetCDF.
+        name : str
+            The base name for the NetCDF file(s).
+        caption : str, optional
+            A description for the export process, used for progress display. Default is 'Exporting WGS84 NetCDF'.
+        engine : str, optional
+            The NetCDF engine to use (e.g., 'netcdf4'). Default is 'netcdf4'.
+        format : str, optional
+            The NetCDF format to use (e.g., 'NETCDF3_64BIT'). Default is 'NETCDF3_64BIT'.
+
+        Returns
+        -------
+        None
+            The function writes the NetCDF file to disk with the specified name.
+            
+        Examples
+        --------
+        Export a NetCDF file "velocity.nc":
         sbas.export_netcdf(velocity, 'velocity')
         """
         import xarray as xr
@@ -418,8 +515,40 @@ class Stack_export(Stack_ps):
 
     def export_vtk(self, data, name, caption='Exporting WGS84 VTK(s)', topo='auto', image=None, mask=None):
         """
-        Export VTK file "velocity.vtk":
+        Export the provided data to a VTK file.
+    
+        Parameters
+        ----------
+        data : xarray.DataArray or None
+            The data to be exported as VTK. If None, `image` must be provided.
+        name : str
+            The base name for the VTK file(s).
+        caption : str, optional
+            A description for the export process, used for progress display. Default is 'Exporting WGS84 VTK(s)'.
+        topo : str or None, optional
+            The topography information to use for 3D mapping. If 'auto', the DEM is automatically retrieved. 
+            If None, no topography will be applied. Default is 'auto'.
+        image : xarray.DataArray or None, optional
+            An optional image to overlay on the topography. Default is None.
+        mask : xarray.DataArray or None, optional
+            An optional mask to apply to the topography. If 'auto', the topography will be masked by the data. Default is None.
+    
+        Returns
+        -------
+        None
+            The function writes the VTK file(s) to disk with the specified name.
+    
+        Examples
+        --------
+        Export a VTK file "velocity.vtk":
         sbas.export_vtk(velocity, 'velocity')
+    
+        Notes
+        -----
+        This function facilitates the visualization of InSAR data in VTK. By default, it includes topography data,
+        and it can optionally overlay image data, such as satellite imagery, on the DEM to enhance the visualization.
+        The `topo` option allows for automatic DEM inclusion, while the `mask` option helps manage NoData values,
+        ensuring cleaner visual outputs.
         """
         import xarray as xr
         import numpy as np
