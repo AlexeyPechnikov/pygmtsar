@@ -52,6 +52,13 @@ class Stack_unwrap_snaphu(Stack_landmask):
         import subprocess
         from datetime import datetime
         import uuid
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
+        # Filter out Dask "Restarting worker" warnings
+        warnings.filterwarnings("ignore", module="distributed.nanny")
         # disable "distributed.utils_perf - WARNING - full garbage collections ..."
         try:
             from dask.distributed import utils_perf
