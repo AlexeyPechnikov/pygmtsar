@@ -380,31 +380,25 @@ class ASF(tqdm_joblib):
                     os.remove(tif_file)
                 # check if we can open the downloaded file without errors
                 tmp_file = os.path.join(scene_dir, os.path.basename(tif_file))
-                # download burst tif file and save using the burst and scene names
-                #result.download(os.path.dirname(tif_file), filename=os.path.basename(tif_file))
-                try:
-                    # remove potentially incomplete data file if needed
-                    if os.path.exists(tmp_file):
-                        os.remove(tmp_file)
-                    result.download(scene_dir, filename=os.path.basename(tif_file), session=session)
-                    if not os.path.exists(tmp_file):
-                        raise Exception(f'ERROR: TiFF file is not downloaded: {tmp_file}')
-                    if os.path.getsize(tmp_file) == 0:
-                        raise Exception(f'ERROR: TiFF file is empty: {tmp_file}')
-                    # check TiFF file validity opening it
-                    with TiffFile(tmp_file) as tif:
-                        # get TiFF file information
-                        page = tif.pages[0]
-                        tags = page.tags
-                        data = page.asarray()
-                    # rasterio may cause the interpreter to crash when attempting to open a corrupted TIFF file
-                    #with rio.open_rasterio(tmp_file) as raster:
-                    #    raster.load()
-                    # TiFF file is well loaded
-                except Exception as e:
-                    print(f'ERROR: TiFF file downloading failed: {tmp_file}: {e}')
-                # check if the file is really downloaded
-                #assert os.path.exists(tmp_file), f'ERROR: TiFF file {tmp_file} is not downloaded and validated in {retries} retries'
+                # remove potentially incomplete data file if needed
+                if os.path.exists(tmp_file):
+                    os.remove(tmp_file)
+                result.download(scene_dir, filename=os.path.basename(tif_file), session=session)
+                if not os.path.exists(tmp_file):
+                    raise Exception(f'ERROR: TiFF file is not downloaded: {tmp_file}')
+                if os.path.getsize(tmp_file) == 0:
+                    raise Exception(f'ERROR: TiFF file is empty: {tmp_file}')
+                # check TiFF file validity opening it
+                with TiffFile(tmp_file) as tif:
+                    # get TiFF file information
+                    page = tif.pages[0]
+                    tags = page.tags
+                    data = page.asarray()
+                # attention: rasterio can crash the interpreter on a corrupted TIFF file
+                # perform this check as the final step
+                with rio.open_rasterio(tmp_file) as raster:
+                    raster.load()
+                # TiFF file is well loaded
                 if not os.path.exists(tmp_file):
                     raise Exception(f'ERROR: TiFF file is missed: {tmp_file}')
                 # move to persistent name
@@ -421,30 +415,23 @@ class ASF(tqdm_joblib):
                     page = tif.pages[0]
                     offset = page.dataoffsets[0]
                 #print ('offset', offset)
-
                 # get the file name
                 basename = os.path.basename(properties['additionalUrls'][0])
                 #print ('basename', '=>', basename)
                 manifest_file = os.path.join(scene_dir, basename)
-                # download and process manifest file even when it exists but is not processed to annotation xml
-                try:
-                    # remove potentially incomplete manifest file if needed
-                    if os.path.exists(manifest_file):
-                        os.remove(manifest_file)
-                    asf_search.download_urls(urls=properties['additionalUrls'], path=scene_dir, session=session)
-                    if not os.path.exists(manifest_file):
-                        raise Exception(f'ERROR: manifest file is not downloaded: {manifest_file}')
-                    if os.path.getsize(manifest_file) == 0:
-                        raise Exception(f'ERROR: manifest file is empty: {manifest_file}')
-                    # check XML file validity parsing it
-                    with open(manifest_file, 'r') as file:
-                        xml_content = file.read()
-                        _ = ElementTree.fromstring(xml_content)
-                    # xml file is well parsed
-                except Exception as e:
-                    print(f'ERROR: Manifest file downloading failed: {manifest_file}: {e}')
-                # check if the file is really downloaded
-                #assert os.path.exists(manifest_file), f'ERROR: manifest file {manifest_file} is not downloaded and validated in {retries} retries'
+                # remove potentially incomplete manifest file if needed
+                if os.path.exists(manifest_file):
+                    os.remove(manifest_file)
+                asf_search.download_urls(urls=properties['additionalUrls'], path=scene_dir, session=session)
+                if not os.path.exists(manifest_file):
+                    raise Exception(f'ERROR: manifest file is not downloaded: {manifest_file}')
+                if os.path.getsize(manifest_file) == 0:
+                    raise Exception(f'ERROR: manifest file is empty: {manifest_file}')
+                # check XML file validity parsing it
+                with open(manifest_file, 'r') as file:
+                    xml_content = file.read()
+                    _ = ElementTree.fromstring(xml_content)
+                # xml file is well parsed
                 if not os.path.exists(manifest_file):
                     raise Exception(f'ERROR: manifest file is missed: {manifest_file}')
                 # parse xml
