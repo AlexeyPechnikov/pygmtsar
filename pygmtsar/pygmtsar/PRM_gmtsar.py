@@ -238,6 +238,8 @@ class PRM_gmtsar:
         if not isinstance(repeatPRM, PRM):
             raise Exception('Argument should be PRM class instance')
 
+        SLC_tmpname = os.path.split(repeatSLC_tofile)[-1] + '.tmp'
+        
         pipe1 = os.pipe()
         os.write(pipe1[1], bytearray(repeatPRM.to_str(), 'utf8'))
         os.close(pipe1[1])
@@ -254,23 +256,24 @@ class PRM_gmtsar:
         #                     stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[1]],
         #                     cwd=cwd, encoding='utf8', shell=True)
         argv = ['resamp', f'/dev/stdin', f'/dev/fd/{pipe1[0]}',
-                f'/dev/fd/{pipe2[1]}', '/dev/stdout', str(interp)]
+                f'/dev/fd/{pipe2[1]}', SLC_tmpname, str(interp)]
         if debug:
             print ('DEBUG: argv', argv)
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
+        if debug:
+            print ('DEBUG: cwd', cwd)
         p = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[1]],
                              cwd=cwd)
         stdout_data, stderr_data = p.communicate(input=bytearray(self.to_str(), 'utf8'))
 
-        # print errors and notifications
         if len(stderr_data) > 0 and debug:
             print ('DEBUG: resamp', stderr_data.decode('utf8'))
 
-        # save big SLC binary file
-        with open(repeatSLC_tofile, 'wb') as f:
-            f.write(stdout_data)
-
+        # rename the file to the persistent name
+        if os.path.exists(repeatSLC_tofile + '.tmp'):
+            os.rename(repeatSLC_tofile + '.tmp', repeatSLC_tofile)
+        
         # PRM file should be small text
         data = os.read(pipe2[0],int(10e6))
         return PRM.from_str(data.decode('utf8'))

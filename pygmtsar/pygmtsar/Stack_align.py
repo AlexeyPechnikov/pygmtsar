@@ -827,7 +827,6 @@ class Stack_align(Stack_dem):
             List of dates to process. If None, process all scenes. Default is None.
         n_jobs : int, optional
             Number of parallel processing jobs. n_jobs=-1 means all processor cores are used. Default is -1.
-        joblib_aligning_backend: str or None, optional
 
         Returns
         -------
@@ -845,6 +844,9 @@ class Stack_align(Stack_dem):
         # supress warnings about unary_union future behaviour to replace None by empty collection 
         warnings.filterwarnings('ignore')
 
+        if joblib_aligning_backend is not None:
+            print('Note: the joblib_aligning_backend argument has been removed from the compute_align() function.')
+
         if dates is None:
             dates = self.df.index.unique()
         dates_rep = [date for date in dates if date != self.reference]
@@ -854,7 +856,6 @@ class Stack_align(Stack_dem):
         if n_jobs is None or debug == True:
             print ('Note: sequential joblib processing is applied when "n_jobs" is None or "debug" is True.')
             joblib_backend = 'sequential'
-            joblib_aligning_backend = 'sequential'
         else:
             joblib_backend = None
 
@@ -866,7 +867,7 @@ class Stack_align(Stack_dem):
         # prepare secondary images
         with self.tqdm_joblib(tqdm(desc='Aligning Repeat', total=len(dates_rep)*len(subswaths))) as progress_bar:
             # threading backend is the only one working inside Docker container to run multiple binaries in parallel
-            joblib.Parallel(n_jobs=n_jobs, backend=joblib_aligning_backend)(joblib.delayed(self._align_rep_subswath)(subswath, date, degrees=degrees, debug=debug) \
+            joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._align_rep_subswath)(subswath, date, degrees=degrees, debug=debug) \
                                            for date in dates_rep for subswath in subswaths)
 
         if len(subswaths) > 1:
