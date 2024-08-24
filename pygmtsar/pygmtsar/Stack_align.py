@@ -127,8 +127,8 @@ class Stack_align(Stack_dem):
         self._ext_orb_s1a(subswath, multistem, debug=debug)
 
         # recalculate after _ext_orb_s1a
-        earth_radius = PRM.from_file(path_multistem + '.PRM')\
-            .calc_dop_orb(inplace=True).update().get('earth_radius')
+        PRM.from_file(path_multistem + '.PRM')\
+            .calc_dop_orb(inplace=True).update()
 
     # aligning for secondary image
     def _align_rep_subswath(self, subswath, date=None, degrees=12.0/3600, debug=False):
