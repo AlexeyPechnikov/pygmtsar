@@ -249,12 +249,6 @@ class PRM_gmtsar:
         #print ('descriptor 2', pipe2[1])
 
         # Usage: resamp master.PRM repeat.PRM new_repeat.PRM new_repeat.SLC interp
-        #
-        #cmd = f'resamp /dev/stdin /dev/fd/{pipe1[0]} /dev/fd/{pipe2[1]} /dev/stdout {intrp} | sponge ___'
-        #cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
-        #p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-        #                     stderr=subprocess.PIPE, pass_fds=[pipe1[0], pipe2[1]],
-        #                     cwd=cwd, encoding='utf8', shell=True)
         argv = ['resamp', f'/dev/stdin', f'/dev/fd/{pipe1[0]}',
                 f'/dev/fd/{pipe2[1]}', SLC_tmpname, str(interp)]
         if debug:
