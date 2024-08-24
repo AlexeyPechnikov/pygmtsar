@@ -853,7 +853,7 @@ class PRM(datagrid, PRM_gmtsar):
         slc_filename = os.path.join(dirname, slc_filename)
         #print (slc_filename, ydim, xdim)
 
-        blocksize = self.chunksize*xdim
+        blocksize = self.netcdf_chunksize * xdim
         blocks = int(np.ceil(ydim * xdim / blocksize))
         #print ('chunks', chunks, 'chunksize', chunksize)
         # Create a lazy Dask array that reads chunks of the SLC file
