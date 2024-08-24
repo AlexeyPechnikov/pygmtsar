@@ -382,23 +382,24 @@ class ASF(tqdm_joblib):
                     os.remove(tif_file)
                 # check if we can open the downloaded file without errors
                 tmp_file = os.path.join(scene_dir, os.path.basename(tif_file))
-                if os.path.exists(tmp_file):
-                    os.remove(tmp_file)
                 # download burst tif file and save using the burst and scene names
                 #result.download(os.path.dirname(tif_file), filename=os.path.basename(tif_file))
                 for retry in range(retries):
                     try:
+                        # remove potentially incomplete data file if needed
+                        if os.path.exists(tmp_file):
+                            os.remove(tmp_file)
                         result.download(scene_dir, filename=os.path.basename(tif_file), session=session)
-                        if not os.path.exists(tmp_file):
-                            continue
-                        # check file validity opening it
-                        with rio.open_rasterio(tmp_file) as raster:
-                            raster.load()
-                            # TiFF file is well loaded
-                            break
+                        if os.path.exists(tmp_file):
+                            # check TiFF file validity opening it
+                            with rio.open_rasterio(tmp_file) as raster:
+                                raster.load()
+                                # TiFF file is well loaded
+                                break
                     except Exception as e:
                         print(f"Failed attempt {retry+1} to download {tmp_file}: {e}")
-                        time.sleep(retries_timeout)
+                    # wait before the next attempt
+                    time.sleep(retries_timeout)
                 # check if the file is really downloaded
                 assert os.path.exists(tmp_file), f'ERROR: TiFF file {tmp_file} is not downloaded and validated in {retries} retries'
                 # move to persistent name
@@ -419,23 +420,23 @@ class ASF(tqdm_joblib):
                 basename = os.path.basename(properties['additionalUrls'][0])
                 #print ('basename', '=>', basename)
                 manifest_file = os.path.join(scene_dir, basename)
-                # remove potentially incomplete manifest file if needed
-                if os.path.exists(manifest_file):
-                    os.remove(manifest_file)
                 # download and process manifest file even when it exists but is not processed to annotation xml
                 for retry in range(retries):
                     try:
+                        # remove potentially incomplete manifest file if needed
+                        if os.path.exists(manifest_file):
+                            os.remove(manifest_file)
                         asf_search.download_urls(urls=properties['additionalUrls'], path=scene_dir, session=session)
-                        if not os.path.exists(manifest_file):
-                            continue
-                        # parse xml
-                        with open(manifest_file, 'r') as file:
-                            _ = xmltodict.parse(file.read())['burst']['metadata']['product'][0]
-                            # xml file is well parsed
-                            break
+                        if os.path.exists(manifest_file):
+                            # check XML file validity parsing it
+                            with open(manifest_file, 'r') as file:
+                                _ = xmltodict.parse(file.read())['burst']['metadata']['product'][0]
+                                # xml file is well parsed
+                                break
                     except Exception as e:
                         print(f"Failed attempt {retry+1} to download and parse {manifest_file}: {e}")
-                        time.sleep(retries_timeout)
+                    # wait before the next attempt
+                    time.sleep(retries_timeout)
                 # check if the file is really downloaded
                 assert os.path.exists(manifest_file), f'ERROR: manifest file {manifest_file} is not downloaded and validated in {retries} retries'
                 # parse xml
