@@ -25,70 +25,38 @@ You can support my work on [Patreon](https://www.patreon.com/pechnikov), where I
 $\large\color{blue}{\text{Hint: Use menu Cell} \to \text{Run All or Runtime} \to \text{Complete All or Runtime} \to \text{Run All}}$
 $\large\color{blue}{\text{(depending of your localization settings) to execute the entire notebook}}$
 
-## Load Modules to Check Environment
+## Google Colab Installation
+
+Install PyGMTSAR and required GMTSAR binaries (including SNAPHU)
 """
 
+# Commented out IPython magic to ensure Python compatibility.
 import platform, sys, os
-
-"""## Google Colab Installation
-
-### Install GMTSAR
-https://github.com/gmtsar/gmtsar
-"""
-
 if 'google.colab' in sys.modules:
-    count = !ls /usr/local | grep GMTSAR | wc -l
-    if count == ['0']:
-        !export DEBIAN_FRONTEND=noninteractive
-        !apt-get update > /dev/null
-        !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
-        # GMTSAR codes are not so good to be compiled by modern GCC
-        !apt install gcc-9 > /dev/null
-        !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
-        !update-alternatives --config gcc
-        !gcc --version | head -n 1
-        !rm -fr /usr/local/GMTSAR
-        !git config --global advice.detachedHead false
-        !cd /usr/local && git clone -q --branch master https://github.com/gmtsar/gmtsar GMTSAR
-        # revert recent broken commit
-        !cd /usr/local/GMTSAR && git checkout e98ebc0f4164939a4780b1534bac186924d7c998 > /dev/null
-        !cd /usr/local/GMTSAR && autoconf > /dev/null
-        !cd /usr/local/GMTSAR && ./configure --with-orbits-dir=/tmp > /dev/null
-        !cd /usr/local/GMTSAR && make 1>/dev/null 2>/dev/null
-        !cd /usr/local/GMTSAR && make install >/dev/null
-        # test one GMTSAR binary
-        !/usr/local/GMTSAR/bin/make_s1a_tops 2>&1 | head -n 2
-
-import sys
-if 'google.colab' in sys.modules:
-    !apt install -y xvfb > /dev/null
-    !{sys.executable} -m pip install pyvista xvfbwrapper > /dev/null
+    # install PyGMTSAR stable version from PyPI
+    !{sys.executable} -m pip install -q pygmtsar 'scipy==1.11.4'
+    # alternatively, install PyGMTSAR development version from GitHub
+    #!{sys.executable} -m pip install -Uq git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar 'scipy==1.11.4'
+    # use PyGMTSAR Google Colab installation script to install binary dependencies
+    # script URL: https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/pygmtsar/pygmtsar/data/google_colab.sh
+    import importlib.resources as resources
+    with resources.as_file(resources.files('pygmtsar.data') / 'google_colab.sh') as google_colab_script_filename:
+        !sh {google_colab_script_filename}
+    # enable custom widget manager as required by recent Google Colab updates
+    from google.colab import output
+    output.enable_custom_widget_manager()
+    # initialize virtual framebuffer for interactive 3D visualization; required for headless environments
     import xvfbwrapper
     display = xvfbwrapper.Xvfb(width=800, height=600)
     display.start()
 
-"""### Define ENV Variables for Jupyter Instance"""
-
-# Commented out IPython magic to ensure Python compatibility.
-# use default GMTSAR installation path
+# specify GMTSAR installation path
 PATH = os.environ['PATH']
 if PATH.find('GMTSAR') == -1:
     PATH = os.environ['PATH'] + ':/usr/local/GMTSAR/bin/'
 #     %env PATH {PATH}
 
-"""### Install Python Modules
-
-Maybe you need to restart your notebook, follow the instructions printing below.
-
-The installation takes a long time on fresh Debian 10 and a short time on Google Colab
-"""
-
-!{sys.executable} --version
-
-if 'google.colab' in sys.modules:
-    #!{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
-    !{sys.executable} -m pip install -q pygmtsar
+# display PyGMTSAR version
 from pygmtsar import __version__
 __version__
 
@@ -101,6 +69,7 @@ import geopandas as gpd
 import json
 import shapely
 from dask.distributed import Client
+import psutil
 import dask
 
 # Commented out IPython magic to ensure Python compatibility.
@@ -109,6 +78,7 @@ import pyvista as pv
 # magic trick for white background
 pv.set_plot_theme("document")
 import panel
+panel.extension(comms='ipywidgets')
 panel.extension('vtk')
 from contextlib import contextmanager
 import matplotlib.pyplot as plt
@@ -144,14 +114,138 @@ When you need more scenes and SBAS analysis  see examples on PyGMTSAR GitHub pag
 https://search.asf.alaska.edu/#/?start=2023-01-19T17:00:00Z&resultsLoaded=true&granule=S1A_IW_SLC__1SDV_20230210T033451_20230210T033518_047168_05A8CD_E5B0-SLC&zoom=5.039&center=34.891,27.316&end=2023-02-10T16:59:59Z&productTypes=SLC&path=21-&frame=465-471
 """
 
-# Path 21 Frames 465 - 471
-SCENES = ['S1A_IW_SLC__1SDV_20230129T033427_20230129T033455_046993_05A2FE_6FF2',
-          'S1A_IW_SLC__1SDV_20230129T033452_20230129T033519_046993_05A2FE_BE0B',
-          'S1A_IW_SLC__1SDV_20230210T033426_20230210T033454_047168_05A8CD_FAA6',
-          'S1A_IW_SLC__1SDV_20230210T033451_20230210T033518_047168_05A8CD_E5B0']
 POLARIZATION = 'VV'
 ORBIT        = 'D'
 SUBSWATH     = 123
+
+# # Path 21 Frames 465 - 471
+# SCENES = """
+# S1A_IW_SLC__1SDV_20230129T033427_20230129T033455_046993_05A2FE_6FF2
+# S1A_IW_SLC__1SDV_20230129T033452_20230129T033519_046993_05A2FE_BE0B
+# S1A_IW_SLC__1SDV_20230210T033426_20230210T033454_047168_05A8CD_FAA6
+# S1A_IW_SLC__1SDV_20230210T033451_20230210T033518_047168_05A8CD_E5B0
+# """
+# SCENES = list(filter(None, SCENES.split('\n')))
+# print (f'Scenes defined: {len(SCENES)}')
+
+"""https://search.asf.alaska.edu/#/?polygon=LINESTRING(35.7%2036,37%2038.8,36.7%2035.8,38.7%2038.5,38%2035.5)&searchType=Geographic%20Search&searchList=S1A_IW_SLC__1SDV_20230129T033427_20230129T033455_046993_05A2FE_6FF2,S1A_IW_SLC__1SDV_20230129T033452_20230129T033519_046993_05A2FE_BE0B,S1A_IW_SLC__1SDV_20230210T033426_20230210T033454_047168_05A8CD_FAA6,S1A_IW_SLC__1SDV_20230210T033451_20230210T033518_047168_05A8CD_E5B0&resultsLoaded=true&granule=S1_043820_IW1_20230129T033512_VV_BE0B-BURST&zoom=6.843&center=36.353,34.829&start=2023-01-28T17:00:00Z&end=2023-02-10T16:59:59Z&flightDirs=Descending&dataset=SENTINEL-1%20BURSTS&path=21-21&beamModes=IW&polarizations=VV"""
+
+BURSTS = """
+S1_043822_IW1_20230210T033516_VV_D767-BURST
+S1_043821_IW3_20230210T033515_VV_E5B0-BURST
+S1_043821_IW2_20230210T033514_VV_E5B0-BURST
+S1_043821_IW1_20230210T033513_VV_E5B0-BURST
+S1_043820_IW3_20230210T033513_VV_E5B0-BURST
+S1_043820_IW2_20230210T033512_VV_E5B0-BURST
+S1_043820_IW1_20230210T033511_VV_E5B0-BURST
+S1_043819_IW3_20230210T033510_VV_E5B0-BURST
+S1_043819_IW2_20230210T033509_VV_E5B0-BURST
+S1_043819_IW1_20230210T033508_VV_E5B0-BURST
+S1_043818_IW3_20230210T033507_VV_E5B0-BURST
+S1_043818_IW2_20230210T033506_VV_E5B0-BURST
+S1_043818_IW1_20230210T033505_VV_E5B0-BURST
+S1_043817_IW3_20230210T033504_VV_E5B0-BURST
+S1_043817_IW2_20230210T033503_VV_E5B0-BURST
+S1_043817_IW1_20230210T033502_VV_E5B0-BURST
+S1_043816_IW3_20230210T033502_VV_E5B0-BURST
+S1_043816_IW2_20230210T033501_VV_E5B0-BURST
+S1_043816_IW1_20230210T033500_VV_E5B0-BURST
+S1_043815_IW3_20230210T033459_VV_E5B0-BURST
+S1_043815_IW2_20230210T033458_VV_E5B0-BURST
+S1_043815_IW1_20230210T033457_VV_E5B0-BURST
+S1_043814_IW3_20230210T033456_VV_E5B0-BURST
+S1_043814_IW2_20230210T033455_VV_E5B0-BURST
+S1_043814_IW1_20230210T033454_VV_E5B0-BURST
+S1_043813_IW3_20230210T033453_VV_E5B0-BURST
+S1_043813_IW2_20230210T033452_VV_E5B0-BURST
+S1_043813_IW1_20230210T033451_VV_E5B0-BURST
+S1_043812_IW3_20230210T033451_VV_FAA6-BURST
+S1_043812_IW2_20230210T033450_VV_FAA6-BURST
+S1_043812_IW1_20230210T033449_VV_FAA6-BURST
+S1_043811_IW3_20230210T033448_VV_FAA6-BURST
+S1_043811_IW2_20230210T033447_VV_FAA6-BURST
+S1_043811_IW1_20230210T033446_VV_FAA6-BURST
+S1_043810_IW3_20230210T033445_VV_FAA6-BURST
+S1_043810_IW2_20230210T033444_VV_FAA6-BURST
+S1_043810_IW1_20230210T033443_VV_FAA6-BURST
+S1_043809_IW3_20230210T033442_VV_FAA6-BURST
+S1_043809_IW2_20230210T033441_VV_FAA6-BURST
+S1_043809_IW1_20230210T033440_VV_FAA6-BURST
+S1_043808_IW3_20230210T033439_VV_FAA6-BURST
+S1_043808_IW2_20230210T033439_VV_FAA6-BURST
+S1_043808_IW1_20230210T033438_VV_FAA6-BURST
+S1_043807_IW3_20230210T033437_VV_FAA6-BURST
+S1_043807_IW2_20230210T033436_VV_FAA6-BURST
+S1_043807_IW1_20230210T033435_VV_FAA6-BURST
+S1_043806_IW3_20230210T033434_VV_FAA6-BURST
+S1_043806_IW2_20230210T033433_VV_FAA6-BURST
+S1_043806_IW1_20230210T033432_VV_FAA6-BURST
+S1_043805_IW3_20230210T033431_VV_FAA6-BURST
+S1_043805_IW2_20230210T033430_VV_FAA6-BURST
+S1_043805_IW1_20230210T033429_VV_FAA6-BURST
+S1_043804_IW3_20230210T033428_VV_FAA6-BURST
+S1_043804_IW2_20230210T033427_VV_FAA6-BURST
+S1_043804_IW1_20230210T033427_VV_FAA6-BURST
+S1_043803_IW3_20230210T033426_VV_FAA6-BURST
+S1_043822_IW1_20230129T033517_VV_E089-BURST
+S1_043821_IW3_20230129T033516_VV_BE0B-BURST
+S1_043821_IW2_20230129T033515_VV_BE0B-BURST
+S1_043821_IW1_20230129T033514_VV_BE0B-BURST
+S1_043820_IW3_20230129T033513_VV_BE0B-BURST
+S1_043820_IW2_20230129T033512_VV_BE0B-BURST
+S1_043820_IW1_20230129T033512_VV_BE0B-BURST
+S1_043819_IW3_20230129T033511_VV_BE0B-BURST
+S1_043819_IW2_20230129T033510_VV_BE0B-BURST
+S1_043819_IW1_20230129T033509_VV_BE0B-BURST
+S1_043818_IW3_20230129T033508_VV_BE0B-BURST
+S1_043818_IW2_20230129T033507_VV_BE0B-BURST
+S1_043818_IW1_20230129T033506_VV_BE0B-BURST
+S1_043817_IW3_20230129T033505_VV_BE0B-BURST
+S1_043817_IW2_20230129T033504_VV_BE0B-BURST
+S1_043817_IW1_20230129T033503_VV_BE0B-BURST
+S1_043816_IW3_20230129T033502_VV_BE0B-BURST
+S1_043816_IW2_20230129T033501_VV_BE0B-BURST
+S1_043816_IW1_20230129T033501_VV_BE0B-BURST
+S1_043815_IW3_20230129T033500_VV_BE0B-BURST
+S1_043815_IW2_20230129T033459_VV_BE0B-BURST
+S1_043815_IW1_20230129T033458_VV_BE0B-BURST
+S1_043814_IW3_20230129T033457_VV_BE0B-BURST
+S1_043814_IW2_20230129T033456_VV_BE0B-BURST
+S1_043814_IW1_20230129T033455_VV_BE0B-BURST
+S1_043813_IW3_20230129T033454_VV_BE0B-BURST
+S1_043813_IW2_20230129T033453_VV_BE0B-BURST
+S1_043813_IW1_20230129T033452_VV_BE0B-BURST
+S1_043812_IW3_20230129T033451_VV_6FF2-BURST
+S1_043812_IW2_20230129T033450_VV_6FF2-BURST
+S1_043812_IW1_20230129T033449_VV_6FF2-BURST
+S1_043811_IW3_20230129T033449_VV_6FF2-BURST
+S1_043811_IW2_20230129T033448_VV_6FF2-BURST
+S1_043811_IW1_20230129T033447_VV_6FF2-BURST
+S1_043810_IW3_20230129T033446_VV_6FF2-BURST
+S1_043810_IW2_20230129T033445_VV_6FF2-BURST
+S1_043810_IW1_20230129T033444_VV_6FF2-BURST
+S1_043809_IW3_20230129T033443_VV_6FF2-BURST
+S1_043809_IW2_20230129T033442_VV_6FF2-BURST
+S1_043809_IW1_20230129T033441_VV_6FF2-BURST
+S1_043808_IW3_20230129T033440_VV_6FF2-BURST
+S1_043808_IW2_20230129T033439_VV_6FF2-BURST
+S1_043808_IW1_20230129T033438_VV_6FF2-BURST
+S1_043807_IW3_20230129T033438_VV_6FF2-BURST
+S1_043807_IW2_20230129T033437_VV_6FF2-BURST
+S1_043807_IW1_20230129T033436_VV_6FF2-BURST
+S1_043806_IW3_20230129T033435_VV_6FF2-BURST
+S1_043806_IW2_20230129T033434_VV_6FF2-BURST
+S1_043806_IW1_20230129T033433_VV_6FF2-BURST
+S1_043805_IW3_20230129T033432_VV_6FF2-BURST
+S1_043805_IW2_20230129T033431_VV_6FF2-BURST
+S1_043805_IW1_20230129T033430_VV_6FF2-BURST
+S1_043804_IW3_20230129T033429_VV_6FF2-BURST
+S1_043804_IW2_20230129T033428_VV_6FF2-BURST
+S1_043804_IW1_20230129T033427_VV_6FF2-BURST
+S1_043803_IW3_20230129T033427_VV_6FF2-BURST
+"""
+BURSTS = list(filter(None, BURSTS.split('\n')))
+print (f'Bursts defined: {len(BURSTS)}')
 
 WORKDIR      = 'raw_kahr'
 DATADIR      = 'data_kahr'
@@ -187,7 +281,9 @@ asf_password = 'GoogleColab_2023'
 # Set these variables to None and you will be prompted to enter your username and password below.
 asf = ASF(asf_username, asf_password)
 # Optimized scene downloading from ASF - only the required subswaths and polarizations.
-print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+# Subswaths are already encoded in burst identifiers and are only needed for scenes.
+#print(asf.download(DATADIR, SCENES, SUBSWATH))
+print(asf.download(DATADIR, BURSTS))
 
 # scan the data directory for SLC scenes and download missed orbits
 S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
@@ -195,10 +291,10 @@ S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 # Define AOI as the whole scenes extent.
 AOI = S1.scan_slc(DATADIR)
 # download Copernicus Global DEM 1 arc-second
-Tiles().download_dem(AOI, filename=DEM)
+Tiles().download_dem(AOI, filename=DEM).plot.imshow(cmap='cividis')
 
 # download land mask 1 arc-second
-Tiles().download_landmask(AOI, filename=LANDMASK)
+Tiles().download_landmask(AOI, filename=LANDMASK).fillna(0).plot.imshow(cmap='binary_r')
 
 """## Run Local Dask Cluster
 
@@ -208,7 +304,8 @@ Launch Dask cluster for big data processing. Use "Dashboard" link below for the 
 # cleanup for repeatable runs
 if 'client' in globals():
     client.close()
-client = Client()
+# tune to use 2 cores per worker
+client = Client(n_workers=(psutil.cpu_count() // 2))
 client
 
 """## Init SBAS
@@ -249,9 +346,9 @@ plt.savefig('Estimated Scene Locations.jpg')
 
 """## Align Images"""
 
-if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
-    # use special joblib backend in Docker containers
-    sbas.compute_align(joblib_aligning_backend='threading')
+if 'google.colab' in sys.modules:
+    # tune for Google Colab instances
+    sbas.compute_align(n_jobs=(psutil.cpu_count() // 2))
 else:
     sbas.compute_align()
 

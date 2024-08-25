@@ -25,70 +25,38 @@ You can support my work on [Patreon](https://www.patreon.com/pechnikov), where I
 $\large\color{blue}{\text{Hint: Use menu Cell} \to \text{Run All or Runtime} \to \text{Complete All or Runtime} \to \text{Run All}}$
 $\large\color{blue}{\text{(depending of your localization settings) to execute the entire notebook}}$
 
-## Load Modules to Check Environment
+## Google Colab Installation
+
+Install PyGMTSAR and required GMTSAR binaries (including SNAPHU)
 """
 
+# Commented out IPython magic to ensure Python compatibility.
 import platform, sys, os
-
-"""## Google Colab Installation
-
-### Install GMTSAR
-https://github.com/gmtsar/gmtsar
-"""
-
 if 'google.colab' in sys.modules:
-    count = !ls /usr/local | grep GMTSAR | wc -l
-    if count == ['0']:
-        !export DEBIAN_FRONTEND=noninteractive
-        !apt-get update > /dev/null
-        !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
-        # GMTSAR codes are not so good to be compiled by modern GCC
-        !apt install gcc-9 > /dev/null
-        !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
-        !update-alternatives --config gcc
-        !gcc --version | head -n 1
-        !rm -fr /usr/local/GMTSAR
-        !git config --global advice.detachedHead false
-        !cd /usr/local && git clone -q --branch master https://github.com/gmtsar/gmtsar GMTSAR
-        # revert recent broken commit
-        !cd /usr/local/GMTSAR && git checkout e98ebc0f4164939a4780b1534bac186924d7c998 > /dev/null
-        !cd /usr/local/GMTSAR && autoconf > /dev/null
-        !cd /usr/local/GMTSAR && ./configure --with-orbits-dir=/tmp > /dev/null
-        !cd /usr/local/GMTSAR && make 1>/dev/null 2>/dev/null
-        !cd /usr/local/GMTSAR && make install >/dev/null
-        # test one GMTSAR binary
-        !/usr/local/GMTSAR/bin/make_s1a_tops 2>&1 | head -n 2
-
-import sys
-if 'google.colab' in sys.modules:
-    !apt install -y xvfb > /dev/null
-    !{sys.executable} -m pip install pyvista xvfbwrapper > /dev/null
+    # install PyGMTSAR stable version from PyPI
+    !{sys.executable} -m pip install -q pygmtsar
+    # alternatively, nstall PyGMTSAR development version from GitHub
+    #!{sys.executable} -m pip install -Uq git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
+    # use PyGMTSAR Google Colab installation script to install binary dependencies
+    # script URL: https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/pygmtsar/pygmtsar/data/google_colab.sh
+    import importlib.resources as resources
+    with resources.as_file(resources.files('pygmtsar.data') / 'google_colab.sh') as google_colab_script_filename:
+        !sh {google_colab_script_filename}
+    # enable custom widget manager as required by recent Google Colab updates
+    from google.colab import output
+    output.enable_custom_widget_manager()
+    # initialize virtual framebuffer for interactive 3D visualization; required for headless environments
     import xvfbwrapper
     display = xvfbwrapper.Xvfb(width=800, height=600)
     display.start()
 
-"""### Define ENV Variables for Jupyter Instance"""
-
-# Commented out IPython magic to ensure Python compatibility.
-# use default GMTSAR installation path
+# specify GMTSAR installation path
 PATH = os.environ['PATH']
 if PATH.find('GMTSAR') == -1:
     PATH = os.environ['PATH'] + ':/usr/local/GMTSAR/bin/'
 #     %env PATH {PATH}
 
-"""### Install Python Modules
-
-Maybe you need to restart your notebook, follow the instructions printing below.
-
-The installation takes a long time on fresh Debian 10 and a short time on Google Colab
-"""
-
-!{sys.executable} --version
-
-if 'google.colab' in sys.modules:
-    #!{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
-    !{sys.executable} -m pip install -q pygmtsar
+# display PyGMTSAR version
 from pygmtsar import __version__
 __version__
 
@@ -108,6 +76,7 @@ import pyvista as pv
 # magic trick for white background
 pv.set_plot_theme("document")
 import panel
+panel.extension(comms='ipywidgets')
 panel.extension('vtk')
 from contextlib import contextmanager
 import matplotlib.pyplot as plt
@@ -205,13 +174,13 @@ asf_password = 'GoogleColab_2023'
 # Set these variables to None and you will be prompted to enter your username and password below.
 asf = ASF(asf_username, asf_password)
 # Optimized scene downloading from ASF - only the required subswaths and polarizations.
-print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+print(asf.download(DATADIR, SCENES, SUBSWATH))
 
 # scan the data directory for SLC scenes and download missed orbits
 S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 
 # download Copernicus Global DEM 1 arc-second
-Tiles().download_dem(AOI, filename=DEM)
+Tiles().download_dem(AOI, filename=DEM).plot.imshow(cmap='cividis')
 
 """## Run Local Dask Cluster
 

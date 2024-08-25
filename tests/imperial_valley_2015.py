@@ -25,70 +25,38 @@ You can support my work on [Patreon](https://www.patreon.com/pechnikov), where I
 $\large\color{blue}{\text{Hint: Use menu Cell} \to \text{Run All or Runtime} \to \text{Complete All or Runtime} \to \text{Run All}}$
 $\large\color{blue}{\text{(depending of your localization settings) to execute the entire notebook}}$
 
-## Load Modules to Check Environment
+## Google Colab Installation
+
+Install PyGMTSAR and required GMTSAR binaries (including SNAPHU)
 """
 
+# Commented out IPython magic to ensure Python compatibility.
 import platform, sys, os
-
-"""## Google Colab Installation
-
-### Install GMTSAR
-https://github.com/gmtsar/gmtsar
-"""
-
 if 'google.colab' in sys.modules:
-    count = !ls /usr/local | grep GMTSAR | wc -l
-    if count == ['0']:
-        !export DEBIAN_FRONTEND=noninteractive
-        !apt-get update > /dev/null
-        !apt install -y csh autoconf gfortran \
-            libtiff5-dev libhdf5-dev liblapack-dev libgmt-dev gmt > /dev/null
-        # GMTSAR codes are not so good to be compiled by modern GCC
-        !apt install gcc-9 > /dev/null
-        !update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 10
-        !update-alternatives --config gcc
-        !gcc --version | head -n 1
-        !rm -fr /usr/local/GMTSAR
-        !git config --global advice.detachedHead false
-        !cd /usr/local && git clone -q --branch master https://github.com/gmtsar/gmtsar GMTSAR
-        # revert recent broken commit
-        !cd /usr/local/GMTSAR && git checkout e98ebc0f4164939a4780b1534bac186924d7c998 > /dev/null
-        !cd /usr/local/GMTSAR && autoconf > /dev/null
-        !cd /usr/local/GMTSAR && ./configure --with-orbits-dir=/tmp > /dev/null
-        !cd /usr/local/GMTSAR && make 1>/dev/null 2>/dev/null
-        !cd /usr/local/GMTSAR && make install >/dev/null
-        # test one GMTSAR binary
-        !/usr/local/GMTSAR/bin/make_s1a_tops 2>&1 | head -n 2
-
-import sys
-if 'google.colab' in sys.modules:
-    !apt install -y xvfb > /dev/null
-    !{sys.executable} -m pip install pyvista xvfbwrapper > /dev/null
+    # install PyGMTSAR stable version from PyPI
+    !{sys.executable} -m pip install -q pygmtsar
+    # alternatively, nstall PyGMTSAR development version from GitHub
+    #!{sys.executable} -m pip install -Uq git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
+    # use PyGMTSAR Google Colab installation script to install binary dependencies
+    # script URL: https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/pygmtsar/pygmtsar/data/google_colab.sh
+    import importlib.resources as resources
+    with resources.as_file(resources.files('pygmtsar.data') / 'google_colab.sh') as google_colab_script_filename:
+        !sh {google_colab_script_filename}
+    # enable custom widget manager as required by recent Google Colab updates
+    from google.colab import output
+    output.enable_custom_widget_manager()
+    # initialize virtual framebuffer for interactive 3D visualization; required for headless environments
     import xvfbwrapper
     display = xvfbwrapper.Xvfb(width=800, height=600)
     display.start()
 
-"""### Define ENV Variables for Jupyter Instance"""
-
-# Commented out IPython magic to ensure Python compatibility.
-# use default GMTSAR installation path
+# specify GMTSAR installation path
 PATH = os.environ['PATH']
 if PATH.find('GMTSAR') == -1:
     PATH = os.environ['PATH'] + ':/usr/local/GMTSAR/bin/'
 #     %env PATH {PATH}
 
-"""### Install Python Modules
-
-Maybe you need to restart your notebook, follow the instructions printing below.
-
-The installation takes a long time on fresh Debian 10 and a short time on Google Colab
-"""
-
-!{sys.executable} --version
-
-if 'google.colab' in sys.modules:
-    #!{sys.executable} -m pip install -q git+https://github.com/mobigroup/gmtsar.git@pygmtsar2#subdirectory=pygmtsar
-    !{sys.executable} -m pip install -q pygmtsar
+# display PyGMTSAR version
 from pygmtsar import __version__
 __version__
 
@@ -98,9 +66,14 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+import shapely
 from dask.distributed import Client
 import dask
+import json
 import warnings
+import logging
+# supress warning "Detected different `run_spec` for key"
+logging.getLogger("distributed.scheduler").setLevel(logging.ERROR)
 
 # Commented out IPython magic to ensure Python compatibility.
 # plotting modules
@@ -108,9 +81,12 @@ import pyvista as pv
 # magic trick for white background
 pv.set_plot_theme("document")
 import panel
+panel.extension(comms='ipywidgets')
 panel.extension('vtk')
 from contextlib import contextmanager
+# plotting modules
 import matplotlib.pyplot as plt
+import matplotlib
 @contextmanager
 def mpl_settings(settings):
     original_settings = {k: plt.rcParams[k] for k in settings}
@@ -124,6 +100,8 @@ plt.rcParams['axes.titlesize'] = 14
 plt.rcParams['axes.labelsize'] = 12
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
+from ipyleaflet import Map, GeoJSON, TileLayer, LayersControl, basemaps, Popup
+from ipywidgets import HTML
 # %matplotlib inline
 
 from pygmtsar import S1, Stack, tqdm_dask, ASF, Tiles
@@ -165,7 +143,7 @@ asf_password = 'GoogleColab_2023'
 # Set these variables to None and you will be prompted to enter your username and password below.
 asf = ASF(asf_username, asf_password)
 # Optimized scene downloading from ASF - only the required subswaths and polarizations.
-print(asf.download_scenes(DATADIR, SCENES, SUBSWATH))
+print(asf.download(DATADIR, SCENES, SUBSWATH))
 
 # scan the data directory for SLC scenes and download missed orbits
 S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
@@ -173,7 +151,7 @@ S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 # define AOI as the whole scenes area
 AOI = S1.scan_slc(DATADIR)
 # download Copernicus Global DEM 1 arc-second
-Tiles().download_dem(AOI, filename=DEM)
+Tiles().download_dem(AOI, filename=DEM).plot.imshow(cmap='cividis')
 
 """## Run Local Dask Cluster
 
@@ -272,7 +250,6 @@ decimator = sbas.decimator()
 tqdm_dask(result := dask.persist(decimator(corr), decimator(intf_filt)), desc='Compute Phase and Correlation')
 # unpack results
 corr60m, intf60m = result
-#11954/11954 [02:30<00:00, 17.81it/s]
 
 sbas.plot_interferograms(intf60m, cols=3, size=3, caption='Phase, [rad]')
 plt.savefig('Phase, [rad].jpg')
@@ -411,7 +388,148 @@ panel.panel(
     enable_keybindings=False, sizing_mode='stretch_width', min_height=600
 )
 
-"""## Conclusion
+"""## 2D Interactive Map
 
-For now you have the full control on interferometry processing and unwrapping and able to run it everywhere: on free of charge Google Colab instances, on local MacOS and Linux computers and on Amazon EC2 and Google Cloud VM and AI Notebook instances.
+The map is also available as a standalone web page, which can be saved and used locally or shared on any web platform: https://insar.dev/ui/Imperial_Valley_2015.html
 """
+
+# prepare and decimate data
+velocity_stacked = sbas.velocity(disp_subset.stack(stack=['y','x'])).rename('velocity')
+df = sbas.ra2ll(velocity_stacked).to_dataframe().dropna()
+gdf = gpd.GeoDataFrame(df[['lat','lon','velocity']], geometry=gpd.points_from_xy(df.lon, df.lat), crs=4326)
+gdf
+
+# specify pixel boundaries in geo coordinates
+def point_to_rectangle(row):
+    #print (row)
+    import shapely
+    return shapely.geometry.Polygon([
+        (row._lon0, row._lat0),
+        (row._lon1, row._lat1),
+        (row._lon2, row._lat2),
+        (row._lon3, row._lat3)
+    ])
+
+dycell = np.array([-0.5, -0.5, 0.5, 0.5])
+dxcell = np.array([-0.5, 0.5, 0.5, -0.5])
+# use the map pixel spacing
+cellsize = (4, 16)
+for idx, dydx in enumerate(zip(dycell*cellsize[0], dxcell*cellsize[1])):
+    index = pd.MultiIndex.from_tuples(
+        [(y + dydx[0], x + dydx[1]) for y, x in gdf.index],
+        names=gdf.index.names
+    )
+    coords = xr.Dataset(coords={'stack': index})
+    coords_dydx = sbas.ra2ll(coords).to_dataframe()[['lat','lon']]
+    gdf[f'_lat{idx}'] = coords_dydx.lat.values
+    gdf[f'_lon{idx}'] = coords_dydx.lon.values
+gdf['geometry'] = gdf.apply(lambda row: point_to_rectangle(row), axis=1)
+for col in gdf.columns[gdf.columns.str.contains('_')]:
+    del gdf[col]
+gdf
+
+# group the data by decimated lat/lon
+gdf['lat_group'] = (gdf['lat'] // 0.002).astype(int)
+gdf['lon_group'] = (gdf['lon'] // 0.002).astype(int)
+# merge geometries and average velocities and lat/lon
+gdf = gdf.groupby(['lat_group', 'lon_group']).agg({
+    'lat': 'mean',
+    'lon': 'mean',
+    'velocity': 'mean',
+    'geometry': lambda x: shapely.ops.unary_union(x)
+}).reset_index()
+# drop the lat_group and lon_group columns used for grouping
+gdf = gdf.drop(columns=['lat_group', 'lon_group'])
+gdf
+
+# easy way to create GeoJSON, but it may fail for complex geometries
+# with open('Imperial_Valley_2015.geojson', 'w') as f:
+#     f.write(gdf.head(1).to_json())
+
+# convert the GeoDataFrame to a GeoJSON-like Python dictionary
+geojson_dict = {
+    "type": "FeatureCollection",
+    "features": []
+}
+ # convert Shapely geometry to GeoJSON format
+for _, row in gdf.iterrows():
+    feature = {
+        "type": "Feature",
+        "geometry": shapely.geometry.mapping(row['geometry']),
+        "properties": {
+            "lat": row['lat'],
+            "lon": row['lon'],
+            "velocity": row['velocity']
+        }
+    }
+    geojson_dict["features"].append(feature)
+
+# write the dictionary to a GeoJSON file
+with open('Imperial_Valley_2015.geojson', 'w') as f:
+    json.dump(geojson_dict, f, indent=2)
+
+# load the GeoJSON from the file
+with open('Imperial_Valley_2015.geojson', 'r') as f:
+    geojson = json.load(f)
+print ('Pixels loaded:', len(geojson['features']))
+
+# Create a colormap for velocities
+colormap = plt.get_cmap('turbo')
+def velocity_to_color(velocity, limits=[-60, 60]):
+    """Convert velocity to a color from the colormap."""
+    normalized = (velocity - limits[0]) / (limits[1] - limits[0])
+    return matplotlib.colors.to_hex(colormap(normalized))
+
+# Embed styles and popup content directly into GeoJSON properties
+for feature in geojson['features']:
+    color = velocity_to_color(feature['properties']['velocity'])
+    feature['properties']['style'] = {
+        'color': color,
+        'weight': 1,
+        'fillColor': color,
+        'fillOpacity': 0.5
+    }
+
+# Initialize the map
+location = [32.40318, -115.18128]
+
+esri_layer = TileLayer(
+    url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution='Esri',
+    name='Esri Satellite',
+    max_zoom=20,
+    max_native_zoom=19,
+    base=True  # Set Esri as the base layer
+)
+# Add OpenStreetMap layer with a max zoom of 20, but not as base
+osm_layer = TileLayer(
+    url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution='OpenStreetMap',
+    name='OpenStreetMap',
+    max_zoom=20,
+    max_native_zoom=19,
+    base=True
+)
+m = Map(center=location, zoom=13, layers=[osm_layer], scroll_wheel_zoom=True, layout=dict(height='820px'))
+m.add_layer(esri_layer)
+
+# Define the GeoJSON layer with embedded styles
+geo_json = GeoJSON(
+    data=geojson,
+    style_callback=lambda feature: feature['properties']['style'],
+    hover_style={'fillOpacity': 1},
+    point_style={'weight': 0.5, 'fillOpacity': 0.5},
+    name='InSAR'
+)
+
+# Add GeoJSON layer to the map
+m.add_layer(geo_json)
+
+# Add layer control to switch between layers
+m.add_control(LayersControl(position='topright'))
+
+# Display the map
+m
+
+# save the interactive map as an HMTL file
+m.save('Imperial_Valley_2015.html', title='InSAR Velocity Map')
