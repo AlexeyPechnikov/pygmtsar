@@ -34,6 +34,77 @@ class utils():
 #         return xr.DataArray(phase_topo, coords=phase.coords)
 
     @staticmethod
+    def nanconvolve2d_gaussian(data,
+                        weight=None,
+                        sigma=None,
+                        mode='reflect',
+                        truncate=4.0):
+        import numpy as np
+        import xarray as xr
+    
+        if sigma is None:
+            return data
+    
+        if not isinstance(sigma, (list, tuple, np.ndarray)):
+            sigma = (sigma, sigma)
+        depth = [np.ceil(_sigma * truncate).astype(int) for _sigma in sigma]
+        #print ('sigma', sigma, 'depth', depth)
+    
+        # weighted Gaussian filtering for real floats with NaNs
+        def nanconvolve2d_gaussian_floating_dask_chunk(data, weight=None, **kwargs):
+            import numpy as np
+            from scipy.ndimage import gaussian_filter
+            assert not np.issubdtype(data.dtype, np.complexfloating)
+            assert np.issubdtype(data.dtype, np.floating)
+            if weight is not None:
+                assert not np.issubdtype(weight.dtype, np.complexfloating)
+                assert np.issubdtype(weight.dtype, np.floating)
+            # replace nan + 1j to to 0.+0.j
+            data_complex  = (1j + data) * (weight if weight is not None else 1)
+            conv_complex = gaussian_filter(np.nan_to_num(data_complex, 0), **kwargs)
+            #conv = conv_complex.real/conv_complex.imag
+            # to prevent "RuntimeWarning: invalid value encountered in divide" even when warning filter is defined
+            conv = np.where(conv_complex.imag == 0, np.nan, conv_complex.real/(conv_complex.imag + 1e-17))
+            del data_complex, conv_complex
+            return conv
+    
+        def nanconvolve2d_gaussian_dask_chunk(data, weight=None, **kwargs):
+            import numpy as np
+            if np.issubdtype(data.dtype, np.complexfloating):
+                #print ('complexfloating')
+                real = nanconvolve2d_gaussian_floating_dask_chunk(data.real, weight, **kwargs)
+                imag = nanconvolve2d_gaussian_floating_dask_chunk(data.imag, weight, **kwargs)
+                conv = real + 1j*imag
+                del real, imag
+            else:
+                #print ('floating')
+                conv = nanconvolve2d_gaussian_floating_dask_chunk(data.real, weight, **kwargs)
+            return conv
+    
+        # weighted Gaussian filtering for real or complex floats
+        def nanconvolve2d_gaussian_dask(data, weight, **kwargs):
+            import dask.array as da
+            # ensure both dask arrays have the same chunk structure
+            # use map_overlap with the custom function to handle both arrays
+            return da.map_overlap(
+                nanconvolve2d_gaussian_dask_chunk,
+                *(da.broadcast_arrays(data, weight) if weight is not None else [data]),
+                depth=depth,
+                boundary='none',
+                dtype=data.dtype,
+                meta=data._meta,
+                **kwargs
+            )
+            
+        return xr.DataArray(nanconvolve2d_gaussian_dask(data.data,
+                                     weight.data if weight is not None else None,
+                                     sigma=sigma,
+                                     mode=mode,
+                                     truncate=truncate),
+                            coords=data.coords,
+                            name=data.name)
+
+    @staticmethod
     def histogram(data, bins, range):
         """
         hist, bins = utils.histogram(corr60m.mean('pair'), 10, (0,1))

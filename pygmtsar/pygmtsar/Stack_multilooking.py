@@ -8,6 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_phasediff import Stack_phasediff
+from .utils import utils
 
 class Stack_multilooking(Stack_phasediff):
 
@@ -92,65 +93,167 @@ class Stack_multilooking(Stack_phasediff):
 
         # return callback function and set common chunk size
         return lambda da: decimator(da)
+    
+#     # coarsen = None disables downscaling and uses wavelength to filter
+#     # coarsen=1 disables downscaling and use coarsen/cutoff filter
+#     def multilooking(self, data, weight=None, wavelength=None, coarsen=None, debug=False):
+#         import xarray as xr
+#         import numpy as np
+#         import dask
+#         #from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+#         
+#         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
+#         # https://github.com/gmtsar/gmtsar/issues/411
+#         cutoff = 5.3
+# 
+#         # expand simplified definition
+#         if coarsen is not None and not isinstance(coarsen, (list, tuple, np.ndarray)):
+#             coarsen = (coarsen, coarsen)
+# 
+#         # allow this case to save the original grid resolution
+#         if wavelength is None and coarsen is None:
+#             return data
+# 
+#         # antialiasing (multi-looking) filter
+#         if wavelength is None:
+#             sigmas = [coarsen[0]/cutoff, coarsen[1]/cutoff]
+#             if debug:
+#                 print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified coarsen {coarsen}')
+#         else:
+#             dy, dx = self.get_spacing(data)
+#             #print ('DEBUG dy, dx', dy, dx)
+#             #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
+#             sigmas = [wavelength/cutoff/dy, wavelength/cutoff/dx]
+#             if debug:
+#                 print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified wavelength {wavelength:.1f}')
+# 
+#         # weighted and not weighted convolution on float and complex float data
+#         def apply_filter(data, weight, sigmas, truncate=2):
+#             if np.issubdtype(data.dtype, np.complexfloating):
+#                 #print ('complexfloating')
+#                 parts = []
+#                 for part in [data.real, data.imag]:
+#                     data_complex  = ((1j + part) * (weight if weight is not None else 1)).fillna(0)
+#                     conv_complex = dask_gaussian_filter(data_complex.data, sigmas, mode='reflect', truncate=truncate)
+#                     #conv = conv_complex.real/conv_complex.imag
+#                     # to prevent "RuntimeWarning: invalid value encountered in divide" even when warning filter is defined
+#                     conv = dask.array.where(conv_complex.imag == 0, np.nan, conv_complex.real/(conv_complex.imag + 1e-17))
+#                     del data_complex, conv_complex
+#                     parts.append(conv)
+#                     del conv
+#                 conv = parts[0] + 1j*parts[1]
+#                 del parts
+#             else:
+#                 #print ('floating')
+#                 # replace nan + 1j to to 0.+0.j
+#                 data_complex  = ((1j + data) * (weight if weight is not None else 1)).fillna(0)
+#                 conv_complex = dask_gaussian_filter(data_complex.data, sigmas, mode='reflect', truncate=truncate)
+#                 #conv = conv_complex.real/conv_complex.imag
+#                 # to prevent "RuntimeWarning: invalid value encountered in divide" even when warning filter is defined
+#                 conv = dask.array.where(conv_complex.imag == 0, np.nan, conv_complex.real/(conv_complex.imag + 1e-17))
+#                 del data_complex, conv_complex
+#             return conv
+# 
+#         if isinstance(data, xr.Dataset):
+#             dims = data[list(data.data_vars)[0]].dims
+#         else:
+#             dims = data.dims
+# 
+#         if len(dims) == 2:
+#             stackvar = None
+#         else:
+#             stackvar = dims[0]
+#         #print ('stackvar', stackvar)
+# 
+#         if weight is not None:
+#             # for InSAR processing expect 2D weights
+#             assert isinstance(weight, xr.DataArray) and len(weight.dims)==2, \
+#                 'ERROR: multilooking weight should be 2D DataArray'
+#         
+#         if weight is not None and len(data.dims) == len(weight.dims):
+#             #print ('2D check shape weighted')
+#             # single 2D grid processing
+#             if isinstance(data, xr.Dataset):
+#                 for varname in data.data_vars:
+#                     assert data[varname].shape == weight.shape, \
+#                         f'ERROR: multilooking data[{varname}] and weight variables have different shape'
+#             else:
+#                 assert data.shape == weight.shape, 'ERROR: multilooking data and weight variables have different shape'
+#         elif weight is not None and len(data.dims) == len(weight.dims) + 1:
+#             #print ('3D check shape weighted')
+#             # stack of 2D grids processing
+#             if isinstance(data, xr.Dataset):
+#                 for varname in data.data_vars:
+#                     assert data[varname].shape[1:] == weight.shape, \
+#                         f'ERROR: multilooking data[{varname}] slice and weight variables have different shape'
+#             else:
+#                 assert data.shape[1:] == weight.shape, 'ERROR: multilooking data slice and weight variables have different shape'
+# 
+#         stack =[]
+#         for ind in range(len(data[stackvar]) if stackvar is not None else 1):
+#             if isinstance(data, xr.Dataset):
+#                 #print (f'Dataset ind:{ind}')
+#                 data_convs = []
+#                 for key in data.data_vars:
+#                     conv = utils.nanconvolve2d_gaussian(data[key][ind] if stackvar is not None else data[key],
+#                                         weight,
+#                                         sigmas)
+#                     data_conv = xr.DataArray(conv, dims=data[key].dims[1:] if stackvar is not None else data[key].dims, name=data[key].name)
+#                     del conv
+#                     data_convs.append(data_conv)
+#                     del data_conv
+#                 stack.append(xr.merge(data_convs))
+#                 del data_convs
+#             else:
+#                 #print (f'DataArray ind:{ind}')
+#                 conv = utils.nanconvolve2d_gaussian(data[ind]   if stackvar is not None else data,
+#                                     weight,
+#                                     sigmas)
+#                 data_conv = xr.DataArray(conv, dims=data.dims[1:] if stackvar is not None else data.dims, name=data.name)
+#                 del conv
+#                 stack.append(data_conv)
+#                 del data_conv
+# 
+#         if stackvar is not None:
+#             #print ('3D')
+#             ds = xr.concat(stack, dim=stackvar).assign_coords(data.coords)
+#         else:
+#             #print ('2D')
+#             ds = stack[0].assign_coords(data.coords)
+#         del stack
+# 
+#         # it works faster when we prevent small output chunks
+#         chunksizes = {'y': self.chunksize, 'x': self.chunksize}
+#         if coarsen is not None:
+#             # coarse grid typically to square cells
+#             return ds.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(chunksizes)
+#         return ds.chunk(chunksizes)
 
-    # coarsen = None disables downscaling and uses wavelength to filter
-    # coarsen=1 disables downscaling and use coarsen/cutoff filter
     def multilooking(self, data, weight=None, wavelength=None, coarsen=None, debug=False):
         import xarray as xr
         import numpy as np
         import dask
-        from dask_image.ndfilters import gaussian_filter as dask_gaussian_filter
+    
         # GMTSAR constant 5.3 defines half-gain at filter_wavelength
-        # https://github.com/gmtsar/gmtsar/issues/411
         cutoff = 5.3
-
-        # expand simplified definition
-        if coarsen is not None and not isinstance(coarsen, (list, tuple, np.ndarray)):
-            coarsen = (coarsen, coarsen)
-
-        # allow this case to save the original grid resolution
+    
+        # Expand simplified definition of coarsen
+        coarsen = (coarsen, coarsen) if coarsen is not None and not isinstance(coarsen, (list, tuple, np.ndarray)) else coarsen
+    
+        # no-op, processing is needed
         if wavelength is None and coarsen is None:
             return data
-
-        # antialiasing (multi-looking) filter
-        if wavelength is None:
-            sigmas = [coarsen[0]/cutoff, coarsen[1]/cutoff]
-            if debug:
-                print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified coarsen {coarsen}')
-        else:
+    
+        # calculate sigmas based on wavelength or coarsen
+        if wavelength is not None:
             dy, dx = self.get_spacing(data)
-            #print ('DEBUG dy, dx', dy, dx)
-            #sigmas = int(np.round(wavelength/dy/coarsen[0])), int(np.round(wavelength/dx))
-            sigmas = [wavelength/cutoff/dy, wavelength/cutoff/dx]
+            sigmas = [wavelength / cutoff / dy, wavelength / cutoff / dx]
             if debug:
-                print (f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), for specified wavelength {wavelength:.1f}')
-
-        # weighted and not weighted convolution on float and complex float data
-        def apply_filter(data, weight, sigmas, truncate=2):
-            if np.issubdtype(data.dtype, np.complexfloating):
-                #print ('complexfloating')
-                parts = []
-                for part in [data.real, data.imag]:
-                    data_complex  = ((1j + part) * (weight if weight is not None else 1)).fillna(0)
-                    conv_complex = dask_gaussian_filter(data_complex.data, sigmas, mode='reflect', truncate=truncate)
-                    #conv = conv_complex.real/conv_complex.imag
-                    # to prevent "RuntimeWarning: invalid value encountered in divide" even when warning filter is defined
-                    conv = dask.array.where(conv_complex.imag == 0, np.nan, conv_complex.real/(conv_complex.imag + 1e-17))
-                    del data_complex, conv_complex
-                    parts.append(conv)
-                    del conv
-                conv = parts[0] + 1j*parts[1]
-                del parts
-            else:
-                #print ('floating')
-                # replace nan + 1j to to 0.+0.j
-                data_complex  = ((1j + data) * (weight if weight is not None else 1)).fillna(0)
-                conv_complex = dask_gaussian_filter(data_complex.data, sigmas, mode='reflect', truncate=truncate)
-                #conv = conv_complex.real/conv_complex.imag
-                # to prevent "RuntimeWarning: invalid value encountered in divide" even when warning filter is defined
-                conv = dask.array.where(conv_complex.imag == 0, np.nan, conv_complex.real/(conv_complex.imag + 1e-17))
-                del data_complex, conv_complex
-            return conv
+                print(f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), wavelength {wavelength:.1f}')
+        else:
+            sigmas = [coarsen[0] / cutoff, coarsen[1] / cutoff]
+            if debug:
+                print(f'DEBUG: multilooking sigmas ({sigmas[0]:.2f}, {sigmas[1]:.2f}), coarsen {coarsen}')
 
         if isinstance(data, xr.Dataset):
             dims = data[list(data.data_vars)[0]].dims
@@ -187,43 +290,27 @@ class Stack_multilooking(Stack_phasediff):
             else:
                 assert data.shape[1:] == weight.shape, 'ERROR: multilooking data slice and weight variables have different shape'
 
-        stack =[]
-        for ind in range(len(data[stackvar]) if stackvar is not None else 1):
-            if isinstance(data, xr.Dataset):
-                #print (f'Dataset ind:{ind}')
-                data_convs = []
-                for key in data.data_vars:
-                    conv = apply_filter(data[key][ind] if stackvar is not None else data[key],
-                                        weight,
-                                        sigmas)
-                    data_conv = xr.DataArray(conv, dims=data[key].dims[1:] if stackvar is not None else data[key].dims, name=data[key].name)
-                    del conv
-                    data_convs.append(data_conv)
-                    del data_conv
-                stack.append(xr.merge(data_convs))
-                del data_convs
+        # process a slice of dataarray
+        def process_slice(slice_data):
+            conv = utils.nanconvolve2d_gaussian(slice_data, weight, sigmas)
+            return xr.DataArray(conv, dims=slice_data.dims, name=slice_data.name)
+
+        # process stack of dataarray slices
+        def process_slice_var(dataarray):    
+            if stackvar:
+                stack = [process_slice(dataarray[ind]) for ind in range(len(dataarray[stackvar]))]
+                return xr.concat(stack, dim=stackvar).assign_coords(dataarray.coords)
             else:
-                #print (f'DataArray ind:{ind}')
-                conv = apply_filter(data[ind]   if stackvar is not None else data,
-                                    weight,
-                                    sigmas)
-                data_conv = xr.DataArray(conv, dims=data.dims[1:] if stackvar is not None else data.dims, name=data.name)
-                del conv
-                stack.append(data_conv)
-                del data_conv
+                return process_slice(dataarray).assign_coords(dataarray.coords)
 
-        if stackvar is not None:
-            #print ('3D')
-            ds = xr.concat(stack, dim=stackvar).assign_coords(data.coords)
+        if isinstance(data, xr.Dataset):
+            ds = xr.Dataset({varname: process_slice_var(data[varname]) for varname in data.data_vars})
         else:
-            #print ('2D')
-            ds = stack[0].assign_coords(data.coords)
-        del stack
-
-        # it works faster when we prevent small output chunks
+            ds = process_slice_var(data)
+    
+        # Set chunk size
         chunksizes = {'y': self.chunksize, 'x': self.chunksize}
-        if coarsen is not None:
-            # coarse grid typically to square cells
+        if coarsen:
             return ds.coarsen({'y': coarsen[0], 'x': coarsen[1]}, boundary='trim').mean().chunk(chunksizes)
+    
         return ds.chunk(chunksizes)
-
