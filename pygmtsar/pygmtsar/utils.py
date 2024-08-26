@@ -88,8 +88,8 @@ class utils():
             # use map_overlap with the custom function to handle both arrays
             return da.map_overlap(
                 nanconvolve2d_gaussian_dask_chunk,
-                *(da.broadcast_arrays(data, weight) if weight is not None else [data]),
-                depth=depth,
+                *([data, weight] if weight is not None else [data]),
+                depth={0: depth[0], 1: depth[1]},
                 boundary='none',
                 dtype=data.dtype,
                 meta=data._meta,
