@@ -8,6 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_trans_inv import Stack_trans_inv
+from .utils import utils
 
 class Stack_topo(Stack_trans_inv):
 
@@ -63,17 +64,12 @@ class Stack_topo(Stack_trans_inv):
             plt.ylabel('Azimuth')
         plt.title(caption)
 
-    def topo_phase(self, pairs, topo='auto', debug=False):
-        """
-        decimator = sbas.decimator(resolution=15, grid=(1,1))
-        topophase = sbas.topo_phase(pairs, topo=decimator(sbas.get_topo()))
-        """
+    def topo_phase(self, pairs, topo='auto', grid=None, method='nearest', debug=False):
         import pandas as pd
         import dask
-        import dask.dataframe
+        import dask.array as da
         import xarray as xr
         import numpy as np
-        #from tqdm.auto import tqdm
         import joblib
         import warnings
         # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
@@ -90,6 +86,8 @@ class Stack_topo(Stack_trans_inv):
 
         if isinstance(topo, str) and topo == 'auto':
             topo = self.get_topo()
+        if grid is not None:
+            topo = utils.interp2d_like(topo, grid, method=method)
 
         # calculate the combined earth curvature and topography correction
         def calc_drho(rho, topo, earth_radius, height, b, alpha, Bx):
@@ -109,39 +107,21 @@ class Stack_topo(Stack_trans_inv):
             drho = -rho + np.sqrt(term1)
             del term1, sint, cost, ret, c, cosa, sina
             return drho
-
-        def block_phase(prm1, prm2, ylim, xlim):
-            # use outer variables date, stack_prm
-            # disable "distributed.utils_perf - WARNING - full garbage collections ..."
-            try:
-                from dask.distributed import utils_perf
-                utils_perf.disable_gc_diagnosis()
-            except ImportError:
-                from distributed.gc import disable_gc_diagnosis
-                disable_gc_diagnosis()
-            import warnings
-            # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
-            warnings.filterwarnings('ignore')
-            warnings.filterwarnings('ignore', module='dask')
-            warnings.filterwarnings('ignore', module='dask.core')
-
-            # for lazy Dask ddataframes
-            #prm1 = PRM(prm1)
-            #prm2 = PRM(prm2)
-            #prm1,  prm2  = stack_prm[stack_idx]
-            #data1, data2 = stack_data[stack_idx]
-
-            # use outer variables topo, data1, data2, prm1, prm2
-            # build topo block
-            block_topo = topo.isel(y=slice(ylim[0], ylim[1]), x=slice(xlim[0], xlim[1]))\
-                        .compute(n_workers=1)\
-                        .fillna(0)
-
-            # set dimensions
+            
+        #def block_phase(prm1, prm2, ylim, xlim):
+        def block_phase_dask(block_topo, y_chunk, x_chunk, prm1, prm2):
+            from scipy import constants
+            #assert 0, f'block_topo.shape: {block_topo.shape}, {block_topo}'
+            # for 3d processing
+            #block_topo = block_topo[0]
+            #prm1 = prm1[0]
+            #prm2 = prm2[0]
+            
+            # get full dimensions
             xdim = prm1.get('num_rng_bins')
             ydim = prm1.get('num_patches') * prm1.get('num_valid_az')
 
-            # set heights
+            # get heights
             htc = prm1.get('SC_height')
             ht0 = prm1.get('SC_height_start')
             htf = prm1.get('SC_height_end')
@@ -150,13 +130,10 @@ class Stack_topo(Stack_trans_inv):
             tspan = 86400 * abs(prm2.get('SC_clock_stop') - prm2.get('SC_clock_start'))
             assert (tspan >= 0.01) and (prm2.get('PRF') >= 0.01), 'Check sc_clock_start, sc_clock_end, or PRF'
 
-            from scipy import constants
             # setup the default parameters
-            # constant from GMTSAR code for consistency
-            #SOL = 299792456.0
             drange = constants.speed_of_light / (2 * prm2.get('rng_samp_rate'))
-            #drange = SOL / (2 * prm2.get('rng_samp_rate'))
             alpha = prm2.get('alpha_start') * np.pi / 180
+            # a constant that converts drho into a phase shift
             cnst = -4 * np.pi / prm2.get('radar_wavelength')
 
             # calculate initial baselines
@@ -190,13 +167,12 @@ class Stack_topo(Stack_trans_inv):
             dht = (-3 * ht0 + 4 * htc - htf) / tspan
             ddht = (2 * ht0 - 4 * htc + 2 * htf) / (tspan * tspan)
 
-            # multiply xr.ones_like(topo) for correct broadcasting
-            near_range = xr.ones_like(block_topo)*(prm1.get('near_range') + \
-                block_topo.x * (1 + prm1.get('stretch_r')) * drange) + \
-                xr.ones_like(block_topo)*(block_topo.y * prm1.get('a_stretch_r') * drange)
+            near_range = (prm1.get('near_range') + \
+                x_chunk.reshape(1,-1) * (1 + prm1.get('stretch_r')) * drange) + \
+                y_chunk.reshape(-1,1) * prm1.get('a_stretch_r') * drange
 
-            # calculate the change in baseline and height along the frame if topoflag is on
-            time = block_topo.y * tspan / (ydim - 1)        
+            # calculate the change in baseline and height along the frame
+            time = y_chunk * tspan / (ydim - 1)        
             Bh = Bh0 + dBh * time + ddBh * time**2
             Bv = Bv0 + dBv * time + ddBv * time**2
             Bx = Bx0 + dBx * time + ddBx * time**2
@@ -205,26 +181,15 @@ class Stack_topo(Stack_trans_inv):
             height = ht0 + dht * time + ddht * time**2
 
             # calculate the combined earth curvature and topography correction
-            drho = calc_drho(near_range, block_topo, prm1.get('earth_radius'), height, B, alpha, Bx)
+            drho = calc_drho(near_range, block_topo, prm1.get('earth_radius'),
+                             height.reshape(-1, 1), B.reshape(-1, 1), alpha.reshape(-1, 1), Bx.reshape(-1, 1))
 
-            # make topographic and model phase corrections
-            # GMTSAR uses float32 complex operations with precision loss
-            #phase_shift = np.exp(1j * (cnst * drho).astype(np.float32))
             phase_shift = np.exp(1j * (cnst * drho))
-            del block_topo, near_range, drho, height, B, alpha, Bx, Bv, Bh, time
+            del near_range, drho, height, B, alpha, Bx, Bv, Bh, time
 
+            # for 3d processing
+            #return np.expand_dims(phase_shift.astype(np.complex64), 0)
             return phase_shift.astype(np.complex64)
-
-    #     # prepare lazy PRM
-    #     # this is the "true way" but processing is ~40% slower due to additional Dask tasks
-    #     def block_prms(date1, date2):
-    #         prm1 = self.PRM(date1)
-    #         prm2 = self.PRM(date2)
-    #         prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
-    #         prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
-    #         return (prm1.df, prm2.df)
-    #     # Define metadata explicitly to match PRM dataframe
-    #     prm_meta = pd.DataFrame(columns=['name', 'value']).astype({'name': 'str', 'value': 'object'}).set_index('name')
 
         # immediately prepare PRM
         # here is some delay on the function call but the actual processing is faster
@@ -234,59 +199,42 @@ class Stack_topo(Stack_trans_inv):
             prm2 = self.PRM(date2)
             prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
             prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
-            return {(date1, date2): (prm1, prm2)}
+            return (prm1, prm2)
 
-        #with self.tqdm_joblib(tqdm(desc=f'Pre-Processing PRM', total=len(pairs))) as progress_bar:
         prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair) for pair in pairs)
-        # convert the list of dicts to a single dict
-        prms = {k: v for d in prms for k, v in d.items()}
 
-        # define blocks
-        chunks = topo.chunks
-        ychunks, xchunks = chunks[0], chunks[1]
-        ychunks = np.concatenate([[0], np.cumsum(ychunks)])
-        xchunks = np.concatenate([[0], np.cumsum(xchunks)])
-        ylims = [(y1, y2) for y1, y2 in zip(ychunks, ychunks[1:])]
-        xlims = [(x1, x2) for x1, x2 in zip(xchunks, xchunks[1:])]
-        #print ('ylims', ylims)
-        #print ('xlims', xlims)
+        # fill NaNs by 0 and expand to 3d
+        topo2d = da.where(da.isnan(topo.data), 0, topo.data)
 
-        stack = []
-        for stack_idx, pair in enumerate(pairs):
-            date1, date2 = pair
+        # for 3d processing
+        # topo3d = da.repeat(da.expand_dims(topo2d, 0), len(pairs), axis=0).rechunk((1, 'auto', 'auto'))
+        # out = da.blockwise(
+        #     block_phase_dask,
+        #     'kyx',
+        #     topo3d, 'kyx',
+        #     topo.y,    'y',
+        #     topo.x,    'x',
+        #     [prm[0] for prm in prms], 'k',
+        #     [prm[1] for prm in prms], 'k',
+        #     dtype=np.complex64,
+        # )
 
-            # Create a Dask DataFrame with provided metadata for each Dask block
-            #prms = dask.delayed(block_prms)(date1, date2)
-            #prm1 = dask.dataframe.from_delayed(dask.delayed(prms[0]), meta=prm_meta)
-            #prm2 = dask.dataframe.from_delayed(dask.delayed(prms[1]), meta=prm_meta)
-            prm1, prm2 = prms[(date1, date2)]
-
-            blocks_total = []
-            for ylim in ylims:
-                blocks = []
-                for xlim in xlims:
-                    delayed = dask.delayed(block_phase)(prm1, prm2, ylim, xlim)
-                    block = dask.array.from_delayed(delayed,
-                                                    shape=((ylim[1]-ylim[0]), (xlim[1]-xlim[0])),
-                                                    dtype=np.complex64)
-                    blocks.append(block)
-                    del block, delayed
-                blocks_total.append(blocks)
-                del blocks
-            intf = xr.DataArray(dask.array.block(blocks_total), coords={'y': topo.y, 'x': topo.x})
-            del blocks_total
-
-            # add to stack
-            stack.append(intf)
-            # cleanup
-            del intf, prm1, prm2
-        del prms
+        out = da.stack([da.blockwise(
+            block_phase_dask,
+            'yx',
+            topo2d, 'yx',
+            topo.y, 'y',
+            topo.x, 'x',
+            prm1=prm[0],
+            prm2=prm[1],
+            dtype=np.complex64
+        ) for prm in prms], axis=0)
 
         coord_pair = [' '.join(pair) for pair in pairs]
         coord_ref = xr.DataArray(pd.to_datetime(pairs[:,0]), coords={'pair': coord_pair})
         coord_rep = xr.DataArray(pd.to_datetime(pairs[:,1]), coords={'pair': coord_pair})
-
-        return xr.concat(stack, dim='pair').assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).where(np.isfinite(topo)).rename('phase')
+        return xr.DataArray(out, coords={'pair': coord_pair, 'y': topo.y, 'x': topo.x})\
+                .assign_coords(ref=coord_ref, rep=coord_rep, pair=coord_pair).where(da.isfinite(topo)).rename('phase')
 
     def topo_slope(self, topo='auto', edge_order=1):
         import xarray as xr

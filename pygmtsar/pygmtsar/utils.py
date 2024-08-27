@@ -33,6 +33,56 @@ class utils():
 #                     .predict(np.column_stack([topo_values])).reshape(phase.shape)
 #         return xr.DataArray(phase_topo, coords=phase.coords)
 
+    # Xarray's interpolation can be inefficient for large grids;
+    # this custom function handles the task more effectively.
+    @staticmethod
+    def interp2d_like(grid_in, grid_out, method='cubic', **kwargs):
+        import xarray as xr
+        import dask.array as da
+        import os
+        import warnings
+        # suppress Dask warning "RuntimeWarning: invalid value encountered in divide"
+        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', module='dask')
+        warnings.filterwarnings('ignore', module='dask.core')
+
+        # detect dimensions and coordinates for 2D or 3D grid
+        dims = grid_out.dims[-2:]
+        dim1, dim2 = dims
+        coords = {dim1: grid_out[dim1], dim2: grid_out[dim2]}
+        #print (f'dims: {dims}, coords: {coords}')
+
+        # use outer variable grid_in
+        def interpolate_chunk(out_chunk1, out_chunk2, dim1, dim2, method, **kwargs):
+            d1, d2 = float(grid_in[dim1].diff(dim1)[0]), float(grid_in[dim2].diff(dim2)[0])
+            #print ('d1, d2', d1, d2)
+            chunk = grid_in.sel({
+                                dim1: slice(out_chunk1[0]-2*d1, out_chunk1[-1]+2*d1),
+                                dim2: slice(out_chunk2[0]-2*d2, out_chunk2[-1]+2*d2)
+                                }).compute(n_workers=1)
+            #print ('chunk', chunk)
+            out = chunk.interp({dim1: out_chunk1, dim2: out_chunk2}, method=method, **kwargs)
+            del chunk
+            return out
+
+        chunk_sizes = grid_out.chunks[-2:] if hasattr(grid_out, 'chunks') else (self.chunksize, self.chunksize)
+        # coordinates are numpy arrays
+        grid_out_y = da.from_array(grid_out[dim1].values, chunks=chunk_sizes[0])
+        grid_out_x = da.from_array(grid_out[dim2].values, chunks=chunk_sizes[1])
+
+        grid = da.blockwise(
+            interpolate_chunk,
+            'yx',
+            grid_out_y, 'y',
+            grid_out_x, 'x',
+            dtype=grid_in.dtype,
+            dim1=dim1,
+            dim2=dim2,
+            method=method,
+            **kwargs
+        )
+        return xr.DataArray(grid, coords=coords).rename(grid_in.name)
+
     @staticmethod
     def nanconvolve2d_gaussian(data,
                         weight=None,
