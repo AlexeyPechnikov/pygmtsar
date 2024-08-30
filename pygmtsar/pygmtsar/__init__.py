@@ -7,7 +7,7 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-__version__ = '2024.8.23'
+__version__ = '2024.8.30.post1'
 
 # unified progress indicators
 from .tqdm_joblib import tqdm_joblib

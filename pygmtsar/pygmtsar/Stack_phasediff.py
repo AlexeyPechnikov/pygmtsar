@@ -471,7 +471,7 @@ class Stack_phasediff(Stack_topo):
             phase_topo = topo
 
         if phase is not None:
-            phase_real = utils.interp2d_like(phase, grid=data, method=method, kwargs={'fill_value': 'extrapolate'})
+            phase_real = xr.concat([utils.interp2d_like(phase2d, data, method=method, kwargs={'fill_value': 'extrapolate'}) for phase2d in phase], dim='pair')
         else:
             phase_real = 0
             #phase_real = len(pairs)*[0]
