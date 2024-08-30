@@ -190,11 +190,7 @@ plt.savefig('Estimated Scene Locations.jpg')
 
 """## Align a Stack of Images"""
 
-if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
-    # use special joblib backend in Docker containers
-    sbas.compute_align(joblib_aligning_backend='threading')
-else:
-    sbas.compute_align()
+sbas.compute_align()
 
 """## SBAS Baseline"""
 

@@ -304,8 +304,12 @@ Launch Dask cluster for big data processing. Use "Dashboard" link below for the 
 # cleanup for repeatable runs
 if 'client' in globals():
     client.close()
-# tune to use 2 cores per worker
-client = Client(n_workers=(psutil.cpu_count() // 2))
+# tune to use 4 cores per worker and allocate only the available RAM
+# swap is not allowed on Google Colab and is typically small in Docker containers (0.5 - 1GB by default),
+# so we rely entirely on available physical memory in such environments.
+client = Client(n_workers=max(1, psutil.cpu_count() // 4),
+                threads_per_worker=min(4, psutil.cpu_count()),
+                memory_limit=max(4e9, psutil.virtual_memory().available))
 client
 
 """## Init SBAS
@@ -346,8 +350,8 @@ plt.savefig('Estimated Scene Locations.jpg')
 
 """## Align Images"""
 
-if 'google.colab' in sys.modules:
-    # tune for Google Colab instances
+if os.path.exists('/.dockerenv'):
+    # adjust for Docker environments, including Google Colab instances
     sbas.compute_align(n_jobs=(psutil.cpu_count() // 2))
 else:
     sbas.compute_align()

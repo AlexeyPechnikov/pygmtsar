@@ -204,11 +204,7 @@ sbas.plot_scenes(AOI=AOI, aspect='equal')
 
 """## Align Images"""
 
-if os.path.exists('/.dockerenv') and not 'google.colab' in sys.modules:
-    # use special joblib backend in Docker containers
-    sbas.compute_align(joblib_aligning_backend='threading')
-else:
-    sbas.compute_align()
+sbas.compute_align()
 
 """## Geocoding Transform"""
 
