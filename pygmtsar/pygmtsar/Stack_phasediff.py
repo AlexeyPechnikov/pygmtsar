@@ -447,6 +447,7 @@ class Stack_phasediff(Stack_topo):
         import dask.array as da
         import xarray as xr
         import numpy as np
+        import pandas as pd
 
         if debug:
             print ('DEBUG: phasediff')
@@ -472,7 +473,7 @@ class Stack_phasediff(Stack_topo):
             phase_topo = topo
         else:
             # use zero topography grid
-            notopo = xr.DataArray(dask.array.zeros_like(data[0], dtype=np.float32), coords=data[0].coords)
+            notopo = xr.DataArray(da.zeros_like(data[0], dtype=np.float32), coords=data[0].coords)
             phase_topo = self.topo_phase(pairs, notopo, method=method)
             del notopo
 
