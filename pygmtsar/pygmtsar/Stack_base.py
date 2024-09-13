@@ -243,7 +243,9 @@ class Stack_base(tqdm_joblib, IO):
             })
         else:
             # Convert numpy array to DataFrame
-            pairs = pd.DataFrame(pairs, columns=['ref', 'rep'])
+            # in case of 1d array with 2 items convert to a single pair
+            pairs_2d = [pairs] if np.asarray(pairs).shape == (2,) else pairs
+            pairs = pd.DataFrame(pairs_2d, columns=['ref', 'rep'])
 
         # Convert ref and rep columns to datetime format
         pairs['ref'] = pd.to_datetime(pairs['ref'])
