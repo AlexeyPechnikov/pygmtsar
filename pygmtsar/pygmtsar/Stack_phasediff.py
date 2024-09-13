@@ -562,14 +562,14 @@ class Stack_phasediff(Stack_topo):
             data = np.fft.ifft2(data, s=psize)
             return wgt * data
 
-        def apply_goldstein_filter(data, corr, psize):
+        def apply_goldstein_filter(data, corr, psize, wgt_matrix):
             # Create an empty array for the output
             out = np.zeros(data.shape, dtype=np.complex64)
             # ignore processing for empty chunks 
             if np.all(np.isnan(data)):
                 return out
             # Create the weight matrix
-            wgt_matrix = make_wgt(psize)
+            #wgt_matrix = make_wgt(psize)
             # Iterate over windows of the data
             for i in range(0, data.shape[0] - psize[0], psize[0] // 2):
                 for j in range(0, data.shape[1] - psize[1], psize[1] // 2):
@@ -601,12 +601,14 @@ class Stack_phasediff(Stack_topo):
             # Apply function with overlap; psize//2 overlap is not enough (some empty lines produced)
             # use complex data and real correlation
             # fill NaN values in correlation by zeroes to prevent empty output blocks
-            block = dask.array.map_overlap(lambda phase, corr: apply_goldstein_filter(phase, corr, psize),
+            block = dask.array.map_overlap(apply_goldstein_filter,
                                            (phase[ind] if stackvar is not None else phase).fillna(0).data,
                                            (corr[ind]  if stackvar is not None else corr ).fillna(0).data,
                                            depth=(psize[0] // 2 + 2, psize[1] // 2 + 2),
                                            dtype=np.complex64, 
-                                           meta=np.array(()))
+                                           meta=np.array(()),
+                                           psize=psize,
+                                           wgt_matrix = make_wgt(psize))
             # Calculate the phase
             stack.append(block)
             del block
