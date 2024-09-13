@@ -570,7 +570,7 @@ class Stack_unwrap(Stack_unwrap_snaphu):
             return values[max_count_index] if counts.size > 0 else np.nan
 
         # Apply the function along the 'pair' dimension
-        maincomps =  xr.apply_ufunc(find_mode, conncomp, input_core_dims=[['y', 'x']],
+        maincomps =  xr.apply_ufunc(find_mode, conncomp.chunk(dict(y=-1, x=-1)), input_core_dims=[['y', 'x']],
                                     vectorize=True, dask='parallelized', output_dtypes=[int])
         return data.where(conncomp==maincomps)
 
