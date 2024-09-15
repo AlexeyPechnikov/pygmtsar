@@ -48,6 +48,7 @@ RUN pip3 install \
     ipywidgets==8.1.1 \
     ipyleaflet==0.19.1 \
     remotezip==0.12.2 \
+    jupyter_bokeh \
     pygmtsar \
 && jupyter lab build \
 && jupyter labextension install jupyter-leaflet \

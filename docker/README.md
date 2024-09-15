@@ -20,24 +20,33 @@ One of the most in-demand features in PyGMTSAR (Python InSAR) is the combined an
 
 ## PyGMTSAR Live Examples in Docker Image
 
-Configure your Docker runtime (Preferences -> Resources tab for Docker Desktop) to use 4 CPU cores and 8 GB of RAM, plus 1 GB of swap space and a 300 GB disk image to execute all the examples. Some of the examples also work with just 2 CPU cores, 4 GB RAM, and a disk image size of 30 GB.
+Configure your Docker runtime (Preferences -> Resources tab for Docker Desktop) using the example configurations in the table below, or adjust it to fit your needs. The disk usage for the examples is shown in the table. To process all the examples, you will need a 120 GB Docker virtual disk limit (114 GB Docker container size in my tests, though I recommend allowing slightly more to be safe). You can check the Docker container’s disk usage with the following command:
 
-It's important to note that the examples are coded with different objectives in mind. While some notebooks are designed to provide easy-to-read educational content, others are optimized for the most efficient execution possible. This diversity in coding approaches explains why an annual SBAS+PSI example can be run on a system with 4GB RAM, while a SBAS analysis of a few interferograms may require 8GB RAM.
+```
+docker ps -s
+```
 
-**Table: Processing Times for InSAR Analyses Example Notebooks on an iMac 2021 (Apple M1, 16 GB RAM, 2 TB SSD) Using Various Docker Configurations** 
+The examples are coded with different objectives in mind. Some notebooks are designed to provide easy-to-read educational content, while others are optimized for maximum execution efficiency. This variation in coding approaches is why an annual SBAS+PSI example can run on a system with 2GB RAM, whereas an SBAS analysis of a few interferograms may require 8GB RAM.
 
-| Analysis                 | Notebook                      | Scenes | Subswaths | Interferograms | Time (Native, no Docker) | Time (4 CPUs, 8 GB RAM) | Time (2 CPUs, 4 GB RAM) |
-| ------------------------ | ----------------------------- | ------ | --------- | -------------- | ------------------------ | ----------------------- | ----------------------- |
-| SBAS and PSI Analyses    | Lake Sarez Landslides         | 19     | 1         | 76             | 31 min                   | 50 min                  | -                       |
-| Co-Seismic Interferogram | CENTRAL Türkiye Earthquake    | 4      | 3         | 1              | 12 min                   | 28 min                  | -                       |
-| SBAS and PSI Analyses    | Golden Valley Subsidence      | 30     | 1         | 57             | 11 min                   | 19 min                  | 23 min                  |
-| SBAS Analysis            | Imperial Valley Groundwater   | 5      | 1         | 9              | 4 min                    | 8 min                   | -                       |
-| Co-Seismic Interferogram | Iran–Iraq Earthquake          | 3      | 1         | 1              | 1 min                    | 6 min                   | 6 min                   |
-| Co-Seismic Interferogram | La Cumbre Volcano Eruption    | 2      | 2         | 1              | < 1 min                  | 1 min                   | 1 min                   |
-| Co-Seismic Interferogram | Pico do Fogo Volcano Eruption | 2      | 1         | 1              | < 1 min                  | 1 min                   | 1 min                   |
-| Flooding Map             | Kalkarindji                   | 3      | 1         | 2              | < 1 min                  | 1 min                   | 1 min                   |
+Some examples use complete Sentinel-1 SLC scenes, while others utilize Sentinel-1 bursts. PyGMTSAR can effectively process both, allowing you to choose the type of source data that best suits your needs.
 
-Download the Docker image (or build it yourself using the Dockerfile in the repository), and run the container while forwarding port 8888 to JupyterLab using these commands inside your command line terminal window:
+**Table: Processing Times for InSAR Analysis Example Notebooks on iMac 2021 (Apple M1, 8 CPU cores, 16 GB RAM, 2 TB SSD) Using Various Docker Configurations and Natively Without Docker**
+
+| Analysis                 | Notebook                      | **Scn** | **Brst** | **Subswth** | **Intf** | Time (Native, no Docker) | Time (4 CPUs, 8 GB RAM) | Time (2 CPUs, 4 GB RAM) | Time (1 CPUs, 2 GB RAM) | Disk Usage, GB |
+| ------------------------ | ----------------------------- | -------- | --------- | ----------- | ---------------------- | ------------------------ | ----------------------- | ----------------------- | ----------------------- | -------------- |
+| SBAS and PSI Analyses    | Lake Sarez Landslides         | 19       | 38        | 1           | 76                     | 11 min                   | 17 min                  | 24 min                  | 38 min*      | 22.2           |
+| Co-Seismic Interferogram | CENTRAL Türkiye Earthquake    | 4        | 112       | 3           | 1                      | 15 min                   | 24 min                  | 33 min                  | 62 min*      | 50.3           |
+| SBAS and PSI Analyses    | Golden Valley Subsidence      | 30       | 30        | 1           | 57                     | 5 min                    | 7 min                   | 10 min                  | 18 min                  | 12.8           |
+| SBAS Analysis            | Imperial Valley Groundwater   | 5        |           | 1           | 9                      | 6 min                    | 9 min                   | 12 min                  | 21 min                  | 5.5            |
+| Co-Seismic Interferogram | Iran–Iraq Earthquake          | 3        |           | 1           | 1                      | 1 min                    | 2 min                   | 2 min                   | 3 min*       | 6.4            |
+| Co-Seismic Interferogram | La Cumbre Volcano Eruption    | 2        | 8         | 2           | 1                      | 1 min                    | 1 min                   | 1 min                   | 2 min                   | 2.4            |
+| Co-Seismic Interferogram | Pico do Fogo Volcano Eruption | 2        |           | 1           | 1                      | 1 min                    | 1 min                   | 1 min                   | 2 min*       | 2.1            |
+| Flooding Map             | Kalkarindji                   | 3        |           | 1           | 2                      | 1 min                    | 1 min                   | 1 min                   | 2 min*       | 5.3            |
+| Elevation Map            | Erzincan, Türkiye             | 2        |           | 1           | 1                      | 5 min                    | 7 min                   | 9 min                   | 16 min*      | 5.3            |
+
+**Note**: Download time is excluded. The reported times reflect the complete notebook run time when all data has already been downloaded in a previous run. For stable downloading of scenes and bursts with 2GB or 4GB RAM configurations, set the parameter n_jobs=1 for the ASF.download() function call. The default Docker Desktop 1GB swap is used, except for some examples on a 2GB RAM configuration that require a 2GB swap, indicated by an asterisk (*).
+
+Download the Docker image (or build it yourself using the [Dockerfile](https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/docker/pygmtsar.Dockerfile) in the repository), and run the container while forwarding port 8888 to JupyterLab using these commands inside your command line terminal window:
 
 ```
 docker pull pechnikov/pygmtsar
@@ -62,7 +71,7 @@ sudo --preserve-env=PATH sh -c "pip3 install -U pygmtsar"
 
 ## Build Docker images
 
-The commands below build multi-arch images using the [Dockerfile](https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/docker/pygmtsar.Dockerfile) from the project's GitHub repository and share them to DockerHub in the 'pechnikov' repository with tags 'latest' and the build date (like '2024-01-21'):
+The commands below build multi-architecture images using the [Dockerfile](https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/docker/pygmtsar.Dockerfile) from the project’s GitHub repository and push them to DockerHub in the ‘pechnikov’ repository with the tags ‘latest’ and the build date (e.g., ‘2024-01-21’):
 
 ```
 docker buildx create --name pygmtsar
@@ -76,13 +85,13 @@ docker buildx build . -f pygmtsar.Dockerfile \
 docker buildx rm pygmtsar
 ```
 
-And this simpler command builds a Docker image for local use:
+For a local build, use the following command:
 
 ```
 docker build . -f pygmtsar.Dockerfile -t pygmtsar:latest --no-cache
 ```
 
-The only requirement for the builds is the [Dockerfile](https://github.com/mobigroup/gmtsar/blob/pygmtsar2/docker/pygmtsar.Dockerfile); there is no need to download the complete PyGMTSAR GitHub repository.
+The only requirement for these builds is the [Dockerfile](https://github.com/AlexeyPechnikov/pygmtsar/blob/pygmtsar2/docker/pygmtsar.Dockerfile); there is no need to download the entire PyGMTSAR GitHub repository, as the build process will automatically retrieve all necessary files.
 
 ## Learn more
 
