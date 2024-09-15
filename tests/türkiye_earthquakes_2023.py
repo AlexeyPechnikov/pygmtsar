@@ -291,10 +291,10 @@ S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 # Define AOI as the whole scenes extent.
 AOI = S1.scan_slc(DATADIR)
 # download Copernicus Global DEM 1 arc-second
-Tiles().download_dem(AOI, filename=DEM).plot.imshow(cmap='cividis')
+Tiles().download_dem(AOI, filename=DEM, product='3s').plot.imshow(cmap='cividis')
 
 # download land mask 1 arc-second
-Tiles().download_landmask(AOI, filename=LANDMASK).fillna(0).plot.imshow(cmap='binary_r')
+Tiles().download_landmask(AOI, filename=LANDMASK, product='3s').fillna(0).plot.imshow(cmap='binary_r')
 
 """## Run Local Dask Cluster
 
@@ -352,7 +352,7 @@ plt.savefig('Estimated Scene Locations.jpg')
 
 if os.path.exists('/.dockerenv'):
     # adjust for Docker environments, including Google Colab instances
-    sbas.compute_align(n_jobs=(psutil.cpu_count() // 2))
+    sbas.compute_align(n_jobs=max(1, (psutil.cpu_count() // 2)))
 else:
     sbas.compute_align()
 

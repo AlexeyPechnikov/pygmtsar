@@ -320,6 +320,28 @@ plt.title('Cross-Comparison between Sentinel-1 Elevation and Copernicus GLO-30 D
 plt.grid(True)
 plt.show()
 
+fig, axes = plt.subplots(2, 1, figsize=(12, 6))
+
+topo = sbas.get_topo()
+
+topo_y = (topo - topo.mean()).sel(y=1500, method='nearest')
+ele_y = (ele - ele.mean()).sel(y=1500, method='nearest')
+topo_y.plot(ax=axes[0], color='black', ls='-', lw=1, label='Copernicus GLO-30 DEM')
+ele_y.plot(ax=axes[0], color='g', ls='-', lw=1, label='Sentinel-1 Elevation')
+axes[0].set_title('Cross-Section at  y=1500')
+axes[0].legend()
+
+topo_x = (topo - topo.mean()).sel(x=12500, method='nearest')
+ele_x = (ele - ele.mean()).sel(x=12500, method='nearest')
+topo_x.plot(ax=axes[1], color='black', ls='-', lw=1, label='Copernicus GLO-30 DEM')
+ele_x.plot(ax=axes[1], color='g', ls='-', lw=1, label='Sentinel-1 Elevation')
+axes[1].set_title('Cross-Section at  x=12500')
+axes[1].legend()
+
+plt.suptitle('Comparison of Sentinel-1 Elevation and Copernicus GLO-30 DEM')
+plt.tight_layout()
+plt.show()
+
 sbas.export_vtk(sbas.get_dem()[::10,::10], 'dem', mask='auto')
 sbas.export_vtk(ele[::8,::8], 'ele', mask='auto')
 
