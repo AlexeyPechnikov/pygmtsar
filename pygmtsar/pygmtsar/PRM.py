@@ -12,6 +12,16 @@ from .PRM_gmtsar import PRM_gmtsar
 
 class PRM(datagrid, PRM_gmtsar):
 
+    @staticmethod
+    def to_numeric_or_original(val):
+        if isinstance(val, str):
+            try:
+                float_val = float(val)
+                return int(float_val) if float_val.is_integer() else float_val
+            except ValueError:
+                return val
+        return val
+
     # my replacement function for GMT based robust 2D trend coefficient calculations:
     # gmt trend2d r.xyz -Fxyzmw -N1r -V
     # gmt trend2d r.xyz -Fxyzmw -N2r -V
@@ -252,14 +262,8 @@ class PRM(datagrid, PRM_gmtsar):
         """
         import pandas as pd
 
-        def to_numeric_or_original(vals):
-            try:
-                return pd.to_numeric(vals)
-            except ValueError:
-                return vals
-
         df = pd.read_csv(prm, sep='\s+=\s+', header=None, names=['name', 'value'], engine='python').set_index('name')
-        df['value'] = df['value'].map(to_numeric_or_original)
+        df['value'] = df['value'].map(PRM.to_numeric_or_original)
 
         return PRM(df)
 
@@ -278,12 +282,6 @@ class PRM(datagrid, PRM_gmtsar):
         """
         import pandas as pd
 
-        def to_numeric_or_original(vals):
-            try:
-                return pd.to_numeric(vals)
-            except ValueError:
-                return vals
-
         # Initialize an empty DataFrame if prm is None
         if prm is None:
             _prm = pd.DataFrame(columns=['name', 'value'])
@@ -293,7 +291,7 @@ class PRM(datagrid, PRM_gmtsar):
             _prm = prm.df.reset_index()
 
         # Convert values to numeric where possible, keep original value otherwise
-        _prm['value'] = _prm['value'].map(to_numeric_or_original)
+        _prm['value'] = _prm['value'].map(PRM.to_numeric_or_original)
 
         # Set the DataFrame for the PRM object
         self.df = _prm[['name', 'value']].drop_duplicates(keep='last').set_index('name')
@@ -732,7 +730,7 @@ class PRM(datagrid, PRM_gmtsar):
 #                 del buffer, re, im, slc_block
 
     # note: only one dimension chunked due to sequential file reading 
-    def read_SLC_int(self, scale=2.5e-07):
+    def read_SLC_int(self, scale=2.5e-07, shape=None):
         """
         Read SLC (Single Look Complex) data and compute the power of the signal.
         The method reads binary SLC data file, which contains alternating sequences of real and imaginary parts.
@@ -762,7 +760,8 @@ class PRM(datagrid, PRM_gmtsar):
         """
         import xarray as xr
         import numpy as np
-        import dask, dask.array
+        import dask
+        import dask.array as da
         import os
         import warnings
 
@@ -776,7 +775,9 @@ class PRM(datagrid, PRM_gmtsar):
 
         prm = PRM.from_file(self.filename)
         # num_patches multiplier is omitted
-        slc_filename, xdim, ydim = prm.get('SLC_file', 'num_rng_bins', 'num_valid_az')
+        #slc_filename, xdim, ydim = prm.get('SLC_file', 'num_rng_bins', 'num_valid_az')
+        slc_filename, xdim, ydim, rshift, ashift = prm.get('SLC_file', 'num_rng_bins', 'num_valid_az', 'rshift', 'ashift')
+                
         dirname = os.path.dirname(self.filename)
         slc_filename = os.path.join(dirname, slc_filename)
         #print (slc_filename, ydim, xdim)
@@ -790,19 +791,70 @@ class PRM(datagrid, PRM_gmtsar):
         for i in range(blocks):
             start = i * blocksize
             stop = min((i+1) * blocksize, ydim * xdim)
+            #assert 0, f'SLC: start={start}, stop={stop}'
             #print ('start, stop, shape', start, stop, (stop-start))
             # use proper output data type for complex data and intensity
-            block = dask.array.from_delayed(read_SLC_block(slc_filename, start, stop),
+            block = da.from_delayed(read_SLC_block(slc_filename, start, stop),
                 shape=(2*(stop-start),), dtype=np.int16)
             res.append(block[::2])
             ims.append(block[1::2])
             del block
         # Concatenate the chunks together
         # Data file can include additional data outside of the specified dimensions
-        re = dask.array.concatenate(res).reshape((-1, xdim))[:ydim,:]
-        im = dask.array.concatenate(ims).reshape((-1, xdim))[:ydim,:]
+        re = da.concatenate(res).reshape((-1, xdim))[:ydim,:]
+        im = da.concatenate(ims).reshape((-1, xdim))[:ydim,:]
         del res, ims
-        coords = {'y': np.arange(ydim) + 0.5, 'x': np.arange(xdim) + 0.5}
+        
+        assert re.shape == (ydim, xdim), f'Originated re shape ({ydim},{xdim}), but got {re.shape}'
+        assert im.shape == (ydim, xdim), f'Originated im width ({ydim},{xdim}), but got {im.shape}'
+
+        # # perform aligning on-the-fly using shifting and padding
+        # rshift_pad = None
+        # if abs(rshift) > 0:
+        #     rshift_pad = da.zeros((ydim, abs(rshift)), dtype=np.int16)
+        #     if rshift > 0:
+        #         re = da.concatenate([re[:, rshift:], rshift_pad], axis=1)
+        #         im = da.concatenate([im[:, rshift:], rshift_pad], axis=1)
+        #     elif rshift < 0:
+        #         re = da.concatenate([rshift_pad, re[:, :rshift]], axis=1)
+        #         im = da.concatenate([rshift_pad, im[:, :rshift]], axis=1)
+        
+        # ashift_pad = None
+        # if abs(ashift) > 0:
+        #     ashift_pad = da.zeros((abs(ashift), xdim), dtype=np.int16)
+        #     if ashift > 0:
+        #         re = da.concatenate([re[ashift:, :], ashift_pad], axis=0)
+        #         im = da.concatenate([im[ashift:, :], ashift_pad], axis=0)
+        #     elif ashift < 0:
+        #         re = da.concatenate([ashift_pad, re[:ashift, :]], axis=0)
+        #         im = da.concatenate([ashift_pad, im[:ashift, :]], axis=0)
+
+        # assert re.shape == (ydim, xdim), f'Expected re shape ({ydim},{xdim}), but got {re.shape} with padding {ashift_pad.shape} for ashift={ashift}, rshift={rshift}'
+        # assert im.shape == (ydim, xdim), f'Expected im width ({ydim},{xdim}), but got {im.shape} with padding {ashift_pad.shape} for ashift={ashift}, rshift={rshift}'
+        # del rshift_pad, ashift_pad
+        
+        # pad to the specified reference frame
+        if shape is not None:
+            if shape[1] > xdim:
+                rpad = da.zeros((ydim, shape[1] - xdim), dtype=np.int16)
+                re = da.concatenate([re, rpad], axis=1)
+                im = da.concatenate([im, rpad], axis=1)
+            elif shape[1] < xdim:
+                re = re[:,:shape[1]]
+                im = im[:,:shape[1]]
+            if shape[0] > ydim:
+                apad = da.zeros((shape[0] - ydim, shape[1]), dtype=np.int16)
+                re = da.concatenate([re, apad], axis=0)
+                im = da.concatenate([im, apad], axis=0)
+            elif shape[0] < ydim:
+                re = re[:shape[0]]
+                im = im[:shape[0]]
+
+        coords = {'y': np.arange(ydim if shape is None else shape[0]) + 0.5, 'x': np.arange(xdim if shape is None else shape[1]) + 0.5}
+
+        #coords = {'y': np.arange(ydim) + 0.5, 'x': np.arange(xdim) + 0.5}
+        # perform aligning on-the-fly using coordinates
+        #coords = {'y': np.arange(ydim) + ashift + 0.5, 'x': np.arange(xdim) + rshift + 0.5}
         re = xr.DataArray(re, coords=coords).rename('re')
         im = xr.DataArray(im, coords=coords).rename('im')
         #if intensity:

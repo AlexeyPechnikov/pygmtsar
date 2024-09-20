@@ -33,7 +33,6 @@ class Stack_prm(Stack_base):
         import os
 
         # check if subswath exists or return a single subswath for None
-        # workaround for stack_rep_subswath()
         if subswath is None:
             subswath = self.get_subswath()
 
@@ -42,5 +41,4 @@ class Stack_prm(Stack_base):
 
         prefix = self.multistem_stem(subswath, date)
         filename = os.path.join(self.basedir, f'{prefix}.PRM')
-        #print (filename)
         return PRM.from_file(filename)

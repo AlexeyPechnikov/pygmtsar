@@ -43,8 +43,8 @@ class Stack_base(tqdm_joblib, IO):
     
         assert len(date)==10, 'ERROR: multistem_stem date format is not yyyy-mm-dd'
 
-        multistem = f'{date}_F{subswath}'
-        return multistem
+        prefix = f'{date}_F{subswath}'
+        return prefix
 
     def set_reference(self, reference):
         """
@@ -182,10 +182,9 @@ class Stack_base(tqdm_joblib, IO):
 #         # define subswath
 #         return subswaths[0]
 
-    # merge multiple subswaths when the function is called before subswaths merging
     def get_subswath(self, subswath=None):
         """
-        Check and return subswath or return an unique subswath to functions which work with a single subswath only.
+        Check and return subswath or return the first subswath to functions which work with a single subswath only.
 
         Parameters
         ----------
@@ -199,11 +198,11 @@ class Stack_base(tqdm_joblib, IO):
         """
         # detect all the subswaths
         subswaths = self.get_subswaths()
-        assert subswath is None or subswath in subswaths, f'ERROR: subswath {subswath} not found'
+        assert subswath is None or str(subswath) in str(subswaths), f'ERROR: subswath {subswath} not found'
         if subswath is not None:
             return subswath
         # define subswath
-        return int(''.join(map(str, subswaths)))
+        return int(str(subswaths[0])[0])
 
     def get_pairs(self, pairs, dates=False):
         """

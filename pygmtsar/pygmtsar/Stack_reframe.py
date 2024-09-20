@@ -75,10 +75,11 @@ class Stack_reframe(Stack_reframe_gmtsar):
         df = self.get_repeat(subswath, date)
         if debug:
             print('DEBUG: reframe scenes: ', len(df))
-        stem = self.multistem_stem(subswath, date)
-        #print ('stem', stem)
+        prefix = self.multistem_stem(subswath, date)
+        if debug:
+            print ('DEBUG: ','prefix', prefix)
 
-        old_filename = os.path.join(self.basedir, f'{stem}')
+        old_filename = os.path.join(self.basedir, f'{prefix}')
         #print ('old_filename', old_filename)
 
         self._make_s1a_tops(subswath, date, debug=debug)

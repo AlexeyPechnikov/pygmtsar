@@ -12,7 +12,7 @@ from .PRM import PRM
 
 class Stack_reframe_gmtsar(Stack_orbits):
 
-    def _ext_orb_s1a(self, subswath, stem, date=None, debug=False):
+    def _ext_orb_s1a(self, subswath, date=None, debug=False):
         """
         Extracts orbital data for the Sentinel-1A satellite by running GMTSAR binary `ext_orb_s1a`.
 
@@ -36,13 +36,16 @@ class Stack_reframe_gmtsar(Stack_orbits):
         import subprocess
 
         if date is None or date == self.reference:
+            date == self.reference
             df = self.get_reference(subswath)
         else:
             df = self.get_repeat(subswath, date)
 
         orbit = os.path.relpath(df['orbitpath'].iloc[0], self.basedir)
 
-        argv = ['ext_orb_s1a', f'{stem}.PRM', orbit, stem]
+        prefix = self.multistem_stem(subswath, date)
+        
+        argv = ['ext_orb_s1a', f'{prefix}.PRM', orbit, prefix]
         if debug:
             print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', cwd=self.basedir)
@@ -105,9 +108,9 @@ class Stack_reframe_gmtsar(Stack_orbits):
         # TODO: use subswath
         xmlfile = os.path.relpath(df['metapath'].iloc[0], self.basedir)
         datafile = os.path.relpath(df['datapath'].iloc[0], self.basedir)
-        stem = self.multistem_stem(subswath, date)
+        prefix = self.multistem_stem(subswath, date)
 
-        argv = ['make_s1a_tops', xmlfile, datafile, stem, str(mode)]
+        argv = ['make_s1a_tops', xmlfile, datafile, prefix, str(mode)]
         if rshift_fromfile is not None:
             argv.append(rshift_fromfile)
         if ashift_fromfile is not None:
@@ -121,7 +124,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
         if len(stdout_data) > 0 and debug:
             print ('DEBUG: make_s1a_tops', stdout_data)
 
-        self._ext_orb_s1a(subswath, stem, date, debug=debug)
+        self._ext_orb_s1a(subswath, date, debug=debug)
 
         return
 
@@ -170,13 +173,13 @@ class Stack_reframe_gmtsar(Stack_orbits):
         else:
             datapaths = [os.path.relpath(path, self.basedir)[:-5] for path in df['datapath']]
         #print ('datapaths', datapaths)
-        stem = self.multistem_stem(subswath, date)
+        prefix = self.multistem_stem(subswath, date)
 
         # round values and convert to strings
         azi_1 = np.round(azi_1).astype(int).astype(str)
         azi_2 = np.round(azi_2).astype(int).astype(str)
 
-        argv = ['assemble_tops', azi_1, azi_2] + datapaths + [stem]
+        argv = ['assemble_tops', azi_1, azi_2] + datapaths + [prefix]
         if debug:
             print ('DEBUG: argv', argv)
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', cwd=self.basedir)

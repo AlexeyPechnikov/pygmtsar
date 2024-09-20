@@ -16,7 +16,7 @@ class Stack_dem(Stack_reframe):
 
     buffer_degrees = 0.02
 
-    def get_extent_ra(self):
+    def get_extent_ra(self, subswath=None):
         """
         minx, miny, maxx, maxy = np.round(geom.bounds).astype(int)
         """
@@ -25,7 +25,7 @@ class Stack_dem(Stack_reframe):
 
         dem = self.get_dem()
         df = dem.isel(lon=[0,-1]).to_dataframe().reset_index()
-        geom = self.geocode(LineString(np.column_stack([df.lon, df.lat])))
+        geom = self.geocode(LineString(np.column_stack([df.lon, df.lat])), subswath=subswath)
         return geom
 
 #     def get_extent(self, grid=None, subswath=None):
