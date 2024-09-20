@@ -113,21 +113,13 @@ class Stack_align(Stack_dem):
         #print (reference_line)
 
         # for reference scene
-        multistem, stem = self.multistem_stem(subswath, reference_line.datetime)
-        path_stem = os.path.join(self.basedir, stem)
-        path_multistem = os.path.join(self.basedir, multistem)
+        prefix = self.multistem_stem(subswath)
+        path_prefix = os.path.join(self.basedir, prefix)
 
         # generate PRM, LED, SLC
         self._make_s1a_tops(subswath, debug=debug)
 
-        PRM.from_file(path_stem + '.PRM')\
-            .set(input_file = path_multistem + '.raw')\
-            .update(path_multistem + '.PRM', safe=True)
-
-        self._ext_orb_s1a(subswath, multistem, debug=debug)
-
-        # recalculate after _ext_orb_s1a
-        PRM.from_file(path_multistem + '.PRM')\
+        PRM.from_file(path_prefix + '.PRM')\
             .calc_dop_orb(inplace=True).update()
 
     # aligning for secondary image
@@ -161,28 +153,21 @@ class Stack_align(Stack_dem):
         # temporary filenames to be removed
         cleanup = []
 
-        reference_line = list(self.get_reference(subswath).itertuples())[0]
-        multistem, stem = self.multistem_stem(subswath, reference_line.datetime)
-        #print (reference_line)
+        ref_prefix = self.multistem_stem(subswath)
 
         # define reference image parameters
-        # TODO: use reference PRM filename instead of subswath
-        reference = self.PRM(subswath=subswath).sel('earth_radius').set(stem=stem, multistem=multistem)
+        earth_radius = self.PRM(subswath=subswath).get('earth_radius')
 
         # prepare coarse DEM for alignment
         # 12 arc seconds resolution is enough, for SRTM 90m decimation is 4x4
         topo_llt = self._get_topo_llt(subswath, degrees=degrees)
         #topo_llt.shape
 
-        line = list(self.get_repeat(subswath, date).itertuples())[0]
-        multistem, stem = self.multistem_stem(subswath, line.datetime)
-        #print (line)
+        rep_prefix = self.multistem_stem(subswath, date)
 
         # define relative filenames for PRM
-        stem_prm    = os.path.join(self.basedir, stem + '.PRM')
-        mstem_prm   = os.path.join(self.basedir, multistem + '.PRM')
-        reference_prm  = os.path.join(self.basedir, reference.get("stem") + '.PRM')
-        mreference_prm = os.path.join(self.basedir, reference.get("multistem") + '.PRM')
+        rep_prm    = os.path.join(self.basedir, rep_prefix + '.PRM')
+        ref_prm  = os.path.join(self.basedir, ref_prefix + '.PRM')
 
         # TODO: define 1st image for line, in the example we have no more
         tmp_da = 0
@@ -191,28 +176,28 @@ class Stack_align(Stack_dem):
         self._make_s1a_tops(subswath, date, debug=debug)
 
         # compute the time difference between first frame and the rest frames
-        t1, prf = PRM.from_file(stem_prm).get('clock_start', 'PRF')
-        t2      = PRM.from_file(stem_prm).get('clock_start')
+        t1, prf = PRM.from_file(rep_prm).get('clock_start', 'PRF')
+        t2      = PRM.from_file(rep_prm).get('clock_start')
         nl = int((t2 - t1)*prf*86400.0+0.2)
         #echo "Shifting the reference PRM by $nl lines..."
 
         # Shifting the reference PRM by $nl lines...
         # shift the super-references PRM based on $nl so SAT_llt2rat gives precise estimate
-        prm1 = PRM.from_file(reference_prm)
+        prm1 = PRM.from_file(ref_prm)
         prm1.set(prm1.sel('clock_start' ,'clock_stop', 'SC_clock_start', 'SC_clock_stop') + nl/prf/86400.0)
         tmp_prm = prm1
 
         # compute whether there are any image offset
         #if tmp_da == 0:
         # tmp_prm defined above from {reference}.PRM
-        prm1 = tmp_prm.calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug)
-        prm2 = PRM.from_file(stem_prm).calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug).update()
+        prm1 = tmp_prm.calc_dop_orb(earth_radius, inplace=True, debug=debug)
+        prm2 = PRM.from_file(rep_prm).calc_dop_orb(earth_radius, inplace=True, debug=debug).update()
         lontie,lattie = prm1.SAT_baseline(prm2, debug=debug).get('lon_tie_point', 'lat_tie_point')
         tmp_am = prm1.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
         tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
         # bursts look equal to rounded result int(np.round(...))
         tmp_da = int(tmp_as - tmp_am)
-        #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
+        print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
 
         # in case the images are offset by more than a burst, shift the super-reference's PRM again
         # so SAT_llt2rat gives precise estimate
@@ -222,9 +207,9 @@ class Stack_align(Stack_dem):
             #raise Exception('TODO: Modifying reference PRM by $tmp_da lines...')
 
         # tmp.PRM defined above from {reference}.PRM
-        prm1 = tmp_prm.calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug)
+        prm1 = tmp_prm.calc_dop_orb(earth_radius, inplace=True, debug=debug)
         tmpm_dat = prm1.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
-        prm2 = PRM.from_file(stem_prm).calc_dop_orb(reference.get('earth_radius'), inplace=True, debug=debug)
+        prm2 = PRM.from_file(rep_prm).calc_dop_orb(earth_radius, inplace=True, debug=debug)
         tmp1_dat = prm2.SAT_llt2rat(coords=topo_llt, precise=1, debug=debug)
 
         # get r, dr, a, da, SNR table to be used by fitoffset.csh
@@ -233,7 +218,7 @@ class Stack_align(Stack_dem):
         offset_dat = np.apply_along_axis(func, 1, offset_dat0)
 
         # define radar coordinates extent
-        rmax, amax = PRM.from_file(stem_prm).get('num_rng_bins','num_lines')
+        rmax, amax = PRM.from_file(rep_prm).get('num_rng_bins','num_lines')
 
         # prepare the offset parameters for the stitched image
         # set the exact borders in radar coordinates
@@ -249,13 +234,13 @@ class Stack_align(Stack_dem):
         a_xyz = offset_dat[:,[0,2,3]]
 
         r_grd = self._offset2shift(r_xyz, rmax, amax)
-        r_grd_filename = stem_prm[:-4]+'_r.grd'
+        r_grd_filename = rep_prm[:-4]+'_r.grd'
         r_grd.to_netcdf(r_grd_filename, engine=self.netcdf_engine)
         # drop the temporary file at the end of the function
         cleanup.append(r_grd_filename)
 
         a_grd = self._offset2shift(a_xyz, rmax, amax)
-        a_grd_filename = stem_prm[:-4]+'_a.grd'
+        a_grd_filename = rep_prm[:-4]+'_a.grd'
         a_grd.to_netcdf(a_grd_filename, engine=self.netcdf_engine)
         # drop the temporary file at the end of the function
         cleanup.append(a_grd_filename)
@@ -264,219 +249,32 @@ class Stack_align(Stack_dem):
         # note: it removes calc_dop_orb parameters from PRM file
         # generate PRM, LED
         self._make_s1a_tops(subswath,
-                           date=line.Index, mode=1,
-                           rshift_fromfile=f'{stem}_r.grd',
-                           ashift_fromfile=f'{stem}_a.grd',
+                           date=date, mode=1,
+                           rshift_fromfile=f'{rep_prefix}_r.grd',
+                           ashift_fromfile=f'{rep_prefix}_a.grd',
                            debug=debug)
 
         # need to update shift parameter so stitch_tops will know how to stitch
-        PRM.from_file(stem_prm).set(PRM.fitoffset(3, 3, offset_dat)).update()
-
-        # echo stitch images together and get the precise orbit
-        # use stitch_tops tmp.stitchlist $stem to merge images
-
-        # the raw file does not exist but it works
-        PRM.from_file(stem_prm)\
-            .set(input_file = f'{multistem}.raw')\
-            .update(mstem_prm, safe=True)
-
-        self._ext_orb_s1a(subswath, multistem, date=line.Index, debug=debug)
+        #PRM.from_file(rep_prm).set(PRM.fitoffset(3, 3, offset_dat)).update()
 
         # Restoring $tmp_da lines shift to the image... 
-        PRM.from_file(mstem_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
+        PRM.from_file(rep_prm).set(ashift=0 if abs(tmp_da) < 1000 else tmp_da, rshift=0).update()
 
         # that is safe to rewrite source files
-        prm1 = PRM.from_file(mreference_prm)
-        prm1.resamp(PRM.from_file(mstem_prm),
-                    repeatSLC_tofile=mstem_prm[:-4]+'.SLC',
+        prm1 = PRM.from_file(ref_prm)
+        prm1.resamp(PRM.from_file(rep_prm),
+                    repeatSLC_tofile=rep_prm[:-4]+'.SLC',
                     interp=1, debug=debug
-        ).to_file(mstem_prm)
+        ).to_file(rep_prm)
 
-        PRM.from_file(mstem_prm).set(PRM.fitoffset(3, 3, par_tmp)).update()
-        # TEST
-        #prm1.set(PRM.fitoffset(3, 3, par_tmp)).update()
+        PRM.from_file(rep_prm).set(PRM.fitoffset(3, 3, par_tmp)).update()
 
-        PRM.from_file(mstem_prm).calc_dop_orb(reference.get('earth_radius'), 0, inplace=True, debug=debug).update()
-        # TEST
-        #prm1.calc_dop_orb(reference.get('earth_radius'), 0, inplace=True, debug=debug).update()
-        
+        PRM.from_file(rep_prm).calc_dop_orb(earth_radius, 0, inplace=True, debug=debug).update()
+
         # cleanup
         for filename in cleanup:
             #if os.path.exists(filename):
             os.remove(filename)
-
-#     # merge_swath.c modified for SLCs
-#     def merge_date(self, date, chunksize=None, debug=False):
-#         import xarray as xr
-#         import numpy as np
-#         import os
-#         from scipy import constants
-# 
-#         if chunksize is None:
-#             chunksize = chunksize
-# 
-#         subswaths = self.get_subswaths()
-# 
-#         # define offset parameters to merge subswaths
-#         prms = []
-#         for subswath in subswaths:
-#             #print (subswath)
-#             prm = self.PRM(date, subswath=subswath)
-#             prms.append(prm)
-# 
-#         assert len(np.unique([prm.get('PRF') for prm in prms])), 'Image PRFs are not consistent'
-#         assert len(np.unique([prm.get('rng_samp_rate') for prm in prms])), 'Image range sampling rates are not consistent'
-# 
-#         heads = [0] + [((prm.get('clock_start') - prms[0].get('clock_start')) * 86400 * prms[0].get('PRF')).round().astype(int) for prm in prms[1:]]
-#         # head123: 0, 466, -408
-#         if debug:
-#             print ('heads', heads)
-#         # minh: -408
-#         minh = min(heads)
-#         if debug:
-#             print ('minh', minh)
-# 
-#         #head123: 408, 874, 0
-#         heads = np.asarray(heads) - minh
-#         if debug:
-#             print ('heads', heads)
-# 
-#         #ovl12,23: 2690, 2558
-#         ovls = [prm1.get('num_rng_bins') - ((prm2.get('near_range') - prm1.get('near_range')) / (constants.speed_of_light/ prm1.get('rng_samp_rate') / 2)).round().astype(int) for (prm1, prm2) in zip(prms[:-1], prms[1:])]
-#         if debug:
-#             print ('ovls', ovls)
-# 
-#         #Writing the grid files..Size(69158x13075)...
-#         #maxy: 13075
-#         # TODO: disable offset 1
-#         maxy = max([prm.get('num_valid_az') + head for prm, head in zip(prms, heads)]) + 1
-#         # for SLC
-#         #maxy = max([prm.get('num_valid_az') + head for prm, head in zip(prms, heads)])
-#         if debug:
-#             print ('maxy', maxy)
-#         maxx = sum([prm.get('num_rng_bins') - ovl -1 for prm, ovl in zip(prms, [-1] + ovls)])
-#         if debug:
-#             print ('maxx', maxx)
-# 
-#         # disable heads shift
-#         #head123: 467, 1, 875
-#         #heads = [maxy - prm.get('num_valid_az') - head for prm, head in zip(prms, heads)]
-#         #print ('heads', heads)
-# 
-#         #Stitching location n1 = 1045
-#         #Stitching location n2 = 935
-#         ns = [np.ceil(-prm.get('rshift') + prm.get('first_sample') + 150.0).astype(int) for prm in prms[1:]]
-#         ns = [10 if n < 10 else n for n in ns]
-#         if debug:
-#             print ('ns', ns)
-#         #ns [1070, 963]
-#         
-#         # TODO: add subswath_offset and subswath_head to PRM files
-# 
-#         # TEST: disable 1st subswath head offset to check phasediff
-#         #heads[0] = 400
-# 
-#         # merge
-#         slcs = []
-#         # left and right coordinates for every subswath valid area
-#         x1s = []
-#         x2s = []
-#         
-#         # 1st
-#         xlim = prms[0].get('num_rng_bins') - ovls[0] + ns[0]
-#         x1s.append(0)
-#         x2s.append(xlim)
-#         # disable scaling
-#         slc = prms[0].read_SLC_int(scale=None)
-#         slc = slc.isel(x=slice(None,xlim)).assign_coords(y=slc.y + heads[0])
-#         slcs.append(slc)
-# 
-#         # 2nd
-#         if len(prms) == 2:
-#             # TODO: check for 2 subswaths
-#             xlim = -1
-#         else:
-#             # for 3 subswaths
-#             xlim = prms[1].get('num_rng_bins') - ovls[1] + ns[1]
-#         x1s.append(ns[0])
-#         x2s.append(xlim)
-#         # disable scaling
-#         slc = prms[1].read_SLC_int(scale=None)
-#         slc = slc.isel(x=slice(ns[0],xlim)).assign_coords(y=slc.y + heads[1])
-#         slcs.append(slc)
-# 
-#         # 3rd
-#         if len(prms) == 3:
-#             # disable scaling
-#             slc = prms[2].read_SLC_int(scale=None)
-#             x1s.append(ns[1])
-#             x2s.append(-2)
-#             slc = slc.isel(x=slice(ns[1],-2)).assign_coords(y=slc.y + heads[2])
-#             slcs.append(slc)
-# 
-#         # check and merge SLCs
-#         assert maxx == sum([slc.x.size for slc in slcs]), 'Incorrect output grid range dimension size'
-#         slc = xr.concat(slcs, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
-#         assert slc.y.size == maxy, 'Incorrect output grid azimuth dimension size'
-#         assert slc.x.size == maxx, 'Incorrect output grid range dimension sizes'
-# 
-#         # define merge filenames
-#         subswath = ''.join(map(str, subswaths))
-#         line = self.get_repeat(subswaths[0], date).iloc[0]
-#         multistem, stem = self.multistem_stem(subswath, line.datetime)
-#         #print (multistem, stem)
-#         prm_filename = os.path.join(self.basedir, multistem + '.PRM')
-#         if debug:
-#             print ('prm_filename', prm_filename)
-# 
-#         # merge PRM
-#         prm = PRM(prms[0])
-#         dt = -minh / prm.get('PRF') / 86400
-#         prm = prm.set(SLC_file=multistem + '.SLC',
-#                       num_lines=maxy, nrows=maxy, num_valid_az=maxy,
-#                       num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
-#                       SC_clock_start=prm.get('SC_clock_start') - dt,
-#                       clock_start=prm.get('clock_start') - dt,
-#                       SC_clock_stop=prm.get('SC_clock_start') + maxy / prm.get('PRF') / 86400,
-#                       clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400)\
-#                       .calc_dop_orb(prm.get('earth_radius'), 0, inplace=True, debug=debug)\
-#                       .to_file(prm_filename)
-# 
-# #         # merge PRM - test updating parameters for the central area
-# #         prm = PRM(prms[0])
-# #         dt = -minh / prm.get('PRF') / 86400
-# #         near_range      = np.mean([prm.get('near_range') for prm in prms])
-# #         SC_vel          = np.mean([prm.get('SC_vel') for prm in prms])
-# #         SC_height       = np.mean([prm.get('SC_height') for prm in prms])
-# #         SC_height_start = prms[0].get('SC_height_start')
-# #         SC_height_end   = prms[-1].get('SC_height_end')
-# #         prm = prm.set(SLC_file=multistem + '.SLC',
-# #                       num_lines=maxy, nrows=maxy, num_valid_az=maxy,
-# #                       num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
-# #                       SC_clock_start=prm.get('SC_clock_start') - dt,
-# #                       clock_start=prm.get('clock_start') - dt,
-# #                       SC_clock_stop=prm.get('SC_clock_start') + maxy / prm.get('PRF') / 86400,
-# #                       clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400,
-# #                       near_range=near_range, SC_vel=SC_vel, SC_height=SC_height,
-# #                       SC_height_start=SC_height_start, SC_height_end=SC_height_end).to_file(prm_filename)
-#         #return prm, slc
-#         # save merged SLC
-#         prm.write_SLC_int(slc, chunksize=chunksize)
-# 
-#         # add calculated offsets to single subswaths
-#         for idx, prm in enumerate(prms):
-#             prm.set(smath_maxy=maxy, swath_maxx=maxx,
-#                     swath_minh=minh, swath_head=heads[idx],
-#                     swath_left=x1s[idx], swath_right=x2s[idx]).update()
-# 
-#         # cleanup
-#         # [os.path.join(self.basedir, prm.get('led_file')) for prm in prms]
-#         # [prm.filename for prm in prms]
-#         cleanup = [os.path.join(self.basedir, prm.get('SLC_file')) for prm in prms]
-#         for filename in cleanup:
-#             if debug:
-#                 print ('DEBUG: remove', filename)
-#             os.remove(filename)
 
     # define bottoms from reference scene and apply for all scenes
     def get_subswaths_offsets(self, date, offsets=None, debug=False):
@@ -788,30 +586,29 @@ class Stack_align(Stack_dem):
 
         # use any one subswath in case of many
         subswath = self.get_subswaths()[0]
-        datetimes = self.df[self.df.subswath==subswath].datetime
+        dates = self.df[self.df.subswath==subswath].date
 
-        def get_filename(dt):
-            stem = self.multistem_stem(subswath, dt)[1]
+        def get_filename(date):
+            stem = self.multistem_stem(subswath, date)
             filename = os.path.join(self.basedir, f'{stem}.PRM')
             return filename
 
-        def ondemand(date, dt):
-            if not os.path.exists(get_filename(dt)):
+        def ondemand(date):
+            if not os.path.exists(get_filename(date)):
                 self._make_s1a_tops(subswath, date, debug=debug)
 
         # generate PRM, LED if needed
         #for (date, dt) in datetimes.iteritems():
         #    #print (dt, date)
         #    ondemand(dt)
-        with self.tqdm_joblib(tqdm(desc='PRM generation', total=len(datetimes))) as progress_bar:
-            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in datetimes.items())
+        with self.tqdm_joblib(tqdm(desc='PRM generation', total=len(dates))) as progress_bar:
+            joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(ondemand)(date, dt) for (date, dt) in dates.items())
 
         # calc_dop_orb() required for SAT_baseline
-        reference_dt = datetimes[self.reference]
-        prm_ref = PRM().from_file(get_filename(reference_dt)).calc_dop_orb(inplace=True)
+        prm_ref = PRM().from_file(get_filename(self.reference)).calc_dop_orb(inplace=True)
         data = []
-        for (date, dt) in datetimes.items():
-            prm_rep = PRM().from_file(get_filename(dt))
+        for date in dates:
+            prm_rep = PRM().from_file(get_filename(date))
             BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
             data.append({'date':date, 'parallel':BPL.round(1), 'perpendicular':BPR.round(1)})
         return pd.DataFrame(data).set_index('date')

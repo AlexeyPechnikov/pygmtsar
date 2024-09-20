@@ -75,7 +75,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
         df = self.get_repeat(subswath, date)
         if debug:
             print('DEBUG: reframe scenes: ', len(df))
-        stem = self.multistem_stem(subswath, df['datetime'].iloc[0])[1]
+        stem = self.multistem_stem(subswath, date)
         #print ('stem', stem)
 
         old_filename = os.path.join(self.basedir, f'{stem}')

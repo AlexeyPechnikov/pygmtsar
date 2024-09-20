@@ -12,7 +12,7 @@ from .PRM import PRM
 
 class Stack_prm(Stack_base):
 
-    def PRM(self, date=None, subswath=None, multi=True, singleswath=False):
+    def PRM(self, date=None, subswath=None):
         """
         Open a PRM (Parameter) file.
 
@@ -37,17 +37,10 @@ class Stack_prm(Stack_base):
         if subswath is None:
             subswath = self.get_subswath()
 
-        if date is None or date == self.reference:
-            line = self.get_reference(subswath)
-        else:
-            line = self.get_repeat(subswath, date)
-        #print (line)
-        # to build sbas table and pairs after merging use unmerged subswath PRM files
-        if singleswath and len(str(subswath))>1:
-            subswath = int(str(subswath)[0])
-        multistem, stem = self.multistem_stem(subswath, line.datetime.iloc[0])
-        if multi:
-            stem = multistem
-        filename = os.path.join(self.basedir, f'{stem}.PRM')
+        if date is None:
+            date == self.reference
+
+        prefix = self.multistem_stem(subswath, date)
+        filename = os.path.join(self.basedir, f'{prefix}.PRM')
         #print (filename)
         return PRM.from_file(filename)

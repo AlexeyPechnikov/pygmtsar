@@ -95,6 +95,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
 
         #or date == self.reference
         if date is None:
+            date = self.reference
             df = self.get_reference(subswath)
             # for reference image mode should be 1
             mode = 1
@@ -104,7 +105,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
         # TODO: use subswath
         xmlfile = os.path.relpath(df['metapath'].iloc[0], self.basedir)
         datafile = os.path.relpath(df['datapath'].iloc[0], self.basedir)
-        stem = self.multistem_stem(subswath, df['datetime'].iloc[0])[1]
+        stem = self.multistem_stem(subswath, date)
 
         argv = ['make_s1a_tops', xmlfile, datafile, stem, str(mode)]
         if rshift_fromfile is not None:
@@ -169,7 +170,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
         else:
             datapaths = [os.path.relpath(path, self.basedir)[:-5] for path in df['datapath']]
         #print ('datapaths', datapaths)
-        stem = self.multistem_stem(subswath, df['datetime'].iloc[0])[1]
+        stem = self.multistem_stem(subswath, date)
 
         # round values and convert to strings
         azi_1 = np.round(azi_1).astype(int).astype(str)

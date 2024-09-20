@@ -31,19 +31,20 @@ class Stack_base(tqdm_joblib, IO):
         """
         return self.df
 
-    def multistem_stem(self, subswath, dt=None):
+    def multistem_stem(self, subswath, date=None):
         """
-        Define stem and multistem using datetime    
+        Define stem and multistem using date  
         """
         from datetime import datetime
 
         # use reference datetime if not defined
-        if dt is None:
-            dt = self.df.loc[self.reference, 'datetime']
+        if date is None:
+            date = self.reference
+    
+        assert len(date)==10, 'ERROR: multistem_stem date format is not yyyy-mm-dd'
 
-        stem = f'S1_{dt.strftime("%Y%m%d_%H%M%S")}_F{subswath}'
-        multistem = f'S1_{dt.strftime("%Y%m%d")}_ALL_F{subswath}'
-        return (multistem, stem)
+        multistem = f'{date}_F{subswath}'
+        return multistem
 
     def set_reference(self, reference):
         """

@@ -403,21 +403,12 @@ class PRM(datagrid, PRM_gmtsar):
         self.filename = prm
         return self
 
-    #def update(self):
-    #    if self.filename is None:
-    #        raise Exception('PRM is not created from file, use to_file() method instead')
-    #    return self._to_io(self.filename)
-    def update(self, name=None, safe=False, debug=False):
+    def update(self, debug=False):
         """
-        Save PRM file to disk and rename all 3 linked files together: input, LED, SLC if "name" defined.
-        If safe=True, save old (small) PRM and LED files and move only (large) SLC file.
+        Save PRM file to disk.
 
         Parameters
         ----------
-        name : str, optional
-            The new name for the PRM file. Default is None.
-        safe : bool, optional
-            Whether to use safe mode. Default is False.
         debug : bool, optional
             Whether to enable debug mode. Default is False.
 
@@ -426,74 +417,11 @@ class PRM(datagrid, PRM_gmtsar):
         PRM
             The updated PRM object.
         """
-        import shutil
-        import os
-
         if self.filename is None:
             raise Exception('PRM is not created from file, use to_file() method instead')
 
         if debug:
-            print ('Debug mode: only print expected operations but do not perform the actual job')
-
-        # rename linked files
-        if name is not None:
-            # define current files directory
-            dirname0 = os.path.dirname(self.filename)
-            # define new files basename
-            basename = os.path.splitext(name)[0]
-            shortname = os.path.split(basename)[-1]
-
-            # rename PRM file
-            if not safe:
-                print (f'Remove old PRM file {self.filename} and save new one {name}')
-                if not debug:
-                    os.remove(self.filename)
-            #else:
-            #    print (f'Safe mode: remain old PRM file {self.filename} and save new one {name}')
-            # will be saved later
-            self.filename = name
-
-            input_file0 = os.path.join(dirname0, os.path.split(self.get('input_file'))[-1])
-            input_ext = os.path.splitext(input_file0)[1]
-            input_file = basename + input_ext
-            #print (f'PRM change input_file attribute {input_file0} -> {input_file}')
-            self.set(input_file = f'{shortname}{input_ext}')
-            if os.path.isfile(input_file0) and not input_file == input_file0:
-                if not safe:
-                    #print (f'Rename input_file {input_file0} -> {input_file}')
-                    if not debug:
-                        os.rename(input_file0, input_file)
-                else:
-                    #print (f'Safe mode: copy input_file {input_file0} -> {input_file}')
-                    if not debug:
-                        shutil.copy2(input_file0, input_file, follow_symlinks=True)
-
-            SLC_file0 = os.path.join(dirname0, os.path.split(self.get('SLC_file'))[-1])
-            SLC_file = basename + '.SLC'
-            #print (f'PRM change SLC_file attribute {SLC_file0} -> {SLC_file}')
-            self.set(SLC_file = f'{shortname}.SLC')
-            if os.path.isfile(SLC_file0) and not SLC_file == SLC_file0:
-                #print (f'Rename SLC_file {SLC_file0} -> {SLC_file}')
-                if not debug:
-                    os.rename(SLC_file0, SLC_file)
-
-            led_file0 = os.path.join(dirname0, os.path.split(self.get('led_file'))[-1])
-            led_file = basename + '.LED'
-            #print (f'PRM change LED_file attribute {led_file0} -> {led_file}')
-            self.set(led_file = f'{shortname}.LED')
-            if os.path.isfile(led_file0) and not led_file == led_file0:
-                if not safe:
-                    #print (f'Rename LED_file {led_file0} -> {led_file}')
-                    if not debug:
-                        os.rename(led_file0, led_file)
-                else:
-                    #print (f'Safe mode: copy LED_file {led_file0} -> {led_file}')
-                    if not debug:
-                        shutil.copy2(led_file0, led_file)
-
-        if debug:
-            return self
-            #.sel('input_file','SLC_file','led_file')
+            print ('DEBUG:', self)
 
         return self.to_file(self.filename)
 
