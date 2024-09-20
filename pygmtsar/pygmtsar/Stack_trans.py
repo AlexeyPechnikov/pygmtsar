@@ -11,12 +11,15 @@ from .Stack_align import Stack_align
 from .tqdm_dask import tqdm_dask
 
 class Stack_trans(Stack_align):
-    
+
     def define_trans_grid(self, coarsen):
         import numpy as np
         # select radar coordinates extent
-        rng_max, yvalid, num_patch = self.PRM().get('num_rng_bins', 'num_valid_az', 'num_patches')
-        azi_max = yvalid * num_patch
+        #rng_max, yvalid, num_patch = self.PRM().get('num_rng_bins', 'num_valid_az', 'num_patches')
+        #azi_max = yvalid * num_patch
+        data = self.open_data(dates=[self.reference])
+        rng_max = float(data.x[-1])
+        azi_max = float(data.y[-1])
         #print ('azi_max', azi_max, 'rng_max', rng_max)
         # this grid covers the full interferogram area
         # common single pixel resolution

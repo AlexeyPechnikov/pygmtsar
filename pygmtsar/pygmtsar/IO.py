@@ -248,38 +248,204 @@ class IO(datagrid):
                 filenames.append(filename)
         return filenames
 
+#     # 2.5e-07 is Sentinel-1 scale factor
+#     def open_data(self, dates=None, scale=2.5e-07, debug=False):
+#         import xarray as xr
+#         import pandas as pd
+#         import numpy as np
+#         import os
+# 
+#         if debug:
+#             print ('DEBUG: open_data: apply scale:', scale)
+# 
+#         if dates is None:
+#             dates = self.df.index.values
+#         #print ('dates', dates)
+# 
+#         filenames = [self.PRM(date).filename[:-4] + '.grd' for date in dates]
+#         #print ('filenames', filenames)
+#         ds = xr.open_mfdataset(
+#             filenames,
+#             engine=self.netcdf_engine,
+#             chunks=self.chunksize,
+#             parallel=True,
+#             concat_dim='date',
+#             combine='nested'
+#         ).assign(date=pd.to_datetime(dates)).rename({'a': 'y', 'r': 'x'})
+#         if scale is None:
+#             # there is no complex int16 datatype, so return two variables for real and imag parts
+#             return ds
+#         # scale and return as complex values
+#         ds_scaled = (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs).rename('data')
+#         del ds
+#         # zero in np.int16 type means NODATA
+#         return ds_scaled.where(ds_scaled != 0)
+
     # 2.5e-07 is Sentinel-1 scale factor
     def open_data(self, dates=None, scale=2.5e-07, debug=False):
         import xarray as xr
         import pandas as pd
         import numpy as np
+        from scipy import constants
         import os
 
         if debug:
             print ('DEBUG: open_data: apply scale:', scale)
 
         if dates is None:
-            dates = self.df.index.values
+            #dates = self.df.index.values
+            dates = np.unique(self.df.index.values)
         #print ('dates', dates)
 
-        filenames = [self.PRM(date).filename[:-4] + '.grd' for date in dates]
-        #print ('filenames', filenames)
-        ds = xr.open_mfdataset(
-            filenames,
-            engine=self.netcdf_engine,
-            chunks=self.chunksize,
-            parallel=True,
-            concat_dim='date',
-            combine='nested'
-        ).assign(date=pd.to_datetime(dates)).rename({'a': 'y', 'r': 'x'})
+        subswaths = self.get_subswaths()
+        if not isinstance(subswaths, (str, int)):
+            subswaths = ''.join(map(str, subswaths))
+
+        # DEM extent in radar coordinates, merged reference PRM required
+        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
+        extent_ra = np.round(self.get_extent_ra(subswath=subswaths[0]).bounds).astype(int)
+
+        if len(subswaths) == 1:
+            # stack single subswath
+            stack = []
+            shape = None
+            for date in dates:
+                prm = self.PRM(date, subswath=int(subswaths))
+                # disable scaling
+                slc = prm.read_SLC_int(scale=scale, shape=shape)
+                stack.append(slc.assign_coords(date=date))
+                if shape is None:
+                    shape = (slc.y.size, slc.x.size)
+                del slc, prm
+        else:
+            # calculate the offsets to merge subswaths
+            prms = []
+            ylims = []
+            xlims = []
+            for subswath in subswaths:
+                #print (subswath)
+                prm = self.PRM(subswath=subswath)
+                prms.append(prm)
+                ylims.append(prm.get('num_valid_az'))
+                xlims.append(prm.get('num_rng_bins'))
+    
+            assert len(np.unique([prm.get('PRF') for prm in prms])), 'Image PRFs are not consistent'
+            assert len(np.unique([prm.get('rng_samp_rate') for prm in prms])), 'Image range sampling rates are not consistent'
+    
+            bottoms = [0] + [int(np.round(((prm.get('clock_start') - prms[0].get('clock_start')) * 86400 * prms[0].get('PRF')))) for prm in prms[1:]]
+            # head123: 0, 466, -408
+            if debug:
+                print ('bottoms init', bottoms)
+            # minh: -408
+            minh = min(bottoms)
+            if debug:
+                print ('minh', minh)
+            #head123: 408, 874, 0
+            bottoms = np.asarray(bottoms) - minh
+            if debug:
+                print ('bottoms', bottoms)
+    
+            #ovl12,23: 2690, 2558
+            ovls = [prm1.get('num_rng_bins') - \
+                    int(np.round(((prm2.get('near_range') - prm1.get('near_range')) / (constants.speed_of_light/ prm1.get('rng_samp_rate') / 2)))) \
+                    for (prm1, prm2) in zip(prms[:-1], prms[1:])]
+            if debug:
+                print ('ovls', ovls)
+    
+            #Writing the grid files..Size(69158x13075)...
+            #maxy: 13075
+            # for SLC
+            maxy = max([prm.get('num_valid_az') + bottom for prm, bottom in zip(prms, bottoms)])
+            if debug:
+                print ('maxy', maxy)
+            maxx = sum([prm.get('num_rng_bins') - ovl - 1 for prm, ovl in zip(prms, [-1] + ovls)])
+            if debug:
+                print ('maxx', maxx)
+    
+            #Stitching location n1 = 1045
+            #Stitching location n2 = 935
+            ns = [np.ceil(-prm.get('rshift') + prm.get('first_sample') + 150.0).astype(int) for prm in prms[1:]]
+            ns = [10 if n < 10 else n for n in ns]
+            if debug:
+                print ('ns', ns)
+    
+            # left and right coordinates for every subswath valid area
+            lefts = []
+            rights = []
+    
+            # 1st
+            xlim = prms[0].get('num_rng_bins') - ovls[0] + ns[0]
+            lefts.append(0)
+            rights.append(xlim)
+    
+            # 2nd
+            if len(prms) == 2:
+                xlim = prms[1].get('num_rng_bins') - 1
+            else:
+                # for 3 subswaths
+                xlim = prms[1].get('num_rng_bins') - ovls[1] + ns[1]
+            lefts.append(ns[0])
+            rights.append(xlim)
+    
+            # 3rd
+            if len(prms) == 3:
+                xlim = prms[2].get('num_rng_bins') - 2
+                lefts.append(ns[1])
+                rights.append(xlim)
+    
+            # check and merge SLCs
+            sumx = sum([right-left for right, left in zip(rights, lefts)])
+            if debug:
+                print ('assert maxx == sum(...)', maxx, sumx)
+            assert maxx == sumx, 'Incorrect output grid range dimension size'
+    
+            offsets = {'bottoms': bottoms, 'lefts': lefts, 'rights': rights, 'bottom': minh, 'extent': [maxy, maxx], 'ylims': ylims, 'xlims': xlims}
+            if debug:
+                print ('offsets', offsets)
+    
+            # merge subswaths
+            stack = []
+            for date in dates:
+                slcs = []
+                prms = []
+                
+                for subswath, bottom, left, right, ylim, xlim in zip(subswaths, bottoms, lefts, rights, ylims, xlims):
+                    print (date, subswath)
+                    prm = self.PRM(date, subswath=int(subswath))
+                    # disable scaling
+                    slc = prm.read_SLC_int(scale=scale, shape=(ylim, xlim))
+                    slc = slc.isel(x=slice(left, right)).assign_coords(y=slc.y + bottom)
+                    slcs.append(slc)
+                    prms.append(prm)
+        
+                # check and merge SLCs, use zero fill for np.int16 datatype
+                slc = xr.concat(slcs, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
+        
+                if debug:
+                    print ('assert slc.y.size == maxy', slc.y.size, maxy)
+                assert slc.y.size == maxy, 'Incorrect output grid azimuth dimension size'
+                if debug:
+                    print ('assert slc.x.size == maxx', slc.x.size, maxx)
+                assert slc.x.size == maxx, 'Incorrect output grid range dimension sizes'
+                del slcs
+    
+                stack.append(slc.assign_coords(date=date))
+                del slc
+
+        # minx, miny, maxx, maxy = extent_ra
+        ds = xr.concat(stack, dim='date').assign(date=pd.to_datetime(dates))\
+            .sel(y=slice(extent_ra[1], extent_ra[3]), x=slice(extent_ra[0], extent_ra[2])) \
+            .chunk({'y': self.chunksize, 'x': self.chunksize})
+        del stack
+
         if scale is None:
             # there is no complex int16 datatype, so return two variables for real and imag parts
             return ds
         # scale and return as complex values
-        ds_scaled = (scale*(ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))).assign_attrs(ds.attrs).rename('data')
+        ds_complex = (ds.re.astype(np.float32) + 1j*ds.im.astype(np.float32))
         del ds
         # zero in np.int16 type means NODATA
-        return ds_scaled.where(ds_scaled != 0)
+        return ds_complex.where(ds_complex != 0).rename('data')
 
 #     def open_geotif(self, dates=None, subswath=None, intensity=False, chunksize=None):
 #         """
