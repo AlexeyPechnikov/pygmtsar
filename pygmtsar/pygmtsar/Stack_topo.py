@@ -206,31 +206,10 @@ class Stack_topo(Stack_trans_inv):
             minh = 0
         del prm0, offsets
         
-        # dt = minh / prm.get('PRF') / 86400
-        # prm = prm.set(SLC_file=None,
-        #               num_lines=maxy, nrows=maxy, num_valid_az=maxy,
-        #               num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
-        #               SC_clock_start=prm.get('SC_clock_start') + dt,
-        #               clock_start=prm.get('clock_start') + dt,
-        #               SC_clock_stop=prm.get('SC_clock_start') + maxy / prm.get('PRF') / 86400,
-        #               clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400)\
-        #     .to_file(prm_filename)
-        
-        def fix_merged(prm, maxy, maxx, minh):
-            dt1 = minh / prm.get('PRF') / 86400
-            dt2 = maxy / prm.get('PRF') / 86400
-            return prm.set(
-                num_lines=maxy, nrows=maxy, num_valid_az=maxy,
-                num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
-                SC_clock_start=prm.get('SC_clock_start') + dt1,
-                clock_start=prm.get('clock_start') + dt1,
-                SC_clock_stop=prm.get('SC_clock_start') + dt2,
-                clock_stop=prm.get('clock_start') + dt2)
-
         def prepare_prms(pair, *args):
             date1, date2 = pair
-            prm1 = fix_merged(self.PRM(date1), *args)
-            prm2 = fix_merged(self.PRM(date2), *args)
+            prm1 = self.PRM(date1).fix_merged(*args)
+            prm2 = self.PRM(date2).fix_merged(*args)
             prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
             prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
             return (prm1, prm2)

@@ -685,6 +685,18 @@ class PRM(datagrid, PRM_gmtsar):
 
         return pd.concat([df1, df2]).drop_duplicates(keep=False)
 
+    def fix_merged(self, maxy, maxx, minh):
+        dt1 = minh / self.get('PRF') / 86400
+        dt2 = maxy / self.get('PRF') / 86400
+        return self.set(
+            num_lines=maxy, nrows=maxy, num_valid_az=maxy,
+            num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
+            SC_clock_start=self.get('SC_clock_start') + dt1,
+            clock_start=self.get('clock_start') + dt1,
+            SC_clock_stop=self.get('SC_clock_start') + dt2,
+            clock_stop=self.get('clock_start') + dt2
+        )
+
     def fix_aligned(self):
         """
         Correction for the range and azimuth shifts of the re-aligned SLC images (fix_prm_params() in GMTSAR)
