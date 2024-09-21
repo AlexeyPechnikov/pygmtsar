@@ -200,13 +200,11 @@ class Stack_topo(Stack_trans_inv):
             # multiple subswaths
             maxy, maxx = offsets['extent']
             minh = offsets['bottom']
-            dt1 = minh / prm0.get('PRF') / 86400
-            dt2 = maxy / prm0.get('PRF') / 86400
         else:
             # one subswath
-            #maxy, maxx = prm0.get('num_valid_az', 'num_rng_bins')
-            dt1 = dt2 = 0
-        del prm0
+            maxy, maxx = prm0.get('num_valid_az', 'num_rng_bins')
+            minh = 0
+        del prm0, offsets
         
         # dt = minh / prm.get('PRF') / 86400
         # prm = prm.set(SLC_file=None,
@@ -218,25 +216,26 @@ class Stack_topo(Stack_trans_inv):
         #               clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400)\
         #     .to_file(prm_filename)
         
-        def prepare_prms(pair, dt1, dt2):
+        def fix_merged(prm, maxy, maxx, minh):
+            dt1 = minh / prm.get('PRF') / 86400
+            dt2 = maxy / prm.get('PRF') / 86400
+            return prm.set(
+                num_lines=maxy, nrows=maxy, num_valid_az=maxy,
+                num_rng_bins=maxx, bytes_per_line=4*maxx, good_bytes=4*maxx,
+                SC_clock_start=prm.get('SC_clock_start') + dt1,
+                clock_start=prm.get('clock_start') + dt1,
+                SC_clock_stop=prm.get('SC_clock_start') + dt2,
+                clock_stop=prm.get('clock_start') + dt2)
+
+        def prepare_prms(pair, *args):
             date1, date2 = pair
-            prm1 = self.PRM(date1)
-            prm2 = self.PRM(date2)
-            prm2.set(
-                SC_clock_start=prm2.get('SC_clock_start') + dt1,
-                clock_start=prm2.get('clock_start') + dt1,
-                SC_clock_stop=prm2.get('SC_clock_start') + dt2,
-                clock_stop=prm2.get('clock_start') + dt2)\
-            .set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
-            prm1.set(
-                SC_clock_start=prm1.get('SC_clock_start') + dt1,
-                clock_start=prm1.get('clock_start') + dt1,
-                SC_clock_stop=prm1.get('SC_clock_start') + dt2,
-                clock_stop=prm1.get('clock_start') + dt2)\
-            .set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
+            prm1 = fix_merged(self.PRM(date1), *args)
+            prm2 = fix_merged(self.PRM(date2), *args)
+            prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
+            prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
             return (prm1, prm2)
 
-        prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair, dt1, dt2) for pair in pairs)
+        prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair, maxy, maxx, minh) for pair in pairs)
 
         # fill NaNs by 0 and expand to 3d
         topo2d = da.where(da.isnan(topo.data), 0, topo.data)
