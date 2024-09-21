@@ -332,7 +332,7 @@ class IO(datagrid):
                 
                 for subswath, bottom, left, right, ylim, xlim in zip(subswaths, 
                         offsets['bottoms'], offsets['lefts'], offsets['rights'], offsets['ylims'], offsets['xlims']):
-                    print (date, subswath)
+                    #print (date, subswath)
                     prm = self.PRM(date, subswath=int(subswath))
                     # disable scaling
                     slc = prm.read_SLC_int(scale=scale, shape=(ylim, xlim))
