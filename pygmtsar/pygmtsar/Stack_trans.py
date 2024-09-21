@@ -17,9 +17,7 @@ class Stack_trans(Stack_align):
         # select radar coordinates extent
         #rng_max, yvalid, num_patch = self.PRM().get('num_rng_bins', 'num_valid_az', 'num_patches')
         #azi_max = yvalid * num_patch
-        data = self.open_data(dates=[self.reference])
-        rng_max = float(data.x[-1])
-        azi_max = float(data.y[-1])
+        azi_max, rng_max = self.subswaths_offsets()['extent']
         #print ('azi_max', azi_max, 'rng_max', rng_max)
         # this grid covers the full interferogram area
         # common single pixel resolution

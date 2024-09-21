@@ -279,7 +279,13 @@ class Stack_align(Stack_dem):
             subswaths = ''.join(map(str, subswaths))
 
         if len(subswaths) == 1:
-            return
+            prm = self.PRM()
+            maxx, yvalid, num_patch = prm.get('num_rng_bins', 'num_valid_az', 'num_patches')
+            maxy = yvalid * num_patch
+            offsets = {'bottom': 0, 'extent': [maxy, maxx]}
+            if debug:
+                print ('offsets', offsets)
+            return offsets
 
         # calculate the offsets to merge subswaths
         prms = []

@@ -194,17 +194,8 @@ class Stack_topo(Stack_trans_inv):
         # immediately prepare PRM
         # here is some delay on the function call but the actual processing is faster
         offsets = self.subswaths_offsets(debug=debug)
-        # reference scene first subswath
-        prm0 = self.PRM()
-        if offsets is not None:
-            # multiple subswaths
-            maxy, maxx = offsets['extent']
-            minh = offsets['bottom']
-        else:
-            # one subswath
-            maxy, maxx = prm0.get('num_valid_az', 'num_rng_bins')
-            minh = 0
-        del prm0, offsets
+        maxy, maxx = offsets['extent']
+        minh = offsets['bottom']
         
         def prepare_prms(pair, *args):
             date1, date2 = pair
