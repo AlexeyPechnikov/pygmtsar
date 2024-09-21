@@ -197,7 +197,7 @@ class Stack_align(Stack_dem):
         tmp_as = prm2.SAT_llt2rat(coords=[lontie, lattie, 0], precise=1, debug=debug)[1]
         # bursts look equal to rounded result int(np.round(...))
         tmp_da = int(tmp_as - tmp_am)
-        print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
+        #print ('tmp_am', tmp_am, 'tmp_as', tmp_as, 'tmp_da', tmp_da)
 
         # in case the images are offset by more than a burst, shift the super-reference's PRM again
         # so SAT_llt2rat gives precise estimate
