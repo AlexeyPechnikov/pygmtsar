@@ -218,7 +218,7 @@ class Stack_topo(Stack_trans_inv):
         #               clock_stop=prm.get('clock_start') + maxy / prm.get('PRF') / 86400)\
         #     .to_file(prm_filename)
         
-        def prepare_prms(pair, maxy, maxx, dt1, dt2):
+        def prepare_prms(pair, dt1, dt2):
             date1, date2 = pair
             prm1 = self.PRM(date1)
             prm2 = self.PRM(date2)
@@ -236,7 +236,7 @@ class Stack_topo(Stack_trans_inv):
             .set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
             return (prm1, prm2)
 
-        prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair, maxy, maxx, dt1, dt2) for pair in pairs)
+        prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair, dt1, dt2) for pair in pairs)
 
         # fill NaNs by 0 and expand to 3d
         topo2d = da.where(da.isnan(topo.data), 0, topo.data)
