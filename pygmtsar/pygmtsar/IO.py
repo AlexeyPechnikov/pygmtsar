@@ -318,90 +318,11 @@ class IO(datagrid):
                     shape = (slc.y.size, slc.x.size)
                 del slc, prm
         else:
-            # calculate the offsets to merge subswaths
-            prms = []
-            ylims = []
-            xlims = []
-            for subswath in subswaths:
-                #print (subswath)
-                prm = self.PRM(subswath=subswath)
-                prms.append(prm)
-                ylims.append(prm.get('num_valid_az'))
-                xlims.append(prm.get('num_rng_bins'))
-    
-            assert len(np.unique([prm.get('PRF') for prm in prms])), 'Image PRFs are not consistent'
-            assert len(np.unique([prm.get('rng_samp_rate') for prm in prms])), 'Image range sampling rates are not consistent'
-    
-            bottoms = [0] + [int(np.round(((prm.get('clock_start') - prms[0].get('clock_start')) * 86400 * prms[0].get('PRF')))) for prm in prms[1:]]
-            # head123: 0, 466, -408
-            if debug:
-                print ('bottoms init', bottoms)
-            # minh: -408
-            minh = min(bottoms)
-            if debug:
-                print ('minh', minh)
-            #head123: 408, 874, 0
-            bottoms = np.asarray(bottoms) - minh
-            if debug:
-                print ('bottoms', bottoms)
-    
-            #ovl12,23: 2690, 2558
-            ovls = [prm1.get('num_rng_bins') - \
-                    int(np.round(((prm2.get('near_range') - prm1.get('near_range')) / (constants.speed_of_light/ prm1.get('rng_samp_rate') / 2)))) \
-                    for (prm1, prm2) in zip(prms[:-1], prms[1:])]
-            if debug:
-                print ('ovls', ovls)
-    
-            #Writing the grid files..Size(69158x13075)...
-            #maxy: 13075
-            # for SLC
-            maxy = max([prm.get('num_valid_az') + bottom for prm, bottom in zip(prms, bottoms)])
-            if debug:
-                print ('maxy', maxy)
-            maxx = sum([prm.get('num_rng_bins') - ovl - 1 for prm, ovl in zip(prms, [-1] + ovls)])
-            if debug:
-                print ('maxx', maxx)
-    
-            #Stitching location n1 = 1045
-            #Stitching location n2 = 935
-            ns = [np.ceil(-prm.get('rshift') + prm.get('first_sample') + 150.0).astype(int) for prm in prms[1:]]
-            ns = [10 if n < 10 else n for n in ns]
-            if debug:
-                print ('ns', ns)
-    
-            # left and right coordinates for every subswath valid area
-            lefts = []
-            rights = []
-    
-            # 1st
-            xlim = prms[0].get('num_rng_bins') - ovls[0] + ns[0]
-            lefts.append(0)
-            rights.append(xlim)
-    
-            # 2nd
-            if len(prms) == 2:
-                xlim = prms[1].get('num_rng_bins') - 1
-            else:
-                # for 3 subswaths
-                xlim = prms[1].get('num_rng_bins') - ovls[1] + ns[1]
-            lefts.append(ns[0])
-            rights.append(xlim)
-    
-            # 3rd
-            if len(prms) == 3:
-                xlim = prms[2].get('num_rng_bins') - 2
-                lefts.append(ns[1])
-                rights.append(xlim)
-    
-            # check and merge SLCs
-            sumx = sum([right-left for right, left in zip(rights, lefts)])
-            if debug:
-                print ('assert maxx == sum(...)', maxx, sumx)
-            assert maxx == sumx, 'Incorrect output grid range dimension size'
-    
-            offsets = {'bottoms': bottoms, 'lefts': lefts, 'rights': rights, 'bottom': minh, 'extent': [maxy, maxx], 'ylims': ylims, 'xlims': xlims}
-            if debug:
-                print ('offsets', offsets)
+            
+            #offsets = {'bottoms': bottoms, 'lefts': lefts, 'rights': rights, 'bottom': minh, 'extent': [maxy, maxx], 'ylims': ylims, 'xlims': xlims}
+            offsets = self.subswaths_offsets(debug=debug)
+            maxy, maxx = offsets['extent']
+            minh = offsets['bottom']
     
             # merge subswaths
             stack = []
@@ -409,7 +330,8 @@ class IO(datagrid):
                 slcs = []
                 prms = []
                 
-                for subswath, bottom, left, right, ylim, xlim in zip(subswaths, bottoms, lefts, rights, ylims, xlims):
+                for subswath, bottom, left, right, ylim, xlim in zip(subswaths, 
+                        offsets['bottoms'], offsets['lefts'], offsets['rights'], offsets['ylims'], offsets['xlims']):
                     print (date, subswath)
                     prm = self.PRM(date, subswath=int(subswath))
                     # disable scaling
@@ -420,7 +342,7 @@ class IO(datagrid):
         
                 # check and merge SLCs, use zero fill for np.int16 datatype
                 slc = xr.concat(slcs, dim='x', fill_value=0).assign_coords(x=0.5 + np.arange(maxx))
-        
+
                 if debug:
                     print ('assert slc.y.size == maxy', slc.y.size, maxy)
                 assert slc.y.size == maxy, 'Incorrect output grid azimuth dimension size'
