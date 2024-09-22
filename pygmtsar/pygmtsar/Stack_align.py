@@ -481,7 +481,7 @@ class Stack_align(Stack_dem):
 
         # prepare reference scene
         #self.stack_ref()
-        with self.tqdm_joblib(tqdm(desc='Aligning Reference', total=len(subswaths))) as progress_bar:
+        with self.tqdm_joblib(tqdm(desc='Preparing Reference', total=len(subswaths))) as progress_bar:
             joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(self._align_ref_subswath)(subswath, debug=debug) for subswath in subswaths)
 
         # prepare secondary images
