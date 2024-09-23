@@ -11,13 +11,15 @@ from .datagrid import datagrid
 from .PRM_gmtsar import PRM_gmtsar
 
 class PRM(datagrid, PRM_gmtsar):
+    
+    int_types = ['num_valid_az', 'num_rng_bins', 'num_patches', 'bytes_per_line', 'good_bytes_per_line', 'num_lines','SC_identity']
 
     @staticmethod
     def to_numeric_or_original(val):
         if isinstance(val, str):
             try:
                 float_val = float(val)
-                return int(float_val) if float_val.is_integer() else float_val
+                return float_val
             except ValueError:
                 return val
         return val
@@ -341,7 +343,7 @@ class PRM(datagrid, PRM_gmtsar):
             return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
 
     # use 'g' format for Python and numpy float values
-    def set(self, prm=None, gformat=False, **kwargs):
+    def set(self, prm=None, **kwargs):
         """
         Set PRM values.
 
@@ -349,8 +351,6 @@ class PRM(datagrid, PRM_gmtsar):
         ----------
         prm : PRM, optional
             The PRM object to set values from. Default is None.
-        gformat : bool, optional
-            Whether to use 'g' format for float values. Default is False.
         **kwargs
             Additional keyword arguments for setting individual values.
 
@@ -367,8 +367,7 @@ class PRM(datagrid, PRM_gmtsar):
         elif prm is not None:
             raise Exception('Arguments is not a PRM object')
         for key, value in kwargs.items():
-            self.df.loc[key] = float(format(value, 'g')) if gformat and type(value) \
-                in [float, np.float16, np.float32, np.float64] else value
+            self.df.loc[key] = value
         return self
 
     def to_dataframe(self):
@@ -528,7 +527,8 @@ class PRM(datagrid, PRM_gmtsar):
             The values of the specified attributes. If only one attribute is requested, 
             return its value directly. If multiple attributes are requested, return a list of values.
         """
-        out = [self.df.loc[[key]].iloc[0].values[0] for key in args]
+        vals = [self.df.loc[[key]].iloc[0].values[0] for key in args]
+        out = [int(v) if k in self.int_types else v for (k, v) in zip(args,vals)]
         if len(out) == 1:
             return out[0]
         return out
@@ -640,8 +640,7 @@ class PRM(datagrid, PRM_gmtsar):
 
         # note: Python x % y expression and nympy results are different to C, use math function
         # use 'g' format for float values as in original GMTSAR codes to easy compare results
-        prm = PRM().set(gformat=True,
-                        rshift     =int(rshift) if rshift>=0 else int(rshift)-1,
+        prm = PRM().set(rshift     =int(rshift) if rshift>=0 else int(rshift)-1,
                         sub_int_r  =math.fmod(rshift, 1)  if rshift>=0 else math.fmod(rshift, 1) + 1,
                         stretch_r  =rng_coef[1]*2/(scale_coef[1]-scale_coef[0]),
                         a_stretch_r=rng_coef[2]*2/(scale_coef[3]-scale_coef[2]),
@@ -717,7 +716,9 @@ class PRM(datagrid, PRM_gmtsar):
         SC_clock_stop = SC_clock_start + \
             (self.get('num_valid_az') * self.get('num_patches')) / (self.get('PRF') * 86400.0)
     
-        return self.set(near_range=near_range, SC_clock_start=SC_clock_start, SC_clock_stop=SC_clock_stop)
+        return self.set(near_range=near_range,
+                        SC_clock_start=SC_clock_start,
+                        SC_clock_stop=SC_clock_stop)
 
 #     # note: only one dimension chunked due to sequential file writing 
 #     def write_SLC_int(self, data):
