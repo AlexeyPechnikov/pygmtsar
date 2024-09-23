@@ -39,7 +39,7 @@ class Stack_prm(Stack_base):
         if date is None:
             date == self.reference
 
-        prefix = self.multistem_stem(subswath, date)
+        prefix = self.get_subswath_prefix(subswath, date)
         filename = os.path.join(self.basedir, f'{prefix}.PRM')
         return PRM.from_file(filename)
         

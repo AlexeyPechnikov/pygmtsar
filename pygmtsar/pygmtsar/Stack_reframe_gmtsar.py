@@ -43,7 +43,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
 
         orbit = os.path.relpath(df['orbitpath'].iloc[0], self.basedir)
 
-        prefix = self.multistem_stem(subswath, date)
+        prefix = self.get_subswath_prefix(subswath, date)
         
         argv = ['ext_orb_s1a', f'{prefix}.PRM', orbit, prefix]
         if debug:
@@ -108,7 +108,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
         # TODO: use subswath
         xmlfile = os.path.relpath(df['metapath'].iloc[0], self.basedir)
         datafile = os.path.relpath(df['datapath'].iloc[0], self.basedir)
-        prefix = self.multistem_stem(subswath, date)
+        prefix = self.get_subswath_prefix(subswath, date)
 
         argv = ['make_s1a_tops', xmlfile, datafile, prefix, str(mode)]
         if rshift_fromfile is not None:
@@ -173,7 +173,7 @@ class Stack_reframe_gmtsar(Stack_orbits):
         else:
             datapaths = [os.path.relpath(path, self.basedir)[:-5] for path in df['datapath']]
         #print ('datapaths', datapaths)
-        prefix = self.multistem_stem(subswath, date)
+        prefix = self.get_subswath_prefix(subswath, date)
 
         # round values and convert to strings
         azi_1 = np.round(azi_1).astype(int).astype(str)

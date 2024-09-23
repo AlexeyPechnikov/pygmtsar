@@ -116,7 +116,7 @@ class Stack_align(Stack_dem):
         #print (reference_line)
 
         # for reference scene
-        prefix = self.multistem_stem(subswath)
+        prefix = self.get_subswath_prefix(subswath)
         path_prefix = os.path.join(self.basedir, prefix)
 
         # generate PRM, LED, SLC
@@ -156,7 +156,7 @@ class Stack_align(Stack_dem):
         # temporary filenames to be removed
         cleanup = []
 
-        ref_prefix = self.multistem_stem(subswath)
+        ref_prefix = self.get_subswath_prefix(subswath)
 
         # define reference image parameters
         earth_radius = self.PRM(subswath=subswath).get('earth_radius')
@@ -166,7 +166,7 @@ class Stack_align(Stack_dem):
         topo_llt = self._get_topo_llt(subswath, degrees=degrees)
         #topo_llt.shape
 
-        rep_prefix = self.multistem_stem(subswath, date)
+        rep_prefix = self.get_subswath_prefix(subswath, date)
 
         # define relative filenames for PRM
         rep_prm    = os.path.join(self.basedir, rep_prefix + '.PRM')
@@ -310,7 +310,7 @@ class Stack_align(Stack_dem):
         dates = self.df[self.df.subswath==subswath].date
 
         def get_filename(date):
-            stem = self.multistem_stem(subswath, date)
+            stem = self.get_subswath_prefix(subswath, date)
             filename = os.path.join(self.basedir, f'{stem}.PRM')
             return filename
 

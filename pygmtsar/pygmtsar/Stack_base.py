@@ -31,7 +31,7 @@ class Stack_base(tqdm_joblib, IO):
         """
         return self.df
 
-    def multistem_stem(self, subswath, date=None):
+    def get_subswath_prefix(self, subswath, date=None):
         """
         Define stem and multistem using date  
         """
@@ -41,10 +41,9 @@ class Stack_base(tqdm_joblib, IO):
         if date is None:
             date = self.reference
     
-        assert len(date)==10, 'ERROR: multistem_stem date format is not yyyy-mm-dd'
+        assert len(date)==10, 'ERROR: date format is not yyyy-mm-dd'
 
-        prefix = f'{date}_F{subswath}'
-        return prefix
+        return f'{date}_F{subswath}'
 
     def set_reference(self, reference):
         """

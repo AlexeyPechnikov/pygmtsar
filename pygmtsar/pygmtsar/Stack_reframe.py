@@ -75,7 +75,7 @@ class Stack_reframe(Stack_reframe_gmtsar):
         df = self.get_repeat(subswath, date)
         if debug:
             print('DEBUG: reframe scenes: ', len(df))
-        prefix = self.multistem_stem(subswath, date)
+        prefix = self.get_subswath_prefix(subswath, date)
         if debug:
             print ('DEBUG: ','prefix', prefix)
 
