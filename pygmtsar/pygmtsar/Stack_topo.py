@@ -128,7 +128,8 @@ class Stack_topo(Stack_trans_inv):
 
             # compute the time span and the time spacing
             tspan = 86400 * abs(prm2.get('SC_clock_stop') - prm2.get('SC_clock_start'))
-            assert (tspan >= 0.01) and (prm2.get('PRF') >= 0.01), 'Check sc_clock_start, sc_clock_end, or PRF'
+            assert (tspan >= 0.01) and (prm2.get('PRF') >= 0.01), \
+                f"ERROR in sc_clock_start={prm2.get('SC_clock_start')}, sc_clock_stop={prm2.get('SC_clock_stop')}, or PRF={prm2.get('PRF')}"
 
             # setup the default parameters
             drange = constants.speed_of_light / (2 * prm2.get('rng_samp_rate'))
@@ -193,19 +194,17 @@ class Stack_topo(Stack_trans_inv):
 
         # immediately prepare PRM
         # here is some delay on the function call but the actual processing is faster
-        offsets = self.subswaths_offsets(debug=debug)
-        maxy, maxx = offsets['extent']
-        minh = offsets['bottom']
-        
-        def prepare_prms(pair, *args):
+        # define offset once to apply to all the PRMs
+        offsets = self.prm_offsets(debug=debug)
+        def prepare_prms(pair, offsets):
             date1, date2 = pair
-            prm1 = self.PRM(date1).fix_merged(*args)
-            prm2 = self.PRM(date2).fix_merged(*args)
+            prm1 = self.PRM_merged(date1, offsets=offsets)
+            prm2 = self.PRM_merged(date2, offsets=offsets)
             prm2.set(prm1.SAT_baseline(prm2, tail=9)).fix_aligned()
             prm1.set(prm1.SAT_baseline(prm1).sel('SC_height','SC_height_start','SC_height_end')).fix_aligned()
             return (prm1, prm2)
 
-        prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair, maxy, maxx, minh) for pair in pairs)
+        prms = joblib.Parallel(n_jobs=-1)(joblib.delayed(prepare_prms)(pair, offsets) for pair in pairs)
 
         # fill NaNs by 0 and expand to 3d
         topo2d = da.where(da.isnan(topo.data), 0, topo.data)

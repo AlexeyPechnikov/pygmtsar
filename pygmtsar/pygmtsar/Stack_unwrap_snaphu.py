@@ -184,7 +184,7 @@ class Stack_unwrap_snaphu(Stack_landmask):
         import os
         import joblib
 
-        tiledir = os.path.splitext(self.PRM().filename)[0]
+        tiledir = os.path.splitext(self.PRM_merged().filename)[0]
         n_jobs = joblib.cpu_count()
 
         conf_basic = f"""

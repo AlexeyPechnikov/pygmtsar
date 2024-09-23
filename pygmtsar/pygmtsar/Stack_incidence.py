@@ -296,7 +296,7 @@ class Stack_incidence(Stack_geocode):
 
         # constant is negative to make LOS = -1 * range change
         # constant is (1000 mm) / (4 * pi)
-        scale = -79.58 * self.PRM().get('radar_wavelength')
+        scale = -79.58 * self.PRM_merged().get('radar_wavelength')
 
         if isinstance(data, (list, tuple)):
             return scale*np.asarray(data)
@@ -438,7 +438,7 @@ class Stack_incidence(Stack_geocode):
 
         # expected accuracy about 0.01%
         #wavelength, slant_range = self.PRM().get('radar_wavelength','SC_height')
-        wavelength, slant_range_start,slant_range_end = self.PRM().get('radar_wavelength', 'SC_height_start', 'SC_height_end')
+        wavelength, slant_range_start,slant_range_end = self.PRM_merged().get('radar_wavelength', 'SC_height_start', 'SC_height_end')
 
         incidence_angle = self.incidence_angle()
         slant_range = xr.DataArray(np.linspace(slant_range_start,slant_range_end, incidence_angle.shape[1]),
@@ -465,7 +465,7 @@ class Stack_incidence(Stack_geocode):
         def SAT_look(z, lat, lon):
             coords = np.column_stack([lon.ravel(), lat.ravel(), z.ravel()])
             # look_E look_N look_U
-            look = self.PRM().SAT_look(coords, binary=True)\
+            look = self.PRM_merged().SAT_look(coords, binary=True)\
                                      .astype(np.float32)\
                                      .reshape(z.shape[0], z.shape[1], 6)[...,3:]
             return look

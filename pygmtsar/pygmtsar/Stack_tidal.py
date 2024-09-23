@@ -271,7 +271,7 @@ class Stack_tidal(Stack_incidence):
         stdin_data = buffer.getvalue()
         #print ('stdin_data', stdin_data)
 
-        SC_clock_start, SC_clock_stop = self.PRM(date).get('SC_clock_start', 'SC_clock_stop')
+        SC_clock_start, SC_clock_stop = self.PRM_merged(date).get('SC_clock_start', 'SC_clock_stop')
         dt = (SC_clock_start + SC_clock_stop)/2
         argv = ['solid_tide', str(dt)]
         #cwd = os.path.dirname(self.filename) if self.filename is not None else '.'

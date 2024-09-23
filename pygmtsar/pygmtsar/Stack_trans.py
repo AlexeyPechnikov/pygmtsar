@@ -17,7 +17,7 @@ class Stack_trans(Stack_align):
         # select radar coordinates extent
         #rng_max, yvalid, num_patch = self.PRM().get('num_rng_bins', 'num_valid_az', 'num_patches')
         #azi_max = yvalid * num_patch
-        azi_max, rng_max = self.subswaths_offsets()['extent']
+        azi_max, rng_max = self.prm_offsets()['extent']
         #print ('azi_max', azi_max, 'rng_max', rng_max)
         # this grid covers the full interferogram area
         # common single pixel resolution
@@ -99,7 +99,7 @@ class Stack_trans(Stack_align):
 
         coarsen = self.get_coarsen(coarsen)
 
-        prm = self.PRM()
+        prm = self.PRM_merged()
         def SAT_llt2rat(lats, lons, zs):
             # for binary=True values outside of the scene missed and the array is not complete
             # 4th and 5th coordinates are the same as input lat, lon

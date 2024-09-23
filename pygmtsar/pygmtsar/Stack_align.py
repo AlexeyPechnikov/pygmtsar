@@ -73,7 +73,10 @@ class Stack_align(Stack_dem):
         warnings.filterwarnings('ignore')
 
         # add buffer around the cropped area for borders interpolation
-        dem_area = self.get_dem(subswath)
+        dem_area = self.get_dem()
+        
+        # TBD: crop dem to subswath
+        
         ny = int(np.round(degrees/dem_area.lat.diff('lat')[0]))
         nx = int(np.round(degrees/dem_area.lon.diff('lon')[0]))
         if debug:
@@ -268,111 +271,6 @@ class Stack_align(Stack_dem):
         for filename in cleanup:
             #if os.path.exists(filename):
             os.remove(filename)
-
-    def subswaths_offsets(self, debug=False):
-        import xarray as xr
-        import numpy as np
-        from scipy import constants
-
-        subswaths = self.get_subswaths()
-        if not isinstance(subswaths, (str, int)):
-            subswaths = ''.join(map(str, subswaths))
-
-        if len(subswaths) == 1:
-            prm = self.PRM()
-            maxx, yvalid, num_patch = prm.get('num_rng_bins', 'num_valid_az', 'num_patches')
-            maxy = yvalid * num_patch
-            offsets = {'bottom': 0, 'extent': [maxy, maxx]}
-            if debug:
-                print ('offsets', offsets)
-            return offsets
-
-        # calculate the offsets to merge subswaths
-        prms = []
-        ylims = []
-        xlims = []
-        for subswath in subswaths:
-            #print (subswath)
-            prm = self.PRM(subswath=subswath)
-            prms.append(prm)
-            ylims.append(prm.get('num_valid_az'))
-            xlims.append(prm.get('num_rng_bins'))
-
-        assert len(np.unique([prm.get('PRF') for prm in prms])), 'Image PRFs are not consistent'
-        assert len(np.unique([prm.get('rng_samp_rate') for prm in prms])), 'Image range sampling rates are not consistent'
-
-        bottoms = [0] + [int(np.round(((prm.get('clock_start') - prms[0].get('clock_start')) * 86400 * prms[0].get('PRF')))) for prm in prms[1:]]
-        # head123: 0, 466, -408
-        if debug:
-            print ('bottoms init', bottoms)
-        # minh: -408
-        minh = min(bottoms)
-        if debug:
-            print ('minh', minh)
-        #head123: 408, 874, 0
-        bottoms = np.asarray(bottoms) - minh
-        if debug:
-            print ('bottoms', bottoms)
-
-        #ovl12,23: 2690, 2558
-        ovls = [prm1.get('num_rng_bins') - \
-                int(np.round(((prm2.get('near_range') - prm1.get('near_range')) / (constants.speed_of_light/ prm1.get('rng_samp_rate') / 2)))) \
-                for (prm1, prm2) in zip(prms[:-1], prms[1:])]
-        if debug:
-            print ('ovls', ovls)
-
-        #Writing the grid files..Size(69158x13075)...
-        #maxy: 13075
-        # for SLC
-        maxy = max([prm.get('num_valid_az') + bottom for prm, bottom in zip(prms, bottoms)])
-        if debug:
-            print ('maxy', maxy)
-        maxx = sum([prm.get('num_rng_bins') - ovl - 1 for prm, ovl in zip(prms, [-1] + ovls)])
-        if debug:
-            print ('maxx', maxx)
-
-        #Stitching location n1 = 1045
-        #Stitching location n2 = 935
-        ns = [np.ceil(-prm.get('rshift') + prm.get('first_sample') + 150.0).astype(int) for prm in prms[1:]]
-        ns = [10 if n < 10 else n for n in ns]
-        if debug:
-            print ('ns', ns)
-
-        # left and right coordinates for every subswath valid area
-        lefts = []
-        rights = []
-
-        # 1st
-        xlim = prms[0].get('num_rng_bins') - ovls[0] + ns[0]
-        lefts.append(0)
-        rights.append(xlim)
-
-        # 2nd
-        if len(prms) == 2:
-            xlim = prms[1].get('num_rng_bins') - 1
-        else:
-            # for 3 subswaths
-            xlim = prms[1].get('num_rng_bins') - ovls[1] + ns[1]
-        lefts.append(ns[0])
-        rights.append(xlim)
-
-        # 3rd
-        if len(prms) == 3:
-            xlim = prms[2].get('num_rng_bins') - 2
-            lefts.append(ns[1])
-            rights.append(xlim)
-
-        # check and merge SLCs
-        sumx = sum([right-left for right, left in zip(rights, lefts)])
-        if debug:
-            print ('assert maxx == sum(...)', maxx, sumx)
-        assert maxx == sumx, 'Incorrect output grid range dimension size'
-
-        offsets = {'bottoms': bottoms, 'lefts': lefts, 'rights': rights, 'bottom': minh, 'extent': [maxy, maxx], 'ylims': ylims, 'xlims': xlims}
-        if debug:
-            print ('offsets', offsets)
-
-        return offsets
 
     def baseline_table(self, n_jobs=-1, debug=False):
         """

@@ -90,10 +90,10 @@ class Stack_sbas(Stack_detrend):
             import pandas as pd
             import numpy as np
     
-            prm_ref = self.PRM()
+            prm_ref = self.PRM_merged()
             data = []
             for date in dates:
-                prm_rep = self.PRM(date)
+                prm_rep = self.PRM_merged(date)
                 BPL, BPR = prm_ref.SAT_baseline(prm_rep).get('B_parallel', 'B_perpendicular')
                 data.append({'date':date, 'BPL':BPL, 'BPR':BPR})
             df = pd.DataFrame(data).set_index('date')

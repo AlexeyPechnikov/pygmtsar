@@ -282,6 +282,7 @@ class IO(datagrid):
 #         return ds_scaled.where(ds_scaled != 0)
 
     # 2.5e-07 is Sentinel-1 scale factor
+    # use original PRM files to get binary subswath file locations
     def open_data(self, dates=None, scale=2.5e-07, debug=False):
         import xarray as xr
         import pandas as pd
@@ -301,10 +302,6 @@ class IO(datagrid):
         if not isinstance(subswaths, (str, int)):
             subswaths = ''.join(map(str, subswaths))
 
-        # DEM extent in radar coordinates, merged reference PRM required
-        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
-        extent_ra = np.round(self.get_extent_ra(subswath=subswaths[0]).bounds).astype(int)
-
         if len(subswaths) == 1:
             # stack single subswath
             stack = []
@@ -320,7 +317,7 @@ class IO(datagrid):
         else:
             
             #offsets = {'bottoms': bottoms, 'lefts': lefts, 'rights': rights, 'bottom': minh, 'extent': [maxy, maxx], 'ylims': ylims, 'xlims': xlims}
-            offsets = self.subswaths_offsets(debug=debug)
+            offsets = self.prm_offsets(debug=debug)
             maxy, maxx = offsets['extent']
             minh = offsets['bottom']
     
@@ -354,6 +351,9 @@ class IO(datagrid):
                 stack.append(slc.assign_coords(date=date))
                 del slc
 
+        # DEM extent in radar coordinates, merged reference PRM required
+        #print ('minx, miny, maxx, maxy', minx, miny, maxx, maxy)
+        extent_ra = np.round(self.get_extent_ra().bounds).astype(int)
         # minx, miny, maxx, maxy = extent_ra
         ds = xr.concat(stack, dim='date').assign(date=pd.to_datetime(dates))\
             .sel(y=slice(extent_ra[1], extent_ra[3]), x=slice(extent_ra[0], extent_ra[2])) \

@@ -16,7 +16,7 @@ class Stack_dem(Stack_reframe):
 
     buffer_degrees = 0.02
 
-    def get_extent_ra(self, subswath=None):
+    def get_extent_ra(self):
         """
         minx, miny, maxx, maxy = np.round(geom.bounds).astype(int)
         """
@@ -25,7 +25,7 @@ class Stack_dem(Stack_reframe):
 
         dem = self.get_dem()
         df = dem.isel(lon=[0,-1]).to_dataframe().reset_index()
-        geom = self.geocode(LineString(np.column_stack([df.lon, df.lat])), subswath=subswath)
+        geom = self.geocode(LineString(np.column_stack([df.lon, df.lat])))
         return geom
 
 #     def get_extent(self, grid=None, subswath=None):
@@ -110,14 +110,12 @@ class Stack_dem(Stack_reframe):
     # 0.02 degrees works well worldwide but not in Siberia
     # minimum buffer size: 8 arc seconds for 90 m DEM
     # subswath argument is required for aligning
-    def get_dem(self, subswath=None):
+    def get_dem(self):
         """
         Retrieve the digital elevation model (DEM) data.
 
         Parameters
         ----------
-        subswath : str, optional
-            Subswath name. Default is None.
 
         Returns
         -------
@@ -131,11 +129,7 @@ class Stack_dem(Stack_reframe):
 
         Examples
         --------
-        Get DEM for all the processed subswaths:
         topo_ll = stack.get_dem()
-
-        Get DEM for a single subswath IW1:
-        topo_ll = stack.get_dem(1)
 
         Notes
         -----
@@ -167,8 +161,8 @@ class Stack_dem(Stack_reframe):
         dem['lat'] = dem.lat.round(8)
         dem['lon'] = dem.lon.round(8)
 
-        # crop to reference scene and subswath if defined
-        bounds = self.get_bounds(self.get_reference(subswath))
+        # crop to reference scene
+        bounds = self.get_bounds(self.get_reference())
         return dem\
                .transpose('lat','lon')\
                .sel(lat=slice(bounds[1] - self.buffer_degrees, bounds[3] + self.buffer_degrees),

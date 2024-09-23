@@ -56,7 +56,7 @@ class Stack_geocode(Stack_sbas):
     # coarsen=4:
     # nearest: coords [array([596.42352295]), array([16978.65625])]
     # linear:  coords [array([597.1080563]), array([16977.35608873])]
-    def geocode(self, geometry, subswath=None, z_offset=None):
+    def geocode(self, geometry, z_offset=None):
         """
         Inverse geocode input geodataframe with 2D or 3D points. 
 
@@ -87,7 +87,7 @@ class Stack_geocode(Stack_sbas):
             geometries = [geometry]
     
         dem = self.get_dem()
-        prm = self.PRM(subswath=subswath)
+        prm = self.PRM_merged()
     
         def coords_transform(coords):
             # uses external variables dem, prm
