@@ -198,8 +198,8 @@ class Stack_trans(Stack_align):
         #print ('borders', borders)
 
         # process the area
-        lats = np.linspace(dem.lat[0], dem.lat[-1], azi_steps)
-        lons = np.linspace(dem.lon[0], dem.lon[-1], rng_steps)
+        lats = np.linspace(dem.lat.values[0], dem.lat.values[-1], azi_steps)
+        lons = np.linspace(dem.lon.values[0], dem.lon.values[-1], rng_steps)
         #print ('lats', lats, 'lons', lons)
         #print ('lats.size', lats.size, 'lons.size', lons.size)
 

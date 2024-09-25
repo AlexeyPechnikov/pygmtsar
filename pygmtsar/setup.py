@@ -45,7 +45,7 @@ setup(
         'pygmtsar': ['data/geoid_egm96_icgem.grd','data/google_colab.sh'],
     },
     install_requires=['xarray>=2024.1.0',
-                      'numpy<2',
+                      'numpy',
                       'numba',
                       'pandas>=2.2',
                       'geopandas',
