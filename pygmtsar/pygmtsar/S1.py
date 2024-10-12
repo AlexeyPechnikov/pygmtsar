@@ -175,7 +175,7 @@ class S1(tqdm_joblib):
         return orbits['orbit']
 
     @staticmethod
-    def scan_slc(datadir, orbit=None, mission=None, subswath=None, polarization=None):
+    def scan_slc(datadir, orbit=None, mission=None, subswath=None, polarization=None, calibration=False):
         """
         Scans the specified directory for Sentinel-1 SLC (Single Look Complex) data and filters it based on the provided parameters.
     
@@ -268,14 +268,27 @@ class S1(tqdm_joblib):
         #print ('datapaths', datapaths)
         metapaths = pattern2paths(path_pattern + '.xml')
         #print ('metapaths', metapaths)
+        if calibration:
+            noisepaths = pattern2paths('noise-' + path_pattern + '.xml')
+            #print ('noisepaths', noisepaths)
+            calibpaths = pattern2paths('calibration-' + path_pattern + '.xml')
+            #print ('calibpaths', calibpaths)
 
         datanames = [os.path.splitext(os.path.split(path)[-1])[0] for path in datapaths]
         #print ('datanames', datanames)
         metanames = [os.path.splitext(os.path.split(path)[-1])[0] for path in metapaths]
         #print ('metanames', metanames)
+        if calibration:
+            noisenames = [os.path.splitext(os.path.split(path)[-1])[0][6:] for path in noisepaths]
+            #print ('noisenames', noisenames)
+            calibnames = [os.path.splitext(os.path.split(path)[-1])[0][12:] for path in calibpaths]
+            #print ('calibnames', calibnames)
 
         datas = dict(zip(datanames, datapaths))
         metas = dict(zip(metanames, metapaths))
+        if calibration:
+            noises = dict(zip(noisenames, noisepaths))
+            calibs = dict(zip(calibnames, calibpaths))
 
         # define the same order when and only when the names are the same
         datanames = sorted(datanames)
@@ -284,6 +297,13 @@ class S1(tqdm_joblib):
         # reorder paths using the same order
         datapaths = [datas[name] for name in datanames]
         metapaths = [metas[name] for name in metanames]
+        if calibration:
+            noisenames = sorted(noisenames)
+            calibnames = sorted(calibnames)
+            assert datanames == noisenames, 'Found inconsistent set of .xml files'
+            assert noisenames == calibnames, 'Found inconsistent set of calibration .xml files'
+            noisepaths = [noises[name] for name in noisenames]
+            calibpaths = [calibs[name] for name in calibnames]
 
         # points to datadir and extensions tiff, xml
         #print ('filenames', filenames)
@@ -293,7 +313,14 @@ class S1(tqdm_joblib):
         ds = [dt.date() for dt in dts]
         #print ('filedates', ds)
 
-        df = pd.DataFrame({'date':[str(d) for d in ds], 'datetime': dts, 'datapath': datapaths, 'metapath': metapaths})
+        df = pd.DataFrame({
+                            'date':[str(d) for d in ds],
+                            'datetime': dts,
+                            'datapath': datapaths,
+                            'metapath': metapaths,
+                            'noisepath': noisepaths if calibration else len(dts)*[None],
+                            'calibpath': calibpaths if calibration else len(dts)*[None]
+                           })
         #print ('df', df)
         assert len(df), f'Scenes not found'
 
@@ -342,7 +369,7 @@ class S1(tqdm_joblib):
 
         # see https://github.com/mobigroup/gmtsar/issues/8
         df = df.sort_values(by=['date', 'subswath']).set_index('date')\
-            [['datetime','orbit','mission','polarization','subswath','datapath','metapath','orbitpath','geometry']]
+            [['datetime','orbit','mission','polarization','subswath','datapath','metapath','noisepath','calibpath','orbitpath','geometry']]
 
         # Validate the DataFrame to check for any issues or inconsistencies.
         # we can't merge together scenes from different missions
