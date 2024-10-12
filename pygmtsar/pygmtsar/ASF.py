@@ -15,9 +15,10 @@ class ASF(tqdm_joblib):
     from datetime import timedelta
 
     template_url = 'https://datapool.asf.alaska.edu/SLC/S{satellite}/{scene}.zip'
-    template_safe = '*.SAFE/*/{mission}-iw{subswath}-slc-{polarization}-*'
+    template_safe = '*.SAFE/**/*{mission}-iw{subswath}-slc-{polarization}-*'
     # check for downloaded scene files
     template_scene = 'S1?_IW_SLC__1S??_{start}_*.SAFE/*/s1?-iw{subswath_lowercase}-slc-{polarization_lowercase}-{start_lowercase}-*'
+    template_scene_safe = 'S1?_IW_SLC__1S??_{start}_*.SAFE/**/*s1?-iw{subswath_lowercase}-slc-{polarization_lowercase}-{start_lowercase}-*'
 
     def __init__(self, username=None, password=None):
         import asf_search
@@ -141,7 +142,7 @@ class ASF(tqdm_joblib):
             #scenes_missed = np.unique([scene for scene in scenes if f'{scene}.SAFE' not in files])
             scenes_missed = []
             for scene in scenes:
-                scene_path = '/'.join([scene + '.SAFE'] + self.template_scene.split('/')[1:])
+                scene_path = '/'.join([scene + '.SAFE'] + self.template_scene_safe.split('/')[1:])
                 #print ('scene_path', scene_path)
                 for subswath in str(subswaths):
                     pattern = scene_path.format(
@@ -151,7 +152,7 @@ class ASF(tqdm_joblib):
                     #print ('pattern', pattern)
                     matching = [filename for filename in files if fnmatch.fnmatch(filename, pattern)]
                     exts = [os.path.splitext(fname)[1] for fname in matching]
-                    if '.tiff' in exts and '.xml'in exts:
+                    if '.tiff' in exts and '.xml' in exts and len(matching)>=4:
                         pass
                     else:
                         scenes_missed.append(scene)
@@ -267,6 +268,7 @@ class ASF(tqdm_joblib):
         pandas.DataFrame
             A DataFrame containing the list of downloaded bursts.
         """
+        import numpy as np
         import rioxarray as rio
         from tifffile import TiffFile
         import xmltodict
@@ -360,12 +362,15 @@ class ASF(tqdm_joblib):
             # create the directories if needed
             tif_dir = os.path.join(scene_dir, 'measurement')
             xml_dir = os.path.join(scene_dir, 'annotation')
+            xml_calib_dir = os.path.join(xml_dir, 'calibration')
             # save annotation using the burst and scene names
             xml_file = os.path.join(xml_dir, burst + '.xml')
+            xml_noise_file = os.path.join(xml_calib_dir, 'noise-' + burst + '.xml')
+            xml_calib_file = os.path.join(xml_calib_dir, 'calibration-' + burst + '.xml')
             #rint ('xml_file', xml_file)
             tif_file = os.path.join(tif_dir, burst + '.tiff')
             #print ('tif_file', tif_file)
-            for dirname in [scene_dir, tif_dir, xml_dir]:
+            for dirname in [scene_dir, tif_dir, xml_dir, xml_calib_dir]:
                 os.makedirs(dirname, exist_ok=True)
 
             # download tif
@@ -406,7 +411,9 @@ class ASF(tqdm_joblib):
                     os.rename(tmp_file, tif_file)
 
             # download xml
-            if os.path.exists(xml_file) and os.path.getsize(xml_file) > 0:
+            if os.path.exists(xml_file) and os.path.getsize(xml_file) > 0 \
+                and os.path.exists(xml_noise_file) and os.path.getsize(xml_noise_file) > 0 \
+                and os.path.exists(xml_calib_file) and os.path.getsize(xml_calib_file) > 0:
                 #print (f'pass {xml_file}')
                 pass
             else:
@@ -515,6 +522,70 @@ class ASF(tqdm_joblib):
 
                 with open(xml_file, 'w') as file:
                     file.write(xmltodict.unparse({'product': product}, pretty=True, indent='  '))
+
+                # output noise xml
+                content = xmltodict.parse(xml_content)['burst']['metadata']['noise'][subswathidx]
+                assert polarization == content['polarisation'], 'ERROR: XML polarization differs from burst polarization'
+                annotation = content['content']
+
+                noise = {}
+
+                adsHeader = annotation['adsHeader']
+                adsHeader['startTime'] = start_utc
+                adsHeader['stopTime'] = stop_utc
+                adsHeader['imageNumber'] = '001'
+                noise = noise   | {'adsHeader': adsHeader}
+
+                noiseRangeVector = annotation['noiseRangeVectorList']
+                items = filter_azimuth_time(noiseRangeVector['noiseRangeVector'], start_utc_dt, stop_utc_dt)
+                noiseRangeVector = {'@count': len(items), 'noiseRangeVector': items}
+                noise = noise   | {'noiseRangeVectorList': noiseRangeVector}
+
+                noiseAzimuthVector = annotation['noiseAzimuthVectorList']
+                lines = noiseAzimuthVector['noiseAzimuthVector']['line']['#text']
+                lines = np.asarray(lines.split(' '), dtype=int)
+                lowers = lines[lines <= burstIndex * int(length)]
+                uppers = lines[lines >= (burstIndex + 1) * int(length) - 1]
+                assert len(lowers) & len(uppers), 'ERROR: Not found valid items in noiseAzimuthVectorList'
+                mask = (lines>=lowers[-1])&(lines<=uppers[0])
+                items = lines[mask].astype(str).tolist()
+                noiseAzimuthVector['noiseAzimuthVector']['firstAzimuthLine'] = lowers[-1]
+                noiseAzimuthVector['noiseAzimuthVector']['lastAzimuthLine'] = uppers[0]
+                noiseAzimuthVector['noiseAzimuthVector']['line'] = {'@count': len(items), '#text': ' '.join(items)}
+                lines = noiseAzimuthVector['noiseAzimuthVector']['noiseAzimuthLut']['#text']
+                lines = np.asarray(lines.split(' '))
+                items = lines[mask]
+                noiseAzimuthVector['noiseAzimuthVector']['noiseAzimuthLut'] = {'@count': len(items), '#text': ' '.join(items)}
+                # noiseRangeVector = annotation['noiseRangeVectorList']
+                # items = filter_azimuth_time(noiseRangeVectorList['noiseRangeVector'], start_utc_dt, stop_utc_dt)
+                # noiseRangeVector = {'@count': len(items), 'noiseRangeVector': items}
+                noise = noise   | {'noiseAzimuthVectorList': noiseAzimuthVector}
+
+                with open(xml_noise_file, 'w') as file:
+                    file.write(xmltodict.unparse({'noise': noise}, pretty=True, indent='  '))
+
+                # output calibration xml
+                content = xmltodict.parse(xml_content)['burst']['metadata']['calibration'][subswathidx]
+                assert polarization == content['polarisation'], 'ERROR: XML polarization differs from burst polarization'
+                annotation = content['content']
+
+                calibration = {}
+
+                adsHeader = annotation['adsHeader']
+                adsHeader['startTime'] = start_utc
+                adsHeader['stopTime'] = stop_utc
+                adsHeader['imageNumber'] = '001'
+                calibration = calibration   | {'adsHeader': adsHeader}
+
+                calibration = calibration   | {'calibrationInformation': annotation['calibrationInformation']}
+
+                calibrationVector = annotation['calibrationVectorList']
+                items = filter_azimuth_time(calibrationVector['calibrationVector'], start_utc_dt, stop_utc_dt)
+                calibrationVector = {'@count': len(items), 'calibrationVector': items}
+                calibration = calibration   | {'calibrationVectorList': calibrationVector}
+
+                with open(xml_calib_file, 'w') as file:
+                    file.write(xmltodict.unparse({'calibration': calibration}, pretty=True, indent='  '))
 
         # prepare authorized connection
         if session is None:
