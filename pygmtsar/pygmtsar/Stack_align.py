@@ -393,6 +393,8 @@ class Stack_align(Stack_dem):
                                             'subswath': lambda s: int(''.join(map(str,list(s)))),
                                             'datapath': lambda p: list(p),
                                             'metapath': lambda p: list(p),
+                                            'noisepath': lambda p: list(p),
+                                            'calibpath': lambda p: list(p),
                                             'orbitpath': 'min',
                                             'geometry': lambda g: g.unary_union
                                            })
