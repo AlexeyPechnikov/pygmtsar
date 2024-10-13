@@ -242,7 +242,8 @@ class ASF(tqdm_joblib):
         return scenes_downloaded
 
     # https://asf.alaska.edu/datasets/data-sets/derived-data-sets/sentinel-1-bursts/
-    def download_bursts(self, basedir, bursts, session=None, n_jobs=8, joblib_backend='loky', skip_exist=True, debug=False):
+    def download_bursts(self, basedir, bursts, session=None, n_jobs=8, joblib_backend='loky', skip_exist=True,
+                        retries=30, timeout_second=3, debug=False):
         """
         Downloads the specified bursts extracted from Sentinel-1 SLC scenes.
 
@@ -268,7 +269,6 @@ class ASF(tqdm_joblib):
         pandas.DataFrame
             A DataFrame containing the list of downloaded bursts.
         """
-        import numpy as np
         import rioxarray as rio
         from tifffile import TiffFile
         import xmltodict
@@ -458,9 +458,10 @@ class ASF(tqdm_joblib):
                 start_utc_dt = datetime.strptime(start_utc, '%Y-%m-%dT%H:%M:%S.%f')
                 #print ('start_utc', start_utc, start_utc_dt)
 
-                length = annotation['swathTiming']['linesPerBurst']
+                length = int(annotation['swathTiming']['linesPerBurst'])
+                #print (f'length={length}, burstIndex={burstIndex}')
                 azimuth_time_interval = annotation['imageAnnotation']['imageInformation']['azimuthTimeInterval']
-                burst_time_interval = timedelta(seconds=(int(length) - 1) * float(azimuth_time_interval))
+                burst_time_interval = timedelta(seconds=(length - 1) * float(azimuth_time_interval))
                 stop_utc_dt = start_utc_dt + burst_time_interval
                 stop_utc = stop_utc_dt.strftime('%Y-%m-%dT%H:%M:%S.%f')
                 #print ('stop_utc', stop_utc, stop_utc_dt)
@@ -513,7 +514,7 @@ class ASF(tqdm_joblib):
                 geolocationGrid = annotation['geolocationGrid']
                 items = filter_azimuth_time(geolocationGrid['geolocationGridPointList']['geolocationGridPoint'], start_utc_dt, stop_utc_dt, 1)
                 # re-numerate line numbers for the burst
-                for item in items: item['line'] = str(int(item['line']) - (int(length) * burstIndex))
+                for item in items: item['line'] = str(int(item['line']) - (length * burstIndex))
                 geolocationGrid['geolocationGridPointList'] = {'@count': len(items), 'geolocationGridPoint': items}
                 product = product   | {'geolocationGrid': geolocationGrid}
 
@@ -538,27 +539,24 @@ class ASF(tqdm_joblib):
 
                 noiseRangeVector = annotation['noiseRangeVectorList']
                 items = filter_azimuth_time(noiseRangeVector['noiseRangeVector'], start_utc_dt, stop_utc_dt)
+                # re-numerate line numbers for the burst
+                for item in items: item['line'] = str(int(item['line']) - (length * burstIndex))
                 noiseRangeVector = {'@count': len(items), 'noiseRangeVector': items}
                 noise = noise   | {'noiseRangeVectorList': noiseRangeVector}
 
                 noiseAzimuthVector = annotation['noiseAzimuthVectorList']
-                lines = noiseAzimuthVector['noiseAzimuthVector']['line']['#text']
-                lines = np.asarray(lines.split(' '), dtype=int)
-                lowers = lines[lines <= burstIndex * int(length)]
-                uppers = lines[lines >= (burstIndex + 1) * int(length) - 1]
-                assert len(lowers) & len(uppers), 'ERROR: Not found valid items in noiseAzimuthVectorList'
-                mask = (lines>=lowers[-1])&(lines<=uppers[0])
-                items = lines[mask].astype(str).tolist()
-                noiseAzimuthVector['noiseAzimuthVector']['firstAzimuthLine'] = lowers[-1]
-                noiseAzimuthVector['noiseAzimuthVector']['lastAzimuthLine'] = uppers[0]
-                noiseAzimuthVector['noiseAzimuthVector']['line'] = {'@count': len(items), '#text': ' '.join(items)}
-                lines = noiseAzimuthVector['noiseAzimuthVector']['noiseAzimuthLut']['#text']
-                lines = np.asarray(lines.split(' '))
-                items = lines[mask]
+                items = noiseAzimuthVector['noiseAzimuthVector']['line']['#text'].split(' ')
+                items = [int(item) for item in items]
+                lowers = [item for item in items if item <= burstIndex * length] or items[0]
+                uppers = [item for item in items if item >= (burstIndex + 1) * length - 1] or items[-1]
+                mask = [True if item>=lowers[-1] and item<=uppers[0] else False for item in items]
+                items = [item - burstIndex * length for item, m in zip(items, mask) if m]
+                noiseAzimuthVector['noiseAzimuthVector']['firstAzimuthLine'] = lowers[-1] - burstIndex * length
+                noiseAzimuthVector['noiseAzimuthVector']['lastAzimuthLine'] = uppers[0] - burstIndex * length
+                noiseAzimuthVector['noiseAzimuthVector']['line'] = {'@count': len(items), '#text': ' '.join([str(item) for item in items])}
+                items = noiseAzimuthVector['noiseAzimuthVector']['noiseAzimuthLut']['#text'].split(' ')
+                items = [item for item, m in zip(items, mask) if m]
                 noiseAzimuthVector['noiseAzimuthVector']['noiseAzimuthLut'] = {'@count': len(items), '#text': ' '.join(items)}
-                # noiseRangeVector = annotation['noiseRangeVectorList']
-                # items = filter_azimuth_time(noiseRangeVectorList['noiseRangeVector'], start_utc_dt, stop_utc_dt)
-                # noiseRangeVector = {'@count': len(items), 'noiseRangeVector': items}
                 noise = noise   | {'noiseAzimuthVectorList': noiseAzimuthVector}
 
                 with open(xml_noise_file, 'w') as file:
@@ -581,6 +579,8 @@ class ASF(tqdm_joblib):
 
                 calibrationVector = annotation['calibrationVectorList']
                 items = filter_azimuth_time(calibrationVector['calibrationVector'], start_utc_dt, stop_utc_dt)
+                # re-numerate line numbers for the burst
+                for item in items: item['line'] = str(int(item['line']) - (length * burstIndex))
                 calibrationVector = {'@count': len(items), 'calibrationVector': items}
                 calibration = calibration   | {'calibrationVectorList': calibrationVector}
 
@@ -599,7 +599,7 @@ class ASF(tqdm_joblib):
             print ('Note: sequential joblib processing is applied when "n_jobs" is None or "debug" is True.')
             joblib_backend = 'sequential'
 
-        def download_burst_with_retry(result, basedir, session, retries=30, timeout_second=3):
+        def download_burst_with_retry(result, basedir, session, retries, timeout_second):
             for retry in range(retries):
                 try:
                     download_burst(result, basedir, session)
@@ -613,7 +613,7 @@ class ASF(tqdm_joblib):
         # download bursts
         with self.tqdm_joblib(tqdm(desc='ASF Downloading Sentinel-1 Bursts', total=len(bursts_missed))) as progress_bar:
             statuses = joblib.Parallel(n_jobs=n_jobs, backend=joblib_backend)(joblib.delayed(download_burst_with_retry)\
-                                    (result, basedir, session) for result in results)
+                                    (result, basedir, session, retries=retries, timeout_second=timeout_second) for result in results)
 
         failed_count = statuses.count(False)
         if failed_count > 0:
