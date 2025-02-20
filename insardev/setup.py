@@ -41,7 +41,7 @@ setup(
     license='BSD-3-Clause',
     packages=['insardev'],
     include_package_data=True,
-    install_requires=['insardev_core',
+    install_requires=['insardev_toolkit',
                       'xarray',
                       'numpy',
                       'numba',

@@ -8,12 +8,11 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-
 from setuptools import setup
 import urllib.request
 
 def get_version():
-    with open("insardev_core/__init__.py", "r") as f:
+    with open("insardev_pygmtsar/__init__.py", "r") as f:
         for line in f:
             if line.startswith("__version__"):
                 version = line.split('=')[1]
@@ -30,43 +29,34 @@ response = urllib.request.urlopen(upstream_url)
 long_description = response.read().decode('utf-8')
 
 setup(
-    name='insardev_core',
+    name='insardev_pygmtsar',
     version=get_version(),
-    description='InSAR.dev (Python InSAR): Satellite Interferometry Development Framework',
+    description='InSAR.dev (Python InSAR): PyGMTSAR backend',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/AlexeyPechnikov/pygmtsar',
     author='Alexey Pechnikov',
     author_email='alexey@pechnikov.dev',
     license='BSD-3-Clause',
-    packages=['insardev_core'],
+    packages=['insardev_pygmtsar'],
     include_package_data=True,
-    install_requires=['xarray>=2024.1.0',
+    package_data={
+        'insardev_pygmtsar': ['data/geoid_egm96_icgem.grd','data/google_colab.sh'],
+    },
+    install_requires=['insardev_toolkit',
+                      'xarray',
                       'numpy',
-                      'numba',
                       'pandas>=2.2',
                       'geopandas',
                       'distributed>=2024.1.0',
                       'dask[complete]>=2024.4.1',
                       'opencv-python',
-                      'joblib',
-                      'tqdm',
-                      'ipywidgets',
                       'scipy',
                       'shapely>=2.0.2',
                       'xmltodict',
                       'rioxarray',
-                      'tifffile',
-                      'h5netcdf>=1.3.0',
-                      'netCDF4',
-                      'nc-time-axis',
-                      'remotezip',
-                      'asf_search',
-                      'matplotlib',
+                      'statsmodels>=0.14.0',
                       ],
-#    extras_require={
-#                      'vtk_support': ['vtk', 'panel']
-#    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
@@ -77,9 +67,7 @@ setup(
         'Operating System :: MacOS',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'Programming Language :: Python :: 3.13'
+        'Programming Language :: Python :: 3.11'
     ],
     python_requires='>=3.10',
     keywords='satellite interferometry, InSAR, remote sensing, geospatial analysis, Sentinel-1, SBAS, PSI'

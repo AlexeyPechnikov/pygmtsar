@@ -113,7 +113,7 @@ class S1(S1_topo):
             for rec in geometry.itertuples():
                 ax.annotate(getattr(rec, attrs['marker_label']), xy=(rec.geometry.x, rec.geometry.y), xytext=(3, 3), textcoords="offset points")
 
-    def plot_scenes(self, dem='auto', image=None, alpha=None, caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
+    def plot_bursts(self, dem='auto', image=None, alpha=None, caption='Estimated Scene Locations', cmap='turbo', aspect=None, **kwargs):
         import matplotlib.pyplot as plt
         import matplotlib
 

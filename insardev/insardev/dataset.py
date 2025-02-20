@@ -7,9 +7,12 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from insardev_core import datagrid, tqdm_dask
+from insardev_toolkit import datagrid, tqdm_dask
 
 class dataset(datagrid):
+
+    # redefine
+    netcdf_complevel = -1
 
     # work directory
     basedir = '.'
@@ -32,7 +35,6 @@ class dataset(datagrid):
 
         filename = os.path.join(basedir, f'{name}.nc')
         return filename
-
 
     def get_filenames(self, pairs, name, basedir='auto'):
         """
@@ -149,8 +151,8 @@ class dataset(datagrid):
             name = data.name
         elif name is None:
             raise ValueError('Specify name for the output NetCDF file')
-        self.save_cube(data, name, spatial_ref, caption, basedir)
-        return self.open_cube(name, basedir)
+        self.save_cube(data, name, spatial_ref, caption, basedir=basedir)
+        return self.open_cube(name, basedir=basedir)
 
     def save_cube(self, data, name=None, spatial_ref=None, caption='Saving NetCDF 2D/3D Dataset', basedir='auto'):
         """
@@ -232,6 +234,7 @@ class dataset(datagrid):
         delayed = self.spatial_ref(data, spatial_ref).to_netcdf(filename,
                                  engine=self.netcdf_engine_write,
                                  format=self.netcdf_format,
+                                 auto_complex=True,
                                  encoding=encoding,
                                  compute=not is_dask)
         if is_dask:
@@ -256,8 +259,8 @@ class dataset(datagrid):
         elif name is None:
             raise ValueError('Specify name for the output NetCDF files')
         self.delete_stack(name, basedir=basedir)
-        self.save_stack(data, name, spatial_ref, caption, basedir, queue, timeout)
-        return self.open_stack(name, basedir)
+        self.save_stack(data, name, spatial_ref, caption, basedir=basedir, queue=queue, timeout=timeout)
+        return self.open_stack(name, basedir=basedir)
 
     def open_stack(self, name, stack=None, basedir='auto'):
         """
@@ -322,7 +325,7 @@ class dataset(datagrid):
 
         for dim in ['pair', 'date']:
             #if dim in data.coords:
-            if dim in (data.data_vars if isinstance(data, xr.Dataset) else data.coords):
+            if dim in data.coords:
                 if data[dim].shape == () or 'stack' in data.dims:
                     if data[dim].shape == ():
                         data = data.assign_coords(pair=('stackvar', [data[dim].values]))
@@ -414,6 +417,7 @@ class dataset(datagrid):
                                          encoding=encoding,
                                          engine=self.netcdf_engine_write,
                                          format=self.netcdf_format,
+                                         auto_complex=True,
                                          compute=not is_dask)
             # process lazy chunk
             if is_dask:

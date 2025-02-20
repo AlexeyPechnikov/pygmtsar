@@ -315,27 +315,25 @@ class Stack_sbas(Stack_detrend):
             corrs.append(empty.assign_coords(pair=f'{ref.date()} {rep.date()}', ref=ref, rep=rep))
         return xr.concat(corrs, dim='pair')
 
-    def baseline_plot(self, pairs, caption='Baseline'):
-        print ('NOTE: this function is deprecated, use instead Stack.plot_baseline()')
-        self.plot_baseline(pairs, caption)
-        
     def plot_baseline(self, pairs, caption='Baseline'):
         import numpy as np
         import pandas as pd
         import seaborn as sns
         import adjustText
         import matplotlib.pyplot as plt
-
+    
         plt.figure()
-
+    
+        reference = pairs.loc[pairs.ref_baseline == 0, 'ref'].astype(str).iloc[0]
+    
         # plot dates/baselines marks
         df = pd.DataFrame(np.concatenate([pairs[['ref', 'ref_baseline']],
                                      pairs[['rep', 'rep_baseline']]]),
                     columns=['date', 'baseline']).drop_duplicates()
         sns.scatterplot(x='date', y='baseline', data=df, marker='o', color='b', s=40)
         # plot reference date on top
-        sns.scatterplot(x='date', y='baseline', data=df[df.date==self.reference], marker='o', color='r', s=40, zorder=1000)
-
+        sns.scatterplot(x='date', y='baseline', data=df[df.date==reference], marker='o', color='r', s=40, zorder=1000)
+    
         # plot pairs
         for _, row in pairs.iterrows():
             plt.plot([row['ref'], row['rep']], [row['ref_baseline'], row['rep_baseline']],
@@ -343,14 +341,14 @@ class Stack_sbas(Stack_detrend):
         # highlight the longest pair
         # for _, row in self.get_pairs(pairs).sort_values('duration', ascending=False).head(1).iterrows():
         #     plt.plot([row['ref'], row['rep']], [row['ref_baseline'], row['rep_baseline']], c='red', lw=1)
-
+    
         # Create annotations with adjust_text
         texts = []
         for x, y in df.values:
             texts.append(plt.text(x, y, str(x.date()), ha='center', va='bottom',
-                                  c='r' if str(x.date()) == self.reference else 'black'))
+                                  c='r' if str(x.date()) == reference else 'black'))
         adjustText.adjust_text(texts)
-
+    
         plt.xlabel('Timeline')
         plt.ylabel('Perpendicular Baseline, [m]')
         plt.title(caption)

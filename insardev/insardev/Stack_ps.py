@@ -8,7 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_stl import Stack_stl
-from insardev_core import tqdm_dask
+from insardev_toolkit import tqdm_dask
 
 class Stack_ps(Stack_stl):
 
@@ -91,8 +91,8 @@ class Stack_ps(Stack_stl):
 
         plt.figure()
         data.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         #plt.xlabel('Range')
         #plt.ylabel('Azimuth')
         plt.title(caption)

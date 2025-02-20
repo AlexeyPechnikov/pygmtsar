@@ -8,7 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_sbas import Stack_sbas
-from insardev_core import tqdm_dask
+from insardev_toolkit import tqdm_dask
 
 class Stack_incidence(Stack_sbas):
 
@@ -174,8 +174,8 @@ class Stack_incidence(Stack_sbas):
             data = self.incidence_angle()
 
         data.plot.imshow(cmap=cmap)
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         #plt.xlabel('Range')

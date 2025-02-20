@@ -8,7 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_ps import Stack_ps
-from insardev_core import tqdm_dask
+from insardev_toolkit import tqdm_dask
 
 class Stack_export(Stack_ps):
 

@@ -7,28 +7,10 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from insardev_core import tqdm_joblib, tqdm_dask
+from insardev_toolkit import tqdm_joblib, tqdm_dask
 from .dataset import dataset
 
 class Stack_base(tqdm_joblib, dataset):
-
-    def __repr__(self):
-        return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.df), self.df)
-
-    def to_dataframe(self):
-        """
-        Return a Pandas DataFrame for all Stack scenes.
-
-        Returns
-        -------
-        pandas.DataFrame
-            The DataFrame containing Stack scenes.
-
-        Examples
-        --------
-        df = stack.to_dataframe()
-        """
-        return self.df
 
     def get_pairs(self, pairs, dates=False):
         """

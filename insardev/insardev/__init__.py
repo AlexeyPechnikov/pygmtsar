@@ -7,7 +7,7 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-__version__ = '2025.2.18'
+__version__ = '2025.2.20.dev'
 
 # processing functions
 from .Stack import Stack

@@ -38,16 +38,16 @@ class S1_gmtsar(S1_prm):
             df = self.get_reference(burst)
         else:
             df = self.get_repeat(burst, date)
-        print ('df', df)
+        #print ('df', df)
 
         prefix = self.get_prefix(burst, date)
-        print ('prefix', prefix)
+        #print ('prefix', prefix)
         if os.path.dirname(prefix) == '':
             basedir = self.basedir
         else:
             basedir = os.path.join(self.basedir, os.path.dirname(prefix))
             prefix = os.path.basename(prefix)
-        print ('basedir', basedir)
+        #print ('basedir', basedir)
 
         path = df['path'].iloc[0]
         orbit = df['orbit'].iloc[0]

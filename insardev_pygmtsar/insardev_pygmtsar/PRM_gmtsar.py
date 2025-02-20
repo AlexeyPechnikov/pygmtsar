@@ -7,7 +7,6 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-
 class PRM_gmtsar:
 
     def calc_dop_orb(self, earth_radius=0, doppler_centroid=0, inplace=False, debug=False):
@@ -34,7 +33,7 @@ class PRM_gmtsar:
         """
         import subprocess
         import os
-        from pygmtsar import PRM
+        from .PRM import PRM
         
         cwd = os.path.dirname(self.filename) if self.filename is not None else '.'
         p = subprocess.Popen(['calc_dop_orb', '/dev/stdin', '/dev/stdout', str(earth_radius), str(doppler_centroid)],
@@ -75,7 +74,7 @@ class PRM_gmtsar:
         """
         import os
         import subprocess
-        from pygmtsar import PRM
+        from .PRM import PRM
 
         if not isinstance(other, PRM):
             raise Exception('Argument "other" should be PRM class instance')

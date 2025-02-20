@@ -48,7 +48,7 @@ class datagrid:
     netcdf_chunksize = 512
     netcdf_chunksize1d = 65536
     netcdf_compression_algorithm = 'zlib'
-    netcdf_complevel = 1
+    netcdf_complevel = 3
     netcdf_shuffle = True
     netcdf_queue = 16
 

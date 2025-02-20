@@ -7,7 +7,7 @@
 # 
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
-from insardev_core import tqdm_joblib, tqdm_dask
+from insardev_toolkit import tqdm_joblib, tqdm_dask
 from .dataset import dataset
 
 class S1_base(tqdm_joblib, dataset):

@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------------
 from .S1_tidal import S1_tidal
 from .PRM import PRM
-from insardev_core import tqdm_dask
+from insardev_toolkit import tqdm_dask
 
 class S1_dem(S1_tidal):
 
@@ -52,7 +52,7 @@ class S1_dem(S1_tidal):
         import os
         import importlib.resources as resources
 
-        with resources.as_file(resources.files('pygmtsar.data') / 'geoid_egm96_icgem.grd') as geoid_filename:
+        with resources.as_file(resources.files('insardev_pygmtsar.data') / 'geoid_egm96_icgem.grd') as geoid_filename:
             geoid = xr.open_dataarray(geoid_filename, engine=self.netcdf_engine_read, chunks=self.netcdf_chunksize).rename({'y': 'lat', 'x': 'lon'})
         if grid is not None:
             return self.interp2d_like(geoid, grid)

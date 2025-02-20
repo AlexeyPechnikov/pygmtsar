@@ -8,48 +8,28 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .S1_align import S1_align
-from insardev_core import tqdm_dask
+from insardev_toolkit import tqdm_dask
 
 class S1_geocode(S1_align):
 
     def compute_geocode(self, dem='auto', resolution=(15, 5), coarsen='auto', epsg='auto'):
-        """
-        Build topography in radar coordinates from WGS84 DEM using parallel computation.
-
-        Parameters
-        ----------
-        interactive : bool, optional
-            If True, the computation will be performed interactively and the results will be returned as delayed objects.
-            If False, the progress will be displayed using tqdm_dask. Default is False.
-
-        Returns
-        -------
-        handler or list of handlers
-            The handler(s) of the delayed computation if 'interactive' is True. Otherwise, None.
-
-        Examples
-        --------
-        stack.topo()
-
-        Notes
-        -----
-        This method performs the parallel computation of topography in the radar coordinates using Dask.
-        If 'interactive' is True, the delayed computation handlers will be returned.
-        Otherwise, the progress will be displayed using tqdm_dask.
-        """
         import warnings
         # suppress Dask warning "RuntimeWarning: All-NaN slice encountered"
         warnings.filterwarnings('ignore')
         warnings.filterwarnings('ignore', module='dask')
         warnings.filterwarnings('ignore', module='dask.core')
 
-        self.compute_trans(burst, dem=dem, resolution=resolution, coarsen=coarsen, epsg=epsg)
-        # do not save the grid
-        #trans_inv = self.compute_trans_inv(interactive=True)
-        #topo = self.get_topo(trans_inv)
-        # save the grid (4 times faster)
-        self.compute_trans_inv(burst)
-        self.compute_trans_slc(burst)
+        # TODO
+        bursts = self.df.index.get_level_values(0).unique()
+        for burst in bursts:
+            self.compute_trans(burst, dem=dem, resolution=resolution, coarsen=coarsen, epsg=epsg)
+            # do not save the grid
+            #trans_inv = self.compute_trans_inv(burst, interactive=True)
+            #topo = self.get_topo(burst, trans_inv)
+            #self.compute_trans_slc(burst, topo=topo)
+            # save the grid (2 times faster)
+            self.compute_trans_inv(burst)
+            self.compute_trans_slc(burst)
 
     def baseline_table(self, burst, dates=None):
         """

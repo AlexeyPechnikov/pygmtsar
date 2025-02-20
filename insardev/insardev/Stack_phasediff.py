@@ -8,7 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_base import Stack_base
-from insardev_core import tqdm_dask
+from insardev_toolkit import tqdm_dask
 
 class Stack_phasediff(Stack_base):
 
@@ -392,8 +392,8 @@ class Stack_phasediff(Stack_base):
 
         plt.figure()
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap=cmap)
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
@@ -429,8 +429,8 @@ class Stack_phasediff(Stack_base):
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         
-        self.plots_AOI(fg, **kwargs)
-        self.plots_POI(fg, **kwargs)
+        #self.plots_AOI(fg, **kwargs)
+        #self.plots_POI(fg, **kwargs)
 
     def plot_interferogram(self, data, caption='Phase, [rad]', cmap='gist_rainbow_r', aspect=None, **kwargs):
         import numpy as np
@@ -443,8 +443,8 @@ class Stack_phasediff(Stack_base):
         plt.figure()
         self.wrap(self.interferogram(data) if np.issubdtype(data.dtype, np.complexfloating) else data)\
             .plot.imshow(vmin=-np.pi, vmax=np.pi, cmap=cmap)
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
@@ -468,8 +468,8 @@ class Stack_phasediff(Stack_base):
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         
-        self.plots_AOI(fg, **kwargs)
-        self.plots_POI(fg, **kwargs)
+        #self.plots_AOI(fg, **kwargs)
+        #self.plots_POI(fg, **kwargs)
 
     def plot_correlation(self, data, caption='Correlation', cmap='gray', aspect=None, **kwargs):
         import pandas as pd
@@ -480,8 +480,8 @@ class Stack_phasediff(Stack_base):
 
         plt.figure()
         data.plot.imshow(vmin=0, vmax=1, cmap=cmap)
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
@@ -510,8 +510,8 @@ class Stack_phasediff(Stack_base):
         fg.set_ticks(max_xticks=nbins, max_yticks=nbins)
         fg.fig.suptitle(caption, y=y)
         
-        self.plots_AOI(fg, **kwargs)
-        self.plots_POI(fg, **kwargs)
+        #self.plots_AOI(fg, **kwargs)
+        #self.plots_POI(fg, **kwargs)
 
     def plot_correlation_stack(self, data, threshold=None, caption='Correlation Stack', bins=100, cmap='auto', **kwargs):
         import numpy as np
@@ -554,7 +554,7 @@ class Stack_phasediff(Stack_base):
         else:
             data.where(data).plot.imshow(cmap=cmap, vmin=0, vmax=1, ax=axs[1])
         axs[0].legend()
-        self.plot_AOI(ax=axs[1], **kwargs)
-        self.plot_POI(ax=axs[1], **kwargs)
+        #self.plot_AOI(ax=axs[1], **kwargs)
+        #self.plot_POI(ax=axs[1], **kwargs)
         plt.suptitle(caption)
         plt.tight_layout()

@@ -1130,8 +1130,8 @@ class Stack_detrend(Stack_unwrap):
     
         plt.figure()
         data.plot.imshow(vmin=vmin, vmax=vmax, alpha=alpha, cmap='turbo')
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         #plt.xlabel('Range')

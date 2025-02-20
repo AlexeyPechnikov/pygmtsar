@@ -8,7 +8,7 @@
 # Licensed under the BSD 3-Clause License (see LICENSE for details)
 # ----------------------------------------------------------------------------
 from .Stack_incidence import Stack_incidence
-from insardev_core import tqdm_dask
+from insardev_toolkit import tqdm_dask
 
 class Stack_lstsq(Stack_incidence):
 
@@ -379,8 +379,8 @@ class Stack_lstsq(Stack_incidence):
 
         plt.figure()
         data.plot.imshow(vmin=vmin, vmax=vmax, cmap=cmap)
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         if aspect is not None:
             plt.gca().set_aspect(aspect)
         plt.title(caption)
@@ -460,8 +460,8 @@ class Stack_lstsq(Stack_incidence):
 
         plt.figure()
         data.plot.imshow(cmap=cmap, vmin=vmin, vmax=vmax)
-        self.plot_AOI(**kwargs)
-        self.plot_POI(**kwargs)
+        #self.plot_AOI(**kwargs)
+        #self.plot_POI(**kwargs)
         plt.title(caption)
 
     def plot_rmse_los_mm(self, data, caption='RMSE, [mm]', cmap='turbo',
