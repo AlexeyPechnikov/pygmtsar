@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
-# PyGMTSAR
+# InSAR.dev
 # 
-# This file is part of the PyGMTSAR project: https://github.com/mobigroup/gmtsar
+# This file is part of the InSAR.dev project: https://InSAR.dev
 # 
 # Copyright (c) 2025, Alexey Pechnikov
 # 
@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------------
 __version__ = '2025.2.18'
 
-# radar parameters management
-from .PRM import PRM
-# Sentinel-1 processing
-from .S1 import S1
+# processing functions
+from .Stack import Stack
+# morphology and other helper functions
+from .utils import utils
