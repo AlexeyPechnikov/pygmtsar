@@ -1,5 +1,7 @@
 ## Publications that Cite PyGMTSAR
 
+### PyGMTSAR Publications [Aug 2025]
+
 Have you published a paper or released a publicly accessible project that **explicitly cites PyGMTSAR**? I welcome peer-reviewed articles, conference papers, theses, preprints, and industry case studies.
 
 Celik, F., Sanli, F.B., Celik, K., & Celik, A. (2025). Kurtun Dam oscillate characterization with landslide possible effect detection using InSAR observations. Natural Hazards, 121(14), 16747–16763. https://doi.org/10.1007/s11069-025-07447-1 https://link.springer.com/content/pdf/10.1007/s11069-025-07447-1.pdf [Direct PDF]
@@ -19,3 +21,21 @@ Alfayyadh, M.R.N. (2024). *Pemanfaatan Citra Sentinel-1 Berbasis Python untuk Ka
 International Symposium on Geoinformatics for Spatial-Infrastructure Development in Earth & Allied Sciences (GIS-IDEAS 2024). (2024). E-Proceedings. University of Phayao, Chiang Rai, Thailand, 11–13 Dec 2024. https://gis-ideas.org/2024/GIS_IDEAS_e_proceedings.pdf [Direct PDF]
  • “Processing and analysing multi-source, multi-resolution geospatial data on cloud platforms for some environmental and disaster applications. Landslide monitoring in Van Yen, Yen Bai, Vietnam by PyGMTSAR on Google Colab” (pp. 140–146).
  • “Investigating land subsidence by processing multi-temporal SAR time series on Google Colab: case study in Ca Mau City, Vietnam” (pp. 69-78).
+
+### PyGMTSAR Publications Update [Aug 2026]
+
+Bhattacharya, S., & Kumar, S. (2025). Spatio-Temporal analysis of the Volcanic Eruption Zone using SAR Interferometric Technique. ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences, X-5/W2-2025, 59–64. https://doi.org/10.5194/isprs-annals-X-5-W2-2025-59-2025 https://isprs-annals.copernicus.org/articles/X-5-W2-2025/59/2025/isprs-annals-X-5-W2-2025-59-2025.pdf [Direct PDF]
+
+Gedik, Y., Özcan, O., Özmen, M., et al. (2025). Assessment of building damage from the 2020 Sivrice earthquake using a satellite based rapid seismic screening method. Scientific Reports, 15(1), 37277. https://doi.org/10.1038/s41598-025-21320-y https://www.nature.com/articles/s41598-025-21320-y.pdf [Direct PDF]
+
+Ha, T., Tran, V., Pham, Q., Luong, N., et al. (2025). Integrating SBAS-InSAR and Artificial Intelligence for Land Subsidence Monitoring in Ca Mau, Vietnam. Inżynieria Mineralna, 1(2). https://doi.org/10.29227/im-2025-02-10 https://inz-min.online/index.php/im/article/download/1321/2499 [Direct PDF]
+
+Hrysiewicz, A., & Holohan, E. (2026). EZ-InSAR-3: An open-source environment for interferometric synthetic aperture radar data processing in Python. Earth Science Informatics, 19(6). https://doi.org/10.1007/s12145-026-02115-9 https://link.springer.com/content/pdf/10.1007/s12145-026-02115-9.pdf [Direct PDF]
+
+Kumar, A., Malviya, A., & Singh, G. (2026). Multi-sensor-based rock glacier detection over Sikkim Himalaya. iScience, 29(6), 115983. https://doi.org/10.1016/j.isci.2026.115983 https://europepmc.org/articles/PMC13267576 [Full text (HTML)]
+
+Mitra, S., Maurya, V. K., & Dwivedi, R. (2024). Interferometric Analysis of Ground Deformation and Seismic Activity Associated with 2017 Ischia Earthquake. *2024 IEEE India Geoscience and Remote Sensing Symposium (InGARSS)*, 1–4. https://doi.org/10.1109/InGARSS61818.2024.10984195 https://ieeexplore.ieee.org/document/10984195 [Abstract (full text paywalled)]
+
+Ranaldi, L., Belloni, V., Nascetti, A., & Crespi, M. (2026). A novel approach for water level changes with SAR amplitude data: first results using Sentinel-1 imagery on Trasimeno Lake, Italy. *EGU General Assembly 2026*, Vienna, Austria, 3–8 May 2026, EGU26-21316. https://doi.org/10.5194/egusphere-egu26-21316 https://meetingorganizer.copernicus.org/EGU26/EGU26-21316.html [Full abstract]
+
+Sanan, M. (2026). *Earth Observation for Tracking Surface Dynamics* (Master's dissertation, MSc in Geospatial Technologies, NOVA Information Management School, Universidade Nova de Lisboa / Universitat Jaume I / Universität Münster). https://run.unl.pt/bitstreams/f8755ffb-c97e-43e5-a5a9-1ee6f4beb6a4/download [Direct PDF]
